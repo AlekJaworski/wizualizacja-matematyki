@@ -10,10 +10,11 @@ import { panelStyle, ansBtn } from "../../styles/tokens.js";
  * Presents a multiple-choice question, reveals the answer, and
  * calls onAnswer(true|false) to update the belief state.
  */
-export function QuizPanel({ nodeId, nodes, onAnswer, onSkip, lang }) {
+export function QuizPanel({ nodeId, nodes, onAnswer, onSkip, lang, excludeIndices = [] }) {
   const node  = nodes.find(n => n.id === nodeId);
   // Pick once per nodeId mount — re-rolls when a different node is opened
-  const q     = useMemo(() => getQuestion(nodeId), [nodeId]);
+  // Pass excludeIndices to avoid repeating questions
+  const q     = useMemo(() => getQuestion(nodeId, excludeIndices), [nodeId, excludeIndices]);
   const color = SCOPE_COLORS[node?.scope] || "#4a9eff";
   const lbl   = node ? (lang === "pl" ? node.labelPl : node.label) : nodeId;
 
@@ -23,7 +24,8 @@ export function QuizPanel({ nodeId, nodes, onAnswer, onSkip, lang }) {
   const submit  = () => { if (picked !== null) setRevealed(true); };
   const confirm = () => {
     // Pass the full question object so deep-dive mode can use the `tests` field
-    onAnswer(picked === q.correct, q);
+    // Also pass the question index to track as answered
+    onAnswer(picked === q.correct, q, q.index);
     setPicked(null);
     setRevealed(false);
   };

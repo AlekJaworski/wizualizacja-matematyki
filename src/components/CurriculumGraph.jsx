@@ -20,6 +20,7 @@ import { DeepDivePanel }       from "./panels/DeepDivePanel.jsx";
 import { FilterBar }           from "./ui/FilterBar.jsx";
 import { Legend }              from "./ui/Legend.jsx";
 import { GoalSelectionModal }  from "./ui/GoalSelectionModal.jsx";
+import { DiagnosticModeModal } from "./ui/DiagnosticModeModal.jsx";
 
 const DEFAULT_VIEW = { x: 40, y: 40, scale: 0.72 };
 
@@ -37,6 +38,7 @@ export default function CurriculumGraph() {
 
   // ── Goal selection modal (for deep-dive) ────────────────────────
   const [showGoalModal, setShowGoalModal] = useState(false);
+  const [showModePicker, setShowModePicker] = useState(false);
 
   const toggleScope   = useCallback(k => setFilterScope(prev => {
     const next = new Set(prev); next.has(k) ? next.delete(k) : next.add(k); return next;
@@ -76,6 +78,7 @@ export default function CurriculumGraph() {
     mode,
     quizNode, setQuizNode,
     questionsAnswered,
+    getAnsweredIndices,
     handleDiagClick,
     handleQuizAnswer,
     resetDiagnostic,
@@ -176,16 +179,26 @@ export default function CurriculumGraph() {
   // ── Diagnostic button handler ────────────────────────────────────
   const handleDiagnosticToggle = useCallback(() => {
     if (diagMode) {
-      // Turn off
       setDiagMode(false);
       resetDiagnostic();
       setSelected(null);
     } else {
-      // Turn on — show mode picker or go straight to quick mode
-      setDiagMode(true);
-      setSelected(null);
+      setShowModePicker(true);
     }
   }, [diagMode, setDiagMode, resetDiagnostic]);
+
+  const handleModeSelect = useCallback((mode) => {
+    setShowModePicker(false);
+    resetDiagnostic(); // Reset all diagnostic state including answered questions
+    if (mode === "deepdive") {
+      setDiagMode(true);
+      setShowGoalModal(true);
+    } else {
+      setDiagMode(true);
+      setMode("quick");
+      setSelected(null);
+    }
+  }, [setDiagMode, setMode, resetDiagnostic]);
 
   // ── Node belief colour for deep-dive ────────────────────────────
   // Build a belief-like map from ddClassification so NodeLayer can colour nodes
@@ -351,7 +364,8 @@ export default function CurriculumGraph() {
         {diagMode && quizNode && (
           <QuizPanel
             nodeId={quizNode} nodes={nodes} lang={lang}
-            onAnswer={(correct, question) => handleQuizAnswer(quizNode, correct, question)}
+            excludeIndices={getAnsweredIndices(quizNode)}
+            onAnswer={(correct, question, questionIndex) => handleQuizAnswer(quizNode, correct, question, questionIndex)}
             onSkip={() => setQuizNode(null)}
           />
         )}
@@ -421,6 +435,13 @@ export default function CurriculumGraph() {
           onClose={() => setShowGoalModal(false)}
         />
       )}
+
+      {/* Mode picker modal (Quick vs Deep-Dive) */}
+      <DiagnosticModeModal
+        isOpen={showModePicker}
+        onSelect={handleModeSelect}
+        onClose={() => setShowModePicker(false)}
+      />
     </div>
   );
 }

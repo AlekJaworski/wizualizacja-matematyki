@@ -35,6 +35,10 @@ export function useDiagnostic(adjacency) {
   // Track quiz answers for P(correct) estimation and question count
   const [stats, setStats] = useState({ correct: 0, incorrect: 0, questionsAnswered: 0 });
 
+  // Track which questions have been answered in this session to avoid repeats
+  // Set of strings: "nodeId:questionIndex"
+  const [answeredQuestions, setAnsweredQuestions] = useState(new Set());
+
   // Deep-dive: Beta beliefs per node { nodeId: { alpha, beta } }
   const [betaBeliefs, setBetaBeliefs] = useState({});
 
@@ -127,7 +131,7 @@ export function useDiagnostic(adjacency) {
     return true;
   }, [diagMode, mode, belief, adjacency, subgraphIds, ddClassification]);
 
-  const handleQuizAnswer = useCallback((id, correct, question) => {
+  const handleQuizAnswer = useCallback((id, correct, question, questionIndex) => {
     if (mode === "deepdive") {
       // Update Beta beliefs using question's tests map
       const tests = question?.tests ?? { [id]: 1.0 };
@@ -141,6 +145,11 @@ export function useDiagnostic(adjacency) {
       );
     }
 
+    // Track answered question to avoid repeats
+    if (typeof questionIndex === "number") {
+      setAnsweredQuestions(prev => new Set([...prev, `${id}:${questionIndex}`]));
+    }
+
     setStats(prev => ({
       correct: prev.correct + (correct ? 1 : 0),
       incorrect: prev.incorrect + (correct ? 0 : 1),
@@ -151,11 +160,13 @@ export function useDiagnostic(adjacency) {
   }, [mode, adjacency]);
 
   const resetDiagnostic = useCallback(() => {
+    setMode("quick");
     setBelief({});
     setBetaBeliefs({});
     setQuizNode(null);
     setTargetNode(null);
     setStats({ correct: 0, incorrect: 0, questionsAnswered: 0 });
+    setAnsweredQuestions(new Set());
   }, []);
 
   /**
@@ -169,6 +180,7 @@ export function useDiagnostic(adjacency) {
     setBelief({});
     setQuizNode(null);
     setStats({ correct: 0, incorrect: 0, questionsAnswered: 0 });
+    setAnsweredQuestions(new Set());
     setDiagMode(true);
   }, []);
 
@@ -178,6 +190,15 @@ export function useDiagnostic(adjacency) {
     mode, setMode,
     quizNode, setQuizNode,
     questionsAnswered,
+    answeredQuestions,
+    getAnsweredIndices: (nodeId) => {
+      const indices = [];
+      answeredQuestions.forEach((key) => {
+        const [nid, idx] = key.split(":");
+        if (nid === nodeId) indices.push(parseInt(idx, 10));
+      });
+      return indices;
+    },
     handleDiagClick,
     handleQuizAnswer,
     resetDiagnostic,

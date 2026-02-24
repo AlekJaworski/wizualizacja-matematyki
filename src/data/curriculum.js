@@ -157,10 +157,20 @@ export const QUESTION_BANK = (() => {
 /**
  * Pick a random question for a node, or null if none exist.
  * @param {string} nodeId
- * @returns {{ q:string, options:string[], correct:number, hint:string } | null}
+ * @param {number[]=} excludeIndices - question indices to exclude (already answered)
+ * @returns {{ q:string, options:string[], correct:number, hint:string, index:number } | null}
  */
-export function getQuestion(nodeId) {
+export function getQuestion(nodeId, excludeIndices = []) {
   const qs = QUESTION_BANK[nodeId];
   if (!qs || qs.length === 0) return null;
-  return qs[Math.floor(Math.random() * qs.length)];
+
+  // Filter out already-answered questions
+  const available = qs
+    .map((q, i) => ({ q, i }))
+    .filter(({ i }) => !excludeIndices.includes(i));
+
+  if (available.length === 0) return null;
+
+  const picked = available[Math.floor(Math.random() * available.length)];
+  return { ...picked.q, index: picked.i };
 }
