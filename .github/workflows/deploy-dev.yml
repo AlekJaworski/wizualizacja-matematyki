@@ -1,0 +1,51 @@
+name: Deploy Dev to GitHub Pages
+
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Enable Corepack (Yarn)
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build (dev base path)
+        run: yarn build
+        env:
+          VITE_BASE: /wizualizacja-matematyki/dev/
+
+      - name: Deploy to /dev/ subfolder on gh-pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git fetch origin gh-pages
+          git worktree add /tmp/gh-pages origin/gh-pages
+
+          rm -rf /tmp/gh-pages/dev
+          mkdir -p /tmp/gh-pages/dev
+          cp -r dist/. /tmp/gh-pages/dev/
+          touch /tmp/gh-pages/dev/.nojekyll
+
+          cd /tmp/gh-pages
+          git add dev/
+          git diff --cached --quiet && echo "No changes" && exit 0
+          git commit -m "Deploy dev build [$(date -u '+%Y-%m-%d %H:%M UTC')]"
+          git push origin gh-pages

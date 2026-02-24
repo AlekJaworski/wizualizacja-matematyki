@@ -6,19 +6,15 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: true
+  contents: write
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -32,19 +28,40 @@ jobs:
 
       - name: Build
         run: yarn build
+        env:
+          VITE_BASE: /wizualizacja-matematyki/
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
+      - name: Deploy to gh-pages (preserve /dev/ subfolder)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          git fetch origin gh-pages
+          git worktree add /tmp/gh-pages origin/gh-pages
+
+          # Preserve /dev/ subfolder
+          if [ -d /tmp/gh-pages/dev ]; then
+            cp -r /tmp/gh-pages/dev /tmp/dev-backup
+          fi
+
+          # Replace root content, keep /dev/
+          find /tmp/gh-pages -maxdepth 1 \
+            ! -path /tmp/gh-pages \
+            ! -path /tmp/gh-pages/.git \
+            ! -path /tmp/gh-pages/dev \
+            -exec rm -rf {} +
+
+          cp -r dist/. /tmp/gh-pages/
+          touch /tmp/gh-pages/.nojekyll
+
+          # Restore /dev/ if it existed
+          if [ -d /tmp/dev-backup ]; then
+            mkdir -p /tmp/gh-pages/dev
+            cp -r /tmp/dev-backup/. /tmp/gh-pages/dev/
+          fi
+
+          cd /tmp/gh-pages
+          git add -A
+          git diff --cached --quiet && echo "No changes" && exit 0
+          git commit -m "Deploy main build [$(date -u '+%Y-%m-%d %H:%M UTC')]"
+          git push origin gh-pages
