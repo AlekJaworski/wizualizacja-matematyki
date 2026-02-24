@@ -5,6 +5,7 @@ import {
   computeFrontier,
   pickNextQuestion,
   isSessionComplete,
+  estimateRemainingQuestions,
 } from "../engine/belief.js";
 import { RAW_NODES } from "../data/curriculum.js";
 
@@ -28,6 +29,9 @@ export function useDiagnostic(adjacency) {
   const [belief,   setBelief]   = useState({});
   const [quizNode, setQuizNode] = useState(null);
 
+  // Track quiz answers for P(correct) estimation and question count
+  const [stats, setStats] = useState({ correct: 0, incorrect: 0, questionsAnswered: 0 });
+
   // ── Derived state (all pure, recomputed on belief change) ────────
 
   const frontier = useMemo(
@@ -42,11 +46,17 @@ export function useDiagnostic(adjacency) {
   // Frontier is only surfaced in the UI after the first classification.
   const visibleFrontier = hasStarted ? frontier : [];
 
-  // Best next question: highest-degree unclassified node in the pruned DAG.
-  // null means the active DAG is fully resolved → session complete.
+  // Best next question using ERV (Expected Resolution Value).
+  // Uses Bayesian P(correct) to weight expected nodes resolved by correct vs incorrect answer.
   const nextSuggestedId = useMemo(
-    () => diagMode ? pickNextQuestion(RAW_NODES, belief, adjacency) : null,
-    [diagMode, belief, adjacency]
+    () => diagMode ? pickNextQuestion(RAW_NODES, belief, adjacency, pCorrect) : null,
+    [diagMode, belief, adjacency, pCorrect]
+  );
+
+  // Estimate expected questions remaining
+  const expectedRemaining = useMemo(
+    () => diagMode ? estimateRemainingQuestions(RAW_NODES, belief, adjacency, pCorrect) : null,
+    [diagMode, belief, adjacency, pCorrect]
   );
 
   // Session is complete when all nodes are classified (no unclassified remain).
@@ -54,6 +64,16 @@ export function useDiagnostic(adjacency) {
     () => diagMode && hasStarted && isSessionComplete(RAW_NODES, belief),
     [diagMode, hasStarted, belief]
   );
+
+  // Bayesian P(correct): starts at 0.5 (prior), updates after each answer.
+  // P = (correct + 0.5) / (total + 1)
+  const pCorrect = useMemo(() => {
+    const total = stats.correct + stats.incorrect;
+    if (total === 0) return 0.5; // Prior
+    return (stats.correct + 0.5) / (total + 1);
+  }, [stats]);
+
+  const questionsAnswered = stats.questionsAnswered;
 
   // ── Handlers ─────────────────────────────────────────────────────
 
@@ -85,11 +105,20 @@ export function useDiagnostic(adjacency) {
   }, [diagMode, belief, adjacency]);
 
   const handleQuizAnswer = useCallback((id, correct) => {
+    // Update belief based on answer
     setBelief(prev =>
       correct
         ? propagateKnown(id, prev, adjacency)
         : propagateUnknown(id, prev, adjacency)
     );
+
+    // Update stats for P(correct) estimation
+    setStats(prev => ({
+      correct: prev.correct + (correct ? 1 : 0),
+      incorrect: prev.incorrect + (correct ? 0 : 1),
+      questionsAnswered: prev.questionsAnswered + 1,
+    }));
+
     // Auto-advance: the next quiz node is driven by the parent via nextSuggestedId.
     // We close the current quiz; CurriculumGraph will re-open with the suggestion
     // after a short delay so the student sees the result first.
@@ -109,6 +138,9 @@ export function useDiagnostic(adjacency) {
     visibleFrontier,
     hasStarted,
     nextSuggestedId,
+    expectedRemaining,
+    pCorrect,
+    questionsAnswered,
     sessionComplete,
     handleDiagClick,
     handleQuizAnswer,

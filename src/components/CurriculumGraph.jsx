@@ -71,6 +71,8 @@ export default function CurriculumGraph() {
     belief, quizNode, setQuizNode,
     frontier, visibleFrontier, hasStarted,
     nextSuggestedId,
+    expectedRemaining,
+    pCorrect,
     sessionComplete,
     handleDiagClick,
     handleQuizAnswer,
@@ -272,6 +274,8 @@ export default function CurriculumGraph() {
             belief={belief} frontier={frontier} visibleFrontier={visibleFrontier}
             hasStarted={hasStarted} nextSuggestedId={nextSuggestedId}
             sessionComplete={sessionComplete} adjacency={adjacency}
+            expectedRemaining={expectedRemaining} pCorrect={pCorrect}
+            questionsAnswered={questionsAnswered}
             nodes={nodes} lang={lang}
             onNodeClick={id => setQuizNode(id)} onReset={resetDiagnostic}
           />

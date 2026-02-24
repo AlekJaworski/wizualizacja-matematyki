@@ -70,31 +70,26 @@ export function computeFrontier(nodes, belief, adjacency) {
 }
 
 /**
- * Pick the most informative next question from the active (pruned) DAG.
+ * Pick the most informative next question using Expected Resolution Value (ERV).
  *
- * Active DAG = full graph minus all unknown nodes and their descendants
- * (descendants are already marked unknown by propagateUnknown).
+ * ERV = P(correct) × ancestors_resolved + P(incorrect) × descendants_resolved
  *
- * Scoring: degree within the pruned graph only.
- *   - prereq edges to unknown nodes don't count (those nodes are gone)
- *   - dependent edges to unknown nodes don't count
- * A high-degree node, when answered:
- *   - Correct  → propagateKnown marks all ancestors known (big upward sweep)
- *   - Incorrect → propagateUnknown removes it and all descendants from the DAG
- * Either way, one answer resolves the maximum number of remaining nodes.
+ * Where:
+ *   - ancestors_resolved = unclassified ancestors that would become "known" if correct
+ *   - descendants_resolved = unclassified descendants that would become "unknown" if incorrect
  *
- * Returns null when the active DAG is fully classified (session complete).
+ * P(correct) is estimated via Bayesian update: (correct + 0.5) / (total + 1)
+ * A wrong answer on a high-degree root node is very valuable (removes many nodes).
+ * A correct answer on a leaf node removes few nodes.
  *
  * @param {Array<{id:string}>} nodes
  * @param {Record<string,"known"|"unknown">} belief
  * @param {{ prereqs: Record<string,string[]>, dependents: Record<string,string[]> }} adjacency
+ * @param {number} pCorrect - Bayesian P(correct) estimate
  * @returns {string|null}
  */
-export function pickNextQuestion(nodes, belief, adjacency) {
-  // Active DAG: nodes that are not unknown (includes known + unclassified)
-  const activeIds = new Set(
-    nodes.filter(n => belief[n.id] !== "unknown").map(n => n.id)
-  );
+export function pickNextQuestion(nodes, belief, adjacency, pCorrect = 0.5) {
+  const pIncorrect = 1 - pCorrect;
 
   // Candidates: unclassified nodes within the active DAG
   const candidates = nodes.filter(
@@ -103,15 +98,124 @@ export function pickNextQuestion(nodes, belief, adjacency) {
 
   if (candidates.length === 0) return null;
 
-  // Degree within pruned graph: only count edges to other active nodes
+  // For each candidate, compute ERV
   const scored = candidates.map(n => {
-    const prereqDeg   = (adjacency.prereqs[n.id]   ?? []).filter(p => activeIds.has(p)).length;
-    const dependDeg   = (adjacency.dependents[n.id] ?? []).filter(d => activeIds.has(d)).length;
-    return { id: n.id, score: prereqDeg + dependDeg };
+    // Count unclassified ancestors that would become known if correct
+    const ancestorsToReveal = countAncestorsToReveal(n.id, belief, adjacency);
+
+    // Count unclassified descendants that would become unknown if incorrect
+    const descendantsToReveal = countDescendantsToReveal(n.id, belief, adjacency);
+
+    // ERV = P(correct) × ancestors + P(incorrect) × descendants
+    const erv = pCorrect * ancestorsToReveal + pIncorrect * descendantsToReveal;
+
+    return { id: n.id, erv, ancestorsToReveal, descendantsToReveal };
   });
 
-  scored.sort((a, b) => b.score - a.score);
+  // Sort by ERV descending (highest expected resolution value)
+  scored.sort((a, b) => b.erv - a.erv);
+
   return scored[0].id;
+}
+
+/**
+ * Count unclassified ancestors that would become "known" if this node is answered correctly.
+ * Only counts ancestors that aren't already known.
+ */
+function countAncestorsToReveal(nodeId, belief, adjacency) {
+  const visited = new Set();
+  const queue = [...(adjacency.prereqs[nodeId] ?? [])];
+  let count = 0;
+
+  while (queue.length > 0) {
+    const cur = queue.shift();
+    if (visited.has(cur)) continue;
+    visited.add(cur);
+
+    // Only count if it's currently unclassified
+    if (belief[cur] !== "known" && belief[cur] !== "unknown") {
+      count++;
+    }
+
+    // Continue BFS upward
+    const parents = adjacency.prereqs[cur] ?? [];
+    for (const p of parents) {
+      if (!visited.has(p)) queue.push(p);
+    }
+  }
+
+  return count;
+}
+
+/**
+ * Count unclassified descendants that would become "unknown" if this node is answered incorrectly.
+ * Only counts descendants that aren't already unknown.
+ */
+function countDescendantsToReveal(nodeId, belief, adjacency) {
+  const visited = new Set();
+  const queue = [...(adjacency.dependents[nodeId] ?? [])];
+  let count = 0;
+
+  while (queue.length > 0) {
+    const cur = queue.shift();
+    if (visited.has(cur)) continue;
+    visited.add(cur);
+
+    // Only count if it's currently unclassified
+    if (belief[cur] !== "known" && belief[cur] !== "unknown") {
+      count++;
+    }
+
+    // Continue BFS downward
+    const children = adjacency.dependents[cur] ?? [];
+    for (const c of children) {
+      if (!visited.has(c)) queue.push(c);
+    }
+  }
+
+  return count;
+}
+
+/**
+ * Estimate expected number of questions remaining to fully classify the graph.
+ *
+ * Uses a recursive approximation:
+ * - For each unclassified node, compute its ERV
+ * - Expected remaining ≈ (total_unclassified_nodes²) / (sum of all ERVs)
+ *
+ * Why? Each question, on average, resolves roughly (ERV) nodes.
+ * If we have N nodes and each answer resolves R nodes on average, we need ~N/R questions.
+ * We weight by P(outcome) to favor nodes with high info value.
+ *
+ * Returns null if session is complete (no unclassified nodes).
+ */
+export function estimateRemainingQuestions(nodes, belief, adjacency, pCorrect = 0.5) {
+  const candidates = nodes.filter(
+    n => belief[n.id] !== "known" && belief[n.id] !== "unknown"
+  );
+
+  if (candidates.length === 0) return 0;
+
+  // Compute ERV for each candidate
+  const pIncorrect = 1 - pCorrect;
+  let totalERV = 0;
+
+  for (const n of candidates) {
+    const ancestors = countAncestorsToReveal(n.id, belief, adjacency);
+    const descendants = countDescendantsToReveal(n.id, belief, adjacency);
+    const erv = pCorrect * ancestors + pIncorrect * descendants;
+    totalERV += erv;
+  }
+
+  if (totalERV === 0) return candidates.length; // Fallback
+
+  // Rough heuristic: N² / total_ERV
+  // Why N²? Because each question removes from consideration both the node
+  // and some of its connected nodes, reducing future options.
+  const n = candidates.length;
+  const estimate = (n * n) / totalERV;
+
+  return Math.ceil(estimate);
 }
 
 /**

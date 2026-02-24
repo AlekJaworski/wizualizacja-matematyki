@@ -17,6 +17,9 @@ export function DiagnosticPanel({
   nextSuggestedId,
   sessionComplete,
   adjacency,
+  expectedRemaining,
+  pCorrect,
+  questionsAnswered,
   nodes,
   lang,
   onReset,
@@ -32,8 +35,11 @@ export function DiagnosticPanel({
   const stats = [
     { label: "Znam",      count: known.length,   color: "#27ae60" },
     { label: "Nie znam",  count: unknown.length,  color: "#e74c3c" },
-    { label: "Frontier",  count: frontier.length, color: "#f39c12" },
+    { label: "Do odp.",   count: expectedRemaining ?? "-", color: "#4a9eff" },
   ];
+
+  // Format P(correct) as percentage
+  const accuracyPct = pCorrect ? Math.round(pCorrect * 100) : 50;
 
   return (
     <div style={{
@@ -72,6 +78,19 @@ export function DiagnosticPanel({
         ))}
       </div>
 
+      {/* Progress line */}
+      {!sessionComplete && hasStarted && (
+        <div style={{
+          fontSize: 9, color: "#6b7d9a", marginBottom: 10,
+          padding: "6px 8px", background: "#ffffff08", borderRadius: 4,
+          display: "flex", justifyContent: "space-between",
+        }}>
+          <span>Odpowiedzi: <span style={{ color: "#f5f6fa" }}>{questionsAnswered}</span></span>
+          <span>Szacowane: <span style={{ color: "#4a9eff" }}>~{expectedRemaining ?? "-"}</span></span>
+          <span>Skuteczność: <span style={{ color: "#4a9eff" }}>{accuracyPct}%</span></span>
+        </div>
+      )}
+
       {/* ── SESSION COMPLETE ───────────────────────────────────── */}
       {sessionComplete && (
         <div>
@@ -80,10 +99,12 @@ export function DiagnosticPanel({
             borderRadius: 6, padding: "10px 12px", marginBottom: 10,
           }}>
             <div style={{ color: "#2ecc71", fontWeight: 700, fontSize: 12, marginBottom: 4 }}>
-              Sesja zakończona
+              Sesja zakończona ✓
             </div>
             <div style={{ color: "#6b7d9a", fontSize: 9, lineHeight: 1.6 }}>
-              Sklasyfikowano {known.length + unknown.length}/{total} tematów.{" "}
+              Odpowiedziano na <span style={{ color: "#f5f6fa" }}>{questionsAnswered}</span> pytań.{" "}
+              Sklasyfikowano {known.length + unknown.length}/{total} tematów.<br />
+              Skuteczność: <span style={{ color: "#4a9eff" }}>{accuracyPct}%</span>.{" "}
               Znasz <span style={{ color: "#2ecc71" }}>{known.length}</span>,{" "}
               do nauki <span style={{ color: "#e74c3c" }}>{unknown.length}</span>.
             </div>
