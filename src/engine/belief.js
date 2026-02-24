@@ -89,33 +89,38 @@ export function computeFrontier(nodes, belief, adjacency) {
  * @returns {string|null}
  */
 export function pickNextQuestion(nodes, belief, adjacency, pCorrect = 0.5) {
-  const pIncorrect = 1 - pCorrect;
+  try {
+    const pIncorrect = 1 - pCorrect;
 
-  // Candidates: unclassified nodes within the active DAG
-  const candidates = nodes.filter(
-    n => belief[n.id] !== "known" && belief[n.id] !== "unknown"
-  );
+    // Candidates: unclassified nodes within the active DAG
+    const candidates = nodes.filter(
+      n => belief[n.id] !== "known" && belief[n.id] !== "unknown"
+    );
 
-  if (candidates.length === 0) return null;
+    if (candidates.length === 0) return null;
 
-  // For each candidate, compute ERV
-  const scored = candidates.map(n => {
-    // Count unclassified ancestors that would become known if correct
-    const ancestorsToReveal = countAncestorsToReveal(n.id, belief, adjacency);
+    // For each candidate, compute ERV
+    const scored = candidates.map(n => {
+      // Count unclassified ancestors that would become known if correct
+      const ancestorsToReveal = countAncestorsToReveal(n.id, belief, adjacency);
 
-    // Count unclassified descendants that would become unknown if incorrect
-    const descendantsToReveal = countDescendantsToReveal(n.id, belief, adjacency);
+      // Count unclassified descendants that would become unknown if incorrect
+      const descendantsToReveal = countDescendantsToReveal(n.id, belief, adjacency);
 
-    // ERV = P(correct) × ancestors + P(incorrect) × descendants
-    const erv = pCorrect * ancestorsToReveal + pIncorrect * descendantsToReveal;
+      // ERV = P(correct) × ancestors + P(incorrect) × descendants
+      const erv = pCorrect * ancestorsToReveal + pIncorrect * descendantsToReveal;
 
-    return { id: n.id, erv, ancestorsToReveal, descendantsToReveal };
-  });
+      return { id: n.id, erv, ancestorsToReveal, descendantsToReveal };
+    });
 
-  // Sort by ERV descending (highest expected resolution value)
-  scored.sort((a, b) => b.erv - a.erv);
+    // Sort by ERV descending (highest expected resolution value)
+    scored.sort((a, b) => b.erv - a.erv);
 
-  return scored[0].id;
+    return scored[0].id;
+  } catch (e) {
+    console.error("pickNextQuestion error:", e);
+    return null;
+  }
 }
 
 /**
@@ -190,32 +195,37 @@ function countDescendantsToReveal(nodeId, belief, adjacency) {
  * Returns null if session is complete (no unclassified nodes).
  */
 export function estimateRemainingQuestions(nodes, belief, adjacency, pCorrect = 0.5) {
-  const candidates = nodes.filter(
-    n => belief[n.id] !== "known" && belief[n.id] !== "unknown"
-  );
+  try {
+    const candidates = nodes.filter(
+      n => belief[n.id] !== "known" && belief[n.id] !== "unknown"
+    );
 
-  if (candidates.length === 0) return 0;
+    if (candidates.length === 0) return 0;
 
-  // Compute ERV for each candidate
-  const pIncorrect = 1 - pCorrect;
-  let totalERV = 0;
+    // Compute ERV for each candidate
+    const pIncorrect = 1 - pCorrect;
+    let totalERV = 0;
 
-  for (const n of candidates) {
-    const ancestors = countAncestorsToReveal(n.id, belief, adjacency);
-    const descendants = countDescendantsToReveal(n.id, belief, adjacency);
-    const erv = pCorrect * ancestors + pIncorrect * descendants;
-    totalERV += erv;
+    for (const n of candidates) {
+      const ancestors = countAncestorsToReveal(n.id, belief, adjacency);
+      const descendants = countDescendantsToReveal(n.id, belief, adjacency);
+      const erv = pCorrect * ancestors + pIncorrect * descendants;
+      totalERV += erv;
+    }
+
+    if (totalERV === 0) return candidates.length; // Fallback
+
+    // Rough heuristic: N² / total_ERV
+    // Why N²? Because each question removes from consideration both the node
+    // and some of its connected nodes, reducing future options.
+    const n = candidates.length;
+    const estimate = (n * n) / totalERV;
+
+    return Math.ceil(estimate);
+  } catch (e) {
+    console.error("estimateRemainingQuestions error:", e);
+    return null;
   }
-
-  if (totalERV === 0) return candidates.length; // Fallback
-
-  // Rough heuristic: N² / total_ERV
-  // Why N²? Because each question removes from consideration both the node
-  // and some of its connected nodes, reducing future options.
-  const n = candidates.length;
-  const estimate = (n * n) / totalERV;
-
-  return Math.ceil(estimate);
 }
 
 /**
