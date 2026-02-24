@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 
-import { RAW_NODES } from "../data/nodes.js";
+import { RAW_NODES } from "../data/curriculum.js";
 import { RAW_EDGES } from "../data/edges.js";
 import { buildAdjacency } from "../engine/adjacency.js";
 import { computePositions } from "../engine/simulation.js";

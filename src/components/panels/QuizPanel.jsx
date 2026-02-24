@@ -1,16 +1,18 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { SCOPE_COLORS } from "../../data/sections.js";
-import { QUESTION_BANK } from "../../data/questions.js";
+import { getQuestion } from "../../data/curriculum.js";
 import { panelStyle, ansBtn } from "../../styles/tokens.js";
 
 /**
  * Quiz card shown in diagnostic mode when a node is selected.
+ * Picks a random question from the node's question pool (stable per mount).
  * Presents a multiple-choice question, reveals the answer, and
  * calls onAnswer(true|false) to update the belief state.
  */
 export function QuizPanel({ nodeId, nodes, onAnswer, onSkip, lang }) {
   const node  = nodes.find(n => n.id === nodeId);
-  const q     = QUESTION_BANK[nodeId];
+  // Pick once per nodeId mount — re-rolls when a different node is opened
+  const q     = useMemo(() => getQuestion(nodeId), [nodeId]);
   const color = SCOPE_COLORS[node?.scope] || "#4a9eff";
   const lbl   = node ? (lang === "pl" ? node.labelPl : node.label) : nodeId;
 

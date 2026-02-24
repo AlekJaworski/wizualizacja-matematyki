@@ -1,4 +1,4 @@
-import { RAW_NODES } from "../../data/nodes.js";
+import { RAW_NODES } from "../../data/curriculum.js";
 import { SCOPE_LABELS } from "../../data/sections.js";
 
 /**

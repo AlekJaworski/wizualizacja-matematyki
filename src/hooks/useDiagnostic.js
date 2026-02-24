@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from "react";
 import { propagateKnown, propagateUnknown, computeFrontier } from "../engine/belief.js";
-import { RAW_NODES } from "../data/nodes.js";
+import { RAW_NODES } from "../data/curriculum.js";
 
 /**
  * Manages all diagnostic-mode state: belief map, quiz selection, and frontier.
