@@ -64,4 +64,4 @@ jobs:
           git add -A
           git diff --cached --quiet && echo "No changes" && exit 0
           git commit -m "Deploy main build [$(date -u '+%Y-%m-%d %H:%M UTC')]"
-          git push origin gh-pages
+          git push origin HEAD:gh-pages
