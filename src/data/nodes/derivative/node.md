@@ -1,7 +1,7 @@
 ---
-label: "Derivatives"
+label: "Pochodne"
 labelPl: "Pochodne"
-scope: optymalizacja
+scope: analiza
 section: LR
 level: 3
 x: 850

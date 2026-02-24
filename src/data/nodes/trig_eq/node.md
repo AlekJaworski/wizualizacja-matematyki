@@ -1,7 +1,7 @@
 ---
-label: "Trig. Equations"
+label: "Równania trygonometryczne"
 labelPl: "Równania trygonometryczne"
-scope: rownania
+scope: trygonometria
 section: LR
 level: 3
 x: 880

@@ -1,9 +1,9 @@
 ---
-label: "Basic Trigonometry"
-labelPl: "Trygonometria podstawowa"
+label: "Trygonometria - podstawy"
+labelPl: "Trygonometria - podstawy"
 scope: trygonometria
-section: SP8
-level: 2
+section: LP
+level: 1
 x: 830
 y: 200
 ---

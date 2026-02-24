@@ -1,7 +1,7 @@
 ---
-label: "Limits of Functions"
+label: "Granice funkcji"
 labelPl: "Granice funkcji"
-scope: optymalizacja
+scope: analiza
 section: LR
 level: 3
 x: 760
