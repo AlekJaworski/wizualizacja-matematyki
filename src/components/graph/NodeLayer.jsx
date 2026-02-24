@@ -7,6 +7,18 @@ function nodeRadius(n) { return 6 + n.level * 2; }
  * Renders all curriculum topic nodes as SVG groups (circle + label).
  * Supports normal inspection mode and diagnostic quiz mode styling.
  */
+/**
+ * How many characters to show in a node label given the current zoom scale.
+ * At low zoom labels are very small — fewer chars avoids visual noise.
+ * At high zoom we have room for longer names.
+ */
+function labelMaxChars(scale) {
+  if (scale < 0.4)  return 8;
+  if (scale < 0.65) return 13;
+  if (scale < 1.0)  return 18;
+  return 28;
+}
+
 export function NodeLayer({
   nodes,
   filteredIds,
@@ -18,6 +30,7 @@ export function NodeLayer({
   diagMode,
   belief,
   frontier,
+  scale,
 }) {
   return (
     <g>
@@ -27,8 +40,9 @@ export function NodeLayer({
         const filtered  = filteredIds && !filteredIds.has(n.id);
         const highlighted = highlightedIds?.has(n.id);
         const isSelected  = selected === n.id;
-        const dimmed = (highlightedIds && !highlighted) || filtered;
-        const lbl    = lang === "pl" ? n.labelPl : n.label;
+        const dimmed   = (highlightedIds && !highlighted) || filtered;
+        const lbl      = lang === "pl" ? n.labelPl : n.label;
+        const maxChars = labelMaxChars(scale ?? 1);
 
         let fillColor    = baseColor;
         let fillOpacity  = dimmed ? 0.15 : 0.9;
@@ -93,7 +107,7 @@ export function NodeLayer({
               opacity={labelOpacity}
               style={{ pointerEvents: "none", userSelect: "none" }}
             >
-              {lbl.length > 20 ? lbl.slice(0, 18) + "…" : lbl}
+              {lbl.length > maxChars ? lbl.slice(0, maxChars - 1) + "…" : lbl}
             </text>
           </g>
         );

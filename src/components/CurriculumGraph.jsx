@@ -57,18 +57,21 @@ export default function CurriculumGraph() {
   const {
     viewTransform, setViewTransform,
     toCanvas, isPanning, startPan,
+    cursorStyle, setCursorStyle,
     handleMouseMove: panMove,
     handleMouseUp: panUp,
   } = usePanZoom(svgRef);
 
   const { draggingNode, startNodeDrag, handleDragMove, handleDragEnd } =
-    useNodeDrag(toCanvas, nodes, setPositions);
+    useNodeDrag(toCanvas, nodes, setPositions, setCursorStyle);
 
   // ── Diagnostic mode ─────────────────────────────────────────────
   const {
     diagMode, setDiagMode,
     belief, quizNode, setQuizNode,
-    frontier,
+    frontier, visibleFrontier, hasStarted,
+    nextSuggestedId,
+    sessionComplete,
     handleDiagClick,
     handleQuizAnswer,
     resetDiagnostic,
@@ -115,6 +118,16 @@ export default function CurriculumGraph() {
     handleDragEnd();
     panUp();
   }, [handleDragEnd, panUp]);
+
+  // ── Auto-advance to next quiz after answering ─────────────────────
+  useEffect(() => {
+    // When quizNode becomes null AND we have a next suggestion AND the session isn't complete,
+    // automatically open the next quiz after a brief delay so the student sees the result first.
+    if (!quizNode && nextSuggestedId && !sessionComplete && hasStarted) {
+      const timer = setTimeout(() => setQuizNode(nextSuggestedId), 400);
+      return () => clearTimeout(timer);
+    }
+  }, [quizNode, nextSuggestedId, sessionComplete, hasStarted]);
 
   // ── Keyboard ────────────────────────────────────────────────────
   useEffect(() => {
@@ -198,7 +211,7 @@ export default function CurriculumGraph() {
         <svg
           ref={svgRef}
           width="100%" height="100%"
-          style={{ cursor: draggingNode.current || isPanning.current ? "grabbing" : "grab" }}
+          style={{ cursor: cursorStyle }}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
@@ -238,7 +251,8 @@ export default function CurriculumGraph() {
               }}
               onHover={setHoveredNode}
               lang={lang} diagMode={diagMode}
-              belief={belief} frontier={frontier}
+              belief={belief} frontier={visibleFrontier}
+              scale={viewTransform.scale}
             />
           </g>
         </svg>
@@ -255,7 +269,10 @@ export default function CurriculumGraph() {
         )}
         {diagMode && !quizNode && (
           <DiagnosticPanel
-            belief={belief} frontier={frontier} nodes={nodes} lang={lang}
+            belief={belief} frontier={frontier} visibleFrontier={visibleFrontier}
+            hasStarted={hasStarted} nextSuggestedId={nextSuggestedId}
+            sessionComplete={sessionComplete} adjacency={adjacency}
+            nodes={nodes} lang={lang}
             onNodeClick={id => setQuizNode(id)} onReset={resetDiagnostic}
           />
         )}

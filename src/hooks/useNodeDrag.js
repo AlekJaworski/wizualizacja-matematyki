@@ -13,7 +13,7 @@ import { useRef, useCallback } from "react";
  *   handleDragEnd: () => void,
  * }}
  */
-export function useNodeDrag(toCanvas, nodes, setPositions) {
+export function useNodeDrag(toCanvas, nodes, setPositions, setCursorStyle) {
   const draggingNode = useRef(null);
   const dragOffset   = useRef({ x: 0, y: 0 });
 
@@ -23,7 +23,8 @@ export function useNodeDrag(toCanvas, nodes, setPositions) {
     if (!node) return;
     draggingNode.current = id;
     dragOffset.current = { x: canvasPos.x - node.x, y: canvasPos.y - node.y };
-  }, [toCanvas, nodes]);
+    setCursorStyle?.("grabbing");
+  }, [toCanvas, nodes, setCursorStyle]);
 
   const handleDragMove = useCallback((clientX, clientY) => {
     if (!draggingNode.current) return false;
@@ -41,7 +42,8 @@ export function useNodeDrag(toCanvas, nodes, setPositions) {
 
   const handleDragEnd = useCallback(() => {
     draggingNode.current = null;
-  }, []);
+    setCursorStyle?.("grab");
+  }, [setCursorStyle]);
 
   return { draggingNode, startNodeDrag, handleDragMove, handleDragEnd };
 }

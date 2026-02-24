@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { SCOPE_COLORS } from "../../data/sections.js";
 import { getQuestion } from "../../data/curriculum.js";
+import { renderLatex } from "../../utils/latex.js";
 import { panelStyle, ansBtn } from "../../styles/tokens.js";
 
 /**
@@ -25,6 +26,11 @@ export function QuizPanel({ nodeId, nodes, onAnswer, onSkip, lang }) {
     setPicked(null);
     setRevealed(false);
   };
+
+  // Helper to render text with LaTeX
+  const render = (text) => (
+    <span dangerouslySetInnerHTML={{ __html: renderLatex(text) }} />
+  );
 
   // Fallback when no question exists for this node
   if (!q) {
@@ -62,7 +68,7 @@ export function QuizPanel({ nodeId, nodes, onAnswer, onSkip, lang }) {
 
       {/* Question text */}
       <div style={{ fontSize: 11, color: "#c8d6e5", marginBottom: 12, lineHeight: 1.6 }}>
-        {q.q}
+        {render(q.q)}
       </div>
 
       {/* Answer options */}
@@ -88,19 +94,19 @@ export function QuizPanel({ nodeId, nodes, onAnswer, onSkip, lang }) {
               }}
             >
               <span style={{ marginRight: 8, opacity: 0.5 }}>{["A","B","C","D"][i]}.</span>
-              {opt}
+              {render(opt)}
             </button>
           );
         })}
       </div>
 
       {/* Hint */}
-      {revealed && (
+      {revealed && q.hint && (
         <div style={{
           fontSize: 10, color: "#8a9dbe", marginBottom: 10,
           padding: "6px 8px", background: "#ffffff08", borderRadius: 4, lineHeight: 1.5,
         }}>
-          {q.hint}
+          {render(q.hint)}
         </div>
       )}
 
