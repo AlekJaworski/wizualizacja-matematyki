@@ -4,26 +4,29 @@ import { RAW_NODES } from "../data/curriculum.js";
 import { RAW_EDGES } from "../data/edges.js";
 import { buildAdjacency } from "../engine/adjacency.js";
 import { computePositions } from "../engine/simulation.js";
+import { LAYOUTS, DEFAULT_LAYOUT_ID } from "../engine/layouts/index.js";
 import { FONT } from "../styles/tokens.js";
 
-import { usePanZoom }   from "../hooks/usePanZoom.js";
-import { useNodeDrag }  from "../hooks/useNodeDrag.js";
+import { usePanZoom }    from "../hooks/usePanZoom.js";
+import { useNodeDrag }   from "../hooks/useNodeDrag.js";
 import { useDiagnostic } from "../hooks/useDiagnostic.js";
 
-import { EdgeLayer }        from "./graph/EdgeLayer.jsx";
-import { NodeLayer }        from "./graph/NodeLayer.jsx";
-import { InfoPanel }        from "./panels/InfoPanel.jsx";
-import { QuizPanel }        from "./panels/QuizPanel.jsx";
-import { DiagnosticPanel }  from "./panels/DiagnosticPanel.jsx";
-import { FilterBar }        from "./ui/FilterBar.jsx";
-import { Legend }           from "./ui/Legend.jsx";
+import { EdgeLayer }       from "./graph/EdgeLayer.jsx";
+import { NodeLayer }       from "./graph/NodeLayer.jsx";
+import { InfoPanel }       from "./panels/InfoPanel.jsx";
+import { QuizPanel }       from "./panels/QuizPanel.jsx";
+import { DiagnosticPanel } from "./panels/DiagnosticPanel.jsx";
+import { FilterBar }       from "./ui/FilterBar.jsx";
+import { Legend }          from "./ui/Legend.jsx";
 
-// ── Constants ──────────────────────────────────────────────────────
 const DEFAULT_VIEW = { x: 40, y: 40, scale: 0.72 };
 
 export default function CurriculumGraph() {
+  // ── Layout selection ────────────────────────────────────────────
+  const [layoutId, setLayoutId] = useState(DEFAULT_LAYOUT_ID);
+
   // ── Language & filters ──────────────────────────────────────────
-  const [lang, setLang] = useState("pl");
+  const [lang,          setLang]          = useState("pl");
   const [filterScope,   setFilterScope]   = useState(new Set());
   const [filterSection, setFilterSection] = useState(new Set());
   const [searchTerm,    setSearchTerm]    = useState("");
@@ -42,7 +45,7 @@ export default function CurriculumGraph() {
   // ── Graph data ──────────────────────────────────────────────────
   const adjacency = useMemo(() => buildAdjacency(RAW_NODES, RAW_EDGES), []);
 
-  const [positions, setPositions] = useState(() => computePositions());
+  const [positions, setPositions] = useState(() => computePositions(layoutId));
 
   const nodes = useMemo(
     () => RAW_NODES.map(n => ({ ...n, x: positions[n.id]?.x ?? n.x, y: positions[n.id]?.y ?? n.y })),
@@ -51,8 +54,12 @@ export default function CurriculumGraph() {
 
   // ── Pan / zoom / drag ───────────────────────────────────────────
   const svgRef = useRef(null);
-  const { viewTransform, setViewTransform, toCanvas, isPanning, startPan, handleMouseMove: panMove, handleMouseUp: panUp } =
-    usePanZoom(svgRef);
+  const {
+    viewTransform, setViewTransform,
+    toCanvas, isPanning, startPan,
+    handleMouseMove: panMove,
+    handleMouseUp: panUp,
+  } = usePanZoom(svgRef);
 
   const { draggingNode, startNodeDrag, handleDragMove, handleDragEnd } =
     useNodeDrag(toCanvas, nodes, setPositions);
@@ -79,7 +86,7 @@ export default function CurriculumGraph() {
     return result.length < RAW_NODES.length ? new Set(result.map(n => n.id)) : null;
   }, [filterScope, filterSection, searchTerm]);
 
-  const activeNode = selected || hoveredNode;
+  const activeNode     = selected || hoveredNode;
   const highlightedIds = useMemo(() => {
     if (!activeNode) return null;
     const s = new Set([activeNode]);
@@ -88,7 +95,7 @@ export default function CurriculumGraph() {
     return s;
   }, [activeNode, adjacency]);
 
-  // ── Mouse event handlers ────────────────────────────────────────
+  // ── Mouse handlers ──────────────────────────────────────────────
   const handleMouseDown = useCallback(e => {
     const nodeEl = e.target.closest("[data-node-id]");
     if (nodeEl) {
@@ -109,21 +116,26 @@ export default function CurriculumGraph() {
     panUp();
   }, [handleDragEnd, panUp]);
 
-  // ── Keyboard shortcut ───────────────────────────────────────────
+  // ── Keyboard ────────────────────────────────────────────────────
   useEffect(() => {
     const onKey = e => { if (e.key === "Escape") setSelected(null); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // ── Layout switcher handler ─────────────────────────────────────
+  const switchLayout = useCallback(id => {
+    setLayoutId(id);
+    setPositions(computePositions(id));
+    setViewTransform(DEFAULT_VIEW);
+  }, [setViewTransform]);
+
   // ── Render ──────────────────────────────────────────────────────
   return (
     <div style={{
       width: "100%", height: "100vh",
-      background: "#0a0e17",
-      fontFamily: FONT,
-      color: "#c8d6e5",
-      display: "flex", flexDirection: "column", overflow: "hidden",
+      background: "#0a0e17", fontFamily: FONT,
+      color: "#c8d6e5", display: "flex", flexDirection: "column", overflow: "hidden",
     }}>
       {/* Header */}
       <div style={{
@@ -134,12 +146,31 @@ export default function CurriculumGraph() {
           PODSTAWA PROGRAMOWA — MATEMATYKA
         </h1>
         <span style={{ fontSize: 10, color: "#3a4d63" }}>
-          {RAW_NODES.length} topics · {RAW_EDGES.length} edges · spectral layout
+          {RAW_NODES.length} topics · {RAW_EDGES.length} edges
         </span>
+
+        {/* Layout switcher */}
+        <div style={{ display: "flex", gap: 4, marginLeft: 8 }}>
+          {LAYOUTS.map(l => (
+            <button
+              key={l.meta.id}
+              onClick={() => switchLayout(l.meta.id)}
+              style={{
+                padding: "3px 10px", borderRadius: 4, fontSize: 10, cursor: "pointer",
+                border: layoutId === l.meta.id ? "1px solid #4a9eff" : "1px solid #1e2d45",
+                background: layoutId === l.meta.id ? "#4a9eff22" : "transparent",
+                color: layoutId === l.meta.id ? "#4a9eff" : "#6b7d9a",
+              }}
+            >
+              {l.meta.label}
+            </button>
+          ))}
+        </div>
+
         <span style={{ fontSize: 10, color: "#3a4d63", marginLeft: "auto" }}>
           {diagMode
             ? "kliknij węzeł = pytanie · shift+click = nieznany · zielony = kliknij by cofnąć"
-            : "scroll to zoom · drag canvas to pan · drag node to move · click to inspect"}
+            : "scroll to zoom · drag to pan · drag node to move · click to inspect"}
         </span>
         <button
           onClick={() => { setDiagMode(d => !d); setSelected(null); }}
@@ -156,7 +187,7 @@ export default function CurriculumGraph() {
 
       {/* Filter bar */}
       <FilterBar
-        filterScope={filterScope}   toggleScope={toggleScope}   clearScope={clearScope}
+        filterScope={filterScope}     toggleScope={toggleScope}     clearScope={clearScope}
         filterSection={filterSection} toggleSection={toggleSection} clearSection={clearSection}
         searchTerm={searchTerm} setSearchTerm={setSearchTerm}
         lang={lang} setLang={setLang}
@@ -179,7 +210,6 @@ export default function CurriculumGraph() {
             handleDiagClick(nodeEl.getAttribute("data-node-id"), e.shiftKey);
           }}
         >
-          {/* Arrowhead markers */}
           <defs>
             <marker id="arrow-default" markerWidth="6" markerHeight="6"
               refX="5" refY="3" orient="auto" markerUnits="userSpaceOnUse">
@@ -196,11 +226,7 @@ export default function CurriculumGraph() {
           </defs>
 
           <g transform={`translate(${viewTransform.x},${viewTransform.y}) scale(${viewTransform.scale})`}>
-            <EdgeLayer
-              edges={RAW_EDGES}
-              nodes={nodes}
-              highlightedIds={highlightedIds}
-            />
+            <EdgeLayer edges={RAW_EDGES} nodes={nodes} highlightedIds={highlightedIds} />
             <NodeLayer
               nodes={nodes}
               filteredIds={filteredIds}
@@ -211,55 +237,41 @@ export default function CurriculumGraph() {
                 setSelected(id === selected ? null : id);
               }}
               onHover={setHoveredNode}
-              lang={lang}
-              diagMode={diagMode}
-              belief={belief}
-              frontier={frontier}
+              lang={lang} diagMode={diagMode}
+              belief={belief} frontier={frontier}
             />
           </g>
         </svg>
 
-        {/* Info panel (normal mode only) */}
         {selected && !diagMode && (
           <InfoPanel nodeId={selected} nodes={nodes} adjacency={adjacency} lang={lang} />
         )}
-
-        {/* Quiz panel */}
         {diagMode && quizNode && (
           <QuizPanel
-            nodeId={quizNode}
-            nodes={nodes}
-            lang={lang}
+            nodeId={quizNode} nodes={nodes} lang={lang}
             onAnswer={correct => handleQuizAnswer(quizNode, correct)}
             onSkip={() => setQuizNode(null)}
           />
         )}
-
-        {/* Diagnostic summary (quiz closed) */}
         {diagMode && !quizNode && (
           <DiagnosticPanel
-            belief={belief}
-            frontier={frontier}
-            nodes={nodes}
-            lang={lang}
-            onNodeClick={id => setQuizNode(id)}
-            onReset={resetDiagnostic}
+            belief={belief} frontier={frontier} nodes={nodes} lang={lang}
+            onNodeClick={id => setQuizNode(id)} onReset={resetDiagnostic}
           />
         )}
 
         <Legend lang={lang} />
 
-        {/* Zoom controls */}
+        {/* Zoom + reset controls */}
         <div style={{
           position: "absolute", right: 16, bottom: 16,
           display: "flex", flexDirection: "column", gap: 4,
         }}>
           {[["＋", 1.2], ["－", 0.8], ["↺", null]].map(([lbl, factor]) => (
-            <button
-              key={lbl}
+            <button key={lbl}
               onClick={() => {
                 if (factor === null) {
-                  setPositions(computePositions());
+                  setPositions(computePositions(layoutId));
                   setViewTransform(DEFAULT_VIEW);
                 } else {
                   setViewTransform(p => ({ ...p, scale: Math.max(0.15, Math.min(5, p.scale * factor)) }));
