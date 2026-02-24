@@ -73,6 +73,7 @@ export default function CurriculumGraph() {
     nextSuggestedId,
     expectedRemaining,
     pCorrect,
+    questionsAnswered,
     sessionComplete,
     handleDiagClick,
     handleQuizAnswer,
