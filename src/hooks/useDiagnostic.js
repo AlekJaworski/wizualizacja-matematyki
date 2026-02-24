@@ -34,6 +34,16 @@ export function useDiagnostic(adjacency) {
 
   // ── Derived state (all pure, recomputed on belief change) ────────
 
+  // Bayesian P(correct): starts at 0.5 (prior), updates after each answer.
+  // P = (correct + 0.5) / (total + 1)
+  const pCorrect = useMemo(() => {
+    const total = stats.correct + stats.incorrect;
+    if (total === 0) return 0.5; // Prior
+    return (stats.correct + 0.5) / (total + 1);
+  }, [stats]);
+
+  const questionsAnswered = stats.questionsAnswered;
+
   const frontier = useMemo(
     () => diagMode ? computeFrontier(RAW_NODES, belief, adjacency) : [],
     [diagMode, belief, adjacency]
@@ -64,16 +74,6 @@ export function useDiagnostic(adjacency) {
     () => diagMode && hasStarted && isSessionComplete(RAW_NODES, belief),
     [diagMode, hasStarted, belief]
   );
-
-  // Bayesian P(correct): starts at 0.5 (prior), updates after each answer.
-  // P = (correct + 0.5) / (total + 1)
-  const pCorrect = useMemo(() => {
-    const total = stats.correct + stats.incorrect;
-    if (total === 0) return 0.5; // Prior
-    return (stats.correct + 0.5) / (total + 1);
-  }, [stats]);
-
-  const questionsAnswered = stats.questionsAnswered;
 
   // ── Handlers ─────────────────────────────────────────────────────
 
