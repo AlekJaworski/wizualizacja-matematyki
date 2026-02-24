@@ -110,16 +110,21 @@ export function pickNextQuestion(nodes, belief, adjacency, pCorrect = 0.5) {
       // ERV = P(correct) × ancestors + P(incorrect) × descendants
       const erv = pCorrect * ancestorsToReveal + pIncorrect * descendantsToReveal;
 
-      return { id: n.id, erv, ancestorsToReveal, descendantsToReveal };
+      return { id: n.id, erv: erv || 0, ancestorsToReveal, descendantsToReveal };
     });
 
     // Sort by ERV descending (highest expected resolution value)
     scored.sort((a, b) => b.erv - a.erv);
 
-    return scored[0].id;
+    const result = scored[0]?.id;
+    return result || candidates[0]?.id || null;
   } catch (e) {
     console.error("pickNextQuestion error:", e);
-    return null;
+    // Fallback: return first unclassified node
+    const candidates = nodes.filter(
+      n => belief[n.id] !== "known" && belief[n.id] !== "unknown"
+    );
+    return candidates[0]?.id || null;
   }
 }
 
@@ -210,10 +215,10 @@ export function estimateRemainingQuestions(nodes, belief, adjacency, pCorrect = 
       const ancestors = countAncestorsToReveal(n.id, belief, adjacency);
       const descendants = countDescendantsToReveal(n.id, belief, adjacency);
       const erv = pCorrect * ancestors + pIncorrect * descendants;
-      totalERV += erv;
+      totalERV += (erv || 0);
     }
 
-    if (totalERV === 0) return candidates.length; // Fallback
+    if (!totalERV || totalERV === 0) return candidates.length; // Fallback
 
     // Rough heuristic: N² / total_ERV
     // Why N²? Because each question removes from consideration both the node
@@ -221,7 +226,7 @@ export function estimateRemainingQuestions(nodes, belief, adjacency, pCorrect = 
     const n = candidates.length;
     const estimate = (n * n) / totalERV;
 
-    return Math.ceil(estimate);
+    return isNaN(estimate) ? candidates.length : Math.ceil(estimate);
   } catch (e) {
     console.error("estimateRemainingQuestions error:", e);
     return null;
