@@ -2,6 +2,7 @@
   "name": "wizualizacja-matematyki",
   "version": "1.0.0",
   "description": "Interactive Polish high school mathematics curriculum knowledge graph with diagnostic quiz mode",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",
