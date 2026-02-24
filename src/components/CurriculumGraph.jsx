@@ -11,13 +11,15 @@ import { usePanZoom }    from "../hooks/usePanZoom.js";
 import { useNodeDrag }   from "../hooks/useNodeDrag.js";
 import { useDiagnostic } from "../hooks/useDiagnostic.js";
 
-import { EdgeLayer }       from "./graph/EdgeLayer.jsx";
-import { NodeLayer }       from "./graph/NodeLayer.jsx";
-import { InfoPanel }       from "./panels/InfoPanel.jsx";
-import { QuizPanel }       from "./panels/QuizPanel.jsx";
-import { DiagnosticPanel } from "./panels/DiagnosticPanel.jsx";
-import { FilterBar }       from "./ui/FilterBar.jsx";
-import { Legend }          from "./ui/Legend.jsx";
+import { EdgeLayer }           from "./graph/EdgeLayer.jsx";
+import { NodeLayer }           from "./graph/NodeLayer.jsx";
+import { InfoPanel }           from "./panels/InfoPanel.jsx";
+import { QuizPanel }           from "./panels/QuizPanel.jsx";
+import { DiagnosticPanel }     from "./panels/DiagnosticPanel.jsx";
+import { DeepDivePanel }       from "./panels/DeepDivePanel.jsx";
+import { FilterBar }           from "./ui/FilterBar.jsx";
+import { Legend }              from "./ui/Legend.jsx";
+import { GoalSelectionModal }  from "./ui/GoalSelectionModal.jsx";
 
 const DEFAULT_VIEW = { x: 40, y: 40, scale: 0.72 };
 
@@ -32,6 +34,9 @@ export default function CurriculumGraph() {
   const [searchTerm,    setSearchTerm]    = useState("");
   const [selected,      setSelected]      = useState(null);
   const [hoveredNode,   setHoveredNode]   = useState(null);
+
+  // ── Goal selection modal (for deep-dive) ────────────────────────
+  const [showGoalModal, setShowGoalModal] = useState(false);
 
   const toggleScope   = useCallback(k => setFilterScope(prev => {
     const next = new Set(prev); next.has(k) ? next.delete(k) : next.add(k); return next;
@@ -68,16 +73,24 @@ export default function CurriculumGraph() {
   // ── Diagnostic mode ─────────────────────────────────────────────
   const {
     diagMode, setDiagMode,
-    belief, quizNode, setQuizNode,
-    frontier, visibleFrontier, hasStarted,
-    nextSuggestedId,
-    expectedRemaining,
-    pCorrect,
+    mode,
+    quizNode, setQuizNode,
     questionsAnswered,
-    sessionComplete,
     handleDiagClick,
     handleQuizAnswer,
     resetDiagnostic,
+    startDeepDive,
+    targetNode,
+
+    // Quick mode
+    belief,
+    frontier, visibleFrontier, hasStarted,
+    nextSuggestedId, expectedRemaining, pCorrect,
+    sessionComplete,
+
+    // Deep-dive mode
+    betaBeliefs, subgraphIds, ddClassification,
+    ddNextNodeId, ddComplete,
   } = useDiagnostic(adjacency);
 
   // ── Derived display state ───────────────────────────────────────
@@ -101,6 +114,12 @@ export default function CurriculumGraph() {
     return s;
   }, [activeNode, adjacency]);
 
+  // In deep-dive: highlight the subgraph
+  const deepDiveHighlight = useMemo(() => {
+    if (!diagMode || mode !== "deepdive" || subgraphIds.length === 0) return null;
+    return new Set(subgraphIds);
+  }, [diagMode, mode, subgraphIds]);
+
   // ── Mouse handlers ──────────────────────────────────────────────
   const handleMouseDown = useCallback(e => {
     const nodeEl = e.target.closest("[data-node-id]");
@@ -122,19 +141,27 @@ export default function CurriculumGraph() {
     panUp();
   }, [handleDragEnd, panUp]);
 
-  // ── Auto-advance to next quiz after answering ─────────────────────
+  // ── Auto-advance to next quiz after answering (quick mode) ───────
   useEffect(() => {
-    // When quizNode becomes null AND we have a next suggestion AND the session isn't complete,
-    // automatically open the next quiz after a brief delay so the student sees the result first.
+    if (mode !== "quick") return;
     if (!quizNode && nextSuggestedId && !sessionComplete && hasStarted) {
       const timer = setTimeout(() => setQuizNode(nextSuggestedId), 400);
       return () => clearTimeout(timer);
     }
-  }, [quizNode, nextSuggestedId, sessionComplete, hasStarted]);
+  }, [mode, quizNode, nextSuggestedId, sessionComplete, hasStarted]);
+
+  // ── Auto-advance to next quiz after answering (deep-dive) ────────
+  useEffect(() => {
+    if (mode !== "deepdive") return;
+    if (!quizNode && ddNextNodeId && !ddComplete) {
+      const timer = setTimeout(() => setQuizNode(ddNextNodeId), 400);
+      return () => clearTimeout(timer);
+    }
+  }, [mode, quizNode, ddNextNodeId, ddComplete]);
 
   // ── Keyboard ────────────────────────────────────────────────────
   useEffect(() => {
-    const onKey = e => { if (e.key === "Escape") setSelected(null); };
+    const onKey = e => { if (e.key === "Escape") { setSelected(null); setShowGoalModal(false); } };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
@@ -145,6 +172,38 @@ export default function CurriculumGraph() {
     setPositions(computePositions(id));
     setViewTransform(DEFAULT_VIEW);
   }, [setViewTransform]);
+
+  // ── Diagnostic button handler ────────────────────────────────────
+  const handleDiagnosticToggle = useCallback(() => {
+    if (diagMode) {
+      // Turn off
+      setDiagMode(false);
+      resetDiagnostic();
+      setSelected(null);
+    } else {
+      // Turn on — show mode picker or go straight to quick mode
+      setDiagMode(true);
+      setSelected(null);
+    }
+  }, [diagMode, setDiagMode, resetDiagnostic]);
+
+  // ── Node belief colour for deep-dive ────────────────────────────
+  // Build a belief-like map from ddClassification so NodeLayer can colour nodes
+  const deepDiveBelief = useMemo(() => {
+    if (mode !== "deepdive") return {};
+    const result = {};
+    for (const [id, cls] of Object.entries(ddClassification)) {
+      if (cls === "known") result[id] = "known";
+      else if (cls === "unknown") result[id] = "unknown";
+      // "uncertain" → unclassified = no entry
+    }
+    return result;
+  }, [mode, ddClassification]);
+
+  const effectiveBelief   = mode === "deepdive" ? deepDiveBelief : belief;
+  const effectiveFrontier = mode === "deepdive"
+    ? subgraphIds.filter(id => ddClassification[id] === "uncertain")
+    : visibleFrontier;
 
   // ── Render ──────────────────────────────────────────────────────
   return (
@@ -185,20 +244,42 @@ export default function CurriculumGraph() {
 
         <span style={{ fontSize: 10, color: "#3a4d63", marginLeft: "auto" }}>
           {diagMode
-            ? "kliknij węzeł = pytanie · shift+click = nieznany · zielony = kliknij by cofnąć"
+            ? mode === "deepdive"
+              ? "deep-dive: kliknij węzeł w podgrafie"
+              : "kliknij węzeł = pytanie · shift+click = nieznany · zielony = cofnij"
             : "scroll to zoom · drag to pan · drag node to move · click to inspect"}
         </span>
-        <button
-          onClick={() => { setDiagMode(d => !d); setSelected(null); }}
-          style={{
-            padding: "4px 12px", borderRadius: 5, fontSize: 11, cursor: "pointer", fontWeight: 600,
-            border: diagMode ? "1px solid #f39c12" : "1px solid #1e2d45",
-            background: diagMode ? "#f39c1222" : "transparent",
-            color: diagMode ? "#f39c12" : "#6b7d9a",
-          }}
-        >
-          {diagMode ? "Diagnostic ON" : "Diagnostic"}
-        </button>
+
+        {/* Diagnostic button group */}
+        <div style={{ display: "flex", gap: 4 }}>
+          <button
+            onClick={handleDiagnosticToggle}
+            style={{
+              padding: "4px 12px", borderRadius: 5, fontSize: 11, cursor: "pointer", fontWeight: 600,
+              border: diagMode ? "1px solid #f39c12" : "1px solid #1e2d45",
+              background: diagMode ? "#f39c1222" : "transparent",
+              color: diagMode ? "#f39c12" : "#6b7d9a",
+            }}
+          >
+            {diagMode ? `Diagnostic (${mode === "deepdive" ? "Deep-Dive" : "Quick"}) ON` : "Diagnostic"}
+          </button>
+
+          {/* Deep-dive picker button (visible when diagnostic is on) */}
+          {diagMode && (
+            <button
+              onClick={() => setShowGoalModal(true)}
+              style={{
+                padding: "4px 10px", borderRadius: 5, fontSize: 11, cursor: "pointer",
+                border: "1px solid #8e44ad",
+                background: mode === "deepdive" ? "#8e44ad22" : "transparent",
+                color: mode === "deepdive" ? "#c39bd3" : "#6b7d9a",
+              }}
+              title="Wybierz cel deep-dive"
+            >
+              ◎ Cel
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Filter bar */}
@@ -242,10 +323,12 @@ export default function CurriculumGraph() {
           </defs>
 
           <g transform={`translate(${viewTransform.x},${viewTransform.y}) scale(${viewTransform.scale})`}>
-            <EdgeLayer edges={RAW_EDGES} nodes={nodes} highlightedIds={highlightedIds} />
+            <EdgeLayer edges={RAW_EDGES} nodes={nodes}
+              highlightedIds={diagMode && mode === "deepdive" ? deepDiveHighlight : highlightedIds}
+            />
             <NodeLayer
               nodes={nodes}
-              filteredIds={filteredIds}
+              filteredIds={diagMode && mode === "deepdive" ? deepDiveHighlight : filteredIds}
               highlightedIds={diagMode ? null : highlightedIds}
               selected={selected}
               onSelect={id => {
@@ -254,7 +337,8 @@ export default function CurriculumGraph() {
               }}
               onHover={setHoveredNode}
               lang={lang} diagMode={diagMode}
-              belief={belief} frontier={visibleFrontier}
+              belief={effectiveBelief}
+              frontier={effectiveFrontier}
               scale={viewTransform.scale}
             />
           </g>
@@ -263,14 +347,17 @@ export default function CurriculumGraph() {
         {selected && !diagMode && (
           <InfoPanel nodeId={selected} nodes={nodes} adjacency={adjacency} lang={lang} />
         )}
+
         {diagMode && quizNode && (
           <QuizPanel
             nodeId={quizNode} nodes={nodes} lang={lang}
-            onAnswer={correct => handleQuizAnswer(quizNode, correct)}
+            onAnswer={(correct, question) => handleQuizAnswer(quizNode, correct, question)}
             onSkip={() => setQuizNode(null)}
           />
         )}
-        {diagMode && !quizNode && (
+
+        {/* Quick mode sidebar */}
+        {diagMode && mode === "quick" && !quizNode && (
           <DiagnosticPanel
             belief={belief} frontier={frontier} visibleFrontier={visibleFrontier}
             hasStarted={hasStarted} nextSuggestedId={nextSuggestedId}
@@ -279,6 +366,18 @@ export default function CurriculumGraph() {
             questionsAnswered={questionsAnswered}
             nodes={nodes} lang={lang}
             onNodeClick={id => setQuizNode(id)} onReset={resetDiagnostic}
+          />
+        )}
+
+        {/* Deep-dive sidebar */}
+        {diagMode && mode === "deepdive" && !quizNode && targetNode && (
+          <DeepDivePanel
+            nodes={nodes} lang={lang} targetNode={targetNode}
+            subgraphIds={subgraphIds} ddClassification={ddClassification}
+            betaBeliefs={betaBeliefs} ddComplete={ddComplete}
+            ddNextNodeId={ddNextNodeId} questionsAnswered={questionsAnswered}
+            onNodeClick={id => setQuizNode(id)}
+            onReset={resetDiagnostic}
           />
         )}
 
@@ -309,6 +408,19 @@ export default function CurriculumGraph() {
           ))}
         </div>
       </div>
+
+      {/* Goal selection modal */}
+      {showGoalModal && (
+        <GoalSelectionModal
+          nodes={nodes}
+          lang={lang}
+          onSelect={nodeId => {
+            setShowGoalModal(false);
+            startDeepDive(nodeId);
+          }}
+          onClose={() => setShowGoalModal(false)}
+        />
+      )}
     </div>
   );
 }

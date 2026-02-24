@@ -6,144 +6,199 @@ import {
   pickNextQuestion,
   isSessionComplete,
   estimateRemainingQuestions,
+  // Deep-dive
+  updateBetaBelief,
+  classifyNodes,
+  computeSubgraph,
+  pickNextQuestionForSubgraph,
+  isDeepDiveComplete,
 } from "../engine/belief.js";
-import { RAW_NODES } from "../data/curriculum.js";
+import { RAW_NODES, QUESTION_BANK } from "../data/curriculum.js";
 
 /**
  * Manages all diagnostic-mode state: belief map, quiz selection, frontier,
  * next suggested question, and session completion.
  *
- * Active DAG model:
- *   - "known"        → classified as understood; propagated upward through prereqs
- *   - "unknown"      → classified as not understood; removed from active DAG along
- *                       with all descendants (propagated downward)
- *   - unclassified   → still in the active DAG; the algorithm asks about these
- *
- * The session is complete when no unclassified nodes remain in the active DAG
- * (every node is known, unknown, or cut off by an unknown ancestor).
+ * Supports two modes:
+ *   - mode: "quick"    — existing ERV algo, binary belief (known/unknown)
+ *   - mode: "deepdive" — Beta belief, subgraph-restricted, goal-oriented
  *
  * @param {{ prereqs: Record<string,string[]>, dependents: Record<string,string[]> }} adjacency
  */
 export function useDiagnostic(adjacency) {
-  const [diagMode, setDiagMode] = useState(false);
-  const [belief,   setBelief]   = useState({});
-  const [quizNode, setQuizNode] = useState(null);
+  const [diagMode, setDiagMode]   = useState(false);
+  const [mode, setMode]           = useState("quick"); // "quick" | "deepdive"
+  const [belief, setBelief]       = useState({});
+  const [quizNode, setQuizNode]   = useState(null);
+  const [targetNode, setTargetNode] = useState(null); // deep-dive goal
 
   // Track quiz answers for P(correct) estimation and question count
   const [stats, setStats] = useState({ correct: 0, incorrect: 0, questionsAnswered: 0 });
 
-  // ── Derived state (all pure, recomputed on belief change) ────────
+  // Deep-dive: Beta beliefs per node { nodeId: { alpha, beta } }
+  const [betaBeliefs, setBetaBeliefs] = useState({});
+
+  // ── Quick mode derived state ─────────────────────────────────────
 
   // Bayesian P(correct): starts at 0.5 (prior), updates after each answer.
-  // P = (correct + 0.5) / (total + 1)
   const pCorrect = useMemo(() => {
     const total = stats.correct + stats.incorrect;
-    if (total === 0) return 0.5; // Prior
+    if (total === 0) return 0.5;
     return (stats.correct + 0.5) / (total + 1);
   }, [stats]);
 
   const questionsAnswered = stats.questionsAnswered;
 
   const frontier = useMemo(
-    () => diagMode ? computeFrontier(RAW_NODES, belief, adjacency) : [],
-    [diagMode, belief, adjacency]
+    () => (diagMode && mode === "quick") ? computeFrontier(RAW_NODES, belief, adjacency) : [],
+    [diagMode, mode, belief, adjacency]
   );
 
-  // Has the student classified at least one node?
-  // Before that, showing the frontier floods the display with all root nodes.
-  const hasStarted = useMemo(() => Object.keys(belief).length > 0, [belief]);
+  const hasStarted = useMemo(() => Object.keys(belief).length > 0 || stats.questionsAnswered > 0, [belief, stats]);
 
-  // Frontier is only surfaced in the UI after the first classification.
   const visibleFrontier = hasStarted ? frontier : [];
 
-  // Best next question using ERV (Expected Resolution Value).
-  // Uses Bayesian P(correct) to weight expected nodes resolved by correct vs incorrect answer.
   const nextSuggestedId = useMemo(
-    () => diagMode ? pickNextQuestion(RAW_NODES, belief, adjacency, pCorrect) : null,
-    [diagMode, belief, adjacency, pCorrect]
+    () => (diagMode && mode === "quick") ? pickNextQuestion(RAW_NODES, belief, adjacency, pCorrect) : null,
+    [diagMode, mode, belief, adjacency, pCorrect]
   );
 
-  // Estimate expected questions remaining
   const expectedRemaining = useMemo(
-    () => diagMode ? estimateRemainingQuestions(RAW_NODES, belief, adjacency, pCorrect) : null,
-    [diagMode, belief, adjacency, pCorrect]
+    () => (diagMode && mode === "quick") ? estimateRemainingQuestions(RAW_NODES, belief, adjacency, pCorrect) : null,
+    [diagMode, mode, belief, adjacency, pCorrect]
   );
 
-  // Session is complete when all nodes are classified (no unclassified remain).
   const sessionComplete = useMemo(
-    () => diagMode && hasStarted && isSessionComplete(RAW_NODES, belief),
-    [diagMode, hasStarted, belief]
+    () => diagMode && mode === "quick" && hasStarted && isSessionComplete(RAW_NODES, belief),
+    [diagMode, mode, hasStarted, belief]
   );
+
+  // ── Deep-dive derived state ──────────────────────────────────────
+
+  const subgraphIds = useMemo(() => {
+    if (!diagMode || mode !== "deepdive" || !targetNode) return [];
+    return [...computeSubgraph(targetNode, adjacency, RAW_NODES)];
+  }, [diagMode, mode, targetNode, adjacency]);
+
+  const ddClassification = useMemo(() => {
+    if (mode !== "deepdive") return {};
+    return classifyNodes(subgraphIds, betaBeliefs);
+  }, [mode, subgraphIds, betaBeliefs]);
+
+  const ddNextNodeId = useMemo(() => {
+    if (!diagMode || mode !== "deepdive" || subgraphIds.length === 0) return null;
+    return pickNextQuestionForSubgraph(subgraphIds, betaBeliefs, ddClassification, adjacency, RAW_NODES);
+  }, [diagMode, mode, subgraphIds, betaBeliefs, ddClassification, adjacency]);
+
+  const ddComplete = useMemo(() => {
+    if (!diagMode || mode !== "deepdive" || subgraphIds.length === 0) return false;
+    return isDeepDiveComplete(subgraphIds, ddClassification);
+  }, [diagMode, mode, subgraphIds, ddClassification]);
 
   // ── Handlers ─────────────────────────────────────────────────────
 
   const handleDiagClick = useCallback((id, shiftKey) => {
     if (!diagMode) return false;
 
-    // Ignore clicks on nodes that are already cut off (unknown)
+    if (mode === "deepdive") {
+      // In deep-dive mode, clicking a node in the subgraph opens its quiz
+      if (!subgraphIds.includes(id)) return false; // ignore outside subgraph
+      if (ddClassification[id] !== "uncertain") return true; // already classified
+      setQuizNode(id);
+      return true;
+    }
+
+    // Quick mode
     if (belief[id] === "unknown") return true;
 
     if (shiftKey) {
-      // Shift+click: toggle unknown — marks node + descendants as unknown,
-      // effectively removing them from the active DAG.
       setBelief(prev => propagateUnknown(id, prev, adjacency));
       setQuizNode(null);
       return true;
     }
 
     if (belief[id] === "known") {
-      // Click a known node to un-classify it (remove the known mark only —
-      // don't cascade, the student may want to re-test a specific node).
       setBelief(prev => { const next = { ...prev }; delete next[id]; return next; });
       setQuizNode(null);
       return true;
     }
 
-    // Unclassified node → open its quiz
     setQuizNode(id);
     return true;
-  }, [diagMode, belief, adjacency]);
+  }, [diagMode, mode, belief, adjacency, subgraphIds, ddClassification]);
 
-  const handleQuizAnswer = useCallback((id, correct) => {
-    // Update belief based on answer
-    setBelief(prev =>
-      correct
-        ? propagateKnown(id, prev, adjacency)
-        : propagateUnknown(id, prev, adjacency)
-    );
+  const handleQuizAnswer = useCallback((id, correct, question) => {
+    if (mode === "deepdive") {
+      // Update Beta beliefs using question's tests map
+      const tests = question?.tests ?? { [id]: 1.0 };
+      setBetaBeliefs(prev => updateBetaBelief(prev, tests, correct));
+    } else {
+      // Quick mode: binary propagation
+      setBelief(prev =>
+        correct
+          ? propagateKnown(id, prev, adjacency)
+          : propagateUnknown(id, prev, adjacency)
+      );
+    }
 
-    // Update stats for P(correct) estimation
     setStats(prev => ({
       correct: prev.correct + (correct ? 1 : 0),
       incorrect: prev.incorrect + (correct ? 0 : 1),
       questionsAnswered: prev.questionsAnswered + 1,
     }));
 
-    // Auto-advance: the next quiz node is driven by the parent via nextSuggestedId.
-    // We close the current quiz; CurriculumGraph will re-open with the suggestion
-    // after a short delay so the student sees the result first.
     setQuizNode(null);
-  }, [adjacency]);
+  }, [mode, adjacency]);
 
   const resetDiagnostic = useCallback(() => {
     setBelief({});
+    setBetaBeliefs({});
     setQuizNode(null);
+    setTargetNode(null);
+    setStats({ correct: 0, incorrect: 0, questionsAnswered: 0 });
+  }, []);
+
+  /**
+   * Start a deep-dive session targeting a specific node.
+   * @param {string} nodeId
+   */
+  const startDeepDive = useCallback((nodeId) => {
+    setMode("deepdive");
+    setTargetNode(nodeId);
+    setBetaBeliefs({});
+    setBelief({});
+    setQuizNode(null);
+    setStats({ correct: 0, incorrect: 0, questionsAnswered: 0 });
+    setDiagMode(true);
   }, []);
 
   return {
+    // Common
     diagMode, setDiagMode,
-    belief,
+    mode, setMode,
     quizNode, setQuizNode,
+    questionsAnswered,
+    handleDiagClick,
+    handleQuizAnswer,
+    resetDiagnostic,
+    startDeepDive,
+    targetNode,
+
+    // Quick mode
+    belief,
     frontier,
     visibleFrontier,
     hasStarted,
     nextSuggestedId,
     expectedRemaining,
     pCorrect,
-    questionsAnswered,
     sessionComplete,
-    handleDiagClick,
-    handleQuizAnswer,
-    resetDiagnostic,
+
+    // Deep-dive mode
+    betaBeliefs,
+    subgraphIds,
+    ddClassification,
+    ddNextNodeId,
+    ddComplete,
   };
 }

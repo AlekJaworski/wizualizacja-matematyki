@@ -11,6 +11,7 @@
  *   options: string[]   (exactly 4)
  *   correct: number     (0-based index)
  *   hint: string
+ *   tests: map of nodeId → weight float (optional; defaults to { [nodeId]: 1.0 })
  *   body (markdown below ---): question text
  *
  * Adding a new topic = create src/data/nodes/<id>/node.md + questions/01.md
@@ -33,14 +34,14 @@ function parseFrontmatter(raw) {
   const body      = match[2].trim();
   const meta      = {};
 
-  // Parse line-by-line; handles scalars, quoted strings, and simple lists
+  // Parse line-by-line; handles scalars, quoted strings, simple lists, and maps
   const lines = yamlBlock.split(/\r?\n/);
   let i = 0;
   while (i < lines.length) {
     const line = lines[i];
 
-    // List item belonging to previous key — already handled below
-    if (line.startsWith("  - ")) { i++; continue; }
+    // List item or map entry belonging to previous key — already handled below
+    if (line.startsWith("  ")) { i++; continue; }
 
     const kv = line.match(/^(\w+):\s*(.*)/);
     if (!kv) { i++; continue; }
@@ -49,17 +50,38 @@ function parseFrontmatter(raw) {
     let   val = kv[2].trim();
 
     if (val === "" || val === null) {
-      // Possibly a list following on next lines
-      const items = [];
-      i++;
-      while (i < lines.length && lines[i].startsWith("  - ")) {
-        let item = lines[i].replace(/^  - /, "").trim();
-        // Strip surrounding quotes
-        item = item.replace(/^["']|["']$/g, "");
-        items.push(item);
+      // Could be a list or a map — peek at first indented line
+      const nextLine = lines[i + 1] ?? "";
+      if (nextLine.startsWith("  - ")) {
+        // List
+        const items = [];
+        i++;
+        while (i < lines.length && lines[i].startsWith("  - ")) {
+          let item = lines[i].replace(/^  - /, "").trim();
+          // Strip surrounding quotes
+          item = item.replace(/^["']|["']$/g, "");
+          items.push(item);
+          i++;
+        }
+        meta[key] = items.length > 0 ? items : null;
+      } else if (nextLine.match(/^  \w+:/)) {
+        // Map (e.g. tests: { nodeId: weight })
+        const map = {};
+        i++;
+        while (i < lines.length && lines[i].match(/^  \w+:/)) {
+          const mapKv = lines[i].match(/^  (\w+):\s*(.*)/);
+          if (mapKv) {
+            const mKey = mapKv[1];
+            let mVal = mapKv[2].trim().replace(/^["']|["']$/g, "");
+            map[mKey] = !isNaN(mVal) && mVal !== "" ? Number(mVal) : mVal;
+          }
+          i++;
+        }
+        meta[key] = map;
+      } else {
+        meta[key] = null;
         i++;
       }
-      meta[key] = items.length > 0 ? items : null;
     } else {
       // Strip surrounding quotes, parse numbers/booleans
       val = val.replace(/^["']|["']$/g, "");
@@ -122,6 +144,11 @@ export const QUESTION_BANK = (() => {
       options: meta.options ?? [],
       correct: meta.correct ?? 0,
       hint:    meta.hint    ?? "",
+      // tests: weighted map of nodeId → float (for Beta belief updates)
+      // Defaults to { [nodeId]: 1.0 } when not specified in frontmatter
+      tests:   (meta.tests && typeof meta.tests === "object" && Object.keys(meta.tests).length > 0)
+                 ? meta.tests
+                 : { [id]: 1.0 },
     });
   }
   return bank;

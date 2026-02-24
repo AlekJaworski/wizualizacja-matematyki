@@ -233,6 +233,179 @@ export function estimateRemainingQuestions(nodes, belief, adjacency, pCorrect = 
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Deep-Dive mode: Beta distribution belief engine
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Update Beta belief states given a question answer.
+ *
+ * Each question has a `tests` map: { nodeId: weight, ... }
+ * A correct answer increments alpha for each tested node by its weight.
+ * A wrong answer increments beta for each tested node by its weight.
+ *
+ * @param {Record<string,{alpha:number,beta:number}>} betaBeliefs  current state
+ * @param {Record<string,number>} tests   question's tests map (nodeId → weight)
+ * @param {boolean} correct
+ * @returns {Record<string,{alpha:number,beta:number}>} new state (immutable update)
+ */
+export function updateBetaBelief(betaBeliefs, tests, correct) {
+  const result = { ...betaBeliefs };
+  for (const [nodeId, weight] of Object.entries(tests)) {
+    const prev = result[nodeId] ?? { alpha: 1, beta: 1 }; // prior Beta(1,1)
+    result[nodeId] = {
+      alpha: prev.alpha + (correct ? weight : 0),
+      beta:  prev.beta  + (correct ? 0 : weight),
+    };
+  }
+  return result;
+}
+
+/**
+ * Classify nodes based on their Beta belief state.
+ *
+ * Mean of Beta(alpha, beta) = alpha / (alpha + beta)
+ * Strength = alpha + beta (how many pseudo-observations we have)
+ *
+ * Classification thresholds (strength > 2 required to avoid premature classification):
+ *   mean > 0.75 AND strength > 2  → "known"
+ *   mean < 0.25 AND strength > 2  → "unknown"
+ *   otherwise                     → "uncertain"
+ *
+ * @param {string[]} nodeIds
+ * @param {Record<string,{alpha:number,beta:number}>} betaBeliefs
+ * @returns {Record<string, "known"|"unknown"|"uncertain">}
+ */
+export function classifyNodes(nodeIds, betaBeliefs) {
+  const result = {};
+  for (const id of nodeIds) {
+    const b = betaBeliefs[id] ?? { alpha: 1, beta: 1 };
+    const strength = b.alpha + b.beta;
+    const mean = b.alpha / strength;
+
+    if (mean > 0.75 && strength > 2) {
+      result[id] = "known";
+    } else if (mean < 0.25 && strength > 2) {
+      result[id] = "unknown";
+    } else {
+      result[id] = "uncertain";
+    }
+  }
+  return result;
+}
+
+/**
+ * Compute the subgraph of transitive prerequisites for a target node.
+ * Returns all node ids that must be classified before the target can be mastered,
+ * including the target itself.
+ *
+ * @param {string} targetId
+ * @param {{ prereqs: Record<string,string[]> }} adjacency
+ * @param {Array<{id:string}>} nodes
+ * @returns {Set<string>}
+ */
+export function computeSubgraph(targetId, adjacency, nodes) {
+  const subgraph = new Set();
+  const nodeSet = new Set(nodes.map(n => n.id));
+  const queue = [targetId];
+  while (queue.length) {
+    const cur = queue.shift();
+    if (subgraph.has(cur)) continue;
+    if (!nodeSet.has(cur)) continue;
+    subgraph.add(cur);
+    for (const prereq of (adjacency.prereqs[cur] ?? [])) {
+      if (!subgraph.has(prereq)) queue.push(prereq);
+    }
+  }
+  return subgraph;
+}
+
+/**
+ * Pick the next best question for the deep-dive session.
+ *
+ * Selects from the question pool (all questions whose node is in the subgraph)
+ * preferring questions that test nodes currently "uncertain" with low strength
+ * (i.e., least information gathered about that node so far).
+ *
+ * Among uncertain nodes, picks the one with:
+ *   - highest ERV score (using Beta mean as pCorrect estimate)
+ *   - tie-break: lowest strength (needs more evidence)
+ *
+ * @param {string[]} subgraphIds - node ids in the subgraph
+ * @param {Record<string,{alpha:number,beta:number}>} betaBeliefs
+ * @param {Record<string,"known"|"unknown"|"uncertain">} classification
+ * @param {{ prereqs: Record<string,string[]>, dependents: Record<string,string[]> }} adjacency
+ * @param {Array<{id:string}>} allNodes
+ * @returns {string|null} node id to ask next, or null if all classified
+ */
+export function pickNextQuestionForSubgraph(subgraphIds, betaBeliefs, classification, adjacency, allNodes) {
+  // Only ask about uncertain nodes in the subgraph
+  const uncertain = subgraphIds.filter(id => classification[id] === "uncertain");
+  if (uncertain.length === 0) return null;
+
+  // Score each uncertain node: prefer low-strength + high ERV within subgraph
+  const scored = uncertain.map(id => {
+    const b = betaBeliefs[id] ?? { alpha: 1, beta: 1 };
+    const strength = b.alpha + b.beta;
+    const pC = b.alpha / strength; // Beta mean as P(correct)
+    const pI = 1 - pC;
+
+    // ERV restricted to subgraph: only count ancestors/descendants within subgraph
+    const subgraphSet = new Set(subgraphIds);
+
+    let ancestorsToReveal = 0;
+    const aQueue = [...(adjacency.prereqs[id] ?? [])];
+    const aVisited = new Set();
+    while (aQueue.length) {
+      const cur = aQueue.shift();
+      if (aVisited.has(cur)) continue;
+      aVisited.add(cur);
+      if (subgraphSet.has(cur) && classification[cur] === "uncertain") {
+        ancestorsToReveal++;
+      }
+      for (const p of (adjacency.prereqs[cur] ?? [])) {
+        if (!aVisited.has(p)) aQueue.push(p);
+      }
+    }
+
+    let descendantsToReveal = 0;
+    const dQueue = [...(adjacency.dependents[id] ?? [])];
+    const dVisited = new Set();
+    while (dQueue.length) {
+      const cur = dQueue.shift();
+      if (dVisited.has(cur)) continue;
+      dVisited.add(cur);
+      if (subgraphSet.has(cur) && classification[cur] === "uncertain") {
+        descendantsToReveal++;
+      }
+      for (const d of (adjacency.dependents[cur] ?? [])) {
+        if (!dVisited.has(d)) dQueue.push(d);
+      }
+    }
+
+    const erv = pC * ancestorsToReveal + pI * descendantsToReveal;
+    return { id, erv, strength };
+  });
+
+  // Sort: highest ERV first, tie-break by lowest strength
+  scored.sort((a, b) => {
+    if (Math.abs(a.erv - b.erv) > 0.01) return b.erv - a.erv;
+    return a.strength - b.strength;
+  });
+
+  return scored[0]?.id ?? uncertain[0];
+}
+
+/**
+ * Check if all nodes in a subgraph are classified (no "uncertain" remain).
+ * @param {string[]} subgraphIds
+ * @param {Record<string,"known"|"unknown"|"uncertain">} classification
+ * @returns {boolean}
+ */
+export function isDeepDiveComplete(subgraphIds, classification) {
+  return subgraphIds.every(id => classification[id] !== "uncertain");
+}
+
 /**
  * Check whether the diagnostic session is complete.
  * Complete = no unclassified nodes remain in the active DAG.

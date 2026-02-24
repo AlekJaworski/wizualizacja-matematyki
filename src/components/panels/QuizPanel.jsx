@@ -22,7 +22,8 @@ export function QuizPanel({ nodeId, nodes, onAnswer, onSkip, lang }) {
 
   const submit  = () => { if (picked !== null) setRevealed(true); };
   const confirm = () => {
-    onAnswer(picked === q.correct);
+    // Pass the full question object so deep-dive mode can use the `tests` field
+    onAnswer(picked === q.correct, q);
     setPicked(null);
     setRevealed(false);
   };
@@ -41,9 +42,9 @@ export function QuizPanel({ nodeId, nodes, onAnswer, onSkip, lang }) {
           Brak pytania dla tego węzła. Czy znasz ten temat?
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => onAnswer(true)}  style={ansBtn("#27ae60")}>✓ Tak</button>
-          <button onClick={() => onAnswer(false)} style={ansBtn("#e74c3c")}>✗ Nie</button>
-          <button onClick={onSkip}               style={ansBtn("#3a4d63")}>Pomiń</button>
+          <button onClick={() => onAnswer(true,  null)} style={ansBtn("#27ae60")}>✓ Tak</button>
+          <button onClick={() => onAnswer(false, null)} style={ansBtn("#e74c3c")}>✗ Nie</button>
+          <button onClick={onSkip}                      style={ansBtn("#3a4d63")}>Pomiń</button>
         </div>
       </div>
     );
