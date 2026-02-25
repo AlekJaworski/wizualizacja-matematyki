@@ -23,6 +23,7 @@ import { FilterBar }           from "./ui/FilterBar.jsx";
 import { Legend }              from "./ui/Legend.jsx";
 import { GoalSelectionModal }  from "./ui/GoalSelectionModal.jsx";
 import { DiagnosticModeModal } from "./ui/DiagnosticModeModal.jsx";
+import { OnboardingModal }     from "./ui/OnboardingModal.jsx";
 
 const DEFAULT_VIEW = { x: 40, y: 40, scale: 0.72 };
 
@@ -41,6 +42,15 @@ export default function CurriculumGraph() {
   // ── Goal selection modal (for deep-dive) ────────────────────────
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [showModePicker, setShowModePicker] = useState(false);
+
+  // ── Onboarding — shown once to first-time visitors ───────────────
+  const [onboardingSeen, setOnboardingSeen] = useLocalStorage("onboardingSeen", false);
+  const [showOnboarding, setShowOnboarding] = useState(!onboardingSeen);
+
+  const handleOnboardingClose = useCallback(() => {
+    setOnboardingSeen(true);
+    setShowOnboarding(false);
+  }, [setOnboardingSeen]);
 
   const toggleScope   = useCallback(k => setFilterScope(prev => {
     const next = new Set(prev); next.has(k) ? next.delete(k) : next.add(k); return next;
@@ -452,6 +462,13 @@ export default function CurriculumGraph() {
         isOpen={showModePicker}
         onSelect={handleModeSelect}
         onClose={() => setShowModePicker(false)}
+        lang={lang}
+      />
+
+      {/* Onboarding — first visit only */}
+      <OnboardingModal
+        isOpen={showOnboarding}
+        onClose={handleOnboardingClose}
         lang={lang}
       />
     </div>

@@ -126,16 +126,22 @@ const STRINGS = {
   legendStages:     { pl: "Etapy",      en: "Stages" },
 
   // ── Onboarding ───────────────────────────────────────────────────
-  onboardingTitle:  { pl: "Witaj w grafie wiedzy",  en: "Welcome to the knowledge graph" },
-  onboardingSub:    { pl: "Każdy węzeł to temat matematyczny. Połączenia pokazują wymagania wstępne.",
-                      en: "Each node is a math topic. Edges show prerequisites." },
-  onboardingBrowse: { pl: "Przeglądaj",  en: "Browse" },
-  onboardingBrowseDesc: { pl: "Kliknij dowolny węzeł, żeby zobaczyć szczegóły i powiązania.",
-                          en: "Click any node to see details and connections." },
-  onboardingDiag:   { pl: "Zdiagnozuj się", en: "Run a diagnostic" },
-  onboardingDiagDesc: { pl: "Sprawdź co umiesz — system zaproponuje pytania i pokaże Twój poziom wiedzy.",
-                        en: "Find out what you know — the system picks questions and maps your knowledge." },
-  onboardingStart:  { pl: "Zacznij →",   en: "Get started →" },
+  onboardingTitle:     { pl: "Witaj w oczochodzi.pl", en: "Welcome to oczochodzi.pl" },
+  onboardingSub:       { pl: "Interaktywna mapa polskiej podstawy programowej z matematyki. Każdy węzeł to temat, połączenia pokazują wymagania wstępne.",
+                         en: "An interactive map of the Polish maths curriculum. Each node is a topic, edges show prerequisites." },
+  onboardingBrowse:    { pl: "🔍 Przeglądaj", en: "🔍 Browse" },
+  onboardingBrowseDesc:{ pl: "Kliknij dowolny węzeł, żeby zobaczyć szczegóły, wymagania wstępne i tematy, które odblokuje.",
+                         en: "Click any node to see details, prerequisites, and the topics it unlocks." },
+  onboardingDiag:      { pl: "⚡ Szybka diagnoza", en: "⚡ Quick diagnostic" },
+  onboardingDiagDesc:  { pl: "Sprawdź co umiesz — algorytm zaproponuje najbardziej wartościowe pytania i zmapuje Twoją wiedzę.",
+                         en: "Find out what you know — the algorithm picks the most informative questions and maps your knowledge." },
+  onboardingDeep:      { pl: "◎ Szczegółowa analiza", en: "◎ Deep-dive analysis" },
+  onboardingDeepDesc:  { pl: "Wybierz konkretny cel (temat maturalny lub dowolny węzeł) — system przeanalizuje tylko wymagane tematy wstępne.",
+                         en: "Pick a specific goal topic — the system focuses only on its required prerequisites." },
+  onboardingStart:     { pl: "Zaczynamy →", en: "Get started →" },
+  onboardingSkip:      { pl: "Pomiń",       en: "Skip" },
+  onboardingLangHint:  { pl: "Możesz zmienić język w pasku filtrów (PL / EN).",
+                         en: "You can switch language in the filter bar (PL / EN)." },
 };
 
 /**

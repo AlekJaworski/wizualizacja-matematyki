@@ -316,8 +316,67 @@ Not a generic chatbot — a structured agent with tools and pre-computed materia
 - [ ] Add `explanation.md` to the Vite glob loader in `curriculum.js` so explanations are
       available at runtime for both the study panel and LLM context injection
 
+### Multi-subject architecture (next major feature)
+
+**Motivation:** the platform should be subject-agnostic. The first new subject will be
+**Abstract Algebra** — so the author can use the app themselves to learn.
+
+#### Architecture plan
+- [ ] Move curriculum data into a subject-aware directory structure:
+      `src/data/subjects/math_pl/` — current Polish math curriculum (62 nodes)
+      `src/data/subjects/abstract_algebra/` — new subject
+      Each subject has its own `nodes/`, `edges.js`, `sections.js`, `meta.json`
+      (label, description, language, difficulty level, scope colour palette)
+- [ ] Update `curriculum.js` to load a specific subject by ID, not hardcoded globs
+- [ ] Add subject picker UI — either a landing screen or a dropdown in the header
+- [ ] `CurriculumGraph` receives `subjectId` prop, all data is loaded dynamically
+- [ ] Diagnostic state keyed by subject: `wizmat_v1_{subjectId}_belief` etc.
+      so switching subjects doesn't clobber saved progress
+
+#### Abstract Algebra subject (to build)
+Planned node structure — a proper DAG from foundations to advanced topics:
+
+**Foundations**
+- Sets and functions
+- Relations and equivalence classes
+- Mathematical induction
+
+**Groups**
+- Binary operations and algebraic structures
+- Definition of a group + examples (Z, Zn, Sn, GL(n))
+- Subgroups and Lagrange's theorem
+- Cyclic groups and generators
+- Cosets and quotient groups
+- Group homomorphisms and isomorphisms
+- Normal subgroups
+- First isomorphism theorem
+- Group actions and Cayley's theorem
+- Sylow theorems
+
+**Rings**
+- Definition of a ring + examples (Z, Z[x], Mn(R))
+- Subrings and ideals
+- Quotient rings
+- Ring homomorphisms
+- Integral domains and fields
+- Polynomial rings
+- UFD, PID, Euclidean domains
+
+**Fields**
+- Field extensions
+- Algebraic vs transcendental elements
+- Splitting fields
+- Finite fields (Galois fields GF(p^n))
+
+**Optional / advanced**
+- Galois theory
+- Modules over rings
+- Category theory basics
+
+All questions in English (subject is taught in English internationally).
+Resources: links to Abstract Algebra by Dummit & Foote, Artin, 3Blue1Brown, etc.
+
 ### Infrastructure / polish
 - [ ] Add a README.md
 - [ ] Mobile/touch support (pinch-zoom, tap)
-- [ ] Add a way to restart diagnostic without full page refresh
-- [ ] Update `progress.md` file map (DiagnosticModeModal.jsx not listed yet)
+- [ ] Update `progress.md` file map
