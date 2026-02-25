@@ -211,6 +211,128 @@ src/
 
 ---
 
+---
+
+## Session: 2026-02-25 — Multi-course architecture complete
+
+### What was done
+
+1. **Abstract Algebra course — content complete**
+   - All 20 node.md files written (Sets/Functions, Relations, Induction, Binary Ops, Groups Intro, Subgroups, Cyclic Groups, Cosets, Group Homomorphisms, Normal Subgroups, Iso Theorem, Group Actions, Sylow, Rings Intro, Ideals, Ring Homomorphisms, Integral Domains, Poly Rings, Fields Intro, Field Extensions)
+   - 60 quiz questions written (3 per node), all with 4 options, correct answer, and hint
+   - `abstract_algebra/index.js` course loader with Vite globs
+   - `abstract_algebra/sections.js` with FOUNDATIONS/GROUPS/RINGS/FIELDS sections and 6 scope colours
+
+2. **Course registry** — `src/data/courses/index.js` maps courseId → module; `COURSE_LIST` for picker UI
+
+3. **`CourseApp.jsx`** — new top-level shell:
+   - Shows course picker screen (title, description, icon per course)
+   - Mounts `<CurriculumGraph key={courseId} ... />` with all course data as props
+   - "←" back button in header returns to picker
+
+4. **`CurriculumGraph.jsx` refactor** — fully decoupled from data layer:
+   - Receives `courseId`, `RAW_NODES`, `RAW_EDGES`, `QUESTION_BANK`, `SECTIONS`, `SCOPE_COLORS`, `SCOPE_LABELS`, `COURSE_META`, `onBackToCourses` as props
+   - No direct imports from data files
+   - Passes `SECTIONS`/`SCOPE_COLORS`/`SCOPE_LABELS` down to all child components
+
+5. **All components decoupled from stale imports:**
+   - `FilterBar.jsx` — SECTIONS, SCOPE_COLORS, SCOPE_LABELS as props
+   - `Legend.jsx` — SCOPE_COLORS, SCOPE_LABELS, SECTIONS as props
+   - `InfoPanel.jsx` — SCOPE_COLORS, SCOPE_LABELS, SECTIONS as props
+   - `DiagnosticPanel.jsx` — SCOPE_LABELS as prop; uses `nodes` prop instead of `RAW_NODES` import
+   - `DeepDivePanel.jsx` — removed SCOPE_COLORS import (unused)
+   - `GoalSelectionModal.jsx` — SECTIONS, SCOPE_COLORS as props; section order derived from SECTIONS keys
+   - `NodeLayer.jsx` — `scopeColors` prop instead of import
+   - `QuizPanel.jsx` — `questionBank` prop + `getQuestion` from courseLoader; removed sections import
+
+6. **`useDiagnostic.js` refactor:**
+   - Accepts `(adjacency, questionBank, courseId)` parameters
+   - localStorage keys namespaced by courseId: `${courseId}_diagMode`, etc.
+   - Derives node list from adjacency keys (no RAW_NODES import needed)
+   - Removed import from curriculum.js
+
+7. **`simulation.js` refactor:**
+   - Removed module-level `RAW_NODES`/`RAW_EDGES` imports
+   - `computePositions(layoutId, iters, nodes, edges)` — nodes+edges as parameters
+   - All simulation constants computed per call (ranks, rankY, simEdges, idealK)
+
+8. **`src/index.jsx`** — now mounts `<CourseApp />` instead of `<CurriculumGraph />`
+
+9. **Build** — clean, 388 modules, no errors; deployed to dev branch
+
+### Files changed (major)
+- `src/components/CourseApp.jsx` — **new**
+- `src/index.jsx` — mounts CourseApp
+- `src/components/CurriculumGraph.jsx` — full props refactor
+- `src/components/ui/FilterBar.jsx`, `Legend.jsx`, `GoalSelectionModal.jsx`
+- `src/components/panels/InfoPanel.jsx`, `DiagnosticPanel.jsx`, `DeepDivePanel.jsx`, `QuizPanel.jsx`
+- `src/components/graph/NodeLayer.jsx`
+- `src/hooks/useDiagnostic.js`
+- `src/engine/simulation.js`
+- `src/data/courses/abstract_algebra/` — 20 nodes × (node.md + 3 questions) = 80 files, plus index.js, sections.js, edges.js
+- `src/data/courses/index.js` — **new** course registry
+
+### Current file map (updated)
+```
+src/
+  index.jsx                        # mounts CourseApp
+  i18n.js                          # ~70 translation keys PL+EN
+  components/
+    CourseApp.jsx                  # NEW: top-level shell, course picker
+    CurriculumGraph.jsx            # graph view, accepts course data as props
+    graph/
+      EdgeLayer.jsx
+      NodeLayer.jsx                # scopeColors prop
+    panels/
+      InfoPanel.jsx                # SCOPE_COLORS/LABELS/SECTIONS props
+      QuizPanel.jsx                # questionBank prop
+      DiagnosticPanel.jsx          # SCOPE_LABELS prop, uses nodes not RAW_NODES
+      DeepDivePanel.jsx
+    ui/
+      FilterBar.jsx                # SECTIONS/SCOPE_COLORS/SCOPE_LABELS props
+      Legend.jsx                   # SCOPE_COLORS/LABELS/SECTIONS props
+      GoalSelectionModal.jsx       # SECTIONS/SCOPE_COLORS props
+      DiagnosticModeModal.jsx
+      OnboardingModal.jsx
+  data/
+    curriculum.js                  # STALE but harmless (no longer imported)
+    courseLoader.js                # shared parseFrontmatter, buildNodes, buildQuestionBank, getQuestion
+    courses/
+      index.js                     # registry: { math_pl, abstract_algebra }
+      math_pl/
+        index.js                   # Vite globs for math_pl
+        nodes/<62 nodes>/          # node.md + 3 questions each
+        edges.js
+        sections.js
+      abstract_algebra/
+        index.js                   # Vite globs for abstract_algebra
+        nodes/<20 nodes>/          # node.md + 3 questions each
+        edges.js                   # 27 edges
+        sections.js
+  engine/
+    adjacency.js
+    belief.js
+    layout.js
+    ranks.js
+    simulation.js                  # now accepts nodes/edges as params
+    layouts/
+      index.js
+      nPartite.js
+      spectral.js
+      topoRank.js
+  hooks/
+    useDiagnostic.js               # namespaced localStorage, no data imports
+    useLocalStorage.js
+    useNodeDrag.js
+    usePanZoom.js
+  styles/
+    tokens.js
+  utils/
+    latex.js
+```
+
+---
+
 ## Next Steps (backlog)
 
 ### Learning mode (highest priority)
