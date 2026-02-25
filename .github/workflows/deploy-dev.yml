@@ -29,7 +29,7 @@ jobs:
       - name: Build (dev base path)
         run: yarn build
         env:
-          VITE_BASE: /wizualizacja-matematyki/dev/
+          VITE_BASE: /dev/
 
       - name: Deploy to /dev/ subfolder on gh-pages
         run: |
