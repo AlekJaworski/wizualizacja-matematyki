@@ -1,5 +1,3 @@
-import { SCOPE_COLORS } from "../../data/sections.js";
-
 /** Returns the visual radius of a node by curriculum level. */
 function nodeRadius(n) { return 6 + n.level * 2; }
 
@@ -31,12 +29,13 @@ export function NodeLayer({
   belief,
   frontier,
   scale,
+  scopeColors,
 }) {
   return (
     <g>
       {nodes.map(n => {
         const r         = nodeRadius(n);
-        const baseColor = SCOPE_COLORS[n.scope] || "#aaa";
+        const baseColor = scopeColors?.[n.scope] || "#4a9eff";
         const filtered  = filteredIds && !filteredIds.has(n.id);
         const highlighted = highlightedIds?.has(n.id);
         const isSelected  = selected === n.id;

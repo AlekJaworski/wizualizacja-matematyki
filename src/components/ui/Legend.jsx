@@ -1,13 +1,14 @@
 import { useState } from "react";
-import { SCOPE_COLORS, SCOPE_LABELS, SECTIONS } from "../../data/sections.js";
 import { COLORS } from "../../styles/tokens.js";
 import { t } from "../../i18n.js";
 
 /**
  * Bottom-left legend — collapsible, shows scope colours, section stages,
  * and diagnostic node colours when in diagnostic mode.
+ * SCOPE_COLORS, SCOPE_LABELS, SECTIONS are passed as props so the component
+ * works for any course.
  */
-export function Legend({ lang, diagMode }) {
+export function Legend({ lang, diagMode, SCOPE_COLORS, SCOPE_LABELS, SECTIONS }) {
   const [open, setOpen] = useState(false);
 
   const scopes = Object.entries(SCOPE_COLORS).map(([k, c]) => ({

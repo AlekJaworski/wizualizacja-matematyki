@@ -1,5 +1,3 @@
-import { RAW_NODES } from "../../data/curriculum.js";
-import { SCOPE_LABELS } from "../../data/sections.js";
 import { t } from "../../i18n.js";
 
 /**
@@ -9,6 +7,8 @@ import { t } from "../../i18n.js";
  *   1. Not started  — prompt the student to click any node or accept the suggestion
  *   2. In progress  — show frontier sorted by degree (best question highlighted)
  *   3. Complete     — session summary: known vs unknown counts, study plan prompt
+ *
+ * SCOPE_LABELS passed as prop for multi-course support.
  */
 export function DiagnosticPanel({
   belief,
@@ -25,13 +25,14 @@ export function DiagnosticPanel({
   lang,
   onReset,
   onNodeClick,
+  SCOPE_LABELS,
 }) {
   const byId     = Object.fromEntries(nodes.map(n => [n.id, n]));
   const getLabel = id => lang === "pl" ? byId[id]?.labelPl : byId[id]?.label;
 
-  const known   = RAW_NODES.filter(n => belief[n.id] === "known");
-  const unknown = RAW_NODES.filter(n => belief[n.id] === "unknown");
-  const total   = RAW_NODES.length;
+  const known   = nodes.filter(n => belief[n.id] === "known");
+  const unknown = nodes.filter(n => belief[n.id] === "unknown");
+  const total   = nodes.length;
 
   const stats = [
     { label: t("statKnown",   lang), count: known.length,            color: "#27ae60" },
@@ -115,7 +116,7 @@ export function DiagnosticPanel({
               <div style={{ color: "#e74c3c", fontSize: 10, fontWeight: 600, marginBottom: 5 }}>
                 {t("toStudy", lang)} ({unknown.length})
               </div>
-              {RAW_NODES
+              {nodes
                 .filter(n => belief[n.id] === "unknown")
                 .filter(n => (adjacency.prereqs[n.id] ?? []).every(p => belief[p] === "known"))
                 .slice(0, 8)
@@ -127,7 +128,7 @@ export function DiagnosticPanel({
                   }}>
                     {getLabel(n.id)}
                     <div style={{ fontSize: 8, color: "#6b7d9a", marginTop: 1 }}>
-                      {SCOPE_LABELS[byId[n.id]?.scope]?.[lang === "pl" ? "pl" : "en"]}
+                      {SCOPE_LABELS?.[byId[n.id]?.scope]?.[lang === "pl" ? "pl" : "en"]}
                     </div>
                   </div>
                 ))}
@@ -153,7 +154,7 @@ export function DiagnosticPanel({
               <SuggestedNode
                 id={nextSuggestedId}
                 label={getLabel(nextSuggestedId)}
-                scope={SCOPE_LABELS[byId[nextSuggestedId]?.scope]?.[lang === "pl" ? "pl" : "en"]}
+                scope={SCOPE_LABELS?.[byId[nextSuggestedId]?.scope]?.[lang === "pl" ? "pl" : "en"]}
                 subtitle={t("startHereSub", lang)}
                 onClick={() => onNodeClick?.(nextSuggestedId)}
               />
@@ -193,7 +194,7 @@ export function DiagnosticPanel({
                   <span style={{ fontSize: 9, opacity: 0.7 }}>{isNext ? "★" : "→"}</span>
                 </div>
                 <div style={{ fontSize: 8, color: "#6b7d9a", marginTop: 1 }}>
-                  {SCOPE_LABELS[byId[id]?.scope]?.[lang === "pl" ? "pl" : "en"]}
+                  {SCOPE_LABELS?.[byId[id]?.scope]?.[lang === "pl" ? "pl" : "en"]}
                   {isNext && <span style={{ color: "#4a9eff88", marginLeft: 4 }}>{t("best", lang)}</span>}
                 </div>
               </div>

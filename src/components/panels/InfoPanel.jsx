@@ -1,15 +1,15 @@
-import { SCOPE_COLORS, SCOPE_LABELS, SECTIONS } from "../../data/sections.js";
 import { t } from "../../i18n.js";
 
 /**
  * Side panel shown when a node is selected in normal (non-diagnostic) mode.
  * Displays topic details, prerequisites, and dependents.
+ * SCOPE_COLORS, SCOPE_LABELS, SECTIONS passed as props for multi-course support.
  */
-export function InfoPanel({ nodeId, nodes, adjacency, lang }) {
+export function InfoPanel({ nodeId, nodes, adjacency, lang, SCOPE_COLORS, SCOPE_LABELS, SECTIONS }) {
   const node = nodes.find(n => n.id === nodeId);
   if (!node) return null;
 
-  const color   = SCOPE_COLORS[node.scope] || "#aaa";
+  const color   = SCOPE_COLORS?.[node.scope] ?? "#4a9eff";
   const lbl     = lang === "pl" ? node.labelPl : node.label;
   const prereqs = adjacency.prereqs[nodeId] || [];
   const deps    = adjacency.dependents[nodeId] || [];
@@ -33,9 +33,9 @@ export function InfoPanel({ nodeId, nodes, adjacency, lang }) {
     }}>
       <div style={{ color, fontWeight: 700, fontSize: 13, marginBottom: 6 }}>{lbl}</div>
       <div style={{ color: "#6b7d9a", fontSize: 10, marginBottom: 8 }}>
-        {SECTIONS[node.section]?.label}
+        {SECTIONS?.[node.section]?.label}
         {" · "}
-        {SCOPE_LABELS[node.scope]?.[lang === "pl" ? "pl" : "en"]}
+        {SCOPE_LABELS?.[node.scope]?.[lang === "pl" ? "pl" : "en"]}
         {" · "}{t("level", lang)} {node.level}
       </div>
 

@@ -1,4 +1,3 @@
-import { SCOPE_COLORS } from "../../data/sections.js";
 import { t } from "../../i18n.js";
 
 /**

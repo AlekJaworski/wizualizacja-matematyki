@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
-import { SCOPE_COLORS } from "../../data/sections.js";
-import { getQuestion } from "../../data/curriculum.js";
+import { getQuestion } from "../../data/courseLoader.js";
 import { renderLatex } from "../../utils/latex.js";
 import { panelStyle, ansBtn } from "../../styles/tokens.js";
 import { t } from "../../i18n.js";
@@ -9,14 +8,23 @@ import { t } from "../../i18n.js";
  * Quiz card shown in diagnostic mode when a node is selected.
  * Picks a random question from the node's question pool (stable per mount).
  * Presents a multiple-choice question, reveals the answer, and
- * calls onAnswer(true|false) to update the belief state.
+ * calls onAnswer(correct, question, index) to update the belief state.
+ *
+ * Props:
+ *   nodeId         — the node being quizzed
+ *   nodes          — array of all nodes (for label + scope)
+ *   questionBank   — { nodeId: [{q, options, correct, hint, tests}] }
+ *   excludeIndices — question indices already answered this session
+ *   onAnswer(correct, question, questionIndex)
+ *   onSkip()
+ *   lang
  */
-export function QuizPanel({ nodeId, nodes, onAnswer, onSkip, lang, excludeIndices = [] }) {
+export function QuizPanel({ nodeId, nodes, questionBank, onAnswer, onSkip, lang, excludeIndices = [] }) {
   const node  = nodes.find(n => n.id === nodeId);
   // Pick once per nodeId mount — re-rolls when a different node is opened
-  // Pass excludeIndices to avoid repeating questions
-  const q     = useMemo(() => getQuestion(nodeId, excludeIndices), [nodeId, excludeIndices]);
-  const color = SCOPE_COLORS[node?.scope] || "#4a9eff";
+  const q     = useMemo(() => getQuestion(questionBank, nodeId, excludeIndices), [nodeId, excludeIndices]);
+  // Use a fallback colour if scopeColors not provided
+  const color = "#4a9eff";
   const lbl   = node ? (lang === "pl" ? node.labelPl : node.label) : nodeId;
 
   const [picked,   setPicked]   = useState(null);
@@ -24,8 +32,6 @@ export function QuizPanel({ nodeId, nodes, onAnswer, onSkip, lang, excludeIndice
 
   const submit  = () => { if (picked !== null) setRevealed(true); };
   const confirm = () => {
-    // Pass the full question object so deep-dive mode can use the `tests` field
-    // Also pass the question index to track as answered
     onAnswer(picked === q.correct, q, q.index);
     setPicked(null);
     setRevealed(false);

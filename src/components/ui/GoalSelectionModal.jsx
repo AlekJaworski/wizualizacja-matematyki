@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { SCOPE_COLORS, SECTIONS } from "../../data/sections.js";
 
 /**
  * Modal for selecting a deep-dive goal node.
@@ -7,12 +6,16 @@ import { SCOPE_COLORS, SECTIONS } from "../../data/sections.js";
  * Shows a searchable list of all nodes, grouped by section colour.
  * The student picks a target topic — the system will then diagnose
  * all transitive prerequisites of that topic.
+ *
+ * SECTIONS and SCOPE_COLORS are passed as props so the modal works for any course.
  */
-export function GoalSelectionModal({ nodes, lang, onSelect, onClose }) {
+export function GoalSelectionModal({ nodes, lang, onSelect, onClose, SECTIONS, SCOPE_COLORS }) {
   const [search, setSearch] = useState("");
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const buttonRefs = useRef([]);
-  const searchInputRef = useRef(null);
+
+  // Derive section order from SECTIONS keys (preserve insertion order)
+  const sectionOrder = useMemo(() => Object.keys(SECTIONS ?? {}), [SECTIONS]);
 
   const filtered = useMemo(() => {
     const term = search.toLowerCase();
@@ -23,49 +26,40 @@ export function GoalSelectionModal({ nodes, lang, onSelect, onClose }) {
     );
   }, [nodes, search]);
 
-  // Flat list for keyboard navigation
+  // Flat list for keyboard navigation (in section order)
   const flatList = useMemo(() => {
-    const list = [];
-    const sectionOrder = ["SP8", "LP", "LR", "UNIV"];
     const g = {};
     for (const sec of sectionOrder) g[sec] = [];
     for (const n of filtered) {
-      const sec = n.section ?? "LP";
+      const sec = n.section ?? sectionOrder[0] ?? "default";
       if (!g[sec]) g[sec] = [];
       g[sec].push(n);
     }
+    const list = [];
     for (const sec of sectionOrder) {
-      if (g[sec]) {
-        for (const n of g[sec]) {
-          list.push(n);
-        }
-      }
+      for (const n of (g[sec] ?? [])) list.push(n);
     }
     return list;
-  }, [filtered]);
+  }, [filtered, sectionOrder]);
 
   // Group by section for display
-  const sectionOrder = ["SP8", "LP", "LR", "UNIV"];
   const grouped = useMemo(() => {
     const g = {};
     for (const sec of sectionOrder) g[sec] = [];
     for (const n of filtered) {
-      const sec = n.section ?? "LP";
+      const sec = n.section ?? sectionOrder[0] ?? "default";
       if (!g[sec]) g[sec] = [];
       g[sec].push(n);
     }
     return g;
-  }, [filtered]);
+  }, [filtered, sectionOrder]);
 
   const getLabel = n => lang === "pl" ? n.labelPl : n.label;
 
   // Keyboard navigation
   useEffect(() => {
     const onKey = (e) => {
-      if (e.key === "Escape") {
-        onClose();
-        return;
-      }
+      if (e.key === "Escape") { onClose(); return; }
       if (e.key === "ArrowDown") {
         e.preventDefault();
         setFocusedIndex(prev => Math.min(prev + 1, flatList.length - 1));
@@ -83,25 +77,23 @@ export function GoalSelectionModal({ nodes, lang, onSelect, onClose }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [flatList, focusedIndex, onClose, onSelect]);
 
-  // Focus the button when focusedIndex changes
   useEffect(() => {
     if (focusedIndex >= 0 && buttonRefs.current[focusedIndex]) {
       buttonRefs.current[focusedIndex].scrollIntoView({ block: "nearest" });
     }
   }, [focusedIndex]);
 
-  // Reset focused index when search changes
-  useEffect(() => {
-    setFocusedIndex(-1);
-  }, [search]);
+  useEffect(() => { setFocusedIndex(-1); }, [search]);
 
   const labels = {
-    title: "Wybierz cel",
-    subtitle: "Wybierz temat docelowy. Przediagnozujemy wszystkie wymagania wstępne.",
-    searchPlaceholder: "Szukaj tematu...",
-    noResults: "Brak wyników",
-    footer: `${filtered.length} / ${nodes.length} tematów`,
-    cancel: "Anuluj",
+    title: lang === "pl" ? "Wybierz cel" : "Select Goal",
+    subtitle: lang === "pl"
+      ? "Wybierz temat docelowy. Przediagnozujemy wszystkie wymagania wstępne."
+      : "Pick a target topic. We'll diagnose all its prerequisites.",
+    searchPlaceholder: lang === "pl" ? "Szukaj tematu..." : "Search topics...",
+    noResults: lang === "pl" ? "Brak wyników" : "No results",
+    footer: `${filtered.length} / ${nodes.length} ${lang === "pl" ? "tematów" : "topics"}`,
+    cancel: lang === "pl" ? "Anuluj" : "Cancel",
   };
 
   return (
@@ -122,31 +114,22 @@ export function GoalSelectionModal({ nodes, lang, onSelect, onClose }) {
       }}>
         {/* Header */}
         <div style={{
-          padding: "14px 16px 10px",
-          borderBottom: "1px solid #1e2d45",
+          padding: "14px 16px 10px", borderBottom: "1px solid #1e2d45",
           display: "flex", alignItems: "center", justifyContent: "space-between",
         }}>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 13, color: "#f5f6fa" }}>
-              {labels.title}
-            </div>
-            <div style={{ fontSize: 10, color: "#6b7d9a", marginTop: 2 }}>
-              {labels.subtitle}
-            </div>
+            <div style={{ fontWeight: 700, fontSize: 13, color: "#f5f6fa" }}>{labels.title}</div>
+            <div style={{ fontSize: 10, color: "#6b7d9a", marginTop: 2 }}>{labels.subtitle}</div>
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              background: "none", border: "none", color: "#6b7d9a",
-              cursor: "pointer", fontSize: 18, lineHeight: 1,
-            }}
-          >×</button>
+          <button onClick={onClose} style={{
+            background: "none", border: "none", color: "#6b7d9a",
+            cursor: "pointer", fontSize: 18, lineHeight: 1,
+          }}>×</button>
         </div>
 
         {/* Search */}
         <div style={{ padding: "10px 16px", borderBottom: "1px solid #1a2235" }}>
           <input
-            ref={searchInputRef}
             autoFocus
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -165,7 +148,7 @@ export function GoalSelectionModal({ nodes, lang, onSelect, onClose }) {
           {sectionOrder.map(sec => {
             const items = grouped[sec];
             if (!items || items.length === 0) return null;
-            const secInfo = SECTIONS[sec];
+            const secInfo = SECTIONS?.[sec];
             return (
               <div key={sec} style={{ marginBottom: 12 }}>
                 <div style={{
@@ -175,9 +158,9 @@ export function GoalSelectionModal({ nodes, lang, onSelect, onClose }) {
                   {secInfo?.label ?? sec}
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-                  {items.map((n, idx) => {
+                  {items.map(n => {
                     const globalIdx = flatList.indexOf(n);
-                    const color = SCOPE_COLORS[n.scope] ?? "#4a9eff";
+                    const color = SCOPE_COLORS?.[n.scope] ?? "#4a9eff";
                     const isFocused = focusedIndex === globalIdx;
                     return (
                       <button
@@ -189,7 +172,6 @@ export function GoalSelectionModal({ nodes, lang, onSelect, onClose }) {
                           background: isFocused ? `${color}35` : `${color}15`,
                           border: `1px solid ${isFocused ? color : `${color}40`}`,
                           color: "#c8d6e5", cursor: "pointer",
-                          transition: "background 0.12s, border-color 0.12s",
                           outline: isFocused ? `2px solid ${color}` : "none",
                           outlineOffset: 1,
                         }}
@@ -198,14 +180,14 @@ export function GoalSelectionModal({ nodes, lang, onSelect, onClose }) {
                           e.currentTarget.style.borderColor = `${color}90`;
                         }}
                         onMouseLeave={e => {
-                          const global = flatList.indexOf(n);
-                          if (global !== focusedIndex) {
+                          if (flatList.indexOf(n) !== focusedIndex) {
                             e.currentTarget.style.background = `${color}15`;
                             e.currentTarget.style.borderColor = `${color}40`;
                           }
                         }}
                       >
-                        <span style={{ fontSize: 8, marginRight: 5,
+                        <span style={{
+                          fontSize: 8, marginRight: 5,
                           display: "inline-block", width: 7, height: 7,
                           borderRadius: "50%", background: color, verticalAlign: "middle",
                         }} />
@@ -229,16 +211,11 @@ export function GoalSelectionModal({ nodes, lang, onSelect, onClose }) {
           padding: "10px 16px", borderTop: "1px solid #1a2235",
           display: "flex", justifyContent: "space-between", alignItems: "center",
         }}>
-          <div style={{ fontSize: 9, color: "#3a4d63" }}>
-            {labels.footer}
-          </div>
-          <button
-            onClick={onClose}
-            style={{
-              padding: "5px 12px", borderRadius: 5, fontSize: 10, cursor: "pointer",
-              background: "transparent", border: "1px solid #1e2d45", color: "#6b7d9a",
-            }}
-          >
+          <div style={{ fontSize: 9, color: "#3a4d63" }}>{labels.footer}</div>
+          <button onClick={onClose} style={{
+            padding: "5px 12px", borderRadius: 5, fontSize: 10, cursor: "pointer",
+            background: "transparent", border: "1px solid #1e2d45", color: "#6b7d9a",
+          }}>
             {labels.cancel}
           </button>
         </div>

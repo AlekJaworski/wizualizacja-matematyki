@@ -1,7 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 
-import { RAW_NODES } from "../data/curriculum.js";
-import { RAW_EDGES } from "../data/edges.js";
 import { t } from "../i18n.js";
 import { buildAdjacency } from "../engine/adjacency.js";
 import { computePositions } from "../engine/simulation.js";
@@ -27,7 +25,31 @@ import { OnboardingModal }     from "./ui/OnboardingModal.jsx";
 
 const DEFAULT_VIEW = { x: 40, y: 40, scale: 0.72 };
 
-export default function CurriculumGraph() {
+/**
+ * CurriculumGraph — the main graph view for a single course.
+ *
+ * Props (all from the active course module):
+ *   courseId      — string key, e.g. "math_pl"
+ *   RAW_NODES     — array of node objects
+ *   RAW_EDGES     — array of [from, to] pairs
+ *   QUESTION_BANK — { nodeId: [{q, options, correct, hint, tests}] }
+ *   SECTIONS      — section colour/label config
+ *   SCOPE_COLORS  — scope colour map
+ *   SCOPE_LABELS  — scope label map { en, pl }
+ *   COURSE_META   — { id, title, titleEn, description, lang, icon, color }
+ *   onBackToCourses — callback to return to the course picker
+ */
+export default function CurriculumGraph({
+  courseId,
+  RAW_NODES,
+  RAW_EDGES,
+  QUESTION_BANK,
+  SECTIONS,
+  SCOPE_COLORS,
+  SCOPE_LABELS,
+  COURSE_META,
+  onBackToCourses,
+}) {
   // ── Layout selection ────────────────────────────────────────────
   const [layoutId, setLayoutId] = useState(DEFAULT_LAYOUT_ID);
 
@@ -62,13 +84,13 @@ export default function CurriculumGraph() {
   const clearSection  = useCallback(() => setFilterSection(new Set()), []);
 
   // ── Graph data ──────────────────────────────────────────────────
-  const adjacency = useMemo(() => buildAdjacency(RAW_NODES, RAW_EDGES), []);
+  const adjacency = useMemo(() => buildAdjacency(RAW_NODES, RAW_EDGES), [RAW_NODES, RAW_EDGES]);
 
-  const [positions, setPositions] = useState(() => computePositions(layoutId));
+  const [positions, setPositions] = useState(() => computePositions(layoutId, 300, RAW_NODES, RAW_EDGES));
 
   const nodes = useMemo(
     () => RAW_NODES.map(n => ({ ...n, x: positions[n.id]?.x ?? n.x, y: positions[n.id]?.y ?? n.y })),
-    [positions]
+    [RAW_NODES, positions]
   );
 
   // ── Pan / zoom / drag ───────────────────────────────────────────
@@ -106,7 +128,7 @@ export default function CurriculumGraph() {
     // Deep-dive mode
     betaBeliefs, subgraphIds, ddClassification,
     ddNextNodeId, ddComplete,
-  } = useDiagnostic(adjacency);
+  } = useDiagnostic(adjacency, QUESTION_BANK, courseId);
 
   // ── Derived display state ───────────────────────────────────────
   const filteredIds = useMemo(() => {
@@ -118,7 +140,7 @@ export default function CurriculumGraph() {
       return true;
     });
     return result.length < RAW_NODES.length ? new Set(result.map(n => n.id)) : null;
-  }, [filterScope, filterSection, searchTerm]);
+  }, [RAW_NODES, filterScope, filterSection, searchTerm]);
 
   const activeNode     = selected || hoveredNode;
   const highlightedIds = useMemo(() => {
@@ -184,9 +206,9 @@ export default function CurriculumGraph() {
   // ── Layout switcher handler ─────────────────────────────────────
   const switchLayout = useCallback(id => {
     setLayoutId(id);
-    setPositions(computePositions(id));
+    setPositions(computePositions(id, 300, RAW_NODES, RAW_EDGES));
     setViewTransform(DEFAULT_VIEW);
-  }, [setViewTransform]);
+  }, [setViewTransform, RAW_NODES, RAW_EDGES]);
 
   // ── Diagnostic button handler ────────────────────────────────────
   const handleDiagnosticToggle = useCallback(() => {
@@ -201,7 +223,7 @@ export default function CurriculumGraph() {
 
   const handleModeSelect = useCallback((mode) => {
     setShowModePicker(false);
-    resetDiagnostic(); // Reset all diagnostic state including answered questions
+    resetDiagnostic();
     if (mode === "deepdive") {
       setDiagMode(true);
       setShowGoalModal(true);
@@ -213,14 +235,12 @@ export default function CurriculumGraph() {
   }, [setDiagMode, setMode, resetDiagnostic]);
 
   // ── Node belief colour for deep-dive ────────────────────────────
-  // Build a belief-like map from ddClassification so NodeLayer can colour nodes
   const deepDiveBelief = useMemo(() => {
     if (mode !== "deepdive") return {};
     const result = {};
     for (const [id, cls] of Object.entries(ddClassification)) {
       if (cls === "known") result[id] = "known";
       else if (cls === "unknown") result[id] = "unknown";
-      // "uncertain" → unclassified = no entry
     }
     return result;
   }, [mode, ddClassification]);
@@ -229,6 +249,11 @@ export default function CurriculumGraph() {
   const effectiveFrontier = mode === "deepdive"
     ? subgraphIds.filter(id => ddClassification[id] === "uncertain")
     : visibleFrontier;
+
+  // ── Display title ───────────────────────────────────────────────
+  const displayTitle = lang === "pl"
+    ? (COURSE_META.title ?? COURSE_META.titleEn)
+    : (COURSE_META.titleEn ?? COURSE_META.title);
 
   // ── Render ──────────────────────────────────────────────────────
   return (
@@ -242,9 +267,21 @@ export default function CurriculumGraph() {
         padding: "8px 16px", borderBottom: "1px solid #1a2235",
         display: "flex", alignItems: "center", gap: 10, flexShrink: 0, flexWrap: "wrap",
       }}>
-        {/* Title */}
+        {/* Back button + Title */}
+        {onBackToCourses && (
+          <button
+            onClick={onBackToCourses}
+            title="Back to course picker"
+            style={{
+              padding: "3px 8px", borderRadius: 4, fontSize: 10, cursor: "pointer",
+              border: "1px solid #1e2d45", background: "transparent", color: "#6b7d9a",
+            }}
+          >
+            ←
+          </button>
+        )}
         <h1 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#f5f6fa", letterSpacing: 1, whiteSpace: "nowrap" }}>
-          {t("appTitle", lang)}
+          {displayTitle}
         </h1>
         <span style={{ fontSize: 9, color: "#3a4d63", whiteSpace: "nowrap" }}>
           {RAW_NODES.length} {t("topicsCount", lang)} · {RAW_EDGES.length} {t("edgesCount", lang)}
@@ -322,6 +359,9 @@ export default function CurriculumGraph() {
         filterSection={filterSection} toggleSection={toggleSection} clearSection={clearSection}
         searchTerm={searchTerm} setSearchTerm={setSearchTerm}
         lang={lang} setLang={setLang}
+        SECTIONS={SECTIONS}
+        SCOPE_COLORS={SCOPE_COLORS}
+        SCOPE_LABELS={SCOPE_LABELS}
       />
 
       {/* Canvas */}
@@ -374,17 +414,22 @@ export default function CurriculumGraph() {
               belief={effectiveBelief}
               frontier={effectiveFrontier}
               scale={viewTransform.scale}
+              scopeColors={SCOPE_COLORS}
             />
           </g>
         </svg>
 
         {selected && !diagMode && (
-          <InfoPanel nodeId={selected} nodes={nodes} adjacency={adjacency} lang={lang} />
+          <InfoPanel
+            nodeId={selected} nodes={nodes} adjacency={adjacency} lang={lang}
+            SCOPE_COLORS={SCOPE_COLORS} SCOPE_LABELS={SCOPE_LABELS} SECTIONS={SECTIONS}
+          />
         )}
 
         {diagMode && quizNode && (
           <QuizPanel
             nodeId={quizNode} nodes={nodes} lang={lang}
+            questionBank={QUESTION_BANK}
             excludeIndices={getAnsweredIndices(quizNode)}
             onAnswer={(correct, question, questionIndex) => handleQuizAnswer(quizNode, correct, question, questionIndex)}
             onSkip={() => setQuizNode(null)}
@@ -401,6 +446,7 @@ export default function CurriculumGraph() {
             questionsAnswered={questionsAnswered}
             nodes={nodes} lang={lang}
             onNodeClick={id => setQuizNode(id)} onReset={resetDiagnostic}
+            SCOPE_LABELS={SCOPE_LABELS}
           />
         )}
 
@@ -416,7 +462,12 @@ export default function CurriculumGraph() {
           />
         )}
 
-        <Legend lang={lang} diagMode={diagMode} />
+        <Legend
+          lang={lang} diagMode={diagMode}
+          SCOPE_COLORS={SCOPE_COLORS}
+          SCOPE_LABELS={SCOPE_LABELS}
+          SECTIONS={SECTIONS}
+        />
 
         {/* Zoom + reset controls */}
         <div style={{
@@ -427,7 +478,7 @@ export default function CurriculumGraph() {
             <button key={lbl}
               onClick={() => {
                 if (factor === null) {
-                  setPositions(computePositions(layoutId));
+                  setPositions(computePositions(layoutId, 300, RAW_NODES, RAW_EDGES));
                   setViewTransform(DEFAULT_VIEW);
                 } else {
                   setViewTransform(p => ({ ...p, scale: Math.max(0.15, Math.min(5, p.scale * factor)) }));
@@ -449,6 +500,8 @@ export default function CurriculumGraph() {
         <GoalSelectionModal
           nodes={nodes}
           lang={lang}
+          SECTIONS={SECTIONS}
+          SCOPE_COLORS={SCOPE_COLORS}
           onSelect={nodeId => {
             setShowGoalModal(false);
             startDeepDive(nodeId);

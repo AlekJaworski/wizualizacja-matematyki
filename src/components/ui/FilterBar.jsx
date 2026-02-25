@@ -1,9 +1,10 @@
-import { SECTIONS, SCOPE_COLORS, SCOPE_LABELS } from "../../data/sections.js";
 import { pillBtn } from "../../styles/tokens.js";
 import { t } from "../../i18n.js";
 
 /**
  * Top filter toolbar: search, section filters, scope filters, language toggle.
+ * SECTIONS, SCOPE_COLORS, SCOPE_LABELS are passed as props so the component
+ * works for any course.
  */
 export function FilterBar({
   filterScope,
@@ -16,6 +17,9 @@ export function FilterBar({
   setSearchTerm,
   lang,
   setLang,
+  SECTIONS,
+  SCOPE_COLORS,
+  SCOPE_LABELS,
 }) {
   return (
     <div style={{
