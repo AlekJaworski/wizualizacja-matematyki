@@ -50,10 +50,10 @@ export function QuizPanel({ nodeId, nodes, questionBank, onAnswer, onSkip, lang,
         <div style={{ color: "#6b7d9a", fontSize: 11, marginBottom: 12 }}>
           {t("noQuestion", lang)}
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => onAnswer(true,  null)} style={ansBtn("#27ae60")}>{t("yesKnow", lang)}</button>
-          <button onClick={() => onAnswer(false, null)} style={ansBtn("#e74c3c")}>{t("noKnow", lang)}</button>
-          <button onClick={onSkip}                      style={ansBtn("#3a4d63")}>{t("skipBtn", lang)}</button>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button onClick={() => onAnswer(true, null, null)} style={ansBtn("#27ae60")}>{t("yesKnow", lang)}</button>
+          <button onClick={() => onAnswer(false, null, null)} style={ansBtn("#e74c3c")}>{t("noKnow", lang)}</button>
+          <button onClick={() => onSkip(true)} style={ansBtn("#3a4d63")}>{t("skipBtn", lang)}</button>
         </div>
       </div>
     );
@@ -68,7 +68,7 @@ export function QuizPanel({ nodeId, nodes, questionBank, onAnswer, onSkip, lang,
       }}>
         <div style={{ color, fontWeight: 700, fontSize: 12 }}>{lbl}</div>
         <button
-          onClick={onSkip}
+          onClick={() => onSkip(q.index)}
           style={{
             background: "none", border: "none",
             color: "#3a4d63", cursor: "pointer", fontSize: 16, lineHeight: 1,

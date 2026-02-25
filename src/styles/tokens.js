@@ -62,9 +62,9 @@ export const panelStyle = (color) => ({
 
 /** Returns the small action-button style used inside panels. */
 export const ansBtn = (color) => ({
-  padding: "6px 14px",
-  borderRadius: 5,
-  fontSize: 11,
+  padding: "10px 18px",
+  borderRadius: 6,
+  fontSize: 14,
   cursor: "pointer",
   fontWeight: 600,
   border: `1px solid ${color}`,

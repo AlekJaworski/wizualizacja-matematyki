@@ -432,7 +432,12 @@ export default function CurriculumGraph({
             questionBank={QUESTION_BANK}
             excludeIndices={getAnsweredIndices(quizNode)}
             onAnswer={(correct, question, questionIndex) => handleQuizAnswer(quizNode, correct, question, questionIndex)}
-            onSkip={() => setQuizNode(null)}
+            onSkip={(questionIndex) => {
+              if (typeof questionIndex === "number") {
+                setAnsweredQuestions(prev => new Set([...prev, `${quizNode}:${questionIndex}`]));
+              }
+              setQuizNode(null);
+            }}
           />
         )}
 
