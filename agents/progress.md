@@ -181,6 +181,36 @@ src/
 
 ---
 
+## Session: 2026-02-25 — localStorage persistence
+
+### What was done
+1. **Created `src/hooks/useLocalStorage.js`**
+   - Drop-in replacement for `useState` that syncs to localStorage
+   - Handles `Set ↔ Array` conversion (localStorage can't store Sets natively)
+   - Graceful fallback on corrupt data or private browsing (quota exceeded)
+   - `clearSession()` utility wipes all `wizmat_v1_*` keys at once
+   - Key prefix `wizmat_v1_` — easy to migrate/wipe when schema changes
+
+2. **Persisted state in `useDiagnostic.js`**
+   - `diagMode`, `mode`, `belief`, `targetNode`, `stats`, `answeredQuestions`, `betaBeliefs`
+   - `quizNode` deliberately NOT persisted (in-flight question discarded on reload)
+   - `resetDiagnostic()` now calls `clearSession()` — existing reset buttons handle clearing
+
+3. **Persisted `lang` in `CurriculumGraph.jsx`**
+   - Language preference survives page refresh
+
+### What is NOT persisted (intentional)
+- `quizNode` — discard open question on reload, cleaner UX
+- `positions` / `viewTransform` — layout always recomputes from algorithm
+- `filterScope/Section/searchTerm` — filters start fresh each visit
+
+### Files changed
+- `src/hooks/useLocalStorage.js` — **new file**
+- `src/hooks/useDiagnostic.js` — all state switched to useLocalStorage
+- `src/components/CurriculumGraph.jsx` — lang switched to useLocalStorage
+
+---
+
 ## Next Steps (backlog)
 
 ### Learning mode (highest priority)

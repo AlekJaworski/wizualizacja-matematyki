@@ -1,4 +1,5 @@
-import { useState, useCallback, useMemo } from "react";
+import { useCallback, useMemo } from "react";
+import { useLocalStorage, clearSession } from "./useLocalStorage.js";
 import {
   propagateKnown,
   propagateUnknown,
@@ -26,21 +27,18 @@ import { RAW_NODES, QUESTION_BANK } from "../data/curriculum.js";
  * @param {{ prereqs: Record<string,string[]>, dependents: Record<string,string[]> }} adjacency
  */
 export function useDiagnostic(adjacency) {
-  const [diagMode, setDiagMode]   = useState(false);
-  const [mode, setMode]           = useState("quick"); // "quick" | "deepdive"
-  const [belief, setBelief]       = useState({});
-  const [quizNode, setQuizNode]   = useState(null);
-  const [targetNode, setTargetNode] = useState(null); // deep-dive goal
+  // All persisted state uses useLocalStorage so sessions survive page refresh.
+  // quizNode is deliberately NOT persisted — discard in-flight question on reload.
+  const [diagMode,    setDiagMode]    = useLocalStorage("diagMode",    false);
+  const [mode,        setMode]        = useLocalStorage("diagSubMode",  "quick");
+  const [belief,      setBelief]      = useLocalStorage("belief",       {});
+  const [targetNode,  setTargetNode]  = useLocalStorage("targetNode",   null);
+  const [stats,       setStats]       = useLocalStorage("stats",        { correct: 0, incorrect: 0, questionsAnswered: 0 });
+  const [answeredQuestions, setAnsweredQuestions] = useLocalStorage("answeredQuestions", new Set());
+  const [betaBeliefs, setBetaBeliefs] = useLocalStorage("betaBeliefs",  {});
 
-  // Track quiz answers for P(correct) estimation and question count
-  const [stats, setStats] = useState({ correct: 0, incorrect: 0, questionsAnswered: 0 });
-
-  // Track which questions have been answered in this session to avoid repeats
-  // Set of strings: "nodeId:questionIndex"
-  const [answeredQuestions, setAnsweredQuestions] = useState(new Set());
-
-  // Deep-dive: Beta beliefs per node { nodeId: { alpha, beta } }
-  const [betaBeliefs, setBetaBeliefs] = useState({});
+  // quizNode is session-only (not persisted)
+  const [quizNode, setQuizNode] = useLocalStorage("quizNode", null);
 
   // ── Quick mode derived state ─────────────────────────────────────
 
@@ -160,6 +158,8 @@ export function useDiagnostic(adjacency) {
   }, [mode, adjacency]);
 
   const resetDiagnostic = useCallback(() => {
+    clearSession();
+    setDiagMode(false);
     setMode("quick");
     setBelief({});
     setBetaBeliefs({});

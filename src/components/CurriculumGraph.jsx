@@ -8,9 +8,10 @@ import { computePositions } from "../engine/simulation.js";
 import { LAYOUTS, DEFAULT_LAYOUT_ID } from "../engine/layouts/index.js";
 import { FONT } from "../styles/tokens.js";
 
-import { usePanZoom }    from "../hooks/usePanZoom.js";
-import { useNodeDrag }   from "../hooks/useNodeDrag.js";
-import { useDiagnostic } from "../hooks/useDiagnostic.js";
+import { usePanZoom }       from "../hooks/usePanZoom.js";
+import { useNodeDrag }      from "../hooks/useNodeDrag.js";
+import { useDiagnostic }    from "../hooks/useDiagnostic.js";
+import { useLocalStorage }  from "../hooks/useLocalStorage.js";
 
 import { EdgeLayer }           from "./graph/EdgeLayer.jsx";
 import { NodeLayer }           from "./graph/NodeLayer.jsx";
@@ -30,7 +31,7 @@ export default function CurriculumGraph() {
   const [layoutId, setLayoutId] = useState(DEFAULT_LAYOUT_ID);
 
   // ── Language & filters ──────────────────────────────────────────
-  const [lang,          setLang]          = useState("pl");
+  const [lang,          setLang]          = useLocalStorage("lang", "pl");
   const [filterScope,   setFilterScope]   = useState(new Set());
   const [filterSection, setFilterSection] = useState(new Set());
   const [searchTerm,    setSearchTerm]    = useState("");
