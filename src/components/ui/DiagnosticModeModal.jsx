@@ -1,23 +1,14 @@
 import { useState, useEffect, useRef } from "react";
+import { t } from "../../i18n.js";
 
-const MODES = [
-  {
-    id: "quick",
-    label: "Szybka diagnoza",
-    description: "Przejrzyj cały materiał i sprawdź, co już umiesz. System zaproponuje najbardziej wartościowe pytania.",
-    icon: "⚡",
-    color: "#4a9eff",
-  },
-  {
-    id: "deepdive",
-    label: "Szczegółowa analiza",
-    description: "Wybierz konkretny cel (np. maturę rozszerzoną). System przeanalizuje tylko wymagane tematy.",
-    icon: "◎",
-    color: "#8e44ad",
-  },
-];
+export function DiagnosticModeModal({ isOpen, onSelect, onClose, lang = "pl" }) {
+  const MODES = [
+    { id: "quick",    icon: "⚡", color: "#4a9eff",
+      label: t("modeQuickLabel", lang), description: t("modeQuickDesc", lang) },
+    { id: "deepdive", icon: "◎", color: "#8e44ad",
+      label: t("modeDeepLabel",  lang), description: t("modeDeepDesc",  lang) },
+  ];
 
-export function DiagnosticModeModal({ isOpen, onSelect, onClose }) {
   const [selected, setSelected] = useState(null);
   const firstBtnRef = useRef(null);
 
@@ -56,15 +47,12 @@ export function DiagnosticModeModal({ isOpen, onSelect, onClose }) {
         borderRadius: 10, display: "flex", flexDirection: "column",
         overflow: "hidden",
       }}>
-        <div style={{
-          padding: "16px 18px 12px",
-          borderBottom: "1px solid #1e2d45",
-        }}>
+        <div style={{ padding: "16px 18px 12px", borderBottom: "1px solid #1e2d45" }}>
           <div style={{ fontWeight: 700, fontSize: 14, color: "#f5f6fa", marginBottom: 4 }}>
-            Wybierz tryb diagnozy
+            {t("modePickerTitle", lang)}
           </div>
           <div style={{ fontSize: 11, color: "#6b7d9a" }}>
-            Jak chcesz sprawdzić swoją wiedzę?
+            {t("modePickerSub", lang)}
           </div>
         </div>
 
@@ -76,15 +64,11 @@ export function DiagnosticModeModal({ isOpen, onSelect, onClose }) {
               onClick={() => setSelected(mode.id)}
               onDoubleClick={() => onSelect(mode.id)}
               style={{
-                textAlign: "left",
-                padding: "12px 14px",
-                borderRadius: 6,
-                fontSize: 12,
+                textAlign: "left", padding: "12px 14px", borderRadius: 6, fontSize: 12,
                 cursor: "pointer",
                 background: selected === mode.id ? `${mode.color}18` : "#0a0e17",
                 border: `1px solid ${selected === mode.id ? mode.color : "#1e2d45"}`,
-                color: "#c8d6e5",
-                transition: "all 0.15s",
+                color: "#c8d6e5", transition: "all 0.15s",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = `${mode.color}18`;
@@ -121,19 +105,20 @@ export function DiagnosticModeModal({ isOpen, onSelect, onClose }) {
               background: "transparent", border: "1px solid #1e2d45", color: "#6b7d9a",
             }}
           >
-            Anuluj
+            {t("cancel", lang)}
           </button>
           <button
             onClick={() => selected && onSelect(selected)}
             disabled={!selected}
             style={{
-              padding: "6px 18px", borderRadius: 5, fontSize: 11, cursor: selected ? "pointer" : "not-allowed",
+              padding: "6px 18px", borderRadius: 5, fontSize: 11,
+              cursor: selected ? "pointer" : "not-allowed",
               background: selected ? "#4a9eff" : "#1e2d45",
               border: "none", color: selected ? "#fff" : "#3a4d63",
               opacity: selected ? 1 : 0.5,
             }}
           >
-            Dalej
+            {t("next", lang)}
           </button>
         </div>
       </div>

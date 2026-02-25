@@ -3,6 +3,7 @@ import { SCOPE_COLORS } from "../../data/sections.js";
 import { getQuestion } from "../../data/curriculum.js";
 import { renderLatex } from "../../utils/latex.js";
 import { panelStyle, ansBtn } from "../../styles/tokens.js";
+import { t } from "../../i18n.js";
 
 /**
  * Quiz card shown in diagnostic mode when a node is selected.
@@ -41,12 +42,12 @@ export function QuizPanel({ nodeId, nodes, onAnswer, onSkip, lang, excludeIndice
       <div style={panelStyle(color)}>
         <div style={{ color, fontWeight: 700, marginBottom: 8 }}>{lbl}</div>
         <div style={{ color: "#6b7d9a", fontSize: 11, marginBottom: 12 }}>
-          Brak pytania dla tego węzła. Czy znasz ten temat?
+          {t("noQuestion", lang)}
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => onAnswer(true,  null)} style={ansBtn("#27ae60")}>✓ Tak</button>
-          <button onClick={() => onAnswer(false, null)} style={ansBtn("#e74c3c")}>✗ Nie</button>
-          <button onClick={onSkip}                      style={ansBtn("#3a4d63")}>Pomiń</button>
+          <button onClick={() => onAnswer(true,  null)} style={ansBtn("#27ae60")}>{t("yesKnow", lang)}</button>
+          <button onClick={() => onAnswer(false, null)} style={ansBtn("#e74c3c")}>{t("noKnow", lang)}</button>
+          <button onClick={onSkip}                      style={ansBtn("#3a4d63")}>{t("skipBtn", lang)}</button>
         </div>
       </div>
     );
@@ -120,7 +121,7 @@ export function QuizPanel({ nodeId, nodes, onAnswer, onSkip, lang, excludeIndice
           disabled={picked === null}
           style={{ ...ansBtn(color), width: "100%", opacity: picked === null ? 0.4 : 1 }}
         >
-          Sprawdź
+          {t("checkAnswer", lang)}
         </button>
       ) : (
         <div style={{ display: "flex", gap: 8 }}>
@@ -128,7 +129,7 @@ export function QuizPanel({ nodeId, nodes, onAnswer, onSkip, lang, excludeIndice
             onClick={confirm}
             style={{ ...ansBtn(picked === q.correct ? "#27ae60" : "#e74c3c"), flex: 1 }}
           >
-            {picked === q.correct ? "✓ Znam!" : "✗ Nie znam"}
+            {picked === q.correct ? t("knownConfirm", lang) : t("unknownConfirm", lang)}
           </button>
         </div>
       )}

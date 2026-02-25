@@ -1,13 +1,8 @@
-import { SCOPE_COLORS, SCOPE_LABELS } from "../../data/sections.js";
+import { SCOPE_COLORS } from "../../data/sections.js";
+import { t } from "../../i18n.js";
 
 /**
  * Sidebar panel for deep-dive diagnostic mode.
- *
- * Shows:
- *  - Target node + subgraph size
- *  - Per-node Beta belief confidence (colour-coded)
- *  - Progress: classified vs total
- *  - Results screen when complete
  */
 export function DeepDivePanel({
   nodes, lang, targetNode,
@@ -42,14 +37,14 @@ export function DeepDivePanel({
         fontWeight: 700, fontSize: 12, marginBottom: 4, color: "#f5f6fa",
         display: "flex", justifyContent: "space-between", alignItems: "center",
       }}>
-        <span>Deep-Dive {ddComplete ? "✓" : ""}</span>
+        <span>{t("deepDiveHeader", lang)} {ddComplete ? "✓" : ""}</span>
         <button
           onClick={onReset}
           style={{
             fontSize: 9, padding: "2px 7px", borderRadius: 4, cursor: "pointer",
             background: "transparent", border: "1px solid #3a4d63", color: "#6b7d9a",
           }}
-        >reset</button>
+        >{t("reset", lang)}</button>
       </div>
 
       {/* Target */}
@@ -57,20 +52,16 @@ export function DeepDivePanel({
         marginBottom: 10, padding: "6px 8px", borderRadius: 5,
         background: "#4a9eff12", border: "1px solid #4a9eff40",
       }}>
-        <div style={{ fontSize: 9, color: "#4a9eff88", marginBottom: 2 }}>Cel</div>
+        <div style={{ fontSize: 9, color: "#4a9eff88", marginBottom: 2 }}>{t("deepDiveTarget", lang)}</div>
         <div style={{ fontSize: 11, color: "#a8d4ff", fontWeight: 600 }}>{targetLabel}</div>
         <div style={{ fontSize: 9, color: "#6b7d9a", marginTop: 1 }}>
-          {total} węzłów w podgrafie
+          {total} {t("deepDiveNodes", lang)}
         </div>
       </div>
 
       {/* Progress bar */}
       <div style={{ marginBottom: 10 }}>
-        <div style={{
-          height: 5, borderRadius: 3,
-          background: "#0a0e17",
-          overflow: "hidden", marginBottom: 4,
-        }}>
+        <div style={{ height: 5, borderRadius: 3, background: "#0a0e17", overflow: "hidden", marginBottom: 4 }}>
           <div style={{
             height: "100%", borderRadius: 3,
             width: `${pct}%`,
@@ -78,16 +69,13 @@ export function DeepDivePanel({
             transition: "width 0.4s ease",
           }} />
         </div>
-        <div style={{
-          display: "flex", justifyContent: "space-between",
-          fontSize: 9, color: "#6b7d9a",
-        }}>
-          <span>Sklasyfikowano: <span style={{ color: "#f5f6fa" }}>{classified}/{total}</span></span>
-          <span>Pytań: <span style={{ color: "#f5f6fa" }}>{questionsAnswered}</span></span>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "#6b7d9a" }}>
+          <span>{t("classified", lang)}: <span style={{ color: "#f5f6fa" }}>{classified}/{total}</span></span>
+          <span>{t("questions", lang)}: <span style={{ color: "#f5f6fa" }}>{questionsAnswered}</span></span>
         </div>
       </div>
 
-      {/* ── RESULTS (complete) ──────────────────────────────────── */}
+      {/* RESULTS (complete) */}
       {ddComplete && (
         <div>
           <div style={{
@@ -99,19 +87,19 @@ export function DeepDivePanel({
               color: known.length > unknown.length ? "#2ecc71" : "#ff6b6b",
               fontWeight: 700, fontSize: 12, marginBottom: 4,
             }}>
-              Diagnoza gotowa ✓
+              {t("diagReady", lang)}
             </div>
             <div style={{ color: "#6b7d9a", fontSize: 9, lineHeight: 1.6 }}>
-              Znam: <span style={{ color: "#2ecc71" }}>{known.length}</span>{" / "}
-              Do nauki: <span style={{ color: "#ff6b6b" }}>{unknown.length}</span>{" / "}
-              Razem: {total}
+              {t("diagKnown", lang)}: <span style={{ color: "#2ecc71" }}>{known.length}</span>{" / "}
+              {t("diagStudy", lang)}: <span style={{ color: "#ff6b6b" }}>{unknown.length}</span>{" / "}
+              {t("diagTotal", lang)}: {total}
             </div>
           </div>
 
           {unknown.length > 0 && (
             <>
               <div style={{ color: "#e74c3c", fontSize: 10, fontWeight: 600, marginBottom: 5 }}>
-                Do nauki — zacznij od tych:
+                {t("studyThese", lang)}
               </div>
               {subgraphIds
                 .filter(id => ddClassification[id] === "unknown")
@@ -128,7 +116,7 @@ export function DeepDivePanel({
           {known.length > 0 && (
             <>
               <div style={{ color: "#27ae60", fontSize: 10, fontWeight: 600, margin: "8px 0 4px" }}>
-                Opanowane:
+                {t("mastered", lang)}
               </div>
               {subgraphIds
                 .filter(id => ddClassification[id] === "known")
@@ -143,14 +131,13 @@ export function DeepDivePanel({
         </div>
       )}
 
-      {/* ── IN PROGRESS ─────────────────────────────────────────── */}
+      {/* IN PROGRESS */}
       {!ddComplete && (
         <>
-          {/* Next suggestion */}
           {ddNextNodeId && (
             <div style={{ marginBottom: 10 }}>
               <div style={{ color: "#4a9eff", fontSize: 10, fontWeight: 600, marginBottom: 4 }}>
-                ★ Następne pytanie
+                {t("nextQuestion", lang)}
               </div>
               <div
                 onClick={() => onNodeClick?.(ddNextNodeId)}
@@ -162,17 +149,16 @@ export function DeepDivePanel({
               >
                 {getLabel(ddNextNodeId)}
                 <div style={{ fontSize: 8, color: "#6b7d9a", marginTop: 2 }}>
-                  pewność: {formatConfidence(betaBeliefs[ddNextNodeId])}
+                  {t("confidence", lang)}: {formatConfidence(betaBeliefs[ddNextNodeId])}
                 </div>
               </div>
             </div>
           )}
 
-          {/* Uncertain nodes */}
           {uncertain.length > 0 && (
             <>
               <div style={{ color: "#f39c12", fontSize: 10, fontWeight: 600, marginBottom: 4 }}>
-                Niezbadane ({uncertain.length})
+                {t("unclassified", lang)} ({uncertain.length})
               </div>
               {uncertain.map(id => (
                 <div
@@ -198,25 +184,20 @@ export function DeepDivePanel({
   );
 }
 
-/** Format Beta mean as a confidence percentage. */
 function formatConfidence(beta) {
   if (!beta) return "50%";
   const mean = beta.alpha / (beta.alpha + beta.beta);
   return `${Math.round(mean * 100)}%`;
 }
 
-/** Tiny horizontal confidence bar. */
 function ConfidenceBar({ beta }) {
   const mean = beta ? beta.alpha / (beta.alpha + beta.beta) : 0.5;
   const strength = beta ? beta.alpha + beta.beta : 2;
-  const opacity = Math.min(1, (strength - 2) / 4); // fade in as evidence accumulates
+  const opacity = Math.min(1, (strength - 2) / 4);
   const color = mean > 0.6 ? "#27ae60" : mean < 0.4 ? "#e74c3c" : "#f39c12";
 
   return (
-    <div style={{
-      width: 30, height: 4, borderRadius: 2,
-      background: "#0a0e17", overflow: "hidden", flexShrink: 0,
-    }}>
+    <div style={{ width: 30, height: 4, borderRadius: 2, background: "#0a0e17", overflow: "hidden", flexShrink: 0 }}>
       <div style={{
         height: "100%", borderRadius: 2,
         width: `${Math.round(mean * 100)}%`,
@@ -228,11 +209,8 @@ function ConfidenceBar({ beta }) {
   );
 }
 
-/** Single classified-node row. */
 function NodeCard({ id, label, scope, classification, beta }) {
   const color = classification === "known" ? "#27ae60" : "#e74c3c";
-  const scopeColor = SCOPE_COLORS[scope] ?? "#6b7d9a";
-
   return (
     <div style={{
       padding: "4px 7px", marginBottom: 3, borderRadius: 4,

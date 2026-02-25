@@ -1,8 +1,9 @@
 import { RAW_NODES } from "../../data/curriculum.js";
 import { SCOPE_LABELS } from "../../data/sections.js";
+import { t } from "../../i18n.js";
 
 /**
- * Summary sidebar for diagnostic mode.
+ * Summary sidebar for quick diagnostic mode.
  *
  * Three states:
  *   1. Not started  — prompt the student to click any node or accept the suggestion
@@ -33,12 +34,11 @@ export function DiagnosticPanel({
   const total   = RAW_NODES.length;
 
   const stats = [
-    { label: "Znam",      count: known.length,   color: "#27ae60" },
-    { label: "Nie znam",  count: unknown.length,  color: "#e74c3c" },
-    { label: "Do odp.",   count: expectedRemaining ?? "-", color: "#4a9eff" },
+    { label: t("statKnown",   lang), count: known.length,            color: "#27ae60" },
+    { label: t("statUnknown", lang), count: unknown.length,           color: "#e74c3c" },
+    { label: t("statRemaining",lang), count: expectedRemaining ?? "-", color: "#4a9eff" },
   ];
 
-  // Format P(correct) as percentage
   const accuracyPct = pCorrect ? Math.round(pCorrect * 100) : 50;
 
   return (
@@ -49,22 +49,22 @@ export function DiagnosticPanel({
       padding: "12px 14px", fontSize: 11, color: "#c8d6e5",
       zIndex: 10, maxHeight: "80vh", overflowY: "auto",
     }}>
-      {/* ── Header ─────────────────────────────────────────────── */}
+      {/* Header */}
       <div style={{
         fontWeight: 700, fontSize: 12, marginBottom: 10, color: "#f5f6fa",
         display: "flex", justifyContent: "space-between", alignItems: "center",
       }}>
-        <span>Diagnostic {sessionComplete ? "✓" : ""}</span>
+        <span>{t("diagHeader", lang)} {sessionComplete ? "✓" : ""}</span>
         <button
           onClick={onReset}
           style={{
             fontSize: 9, padding: "2px 7px", borderRadius: 4, cursor: "pointer",
             background: "transparent", border: "1px solid #3a4d63", color: "#6b7d9a",
           }}
-        >reset</button>
+        >{t("reset", lang)}</button>
       </div>
 
-      {/* ── Stat badges ────────────────────────────────────────── */}
+      {/* Stat badges */}
       <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
         {stats.map(({ label, count, color }) => (
           <div key={label} style={{
@@ -85,13 +85,13 @@ export function DiagnosticPanel({
           padding: "6px 8px", background: "#ffffff08", borderRadius: 4,
           display: "flex", justifyContent: "space-between",
         }}>
-          <span>Odpowiedzi: <span style={{ color: "#f5f6fa" }}>{questionsAnswered}</span></span>
-          <span>Szacowane: <span style={{ color: "#4a9eff" }}>~{expectedRemaining ?? "-"}</span></span>
-          <span>Skuteczność: <span style={{ color: "#4a9eff" }}>{accuracyPct}%</span></span>
+          <span>{t("answered", lang)}: <span style={{ color: "#f5f6fa" }}>{questionsAnswered}</span></span>
+          <span>{t("estimated", lang)}: <span style={{ color: "#4a9eff" }}>~{expectedRemaining ?? "-"}</span></span>
+          <span>{t("accuracy", lang)}: <span style={{ color: "#4a9eff" }}>{accuracyPct}%</span></span>
         </div>
       )}
 
-      {/* ── SESSION COMPLETE ───────────────────────────────────── */}
+      {/* SESSION COMPLETE */}
       {sessionComplete && (
         <div>
           <div style={{
@@ -99,24 +99,22 @@ export function DiagnosticPanel({
             borderRadius: 6, padding: "10px 12px", marginBottom: 10,
           }}>
             <div style={{ color: "#2ecc71", fontWeight: 700, fontSize: 12, marginBottom: 4 }}>
-              Sesja zakończona ✓
+              {t("sessionDone", lang)}
             </div>
             <div style={{ color: "#6b7d9a", fontSize: 9, lineHeight: 1.6 }}>
-              Odpowiedziano na <span style={{ color: "#f5f6fa" }}>{questionsAnswered}</span> pytań.{" "}
-              Sklasyfikowano {known.length + unknown.length}/{total} tematów.<br />
-              Skuteczność: <span style={{ color: "#4a9eff" }}>{accuracyPct}%</span>.{" "}
-              Znasz <span style={{ color: "#2ecc71" }}>{known.length}</span>,{" "}
-              do nauki <span style={{ color: "#e74c3c" }}>{unknown.length}</span>.
+              {t("sessionDoneSub", lang)} <span style={{ color: "#f5f6fa" }}>{questionsAnswered}</span> {t("sessionDoneQ", lang)}.{" "}
+              {t("sessionDoneClass", lang)} {known.length + unknown.length}/{total}.<br />
+              {t("sessionDoneAcc", lang)}: <span style={{ color: "#4a9eff" }}>{accuracyPct}%</span>.{" "}
+              {t("sessionDoneKnown", lang)} <span style={{ color: "#2ecc71" }}>{known.length}</span>,{" "}
+              {t("sessionDoneStudy", lang)} <span style={{ color: "#e74c3c" }}>{unknown.length}</span>.
             </div>
           </div>
 
           {unknown.length > 0 && (
             <>
               <div style={{ color: "#e74c3c", fontSize: 10, fontWeight: 600, marginBottom: 5 }}>
-                Do nauki ({unknown.length})
+                {t("toStudy", lang)} ({unknown.length})
               </div>
-              {/* Show only the roots of the unknown subtrees — nodes whose prereqs are all known.
-                  These are the entry points the student should tackle first. */}
               {RAW_NODES
                 .filter(n => belief[n.id] === "unknown")
                 .filter(n => (adjacency.prereqs[n.id] ?? []).every(p => belief[p] === "known"))
@@ -129,7 +127,7 @@ export function DiagnosticPanel({
                   }}>
                     {getLabel(n.id)}
                     <div style={{ fontSize: 8, color: "#6b7d9a", marginTop: 1 }}>
-                      {SCOPE_LABELS[byId[n.id]?.scope]?.pl}
+                      {SCOPE_LABELS[byId[n.id]?.scope]?.[lang === "pl" ? "pl" : "en"]}
                     </div>
                   </div>
                 ))}
@@ -138,40 +136,40 @@ export function DiagnosticPanel({
 
           {known.length > 0 && (
             <div style={{ marginTop: 8, color: "#27ae60", fontSize: 9 }}>
-              ✓ Znam {known.length} {known.length === 1 ? "temat" : known.length < 5 ? "tematy" : "tematów"}
+              ✓ {t("knownList", lang)} {known.length}
             </div>
           )}
         </div>
       )}
 
-      {/* ── NOT STARTED — first-time prompt + best starting node ── */}
+      {/* NOT STARTED */}
       {!sessionComplete && !hasStarted && (
         <div style={{ marginBottom: 10 }}>
           {nextSuggestedId && (
             <>
               <div style={{ color: "#4a9eff", fontSize: 10, fontWeight: 600, marginBottom: 5 }}>
-                ★ Zacznij tutaj
+                {t("startHere", lang)}
               </div>
               <SuggestedNode
                 id={nextSuggestedId}
                 label={getLabel(nextSuggestedId)}
-                scope={SCOPE_LABELS[byId[nextSuggestedId]?.scope]?.pl}
-                subtitle="najwięcej powiązań w grafie"
+                scope={SCOPE_LABELS[byId[nextSuggestedId]?.scope]?.[lang === "pl" ? "pl" : "en"]}
+                subtitle={t("startHereSub", lang)}
                 onClick={() => onNodeClick?.(nextSuggestedId)}
               />
             </>
           )}
           <div style={{ fontSize: 9, color: "#3a4d63", marginTop: 8, lineHeight: 1.5 }}>
-            Lub kliknij dowolny węzeł na grafie.
+            {t("clickAnyNode", lang)}
           </div>
         </div>
       )}
 
-      {/* ── IN PROGRESS — frontier list ───────────────────────── */}
+      {/* IN PROGRESS — frontier */}
       {!sessionComplete && hasStarted && visibleFrontier.length > 0 && (
         <>
           <div style={{ color: "#f39c12", fontSize: 10, fontWeight: 600, marginBottom: 5 }}>
-            ▶ Co dalej
+            {t("whatNext", lang)}
           </div>
           {visibleFrontier.map(id => {
             const isNext = id === nextSuggestedId;
@@ -195,8 +193,8 @@ export function DiagnosticPanel({
                   <span style={{ fontSize: 9, opacity: 0.7 }}>{isNext ? "★" : "→"}</span>
                 </div>
                 <div style={{ fontSize: 8, color: "#6b7d9a", marginTop: 1 }}>
-                  {SCOPE_LABELS[byId[id]?.scope]?.pl}
-                  {isNext && <span style={{ color: "#4a9eff88", marginLeft: 4 }}>najlepsze</span>}
+                  {SCOPE_LABELS[byId[id]?.scope]?.[lang === "pl" ? "pl" : "en"]}
+                  {isNext && <span style={{ color: "#4a9eff88", marginLeft: 4 }}>{t("best", lang)}</span>}
                 </div>
               </div>
             );
@@ -204,11 +202,11 @@ export function DiagnosticPanel({
         </>
       )}
 
-      {/* ── IN PROGRESS — known list ──────────────────────────── */}
+      {/* IN PROGRESS — known list */}
       {!sessionComplete && known.length > 0 && (
         <>
           <div style={{ color: "#27ae60", fontSize: 10, fontWeight: 600, margin: "10px 0 4px" }}>
-            ✓ Znam ({known.length})
+            ✓ {t("knownList", lang)} ({known.length})
           </div>
           {known.map(n => (
             <div key={n.id} style={{ fontSize: 9, color: "#6dbb87", paddingLeft: 4, lineHeight: 1.7 }}>
@@ -218,19 +216,18 @@ export function DiagnosticPanel({
         </>
       )}
 
-      {/* ── Usage hints ───────────────────────────────────────── */}
+      {/* Usage hints */}
       {!sessionComplete && (
         <div style={{ marginTop: 12, color: "#3a4d63", fontSize: 9, lineHeight: 1.5 }}>
-          Kliknij węzeł → pytanie<br />
-          Shift+click → oznacz jako nieznany<br />
-          Kliknij zielony → usuń oznaczenie
+          {t("hintClick", lang)}<br />
+          {t("hintShift", lang)}<br />
+          {t("hintGreen", lang)}
         </div>
       )}
     </div>
   );
 }
 
-/** Small reusable card for the "best next node" suggestion. */
 function SuggestedNode({ id, label, scope, subtitle, onClick }) {
   return (
     <div

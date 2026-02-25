@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 
 import { RAW_NODES } from "../data/curriculum.js";
 import { RAW_EDGES } from "../data/edges.js";
+import { t } from "../i18n.js";
 import { buildAdjacency } from "../engine/adjacency.js";
 import { computePositions } from "../engine/simulation.js";
 import { LAYOUTS, DEFAULT_LAYOUT_ID } from "../engine/layouts/index.js";
@@ -227,44 +228,49 @@ export default function CurriculumGraph() {
     }}>
       {/* Header */}
       <div style={{
-        padding: "10px 16px", borderBottom: "1px solid #1a2235",
-        display: "flex", alignItems: "center", gap: 12, flexShrink: 0,
+        padding: "8px 16px", borderBottom: "1px solid #1a2235",
+        display: "flex", alignItems: "center", gap: 10, flexShrink: 0, flexWrap: "wrap",
       }}>
-        <h1 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#f5f6fa", letterSpacing: 1 }}>
-          PODSTAWA PROGRAMOWA — MATEMATYKA
+        {/* Title */}
+        <h1 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#f5f6fa", letterSpacing: 1, whiteSpace: "nowrap" }}>
+          {t("appTitle", lang)}
         </h1>
-        <span style={{ fontSize: 10, color: "#3a4d63" }}>
-          {RAW_NODES.length} topics · {RAW_EDGES.length} edges
+        <span style={{ fontSize: 9, color: "#3a4d63", whiteSpace: "nowrap" }}>
+          {RAW_NODES.length} {t("topicsCount", lang)} · {RAW_EDGES.length} {t("edgesCount", lang)}
         </span>
 
-        {/* Layout switcher */}
-        <div style={{ display: "flex", gap: 4, marginLeft: 8 }}>
-          {LAYOUTS.map(l => (
-            <button
-              key={l.meta.id}
-              onClick={() => switchLayout(l.meta.id)}
-              style={{
-                padding: "3px 10px", borderRadius: 4, fontSize: 10, cursor: "pointer",
-                border: layoutId === l.meta.id ? "1px solid #4a9eff" : "1px solid #1e2d45",
-                background: layoutId === l.meta.id ? "#4a9eff22" : "transparent",
-                color: layoutId === l.meta.id ? "#4a9eff" : "#6b7d9a",
-              }}
-            >
-              {l.meta.label}
-            </button>
-          ))}
-        </div>
-
-        <span style={{ fontSize: 10, color: "#3a4d63", marginLeft: "auto" }}>
+        {/* Hint */}
+        <span style={{ fontSize: 9, color: "#3a4d63", marginLeft: "auto" }}>
           {diagMode
-            ? mode === "deepdive"
-              ? "deep-dive: kliknij węzeł w podgrafie"
-              : "kliknij węzeł = pytanie · shift+click = nieznany · zielony = cofnij"
-            : "scroll to zoom · drag to pan · drag node to move · click to inspect"}
+            ? mode === "deepdive" ? t("hintDiagDeep", lang) : t("hintDiagQuick", lang)
+            : t("hintBrowse", lang)}
         </span>
 
-        {/* Diagnostic button group */}
-        <div style={{ display: "flex", gap: 4 }}>
+        {/* Right-side controls */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+
+          {/* Layout switcher */}
+          <div style={{ display: "flex", gap: 3 }}>
+            {LAYOUTS.map(l => (
+              <button
+                key={l.meta.id}
+                onClick={() => switchLayout(l.meta.id)}
+                title={t("layoutLabel", lang)}
+                style={{
+                  padding: "3px 8px", borderRadius: 4, fontSize: 10, cursor: "pointer",
+                  border: layoutId === l.meta.id ? "1px solid #4a9eff" : "1px solid #1e2d45",
+                  background: layoutId === l.meta.id ? "#4a9eff22" : "transparent",
+                  color: layoutId === l.meta.id ? "#4a9eff" : "#6b7d9a",
+                }}
+              >
+                {l.meta.label}
+              </button>
+            ))}
+          </div>
+
+          <span style={{ color: "#1e2d45" }}>|</span>
+
+          {/* Diagnostic button */}
           <button
             onClick={handleDiagnosticToggle}
             style={{
@@ -272,24 +278,28 @@ export default function CurriculumGraph() {
               border: diagMode ? "1px solid #f39c12" : "1px solid #1e2d45",
               background: diagMode ? "#f39c1222" : "transparent",
               color: diagMode ? "#f39c12" : "#6b7d9a",
+              whiteSpace: "nowrap",
             }}
           >
-            {diagMode ? `Diagnostic (${mode === "deepdive" ? "Deep-Dive" : "Quick"}) ON` : "Diagnostic"}
+            {diagMode
+              ? mode === "deepdive" ? t("diagnosticOnDeep", lang) : t("diagnosticOnQuick", lang)
+              : t("diagnosticOff", lang)}
           </button>
 
-          {/* Deep-dive picker button (visible when diagnostic is on) */}
+          {/* Deep-dive goal picker (visible when diagnostic is on) */}
           {diagMode && (
             <button
               onClick={() => setShowGoalModal(true)}
+              title={t("goalBtnTitle", lang)}
               style={{
                 padding: "4px 10px", borderRadius: 5, fontSize: 11, cursor: "pointer",
                 border: "1px solid #8e44ad",
                 background: mode === "deepdive" ? "#8e44ad22" : "transparent",
                 color: mode === "deepdive" ? "#c39bd3" : "#6b7d9a",
+                whiteSpace: "nowrap",
               }}
-              title="Wybierz cel deep-dive"
             >
-              ◎ Cel
+              {t("goalBtn", lang)}
             </button>
           )}
         </div>
@@ -395,7 +405,7 @@ export default function CurriculumGraph() {
           />
         )}
 
-        <Legend lang={lang} />
+        <Legend lang={lang} diagMode={diagMode} />
 
         {/* Zoom + reset controls */}
         <div style={{
@@ -441,6 +451,7 @@ export default function CurriculumGraph() {
         isOpen={showModePicker}
         onSelect={handleModeSelect}
         onClose={() => setShowModePicker(false)}
+        lang={lang}
       />
     </div>
   );
