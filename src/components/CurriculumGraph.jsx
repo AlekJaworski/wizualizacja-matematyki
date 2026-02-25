@@ -75,7 +75,7 @@ export default function CurriculumGraph() {
   // ── Diagnostic mode ─────────────────────────────────────────────
   const {
     diagMode, setDiagMode,
-    mode,
+    mode, setMode,
     quizNode, setQuizNode,
     questionsAnswered,
     getAnsweredIndices,
