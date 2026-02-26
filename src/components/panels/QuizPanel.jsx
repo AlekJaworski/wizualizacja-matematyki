@@ -38,18 +38,21 @@ export function QuizPanel({ nodeId, nodes, questionBank, onAnswer, onSkip, lang,
   );
 
   return (
-    // Full-screen backdrop
-    <div style={{
-      position: "fixed",
-      inset: 0,
-      zIndex: 100,
-      background: "rgba(5,9,18,0.75)",
-      backdropFilter: "blur(3px)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: 16,
-    }}>
+    // Full-screen backdrop — click outside card to dismiss
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 100,
+        background: "rgba(5,9,18,0.75)",
+        backdropFilter: "blur(3px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 16,
+      }}
+      onClick={e => { if (e.target === e.currentTarget) onSkip(q?.index ?? -1); }}
+    >
       {/* Modal card */}
       <div style={{
         width: "100%",
@@ -88,9 +91,9 @@ export function QuizPanel({ nodeId, nodes, questionBank, onAnswer, onSkip, lang,
               {t("noQuestion", lang)}
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button onClick={() => onAnswer(true, null, null)}  style={ansBtn("#27ae60")}>{t("yesKnow", lang)}</button>
-              <button onClick={() => onAnswer(false, null, null)} style={ansBtn("#e74c3c")}>{t("noKnow", lang)}</button>
-              <button onClick={() => onSkip(null)}                style={ansBtn("#3a4d63")}>{t("skipBtn", lang)}</button>
+              <button onClick={() => onAnswer(true, null, -1)}  style={ansBtn("#27ae60")}>{t("yesKnow", lang)}</button>
+              <button onClick={() => onAnswer(false, null, -1)} style={ansBtn("#e74c3c")}>{t("noKnow", lang)}</button>
+              <button onClick={() => onSkip(-1)}                style={ansBtn("#3a4d63")}>{t("skipBtn", lang)}</button>
             </div>
           </>
         ) : (

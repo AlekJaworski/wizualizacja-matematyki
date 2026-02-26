@@ -505,6 +505,63 @@ Resources: links to Abstract Algebra by Dummit & Foote, Artin, 3Blue1Brown, etc.
 
 ---
 
+## Session 2026-02-26: Onboarding as mode picker + three diagnostic bug fixes
+
+### Onboarding redesign
+The onboarding modal now doubles as the entry-point mode picker.
+The three feature tiles (Browse, Quick Diagnostic, Deep-dive) are clickable buttons —
+clicking one closes the modal and immediately starts that mode.
+No more "Get started → go find the Diagnoza button" friction.
+
+- Removed the passive footer buttons ("Skip" / "Get started")
+- Each tile is a `<button>` with hover feedback and a `→` arrow
+- New i18n key `onboardingChoose` added (pl/en)
+- `OnboardingModal` now accepts `onSelect(mode)` prop alongside `onClose`
+- New `handleOnboardingSelect` callback in `CurriculumGraph` wires the selection:
+  - `"browse"` → just dismisses the modal
+  - `"quick"` / `"deepdive"` → calls `handleModeSelect(mode)` directly
+
+### Files changed
+- `src/components/ui/OnboardingModal.jsx` — full rewrite
+- `src/components/CurriculumGraph.jsx` — `handleOnboardingSelect`, `onSelect` prop
+- `src/i18n.js` — added `onboardingChoose`
+
+---
+
+## Session 2026-02-26: Three Diagnostic Mode Bug Fixes
+
+### Bugs fixed
+
+**Bug 1 — "Brak pytania" repeated + isolated nodes never asked**
+- `allNodeIds` in `useDiagnostic.js` now includes `Object.keys(questionBank)` so nodes with
+  no edges (isolated in the DAG) are included in the diagnostic sequence.
+- Added sentinel index `-1` in `QuizPanel.jsx`: when no question is available, the
+  Know/Don't-Know/Skip buttons now call `onAnswer(true/false, null, -1)` / `onSkip(-1)`
+  instead of passing `null`. This stores `"nodeId:-1"` in `answeredQuestions`.
+- `getQuestion()` in `courseLoader.js` now checks `if (excludeIndices.includes(-1)) return null`
+  — so a node manually classified with no question won't be re-opened.
+
+**Bug 2 — Can't exit diagnostic mode (auto-advance re-fires)**
+- Both auto-advance `useEffect`s in `CurriculumGraph.jsx` now guard with `if (!diagMode || mode !== "...")`.
+- `diagMode` added to the dependency arrays of both effects.
+- When the diagnostic toggle is clicked, `diagMode` becomes `false` and the effects immediately
+  return without setting a new `quizNode`.
+
+**Bug 3 — OnboardingModal buttons not clickable on mobile**
+- The SVG registers non-passive `touchstart`/`touchmove` listeners that cover the full viewport.
+- Added `anyModalOpen` computed value in `CurriculumGraph.jsx` (true when onboarding, mode picker,
+  goal modal, or quiz panel is open).
+- SVG now has `pointerEvents: anyModalOpen ? "none" : "auto"` — disables SVG touch interception
+  while any overlay modal is shown, ensuring taps reach `position: fixed` modals correctly.
+
+### Files changed
+- `src/components/CurriculumGraph.jsx` — Bug 2 (diagMode guard) + Bug 3 (anyModalOpen + pointerEvents)
+- `src/hooks/useDiagnostic.js` — Bug 1 (allNodeIds includes questionBank keys)
+- `src/components/panels/QuizPanel.jsx` — Bug 1 (sentinel -1 for no-question case)
+- `src/data/courseLoader.js` — Bug 1 (getQuestion returns null when -1 in excludeIndices)
+
+---
+
 ## Session 2026-02-25: Domain Setup + Quiz UI Fixes
 
 ### Domain Setup (completed)

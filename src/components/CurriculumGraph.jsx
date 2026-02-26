@@ -65,6 +65,8 @@ export default function CurriculumGraph({
     setShowOnboarding(false);
   }, [setOnboardingSeen]);
 
+
+
   const toggleScope   = useCallback(k => setFilterScope(prev => {
     const next = new Set(prev); next.has(k) ? next.delete(k) : next.add(k); return next;
   }), []);
@@ -173,27 +175,32 @@ export default function CurriculumGraph({
 
   // ── Auto-advance quiz ────────────────────────────────────────────
   useEffect(() => {
-    if (mode !== "quick") return;
+    if (!diagMode || mode !== "quick") return;
     if (!quizNode && nextSuggestedId && !sessionComplete && hasStarted) {
       const timer = setTimeout(() => setQuizNode(nextSuggestedId), 400);
       return () => clearTimeout(timer);
     }
-  }, [mode, quizNode, nextSuggestedId, sessionComplete, hasStarted]);
+  }, [diagMode, mode, quizNode, nextSuggestedId, sessionComplete, hasStarted]);
 
   useEffect(() => {
-    if (mode !== "deepdive") return;
+    if (!diagMode || mode !== "deepdive") return;
     if (!quizNode && ddNextNodeId && !ddComplete) {
       const timer = setTimeout(() => setQuizNode(ddNextNodeId), 400);
       return () => clearTimeout(timer);
     }
-  }, [mode, quizNode, ddNextNodeId, ddComplete]);
+  }, [diagMode, mode, quizNode, ddNextNodeId, ddComplete]);
 
   // ── Keyboard ────────────────────────────────────────────────────
   useEffect(() => {
-    const onKey = e => { if (e.key === "Escape") { setSelected(null); setShowGoalModal(false); } };
+    const onKey = e => {
+      if (e.key !== "Escape") return;
+      if (quizNode) { setQuizNode(null); return; }   // dismiss quiz without skipping
+      setSelected(null);
+      setShowGoalModal(false);
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [quizNode]);
 
   // ── Layout switcher ─────────────────────────────────────────────
   const switchLayout = useCallback(id => {
@@ -226,6 +233,16 @@ export default function CurriculumGraph({
     }
   }, [setDiagMode, setMode, resetDiagnostic]);
 
+  // ── Onboarding mode selection ────────────────────────────────────
+  const handleOnboardingSelect = useCallback((mode) => {
+    setOnboardingSeen(true);
+    setShowOnboarding(false);
+    if (mode === "quick" || mode === "deepdive") {
+      handleModeSelect(mode);
+    }
+    // "browse" — just dismiss, user lands on the graph
+  }, [setOnboardingSeen, handleModeSelect]);
+
   // ── Deep-dive belief colour ──────────────────────────────────────
   const deepDiveBelief = useMemo(() => {
     if (mode !== "deepdive") return {};
@@ -245,6 +262,11 @@ export default function CurriculumGraph({
   const displayTitle = lang === "pl"
     ? (COURSE_META.title ?? COURSE_META.titleEn)
     : (COURSE_META.titleEn ?? COURSE_META.title);
+
+  // Disable SVG interaction whenever any overlay modal is open so touch events
+  // on fixed-position modals are not intercepted by the SVG's non-passive
+  // touch listeners (which cover the full viewport).
+  const anyModalOpen = showOnboarding || showModePicker || showGoalModal || !!(diagMode && quizNode);
 
   // ── Shared button style ─────────────────────────────────────────
   const hdrBtn = (active, color = "#4a9eff") => ({
@@ -358,7 +380,7 @@ export default function CurriculumGraph({
         <svg
           ref={svgRef}
           width="100%" height="100%"
-          style={{ cursor: cursorStyle, touchAction: "none" }}
+          style={{ cursor: cursorStyle, touchAction: "none", pointerEvents: anyModalOpen ? "none" : "auto" }}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
@@ -547,6 +569,7 @@ export default function CurriculumGraph({
 
       <OnboardingModal
         isOpen={showOnboarding}
+        onSelect={handleOnboardingSelect}
         onClose={handleOnboardingClose}
         lang={lang}
       />

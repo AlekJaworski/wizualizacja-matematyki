@@ -142,6 +142,7 @@ const STRINGS = {
   onboardingDeep:      { pl: "◎ Szczegółowa analiza", en: "◎ Deep-dive analysis" },
   onboardingDeepDesc:  { pl: "Wybierz konkretny cel (temat maturalny lub dowolny węzeł) — system przeanalizuje tylko wymagane tematy wstępne.",
                          en: "Pick a specific goal topic — the system focuses only on its required prerequisites." },
+  onboardingChoose:    { pl: "Wybierz tryb, żeby zacząć:", en: "Choose a mode to get started:" },
   onboardingStart:     { pl: "Zaczynamy →", en: "Get started →" },
   onboardingSkip:      { pl: "Pomiń",       en: "Skip" },
   onboardingLangHint:  { pl: "Możesz zmienić język w pasku filtrów (PL / EN).",

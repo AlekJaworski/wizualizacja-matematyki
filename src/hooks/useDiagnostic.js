@@ -75,14 +75,17 @@ export function useDiagnostic(adjacency, questionBank, courseId) {
   // Let's just use the adjacency allIds to build a minimal node list for
   // the belief functions that only need node.id fields.
 
-  // Build minimal node array from adjacency keys (all nodeIds)
+  // Build minimal node array from adjacency keys + question bank keys.
+  // Nodes that have no edges are excluded from adjacency.prereqs/dependents
+  // but may still have questions — include them so they get asked too.
   const allNodeIds = useMemo(() => {
     const ids = new Set([
       ...Object.keys(adjacency.prereqs),
       ...Object.keys(adjacency.dependents),
+      ...Object.keys(questionBank),
     ]);
     return [...ids].map(id => ({ id }));
-  }, [adjacency]);
+  }, [adjacency, questionBank]);
 
   const frontier = useMemo(
     () => (diagMode && mode === "quick") ? computeFrontier(allNodeIds, belief, adjacency) : [],
