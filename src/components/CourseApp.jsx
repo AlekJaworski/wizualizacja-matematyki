@@ -66,7 +66,7 @@ function CoursePicker({ courses, activeCourseId, onSelect, onClose }) {
         </div>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 12, width: 340 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "min(340px, calc(100vw - 32px))" }}>
         {courses.map(meta => (
           <button
             key={meta.id}

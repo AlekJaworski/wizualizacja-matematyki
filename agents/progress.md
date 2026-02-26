@@ -502,3 +502,24 @@ Resources: links to Abstract Algebra by Dummit & Foote, Artin, 3Blue1Brown, etc.
 - [ ] Add a README.md
 - [ ] Mobile/touch support (pinch-zoom, tap)
 - [ ] Update `progress.md` file map
+
+---
+
+## Session 2026-02-25: Domain Setup + Quiz UI Fixes
+
+### Domain Setup (completed)
+- Added 4 A records at OVH: `oczochodzi.pl` → GitHub IPs
+- Added CNAME for `www` → `alekjaworski.github.io`
+- Set GitHub Pages custom domain via API
+- HTTPS now works on `oczochodzi.pl`
+- Dev version at `oczochodzi.pl/dev/`
+
+### Quiz UI Fixes (completed)
+- **Larger buttons:** Increased fontSize 11→14, padding 6px→10px
+- **Fixed onAnswer args:** Now passes all 3 args (correct, question, questionIndex)
+- **Fixed skip:** Now properly marks skipped questions as answered to prevent loops
+- **Fixed fallback case:** YesKnow/NoKnow/Skip buttons now work when node has no questions
+
+### Backlog (UI Improvements)
+1. **Center quiz in modal:** Move QuizPanel to full-screen centered modal instead of floating card
+2. **Belief mini-panel:** Show belief state changes in small floating panel or reflect on graph nodes

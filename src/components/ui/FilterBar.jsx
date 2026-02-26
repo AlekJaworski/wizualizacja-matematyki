@@ -23,13 +23,14 @@ export function FilterBar({
 }) {
   return (
     <div style={{
-      padding: "6px 16px",
+      padding: "6px 12px",
       borderBottom: "1px solid #1a2235",
       display: "flex",
       alignItems: "center",
       gap: 6,
       flexWrap: "wrap",
       flexShrink: 0,
+      minHeight: 40,
     }}>
       {/* Search */}
       <input
@@ -39,14 +40,16 @@ export function FilterBar({
         style={{
           background: "#0d1520", border: "1px solid #1e2d45",
           borderRadius: 4, color: "#c8d6e5",
-          padding: "3px 8px", fontSize: 11, width: 120, outline: "none",
+          padding: "6px 10px", fontSize: 13,
+          width: "min(140px, 30vw)",
+          outline: "none", minHeight: 32,
         }}
       />
 
       <span style={{ color: "#1e2d45", fontSize: 10 }}>|</span>
 
       {/* Section filters */}
-      <span style={{ fontSize: 9, color: "#3a4d63" }}>{t("filterSection", lang)}</span>
+      <span style={{ fontSize: 11, color: "#3a4d63" }}>{t("filterSection", lang)}</span>
       <button style={pillBtn(filterSection.size === 0, "#c8d6e5")} onClick={clearSection}>
         {t("all", lang)}
       </button>
@@ -59,7 +62,7 @@ export function FilterBar({
       <span style={{ color: "#1e2d45", fontSize: 10 }}>|</span>
 
       {/* Scope filters */}
-      <span style={{ fontSize: 9, color: "#3a4d63" }}>{t("filterScope", lang)}</span>
+      <span style={{ fontSize: 11, color: "#3a4d63" }}>{t("filterScope", lang)}</span>
       <button style={pillBtn(filterScope.size === 0, "#c8d6e5")} onClick={clearScope}>
         {t("all", lang)}
       </button>

@@ -219,7 +219,7 @@ export function useDiagnostic(adjacency, questionBank, courseId) {
     mode, setMode,
     quizNode, setQuizNode,
     questionsAnswered,
-    answeredQuestions,
+    answeredQuestions, setAnsweredQuestions,
     getAnsweredIndices: (nodeId) => {
       const indices = [];
       answeredQuestions.forEach((key) => {

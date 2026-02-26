@@ -25,6 +25,15 @@ import { OnboardingModal }     from "./ui/OnboardingModal.jsx";
 
 const DEFAULT_VIEW = { x: 40, y: 40, scale: 0.72 };
 
+/** Compute an initial view that fits the graph on the current viewport. */
+function computeInitialView() {
+  if (typeof window === "undefined") return DEFAULT_VIEW;
+  const isMobile = window.innerWidth < 600;
+  return isMobile
+    ? { x: 20, y: 20, scale: 0.42 }
+    : DEFAULT_VIEW;
+}
+
 /**
  * CurriculumGraph — the main graph view for a single course.
  *
@@ -87,6 +96,7 @@ export default function CurriculumGraph({
   const adjacency = useMemo(() => buildAdjacency(RAW_NODES, RAW_EDGES), [RAW_NODES, RAW_EDGES]);
 
   const [positions, setPositions] = useState(() => computePositions(layoutId, 300, RAW_NODES, RAW_EDGES));
+  const initialView = useMemo(() => computeInitialView(), []);
 
   const nodes = useMemo(
     () => RAW_NODES.map(n => ({ ...n, x: positions[n.id]?.x ?? n.x, y: positions[n.id]?.y ?? n.y })),
@@ -112,6 +122,7 @@ export default function CurriculumGraph({
     mode, setMode,
     quizNode, setQuizNode,
     questionsAnswered,
+    answeredQuestions, setAnsweredQuestions,
     getAnsweredIndices,
     handleDiagClick,
     handleQuizAnswer,
@@ -273,8 +284,9 @@ export default function CurriculumGraph({
             onClick={onBackToCourses}
             title="Back to course picker"
             style={{
-              padding: "3px 8px", borderRadius: 4, fontSize: 10, cursor: "pointer",
+              padding: "6px 10px", borderRadius: 4, fontSize: 13, cursor: "pointer",
               border: "1px solid #1e2d45", background: "transparent", color: "#6b7d9a",
+              minHeight: 36,
             }}
           >
             ←
@@ -305,10 +317,11 @@ export default function CurriculumGraph({
                 onClick={() => switchLayout(l.meta.id)}
                 title={t("layoutLabel", lang)}
                 style={{
-                  padding: "3px 8px", borderRadius: 4, fontSize: 10, cursor: "pointer",
+                  padding: "6px 10px", borderRadius: 4, fontSize: 12, cursor: "pointer",
                   border: layoutId === l.meta.id ? "1px solid #4a9eff" : "1px solid #1e2d45",
                   background: layoutId === l.meta.id ? "#4a9eff22" : "transparent",
                   color: layoutId === l.meta.id ? "#4a9eff" : "#6b7d9a",
+                  minHeight: 36,
                 }}
               >
                 {l.meta.label}
@@ -322,11 +335,12 @@ export default function CurriculumGraph({
           <button
             onClick={handleDiagnosticToggle}
             style={{
-              padding: "4px 12px", borderRadius: 5, fontSize: 11, cursor: "pointer", fontWeight: 600,
+              padding: "8px 14px", borderRadius: 5, fontSize: 13, cursor: "pointer", fontWeight: 600,
               border: diagMode ? "1px solid #f39c12" : "1px solid #1e2d45",
               background: diagMode ? "#f39c1222" : "transparent",
               color: diagMode ? "#f39c12" : "#6b7d9a",
               whiteSpace: "nowrap",
+              minHeight: 36,
             }}
           >
             {diagMode
@@ -340,11 +354,12 @@ export default function CurriculumGraph({
               onClick={() => setShowGoalModal(true)}
               title={t("goalBtnTitle", lang)}
               style={{
-                padding: "4px 10px", borderRadius: 5, fontSize: 11, cursor: "pointer",
+                padding: "8px 12px", borderRadius: 5, fontSize: 13, cursor: "pointer",
                 border: "1px solid #8e44ad",
                 background: mode === "deepdive" ? "#8e44ad22" : "transparent",
                 color: mode === "deepdive" ? "#c39bd3" : "#6b7d9a",
                 whiteSpace: "nowrap",
+                minHeight: 36,
               }}
             >
               {t("goalBtn", lang)}
@@ -490,9 +505,9 @@ export default function CurriculumGraph({
                 }
               }}
               style={{
-                width: 28, height: 28,
+                width: 44, height: 44,
                 background: "#0d1520", border: "1px solid #1e2d45",
-                color: "#c8d6e5", borderRadius: 4, cursor: "pointer", fontSize: 14,
+                color: "#c8d6e5", borderRadius: 6, cursor: "pointer", fontSize: 18,
                 display: "flex", alignItems: "center", justifyContent: "center",
               }}
             >{lbl}</button>

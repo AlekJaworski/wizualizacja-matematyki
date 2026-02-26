@@ -20,7 +20,10 @@ import { useState, useCallback, useEffect, useRef } from "react";
  * }}
  */
 export function usePanZoom(svgRef) {
-  const [viewTransform, setViewTransform] = useState({ x: 40, y: 40, scale: 0.72 });
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 600;
+  const [viewTransform, setViewTransform] = useState(
+    isMobile ? { x: 20, y: 20, scale: 0.42 } : { x: 40, y: 40, scale: 0.72 }
+  );
   const [cursorStyle, setCursorStyle]     = useState("grab");
   const isPanning  = useRef(false);
   const panStart   = useRef({ x: 0, y: 0 });
