@@ -1,5 +1,6 @@
 import { t } from "../../i18n.js";
 import { COLORS } from "../../styles/tokens.js";
+import { classifyBelief } from "../../engine/belief.js";
 
 const PANEL_DESKTOP = {
   position: "absolute", right: 16, top: 16, width: 230,
@@ -19,8 +20,9 @@ export function DiagnosticPanel({
   const byId     = Object.fromEntries(nodes.map(n => [n.id, n]));
   const getLabel = id => lang === "pl" ? byId[id]?.labelPl : byId[id]?.label;
 
-  const known   = nodes.filter(n => belief[n.id] === "known");
-  const unknown = nodes.filter(n => belief[n.id] === "unknown");
+  const classification = classifyBelief(belief);
+  const known   = nodes.filter(n => classification[n.id] === "known");
+  const unknown = nodes.filter(n => classification[n.id] === "unknown");
   const total   = nodes.length;
 
   const stats = [
