@@ -33,4 +33,23 @@ export const RAW_EDGES = [
   // ── Into fields ──────────────────────────────────────────────────
   ["fields_intro",        "field_extensions"],
   ["poly_rings",          "field_extensions"],
+
+  // ── Into modules ─────────────────────────────────────────────────
+  ["rings_intro",         "modules_intro"],
+  ["ideals",              "submodules"],
+  ["modules_intro",       "submodules"],
+  ["ring_homomorphisms",  "module_homs"],
+  ["modules_intro",       "module_homs"],
+  ["submodules",          "module_homs"],
+  ["module_homs",         "direct_sums"],
+  ["modules_intro",       "direct_sums"],
+  ["direct_sums",         "finitely_generated"],
+  ["modules_intro",       "finitely_generated"],
+  ["finitely_generated",  "free_modules"],
+  ["modules_intro",        "torsion_modules"],
+  ["torsion_modules",     "primary_decomp"],
+  ["finitely_generated",  "primary_decomp"],
+  ["primary_decomp",      "rational_canonical"],
+  ["primary_decomp",      "jordan_normal_form"],
+  ["field_extensions",    "jordan_normal_form"],
 ];

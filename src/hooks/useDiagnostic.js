@@ -1,8 +1,14 @@
 import { useCallback, useMemo } from "react";
 import { useLocalStorage, clearSession } from "./useLocalStorage.js";
 import {
+  // Quick mode (weighted belief)
+  updateWeightedBelief,
+  propagateBeliefEdge,
+  classifyBelief,
+  // Legacy (for manual classification)
   propagateKnown,
   propagateUnknown,
+  // Frontier / ERV
   computeFrontier,
   pickNextQuestion,
   isSessionComplete,
@@ -145,21 +151,24 @@ export function useDiagnostic(adjacency, questionBank, courseId) {
       return true;
     }
 
-    // Quick mode
-    if (belief[id] === "unknown") return true;
-
+    // Quick mode: use numeric belief
+    const classification = classifyBelief(belief);
+    
+    // Mark as unknown (shift+click)
     if (shiftKey) {
-      setBelief(prev => propagateUnknown(id, prev, adjacency));
+      setBelief(prev => ({ ...prev, [id]: 0 }));
       setQuizNode(null);
       return true;
     }
 
-    if (belief[id] === "known") {
-      setBelief(prev => { const next = { ...prev }; delete next[id]; return next; });
+    // Click on known to reset to uncertain
+    if (classification[id] === "known") {
+      setBelief(prev => ({ ...prev, [id]: 0.5 }));
       setQuizNode(null);
       return true;
     }
 
+    // Otherwise, ask a question about this node
     setQuizNode(id);
     return true;
   }, [diagMode, mode, belief, adjacency, subgraphIds, ddClassification]);
@@ -169,11 +178,16 @@ export function useDiagnostic(adjacency, questionBank, courseId) {
       const tests = question?.tests ?? { [id]: 1.0 };
       setBetaBeliefs(prev => updateBetaBelief(prev, tests, correct));
     } else {
-      setBelief(prev =>
-        correct
-          ? propagateKnown(id, prev, adjacency)
-          : propagateUnknown(id, prev, adjacency)
-      );
+      // Quick mode: weighted belief system
+      const tests = question?.tests ?? { [id]: 1.0 };
+      
+      // Step 1: Direct weighted update for tested topics
+      let newBelief = updateWeightedBelief(belief, tests, correct);
+      
+      // Step 2: Edge propagation (discounted)
+      newBelief = propagateBeliefEdge(newBelief, id, adjacency);
+      
+      setBelief(newBelief);
     }
 
     if (typeof questionIndex === "number") {
@@ -187,7 +201,7 @@ export function useDiagnostic(adjacency, questionBank, courseId) {
     }));
 
     setQuizNode(null);
-  }, [mode, adjacency]);
+  }, [mode, adjacency, belief]);
 
   const resetDiagnostic = useCallback(() => {
     clearSession();
