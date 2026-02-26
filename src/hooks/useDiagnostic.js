@@ -203,6 +203,24 @@ export function useDiagnostic(adjacency, questionBank, courseId) {
     setQuizNode(null);
   }, [mode, adjacency, belief]);
 
+  const handleSkip = useCallback((id, questionIndex) => {
+    if (mode !== "quick") {
+      setQuizNode(null);
+      return;
+    }
+    
+    // Mark as unknown and propagate to ancestors
+    let newBelief = updateWeightedBelief(belief, { [id]: 1.0 }, false);
+    newBelief = propagateBeliefEdge(newBelief, id, adjacency);
+    setBelief(newBelief);
+
+    if (typeof questionIndex === "number") {
+      setAnsweredQuestions(prev => new Set([...prev, `${id}:${questionIndex}`]));
+    }
+
+    setQuizNode(null);
+  }, [mode, adjacency, belief]);
+
   const resetDiagnostic = useCallback(() => {
     clearSession();
     setDiagMode(false);
@@ -247,6 +265,7 @@ export function useDiagnostic(adjacency, questionBank, courseId) {
     },
     handleDiagClick,
     handleQuizAnswer,
+    handleSkip,
     resetDiagnostic,
     startDeepDive,
     targetNode,

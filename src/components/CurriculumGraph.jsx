@@ -109,6 +109,7 @@ export default function CurriculumGraph({
     getAnsweredIndices,
     handleDiagClick,
     handleQuizAnswer,
+    handleSkip,
     resetDiagnostic,
     startDeepDive,
     targetNode,
@@ -454,12 +455,7 @@ export default function CurriculumGraph({
               handleQuizAnswer(quizNode, correct, question, questionIndex)
             }
             onSkip={(questionIndex) => {
-              if (typeof questionIndex === "number") {
-                setAnsweredQuestions(prev => new Set([...prev, `${quizNode}:${questionIndex}`]));
-              }
-              // Mark node as exhausted (belief = 0 = unknown) so it won't be picked again
-              setBelief(prev => ({ ...prev, [quizNode]: 0 }));
-              setQuizNode(null);
+              handleSkip(quizNode, questionIndex);
             }}
           />
         )}
