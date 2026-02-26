@@ -1,103 +1,13 @@
 /**
  * Belief propagation for the diagnostic mode.
  *
- * belief is a plain object mapping node id → number (0-1).
- * - 0 = definitely unknown
- * - 0.5 = uncertain (neutral)
- * - 1 = definitely known
- * - no entry = unclassified (treated as 0.5)
+ * belief is a plain object mapping node id → "known" | "unknown".
+ * Nodes with no entry are "unclassified".
  *
  * The active DAG is the full graph with all unknown nodes (and their
  * descendants, which are also marked unknown by propagation) removed.
  * The algorithm only operates within this pruned graph.
  */
-
-// Configuration
-const EDGE_PROPAGATION_DISCOUNT = 0.3;
-const DIRECT_BELIEF_BUMP = 0.25;
-const KNOWN_THRESHOLD = 0.7;
-const UNKNOWN_THRESHOLD = 0.3;
-
-/**
- * Update belief based on a weighted test result.
- * @param {Record<string,number>} belief - current belief state
- * @param {Record<string,number>} tests - { nodeId: weight } for this question
- * @param {boolean} correct - whether the answer was correct
- * @returns {Record<string,number>} new belief state
- */
-export function updateWeightedBelief(belief, tests, correct) {
-  const result = { ...belief };
-  const bump = correct ? DIRECT_BELIEF_BUMP : -DIRECT_BELIEF_BUMP;
-
-  for (const [nodeId, weight] of Object.entries(tests)) {
-    const current = result[nodeId] ?? 0.5;
-    const delta = weight * bump;
-    result[nodeId] = Math.max(0, Math.min(1, current + delta));
-  }
-
-  return result;
-}
-
-/**
- * Propagate belief through graph edges with discount.
- * If a node is strongly known, propagate "likely known" to prerequisites.
- * If a node is strongly unknown, propagate "likely unknown" to dependents.
- * @param {Record<string,number>} belief - current belief state
- * @param {string} sourceId - the node that was just answered
- * @param {{ prereqs: Record<string,string[]>, dependents: Record<string,string[]> }} adjacency
- * @returns {Record<string,number>} new belief state
- */
-export function propagateBeliefEdge(belief, sourceId, adjacency) {
-  const result = { ...belief };
-  const sourceBelief = result[sourceId] ?? 0.5;
-
-  if (sourceBelief >= KNOWN_THRESHOLD) {
-    // Correct answer on a topic → likely know prerequisites (ancestors)
-    const queue = [...(adjacency.prereqs[sourceId] ?? [])];
-    const visited = new Set();
-    while (queue.length) {
-      const cur = queue.shift();
-      if (visited.has(cur)) continue;
-      visited.add(cur);
-      const current = result[cur] ?? 0.5;
-      result[cur] = Math.max(0, Math.min(1, current + EDGE_PROPAGATION_DISCOUNT));
-      for (const p of (adjacency.prereqs[cur] ?? [])) {
-        if (!visited.has(p)) queue.push(p);
-      }
-    }
-  } else if (sourceBelief <= UNKNOWN_THRESHOLD) {
-    // Wrong answer on a topic → likely don't know dependents (descendants)
-    const queue = [...(adjacency.dependents[sourceId] ?? [])];
-    const visited = new Set();
-    while (queue.length) {
-      const cur = queue.shift();
-      if (visited.has(cur)) continue;
-      visited.add(cur);
-      const current = result[cur] ?? 0.5;
-      result[cur] = Math.max(0, Math.min(1, current - EDGE_PROPAGATION_DISCOUNT));
-      for (const d of (adjacency.dependents[cur] ?? [])) {
-        if (!visited.has(d)) queue.push(d);
-      }
-    }
-  }
-
-  return result;
-}
-
-/**
- * Classify belief into known/unknown/uncertain based on thresholds.
- * @param {Record<string,number>} belief
- * @returns {Record<string,"known"|"unknown"|"uncertain">}
- */
-export function classifyBelief(belief) {
-  const result = {};
-  for (const [nodeId, value] of Object.entries(belief)) {
-    if (value >= KNOWN_THRESHOLD) result[nodeId] = "known";
-    else if (value <= UNKNOWN_THRESHOLD) result[nodeId] = "unknown";
-    else result[nodeId] = "uncertain";
-  }
-  return result;
-}
 
 /**
  * Mark a node as known and propagate upward: all prerequisites must also be known.
@@ -153,10 +63,9 @@ export function propagateUnknown(id, belief, adjacency) {
  * @returns {string[]} array of frontier node ids
  */
 export function computeFrontier(nodes, belief, adjacency) {
-  const classification = classifyBelief(belief);
   return nodes
-    .filter(n => classification[n.id] !== "known" && classification[n.id] !== "unknown")
-    .filter(n => (adjacency.prereqs[n.id] ?? []).every(p => classification[p] === "known"))
+    .filter(n => belief[n.id] !== "known" && belief[n.id] !== "unknown")
+    .filter(n => (adjacency.prereqs[n.id] ?? []).every(p => belief[p] === "known"))
     .map(n => n.id);
 }
 
@@ -174,7 +83,7 @@ export function computeFrontier(nodes, belief, adjacency) {
  * A correct answer on a leaf node removes few nodes.
  *
  * @param {Array<{id:string}>} nodes
- * @param {Record<string,number>} belief - numeric belief (0-1)
+ * @param {Record<string,"known"|"unknown">} belief
  * @param {{ prereqs: Record<string,string[]>, dependents: Record<string,string[]> }} adjacency
  * @param {number} pCorrect - Bayesian P(correct) estimate
  * @returns {string|null}
@@ -182,11 +91,10 @@ export function computeFrontier(nodes, belief, adjacency) {
 export function pickNextQuestion(nodes, belief, adjacency, pCorrect = 0.5) {
   try {
     const pIncorrect = 1 - pCorrect;
-    const classification = classifyBelief(belief);
 
     // Candidates: unclassified nodes within the active DAG
     const candidates = nodes.filter(
-      n => classification[n.id] !== "known" && classification[n.id] !== "unknown"
+      n => belief[n.id] !== "known" && belief[n.id] !== "unknown"
     );
 
     if (candidates.length === 0) return null;
@@ -194,10 +102,10 @@ export function pickNextQuestion(nodes, belief, adjacency, pCorrect = 0.5) {
     // For each candidate, compute ERV
     const scored = candidates.map(n => {
       // Count unclassified ancestors that would become known if correct
-      const ancestorsToReveal = countAncestorsToReveal(n.id, classification, adjacency);
+      const ancestorsToReveal = countAncestorsToReveal(n.id, belief, adjacency);
 
       // Count unclassified descendants that would become unknown if incorrect
-      const descendantsToReveal = countDescendantsToReveal(n.id, classification, adjacency);
+      const descendantsToReveal = countDescendantsToReveal(n.id, belief, adjacency);
 
       // ERV = P(correct) × ancestors + P(incorrect) × descendants
       const erv = pCorrect * ancestorsToReveal + pIncorrect * descendantsToReveal;
@@ -213,9 +121,8 @@ export function pickNextQuestion(nodes, belief, adjacency, pCorrect = 0.5) {
   } catch (e) {
     console.error("pickNextQuestion error:", e);
     // Fallback: return first unclassified node
-    const classification = classifyBelief(belief);
     const candidates = nodes.filter(
-      n => classification[n.id] !== "known" && classification[n.id] !== "unknown"
+      n => belief[n.id] !== "known" && belief[n.id] !== "unknown"
     );
     return candidates[0]?.id || null;
   }
@@ -294,9 +201,8 @@ function countDescendantsToReveal(nodeId, belief, adjacency) {
  */
 export function estimateRemainingQuestions(nodes, belief, adjacency, pCorrect = 0.5) {
   try {
-    const classification = classifyBelief(belief);
     const candidates = nodes.filter(
-      n => classification[n.id] !== "known" && classification[n.id] !== "unknown"
+      n => belief[n.id] !== "known" && belief[n.id] !== "unknown"
     );
 
     if (candidates.length === 0) return 0;
@@ -306,8 +212,8 @@ export function estimateRemainingQuestions(nodes, belief, adjacency, pCorrect = 
     let totalERV = 0;
 
     for (const n of candidates) {
-      const ancestors = countAncestorsToReveal(n.id, classification, adjacency);
-      const descendants = countDescendantsToReveal(n.id, classification, adjacency);
+      const ancestors = countAncestorsToReveal(n.id, belief, adjacency);
+      const descendants = countDescendantsToReveal(n.id, belief, adjacency);
       const erv = pCorrect * ancestors + pIncorrect * descendants;
       totalERV += (erv || 0);
     }
@@ -508,10 +414,9 @@ export function isDeepDiveComplete(subgraphIds, classification) {
  * "no unclassified nodes" is the exact right check.)
  *
  * @param {Array<{id:string}>} nodes
- * @param {Record<string,number>} belief - numeric belief (0-1)
+ * @param {Record<string,"known"|"unknown">} belief
  * @returns {boolean}
  */
 export function isSessionComplete(nodes, belief) {
-  const classification = classifyBelief(belief);
-  return nodes.every(n => classification[n.id] === "known" || classification[n.id] === "unknown");
+  return nodes.every(n => belief[n.id] === "known" || belief[n.id] === "unknown");
 }

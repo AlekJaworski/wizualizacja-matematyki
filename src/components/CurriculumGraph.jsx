@@ -11,7 +11,6 @@ import { useNodeDrag }      from "../hooks/useNodeDrag.js";
 import { useDiagnostic }    from "../hooks/useDiagnostic.js";
 import { useLocalStorage }  from "../hooks/useLocalStorage.js";
 import { useIsMobile }      from "../hooks/useIsMobile.js";
-import { getQuestion }      from "../data/courseLoader.js";
 
 import { EdgeLayer }           from "./graph/EdgeLayer.jsx";
 import { NodeLayer }           from "./graph/NodeLayer.jsx";
@@ -109,11 +108,10 @@ export default function CurriculumGraph({
     getAnsweredIndices,
     handleDiagClick,
     handleQuizAnswer,
-    handleSkip,
     resetDiagnostic,
     startDeepDive,
     targetNode,
-    belief, setBelief,
+    belief,
     frontier, visibleFrontier, hasStarted,
     nextSuggestedId, expectedRemaining, pCorrect,
     sessionComplete,
@@ -179,16 +177,10 @@ export default function CurriculumGraph({
   useEffect(() => {
     if (!diagMode || mode !== "quick") return;
     if (!quizNode && nextSuggestedId && !sessionComplete && hasStarted) {
-      // Check if there's actually a question available for this node
-      const excludeIndices = getAnsweredIndices(nextSuggestedId);
-      const question = getQuestion(QUESTION_BANK, nextSuggestedId, excludeIndices);
-      if (question) {
-        const timer = setTimeout(() => setQuizNode(nextSuggestedId), 400);
-        return () => clearTimeout(timer);
-      }
-      // No question available - mark node as exhausted (belief = 0) and pick next
+      const timer = setTimeout(() => setQuizNode(nextSuggestedId), 400);
+      return () => clearTimeout(timer);
     }
-  }, [diagMode, mode, quizNode, nextSuggestedId, sessionComplete, hasStarted, getAnsweredIndices, QUESTION_BANK]);
+  }, [diagMode, mode, quizNode, nextSuggestedId, sessionComplete, hasStarted]);
 
   useEffect(() => {
     if (!diagMode || mode !== "deepdive") return;
@@ -455,7 +447,10 @@ export default function CurriculumGraph({
               handleQuizAnswer(quizNode, correct, question, questionIndex)
             }
             onSkip={(questionIndex) => {
-              handleSkip(quizNode, questionIndex);
+              if (typeof questionIndex === "number") {
+                setAnsweredQuestions(prev => new Set([...prev, `${quizNode}:${questionIndex}`]));
+              }
+              setQuizNode(null);
             }}
           />
         )}
