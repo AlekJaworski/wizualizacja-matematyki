@@ -40,9 +40,35 @@ export function useDiagnostic(adjacency, questionBank, courseId) {
 
   // All persisted state uses useLocalStorage so sessions survive page refresh.
   // quizNode is deliberately NOT persisted — discard in-flight question on reload.
-  const [diagMode,    setDiagMode]    = useLocalStorage(`${ns}diagMode`,    false);
-  const [mode,        setMode]        = useLocalStorage(`${ns}diagSubMode`,  "quick");
-  const [belief,      setBelief]      = useLocalStorage(`${ns}belief`,       {});
+  
+  // Migration: convert old string belief to numeric (for users with old session data)
+  const migrateBelief = (stored) => {
+    if (!stored || typeof stored !== 'object') return {};
+    const migrated = {};
+    for (const [key, val] of Object.entries(stored)) {
+      if (val === "known") migrated[key] = 1.0;
+      else if (val === "unknown") migrated[key] = 0.0;
+      else if (typeof val === "number") migrated[key] = val;
+      // skip invalid values
+    }
+    return migrated;
+  };
+  
+  // Helper to get initial belief with migration
+  const getInitialBelief = () => {
+    const stored = localStorage.getItem(`${ns}belief`);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        return migrateBelief(parsed);
+      } catch (e) {
+        return {};
+      }
+    }
+    return {};
+  };
+  
+  const [belief, setBelief] = useLocalStorage(`${ns}belief`, getInitialBelief());
   const [targetNode,  setTargetNode]  = useLocalStorage(`${ns}targetNode`,   null);
   const [stats,       setStats]       = useLocalStorage(`${ns}stats`,        { correct: 0, incorrect: 0, questionsAnswered: 0 });
   const [answeredQuestions, setAnsweredQuestions] = useLocalStorage(`${ns}answeredQuestions`, new Set());
