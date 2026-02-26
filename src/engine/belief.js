@@ -66,8 +66,8 @@ export function propagateBeliefEdge(belief, sourceId, adjacency) {
       }
     }
   } else if (sourceBelief <= UNKNOWN_THRESHOLD) {
-    // Wrong answer on a topic → likely don't know prerequisites either (ancestors)
-    const queue = [...(adjacency.prereqs[sourceId] ?? [])];
+    // Wrong answer on a topic → likely don't know dependents (descendants)
+    const queue = [...(adjacency.dependents[sourceId] ?? [])];
     const visited = new Set();
     while (queue.length) {
       const cur = queue.shift();
@@ -75,8 +75,8 @@ export function propagateBeliefEdge(belief, sourceId, adjacency) {
       visited.add(cur);
       const current = result[cur] ?? 0.5;
       result[cur] = Math.max(0, Math.min(1, current - EDGE_PROPAGATION_DISCOUNT));
-      for (const p of (adjacency.prereqs[cur] ?? [])) {
-        if (!visited.has(p)) queue.push(p);
+      for (const d of (adjacency.dependents[cur] ?? [])) {
+        if (!visited.has(d)) queue.push(d);
       }
     }
   }
