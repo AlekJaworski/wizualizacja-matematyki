@@ -57,6 +57,10 @@ const STRINGS = {
   // ── FilterBar ────────────────────────────────────────────────────
   filterSection:    { pl: "Etap",      en: "Stage" },
   filterScope:      { pl: "Dział",     en: "Topic area" },
+  filters:          { pl: "Filtry",    en: "Filters" },
+  filterTitle:      { pl: "Filtry",    en: "Filters" },
+  done:             { pl: "Gotowe",    en: "Done" },
+  moreOptions:      { pl: "Opcje",     en: "Options" },
 
   // ── InfoPanel ────────────────────────────────────────────────────
   prerequisites:    { pl: "Wymagania wstępne", en: "Prerequisites" },
