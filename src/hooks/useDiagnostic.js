@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useEffect } from "react";
+import { useCallback, useMemo } from "react";
 import { useLocalStorage, clearSession } from "./useLocalStorage.js";
 import {
   // Quick mode (weighted belief)
@@ -46,20 +46,6 @@ export function useDiagnostic(adjacency, questionBank, courseId) {
   const [stats,       setStats]       = useLocalStorage(`${ns}stats`,        { correct: 0, incorrect: 0, questionsAnswered: 0 });
   const [answeredQuestions, setAnsweredQuestions] = useLocalStorage(`${ns}answeredQuestions`, new Set());
   const [betaBeliefs, setBetaBeliefs] = useLocalStorage(`${ns}betaBeliefs`,  {});
-
-  // Migration: convert old string belief values to numeric on first load
-  useEffect(() => {
-    const needsMigration = belief && Object.values(belief).some(v => v === "known" || v === "unknown");
-    if (needsMigration) {
-      const migrated = {};
-      for (const [key, val] of Object.entries(belief)) {
-        if (val === "known") migrated[key] = 1.0;
-        else if (val === "unknown") migrated[key] = 0.0;
-        else if (typeof val === "number") migrated[key] = val;
-      }
-      setBelief(migrated);
-    }
-  }, []);
 
   // quizNode is session-only (not persisted)
   const [quizNode, setQuizNode] = useLocalStorage(`${ns}quizNode`, null);
