@@ -457,8 +457,8 @@ export default function CurriculumGraph({
               if (typeof questionIndex === "number") {
                 setAnsweredQuestions(prev => new Set([...prev, `${quizNode}:${questionIndex}`]));
               }
-              // Reduce belief for skipped node to avoid immediate re-pick
-              setBelief(prev => ({ ...prev, [quizNode]: 0.3 }));
+              // Mark node as exhausted (belief = 0 = unknown) so it won't be picked again
+              setBelief(prev => ({ ...prev, [quizNode]: 0 }));
               setQuizNode(null);
             }}
           />
