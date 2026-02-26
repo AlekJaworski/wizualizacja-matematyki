@@ -3,6 +3,7 @@ import { useLocalStorage, clearSession } from "./useLocalStorage.js";
 import {
   propagateKnown,
   propagateUnknown,
+  propagateWithTests,
   computeFrontier,
   pickNextQuestion,
   isSessionComplete,
@@ -169,11 +170,8 @@ export function useDiagnostic(adjacency, questionBank, courseId) {
       const tests = question?.tests ?? { [id]: 1.0 };
       setBetaBeliefs(prev => updateBetaBelief(prev, tests, correct));
     } else {
-      setBelief(prev =>
-        correct
-          ? propagateKnown(id, prev, adjacency)
-          : propagateUnknown(id, prev, adjacency)
-      );
+      const tests = question?.tests ?? { [id]: 1.0 };
+      setBelief(prev => propagateWithTests(id, correct, tests, prev, adjacency));
     }
 
     if (typeof questionIndex === "number") {

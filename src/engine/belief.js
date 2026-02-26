@@ -54,6 +54,44 @@ export function propagateUnknown(id, belief, adjacency) {
 }
 
 /**
+ * Handle answer with weighted tests.
+ * - Correct: mark tested topics as known, propagate to ancestors (prerequisites)
+ * - Wrong: mark tested topics as unknown, propagate to descendants (dependents)
+ * 
+ * @param {string} id - the node that was asked about
+ * @param {boolean} correct - whether the answer was correct
+ * @param {Record<string,number>} tests - { topicId: weight } from the question
+ * @param {Record<string,"known"|"unknown">} belief - current belief
+ * @param {{ prereqs: Record<string,string[]>, dependents: Record<string,string[]> }} adjacency
+ * @returns {Record<string,"known"|"unknown">}
+ */
+export function propagateWithTests(id, correct, tests, belief, adjacency) {
+  let result = { ...belief };
+  
+  if (correct) {
+    // Mark all tested topics as known
+    for (const topicId of Object.keys(tests)) {
+      result[topicId] = "known";
+    }
+    // Propagate to ancestors (prerequisites) - if you know A, you likely know its prereqs
+    for (const topicId of Object.keys(tests)) {
+      result = propagateKnown(topicId, result, adjacency);
+    }
+  } else {
+    // Mark all tested topics as unknown
+    for (const topicId of Object.keys(tests)) {
+      result[topicId] = "unknown";
+    }
+    // Propagate to descendants (dependents) - if you don't know A, you likely don't know what depends on it
+    for (const topicId of Object.keys(tests)) {
+      result = propagateUnknown(topicId, result, adjacency);
+    }
+  }
+  
+  return result;
+}
+
+/**
  * Compute the learning frontier within the active DAG.
  * Frontier = unclassified nodes whose every prerequisite is known.
  * Unknown nodes are excluded (they are outside the active DAG).
