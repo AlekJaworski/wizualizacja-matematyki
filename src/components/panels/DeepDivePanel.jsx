@@ -1,4 +1,5 @@
 import { t } from "../../i18n.js";
+import { COLORS } from "../../styles/tokens.js";
 
 /**
  * Sidebar panel for deep-dive diagnostic mode.
@@ -8,7 +9,7 @@ export function DeepDivePanel({
   subgraphIds, ddClassification, betaBeliefs,
   ddComplete, ddNextNodeId,
   questionsAnswered,
-  onNodeClick, onReset,
+  onNodeClick, onReset, isMobile,
 }) {
   const byId     = Object.fromEntries(nodes.map(n => [n.id, n]));
   const getLabel = id => lang === "pl" ? byId[id]?.labelPl : byId[id]?.label;
@@ -22,26 +23,42 @@ export function DeepDivePanel({
   const pct = total > 0 ? Math.round((classified / total) * 100) : 0;
 
   const targetLabel = getLabel(targetNode);
+  const fs = isMobile ? 13 : 11;
+  const fsSmall = isMobile ? 11 : 9;
 
-  return (
-    <div style={{
-      position: "absolute", right: 16, top: 16, width: 240,
-      background: "#0d1520ee", backdropFilter: "blur(6px)",
+  const panelStyle = isMobile ? {
+    position: "fixed", left: 0, right: 0, bottom: 0,
+    background: "#0d1520f5", backdropFilter: "blur(8px)",
+    borderTop: "1px solid #1e2d45", borderRadius: "14px 14px 0 0",
+    padding: "16px 16px 24px",
+    zIndex: 30, maxHeight: "65vh", overflowY: "auto",
+  } : {
+    background: "#0d1520ee", backdropFilter: "blur(6px)",
       border: "1px solid #1e2d45", borderRadius: 8,
       padding: "12px 14px", fontSize: 11, color: "#c8d6e5",
       zIndex: 10, maxHeight: "80vh", overflowY: "auto",
-    }}>
+  };
+
+  return (
+    <div style={panelStyle}>
+      {/* Mobile drag handle */}
+      {isMobile && (
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: COLORS.textFaint }} />
+        </div>
+      )}
       {/* Header */}
       <div style={{
-        fontWeight: 700, fontSize: 12, marginBottom: 4, color: "#f5f6fa",
+        fontWeight: 700, fontSize: isMobile ? 14 : 12, marginBottom: 4, color: "#f5f6fa",
         display: "flex", justifyContent: "space-between", alignItems: "center",
       }}>
         <span>{t("deepDiveHeader", lang)} {ddComplete ? "✓" : ""}</span>
         <button
           onClick={onReset}
           style={{
-            fontSize: 9, padding: "2px 7px", borderRadius: 4, cursor: "pointer",
-            background: "transparent", border: "1px solid #3a4d63", color: "#6b7d9a",
+            fontSize: fsSmall, padding: "4px 10px", borderRadius: 4, cursor: "pointer",
+            background: "transparent", border: `1px solid ${COLORS.textFaint}`, color: COLORS.textDim,
+            minHeight: isMobile ? 32 : "auto",
           }}
         >{t("reset", lang)}</button>
       </div>

@@ -3,6 +3,7 @@ import { useLocalStorage, clearSession } from "./useLocalStorage.js";
 import {
   propagateKnown,
   propagateUnknown,
+  propagateWithTests,
   computeFrontier,
   pickNextQuestion,
   isSessionComplete,
@@ -75,14 +76,17 @@ export function useDiagnostic(adjacency, questionBank, courseId) {
   // Let's just use the adjacency allIds to build a minimal node list for
   // the belief functions that only need node.id fields.
 
-  // Build minimal node array from adjacency keys (all nodeIds)
+  // Build minimal node array from adjacency keys + question bank keys.
+  // Nodes that have no edges are excluded from adjacency.prereqs/dependents
+  // but may still have questions — include them so they get asked too.
   const allNodeIds = useMemo(() => {
     const ids = new Set([
       ...Object.keys(adjacency.prereqs),
       ...Object.keys(adjacency.dependents),
+      ...Object.keys(questionBank),
     ]);
     return [...ids].map(id => ({ id }));
-  }, [adjacency]);
+  }, [adjacency, questionBank]);
 
   const frontier = useMemo(
     () => (diagMode && mode === "quick") ? computeFrontier(allNodeIds, belief, adjacency) : [],
@@ -166,11 +170,8 @@ export function useDiagnostic(adjacency, questionBank, courseId) {
       const tests = question?.tests ?? { [id]: 1.0 };
       setBetaBeliefs(prev => updateBetaBelief(prev, tests, correct));
     } else {
-      setBelief(prev =>
-        correct
-          ? propagateKnown(id, prev, adjacency)
-          : propagateUnknown(id, prev, adjacency)
-      );
+      const tests = question?.tests ?? { [id]: 1.0 };
+      setBelief(prev => propagateWithTests(id, correct, tests, prev, adjacency));
     }
 
     if (typeof questionIndex === "number") {
@@ -219,7 +220,7 @@ export function useDiagnostic(adjacency, questionBank, courseId) {
     mode, setMode,
     quizNode, setQuizNode,
     questionsAnswered,
-    answeredQuestions,
+    answeredQuestions, setAnsweredQuestions,
     getAnsweredIndices: (nodeId) => {
       const indices = [];
       answeredQuestions.forEach((key) => {

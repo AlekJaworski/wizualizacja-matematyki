@@ -1,0 +1,23 @@
+import { useState, useEffect } from "react";
+
+const MOBILE_BREAKPOINT = 640;
+
+/**
+ * Returns true when the viewport width is below the mobile breakpoint.
+ * Reacts to window resize and orientation changes.
+ */
+export function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== "undefined" && window.innerWidth < MOBILE_BREAKPOINT
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
+    const handler = (e) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    setIsMobile(mq.matches);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  return isMobile;
+}

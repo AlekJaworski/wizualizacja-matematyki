@@ -502,3 +502,81 @@ Resources: links to Abstract Algebra by Dummit & Foote, Artin, 3Blue1Brown, etc.
 - [ ] Add a README.md
 - [ ] Mobile/touch support (pinch-zoom, tap)
 - [ ] Update `progress.md` file map
+
+---
+
+## Session 2026-02-26: Onboarding as mode picker + three diagnostic bug fixes
+
+### Onboarding redesign
+The onboarding modal now doubles as the entry-point mode picker.
+The three feature tiles (Browse, Quick Diagnostic, Deep-dive) are clickable buttons —
+clicking one closes the modal and immediately starts that mode.
+No more "Get started → go find the Diagnoza button" friction.
+
+- Removed the passive footer buttons ("Skip" / "Get started")
+- Each tile is a `<button>` with hover feedback and a `→` arrow
+- New i18n key `onboardingChoose` added (pl/en)
+- `OnboardingModal` now accepts `onSelect(mode)` prop alongside `onClose`
+- New `handleOnboardingSelect` callback in `CurriculumGraph` wires the selection:
+  - `"browse"` → just dismisses the modal
+  - `"quick"` / `"deepdive"` → calls `handleModeSelect(mode)` directly
+
+### Files changed
+- `src/components/ui/OnboardingModal.jsx` — full rewrite
+- `src/components/CurriculumGraph.jsx` — `handleOnboardingSelect`, `onSelect` prop
+- `src/i18n.js` — added `onboardingChoose`
+
+---
+
+## Session 2026-02-26: Three Diagnostic Mode Bug Fixes
+
+### Bugs fixed
+
+**Bug 1 — "Brak pytania" repeated + isolated nodes never asked**
+- `allNodeIds` in `useDiagnostic.js` now includes `Object.keys(questionBank)` so nodes with
+  no edges (isolated in the DAG) are included in the diagnostic sequence.
+- Added sentinel index `-1` in `QuizPanel.jsx`: when no question is available, the
+  Know/Don't-Know/Skip buttons now call `onAnswer(true/false, null, -1)` / `onSkip(-1)`
+  instead of passing `null`. This stores `"nodeId:-1"` in `answeredQuestions`.
+- `getQuestion()` in `courseLoader.js` now checks `if (excludeIndices.includes(-1)) return null`
+  — so a node manually classified with no question won't be re-opened.
+
+**Bug 2 — Can't exit diagnostic mode (auto-advance re-fires)**
+- Both auto-advance `useEffect`s in `CurriculumGraph.jsx` now guard with `if (!diagMode || mode !== "...")`.
+- `diagMode` added to the dependency arrays of both effects.
+- When the diagnostic toggle is clicked, `diagMode` becomes `false` and the effects immediately
+  return without setting a new `quizNode`.
+
+**Bug 3 — OnboardingModal buttons not clickable on mobile**
+- The SVG registers non-passive `touchstart`/`touchmove` listeners that cover the full viewport.
+- Added `anyModalOpen` computed value in `CurriculumGraph.jsx` (true when onboarding, mode picker,
+  goal modal, or quiz panel is open).
+- SVG now has `pointerEvents: anyModalOpen ? "none" : "auto"` — disables SVG touch interception
+  while any overlay modal is shown, ensuring taps reach `position: fixed` modals correctly.
+
+### Files changed
+- `src/components/CurriculumGraph.jsx` — Bug 2 (diagMode guard) + Bug 3 (anyModalOpen + pointerEvents)
+- `src/hooks/useDiagnostic.js` — Bug 1 (allNodeIds includes questionBank keys)
+- `src/components/panels/QuizPanel.jsx` — Bug 1 (sentinel -1 for no-question case)
+- `src/data/courseLoader.js` — Bug 1 (getQuestion returns null when -1 in excludeIndices)
+
+---
+
+## Session 2026-02-25: Domain Setup + Quiz UI Fixes
+
+### Domain Setup (completed)
+- Added 4 A records at OVH: `oczochodzi.pl` → GitHub IPs
+- Added CNAME for `www` → `alekjaworski.github.io`
+- Set GitHub Pages custom domain via API
+- HTTPS now works on `oczochodzi.pl`
+- Dev version at `oczochodzi.pl/dev/`
+
+### Quiz UI Fixes (completed)
+- **Larger buttons:** Increased fontSize 11→14, padding 6px→10px
+- **Fixed onAnswer args:** Now passes all 3 args (correct, question, questionIndex)
+- **Fixed skip:** Now properly marks skipped questions as answered to prevent loops
+- **Fixed fallback case:** YesKnow/NoKnow/Skip buttons now work when node has no questions
+
+### Backlog (UI Improvements)
+1. **Center quiz in modal:** Move QuizPanel to full-screen centered modal instead of floating card
+2. **Belief mini-panel:** Show belief state changes in small floating panel or reflect on graph nodes

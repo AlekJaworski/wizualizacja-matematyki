@@ -132,6 +132,10 @@ export function getQuestion(questionBank, nodeId, excludeIndices = []) {
   const qs = questionBank[nodeId];
   if (!qs || qs.length === 0) return null;
 
+  // Sentinel -1 means "node was manually classified with no question available".
+  // Treat the node as fully exhausted so it won't be re-asked.
+  if (excludeIndices.includes(-1)) return null;
+
   const available = qs
     .map((q, i) => ({ q, i }))
     .filter(({ i }) => !excludeIndices.includes(i));
