@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useEffect } from "react";
 import { useLocalStorage, clearSession } from "./useLocalStorage.js";
 import {
   // Quick mode (weighted belief)
@@ -41,38 +41,25 @@ export function useDiagnostic(adjacency, questionBank, courseId) {
   // All persisted state uses useLocalStorage so sessions survive page refresh.
   // quizNode is deliberately NOT persisted — discard in-flight question on reload.
   
-  // Migration: convert old string belief to numeric (for users with old session data)
-  const migrateBelief = (stored) => {
-    if (!stored || typeof stored !== 'object') return {};
-    const migrated = {};
-    for (const [key, val] of Object.entries(stored)) {
-      if (val === "known") migrated[key] = 1.0;
-      else if (val === "unknown") migrated[key] = 0.0;
-      else if (typeof val === "number") migrated[key] = val;
-      // skip invalid values
-    }
-    return migrated;
-  };
-  
-  // Helper to get initial belief with migration
-  const getInitialBelief = () => {
-    const stored = localStorage.getItem(`${ns}belief`);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        return migrateBelief(parsed);
-      } catch (e) {
-        return {};
-      }
-    }
-    return {};
-  };
-  
-  const [belief, setBelief] = useLocalStorage(`${ns}belief`, getInitialBelief());
+  const [belief, setBelief] = useLocalStorage(`${ns}belief`, {});
   const [targetNode,  setTargetNode]  = useLocalStorage(`${ns}targetNode`,   null);
   const [stats,       setStats]       = useLocalStorage(`${ns}stats`,        { correct: 0, incorrect: 0, questionsAnswered: 0 });
   const [answeredQuestions, setAnsweredQuestions] = useLocalStorage(`${ns}answeredQuestions`, new Set());
   const [betaBeliefs, setBetaBeliefs] = useLocalStorage(`${ns}betaBeliefs`,  {});
+
+  // Migration: convert old string belief values to numeric on first load
+  useEffect(() => {
+    const needsMigration = belief && Object.values(belief).some(v => v === "known" || v === "unknown");
+    if (needsMigration) {
+      const migrated = {};
+      for (const [key, val] of Object.entries(belief)) {
+        if (val === "known") migrated[key] = 1.0;
+        else if (val === "unknown") migrated[key] = 0.0;
+        else if (typeof val === "number") migrated[key] = val;
+      }
+      setBelief(migrated);
+    }
+  }, []);
 
   // quizNode is session-only (not persisted)
   const [quizNode, setQuizNode] = useLocalStorage(`${ns}quizNode`, null);
