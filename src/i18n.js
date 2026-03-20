@@ -67,6 +67,13 @@ const STRINGS = {
   enables:          { pl: "Odblokuje",          en: "Enables" },
   noPrereqs:        { pl: "Brak wymagań wstępnych", en: "No prerequisites" },
   noDependents:     { pl: "Brak zależnych tematów",  en: "No dependent topics" },
+  learningResources:{ pl: "Materiały do nauki",      en: "Learning resources" },
+  resourceInteractive:{ pl: "Interaktywna wizualizacja", en: "Interactive visualization" },
+  resourceVideo:    { pl: "Wideo",              en: "Video" },
+  resourceArticle:  { pl: "Artykuł",            en: "Article" },
+  openResource:     { pl: "Otwórz",             en: "Open" },
+  closeResource:    { pl: "Zamknij materiał",   en: "Close resource" },
+  openInTab:        { pl: "Otwórz w nowej karcie", en: "Open in new tab" },
 
   // ── QuizPanel ────────────────────────────────────────────────────
   checkAnswer:      { pl: "Sprawdź",   en: "Check" },
