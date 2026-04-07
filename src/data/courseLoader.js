@@ -85,13 +85,26 @@ export function buildNodes(nodeFiles, idPattern) {
     const { meta } = parseFrontmatter(raw);
     return {
       id,
-      label:   meta.label   ?? id,
-      labelPl: meta.labelPl ?? meta.label ?? id,
-      scope:   meta.scope   ?? "default",
-      section: meta.section ?? "default",
-      level:   meta.level   ?? 1,
-      x:       meta.x       ?? 0,
-      y:       meta.y       ?? 0,
+      label:     meta.label     ?? id,
+      labelPl:   meta.labelPl   ?? meta.label ?? id,
+      scope:     meta.scope     ?? "default",
+      section:   meta.section   ?? "default",
+      level:     meta.level     ?? 1,
+      x:         meta.x         ?? 0,
+      y:         meta.y         ?? 0,
+      // Optional array of learning resource objects parsed from pipe-delimited strings:
+      // "type|url|titleEn|titlePl"  e.g.  "interactive|derivation.html|Parabola Explorer|Eksplorator paraboli"
+      // URLs without "/" are auto-resolved to resources/<nodeId>/<filename>
+      resources: Array.isArray(meta.resources)
+        ? meta.resources.map(r => {
+            if (typeof r !== "string") return null;
+            const [type, url, titleEn, titlePl] = r.split("|").map(s => s.trim());
+            const resolvedUrl = url && !url.includes("/") && !url.startsWith("http")
+              ? `resources/${id}/${url}`
+              : url ?? "";
+            return { type: type ?? "article", url: resolvedUrl, titleEn: titleEn ?? "", titlePl: titlePl ?? titleEn ?? "" };
+          }).filter(Boolean)
+        : [],
     };
   });
 }
