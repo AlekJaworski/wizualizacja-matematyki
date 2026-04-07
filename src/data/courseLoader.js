@@ -93,12 +93,16 @@ export function buildNodes(nodeFiles, idPattern) {
       x:         meta.x         ?? 0,
       y:         meta.y         ?? 0,
       // Optional array of learning resource objects parsed from pipe-delimited strings:
-      // "type|url|titleEn|titlePl"  e.g.  "interactive|/resources/quadratic.html|Parabola Explorer|Eksplorator paraboli"
+      // "type|url|titleEn|titlePl"  e.g.  "interactive|derivation.html|Parabola Explorer|Eksplorator paraboli"
+      // URLs without "/" are auto-resolved to resources/<nodeId>/<filename>
       resources: Array.isArray(meta.resources)
         ? meta.resources.map(r => {
             if (typeof r !== "string") return null;
             const [type, url, titleEn, titlePl] = r.split("|").map(s => s.trim());
-            return { type: type ?? "article", url: url ?? "", titleEn: titleEn ?? "", titlePl: titlePl ?? titleEn ?? "" };
+            const resolvedUrl = url && !url.includes("/") && !url.startsWith("http")
+              ? `resources/${id}/${url}`
+              : url ?? "";
+            return { type: type ?? "article", url: resolvedUrl, titleEn: titleEn ?? "", titlePl: titlePl ?? titleEn ?? "" };
           }).filter(Boolean)
         : [],
     };

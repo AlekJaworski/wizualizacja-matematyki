@@ -7,5 +7,5 @@ level: 2
 x: 390
 y: 390
 resources:
-  - "interactive|resources/quadratic-derivation.html|Parabola Explorer — Quadratic Formula|Eksplorator paraboli — wzór kwadratowy"
+  - "interactive|resources/fn_quadratic/quadratic-derivation.html|Parabola Explorer — Quadratic Formula|Eksplorator paraboli — wzór kwadratowy"
 ---
