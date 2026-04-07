@@ -32,7 +32,8 @@ const STRINGS = {
                       en: "click a node in the subgraph to answer" },
   layoutLabel:      { pl: "Układ",     en: "Layout" },
 
-  // ── Diagnostic button / mode ─────────────────────────────────────
+  // ── Mode toggle ──────────────────────────────────────────────────
+  exploreMode:      { pl: "Eksploruj", en: "Explore" },
   diagnosticOff:    { pl: "Diagnoza",  en: "Diagnostic" },
   diagnosticOnQuick:{ pl: "Diagnoza (Szybka) ✓", en: "Diagnostic (Quick) ✓" },
   diagnosticOnDeep: { pl: "Diagnoza (Szczegółowa) ✓", en: "Diagnostic (Deep-Dive) ✓" },
