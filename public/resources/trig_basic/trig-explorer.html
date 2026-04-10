@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pl">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Trigonometry Explorer — Unit Circle & Graphs</title>
+<title>Trygonometria — Okrąg jednostkowy i wykresy</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
@@ -44,9 +44,9 @@
     </div>
 
     <div class="nav">
-      <button id="tprev">&larr; prev</button>
+      <button id="tprev">&larr; wstecz</button>
       <div id="tdots"></div>
-      <button id="tnext">next &rarr;</button>
+      <button id="tnext">dalej &rarr;</button>
     </div>
   </div>
 </div>
@@ -63,16 +63,16 @@ let selectedAngle=-1;
 const DEG=Math.PI/180;
 
 const stages=[
-  {f:'Unit Circle',
-   d:'Drag \u03b8 to move the point around the unit circle. The x-projection is cos(\u03b8), the y-projection is sin(\u03b8).'},
-  {f:'sin / cos / tan Definitions',
-   d:'Right triangle with angle \u03b8. sin = opp/hyp, cos = adj/hyp, tan = opp/adj. Drag \u03b8 to see live values.'},
+  {f:'Okr\u0105g jednostkowy',
+   d:'Przesu\u0144 \u03b8, aby przesun\u0105\u0107 punkt po okr\u0119gu jednostkowym. Rzut na o\u015B x to cos(\u03b8), rzut na o\u015B y to sin(\u03b8).'},
+  {f:'Definicje sin / cos / tan',
+   d:'Tr\u00F3jk\u0105t prostok\u0105tny z k\u0105tem \u03b8. sin = naprzeciwleg\u0142a/przeciwprostok\u0105tna, cos = przyprostok\u0105tna/przeciwprostok\u0105tna, tan = naprzeciwleg\u0142a/przyprostok\u0105tna. Przesu\u0144 \u03b8.'},
   {f:'y = sin(x)',
-   d:'The sine wave traces the y-coordinate of the unit circle point. The vertical line syncs with the circle.'},
+   d:'Fala sinusoidalna odwzorowuje wsp\u00F3\u0142rz\u0119dn\u0105 y punktu na okr\u0119gu jednostkowym. Linia pionowa synchronizuje si\u0119 z okr\u0119giem.'},
   {f:'y = cos(x)',
-   d:'Cosine is the x-coordinate. Note cos(x) = sin(x + 90\u00b0) \u2014 a phase shift of \u03c0/2.'},
-  {f:'Key Angles',
-   d:'Special angles with exact values. Click any angle marker on the circle to highlight it.'},
+   d:'Cosinus to wsp\u00F3\u0142rz\u0119dna x. Zauwa\u017C, \u017Ce cos(x) = sin(x + 90\u00b0) \u2014 przesuni\u0119cie fazowe o \u03c0/2.'},
+  {f:'K\u0105ty specjalne',
+   d:'K\u0105ty specjalne z dok\u0142adnymi warto\u015Bciami. Kliknij znacznik k\u0105ta na okr\u0119gu, aby go pod\u015Bwietli\u0107.'},
 ];
 
 const specialAngles=[
@@ -235,16 +235,16 @@ function drawRightTriangle(ang){
 
   // side labels
   cx.font='13px monospace';cx.textAlign='center';
-  // adjacent (bottom)
+  // przyprostok\u0105tna (bottom)
   cx.fillStyle=COS;
-  cx.fillText('adj',(Ax+Bx)/2,Ay+18);
-  // opposite (right side)
+  cx.fillText('przypr.',(Ax+Bx)/2,Ay+18);
+  // naprzeciwleg\u0142a (right side)
   cx.fillStyle=SIN;
-  cx.save();cx.translate(Bx+18,(By+Cy)/2);cx.rotate(-Math.PI/2);cx.fillText('opp',0,0);cx.restore();
-  // hypotenuse
+  cx.save();cx.translate(Bx+18,(By+Cy)/2);cx.rotate(-Math.PI/2);cx.fillText('naprz.',0,0);cx.restore();
+  // przeciwprostok\u0105tna
   cx.fillStyle='rgba(255,255,255,.6)';
   const hx=(Ax+Cx)/2-14, hy=(Ay+Cy)/2;
-  cx.fillText('hyp',hx,hy);
+  cx.fillText('przec.',hx,hy);
 
   // formulas on the right
   const fx=340, fy=60;
@@ -252,11 +252,11 @@ function drawRightTriangle(ang){
 
   cx.font='14px monospace';cx.textAlign='left';
   cx.fillStyle=SIN;
-  cx.fillText('sin(\u03b8) = opp/hyp = '+sv,fx,fy);
+  cx.fillText('sin(\u03b8) = naprz./przec. = '+sv,fx,fy);
   cx.fillStyle=COS;
-  cx.fillText('cos(\u03b8) = adj/hyp = '+cv_,fx,fy+28);
+  cx.fillText('cos(\u03b8) = przypr./przec. = '+cv_,fx,fy+28);
   cx.fillStyle=TAN;
-  cx.fillText('tan(\u03b8) = opp/adj = '+tv,fx,fy+56);
+  cx.fillText('tan(\u03b8) = naprz./przypr. = '+tv,fx,fy+56);
 
   // ratio visualisation bars
   const barX=fx, barY=fy+80, barW=180, barH=10;
@@ -317,8 +317,8 @@ function drawSineGraph(ang){
 
   // amplitude/period annotations
   cx.fillStyle='rgba(255,255,255,.25)';cx.font='10px monospace';cx.textAlign='left';
-  cx.fillText('amplitude = 1',gx+gw+4,gy+10);
-  cx.fillText('period = 360\u00b0',gx+gw+4,gy+24);
+  cx.fillText('amplituda = 1',gx+gw+4,gy+10);
+  cx.fillText('okres = 360\u00b0',gx+gw+4,gy+24);
 
   // title
   cx.fillStyle=SIN;cx.font='13px monospace';cx.textAlign='left';
@@ -375,7 +375,7 @@ function drawCosineGraph(ang){
   // phase shift arrow
   cx.fillStyle='rgba(255,255,255,.25)';cx.font='10px monospace';cx.textAlign='left';
   cx.fillText('cos(x) = sin(x+90\u00b0)',gx+gw+4,gy+10);
-  cx.fillText('phase shift = 90\u00b0',gx+gw+4,gy+24);
+  cx.fillText('przesuni\u0119cie fazowe = 90\u00b0',gx+gw+4,gy+24);
 
   cx.fillStyle=COS;cx.font='13px monospace';cx.textAlign='left';
   cx.fillText('y = cos(x)',gx,gy-14);
@@ -429,7 +429,7 @@ function drawKeyAngles(){
 
   cx.font='13px monospace';cx.textAlign='left';
   cx.fillStyle='#58C4DD';
-  cx.fillText('Special Angles',fx,fy);
+  cx.fillText('K\u0105ty specjalne',fx,fy);
 
   cx.font='11px monospace';
   let ly=fy+28;
@@ -496,7 +496,7 @@ function drawKeyAngles(){
 
   // instruction
   cx.fillStyle='rgba(255,255,255,.25)';cx.font='10px monospace';cx.textAlign='center';
-  cx.fillText('click a point on the circle to select',ccx,ccy+cr+28);
+  cx.fillText('kliknij punkt na okr\u0119gu, aby go wybra\u0107',ccx,ccy+cr+28);
 }
 
 // ── Main render ──────────────────────────────────────────────

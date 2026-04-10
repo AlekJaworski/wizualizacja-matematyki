@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pl">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Probability Explorer — Interactive Visualization</title>
+<title>Prawdopodobieństwo — Interaktywna wizualizacja</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
@@ -37,9 +37,9 @@
     <div id="sliders-wrap"></div>
 
     <div class="nav">
-      <button id="qprev">&larr; prev</button>
+      <button id="qprev">&larr; wstecz</button>
       <div id="qdots"></div>
-      <button id="qnext">next &rarr;</button>
+      <button id="qnext">dalej &rarr;</button>
     </div>
   </div>
 </div>
@@ -53,32 +53,32 @@ let stageIdx=0, animT=0;
 
 // ── Stages ─────────────────────────────────────────────────────
 const stages=[
-  { title:'P(event) — Single Event',
-    desc:'A fair die with n sides. Adjust the number of favorable outcomes k. Probability = k/n.',
+  { title:'P(zdarzenie) \u2014 Zdarzenie pojedyncze',
+    desc:'Uczciwa kostka o n \u015Bciankach. Ustaw liczb\u0119 wynik\u00F3w sprzyjaj\u0105cych k. Prawdopodobie\u0144stwo = k/n.',
     sliders:[
       {id:'sn',lbl:'n =',min:2,max:12,step:1,val:6,color:CYAN},
       {id:'sk',lbl:'k =',min:0,max:6,step:1,val:1,color:YELLOW}
     ]},
-  { title:'P(A) + P(not A) = 1',
-    desc:'The complement rule. Everything that is not A makes up the rest of the probability.',
+  { title:'P(A) + P(nie A) = 1',
+    desc:'Regu\u0142a dope\u0142nienia. Wszystko, co nie jest A, stanowi reszt\u0119 prawdopodobie\u0144stwa.',
     sliders:[
       {id:'pa',lbl:'P(A) =',min:0,max:1,step:0.01,val:0.35,color:CYAN}
     ]},
   { title:'P(A \\u2229 B) = P(A) \\u00d7 P(B)',
-    desc:'For independent events, the joint probability equals the product. The shaded area shows P(A \\u2229 B).',
+    desc:'Dla zdarze\u0144 niezale\u017Cnych prawdopodobie\u0144stwo \u0142\u0105czne r\u00F3wna si\u0119 iloczynowi. Zacieniowany obszar to P(A \u2229 B).',
     sliders:[
       {id:'pA',lbl:'P(A) =',min:0,max:1,step:0.01,val:0.6,color:CYAN},
       {id:'pB',lbl:'P(B) =',min:0,max:1,step:0.01,val:0.4,color:YELLOW}
     ]},
   { title:'P(A \\u222a B) = P(A) + P(B) \\u2212 P(A \\u2229 B)',
-    desc:'Addition rule for any two events. Adjust the overlap to see how double-counting is corrected.',
+    desc:'Regu\u0142a dodawania dla dowolnych dw\u00F3ch zdarze\u0144. Ustaw cz\u0119\u015B\u0107 wsp\u00F3ln\u0105, aby zobaczy\u0107, jak korygowane jest podw\u00F3jne liczenie.',
     sliders:[
       {id:'vA',lbl:'P(A) =',min:0.05,max:0.7,step:0.01,val:0.4,color:CYAN},
       {id:'vB',lbl:'P(B) =',min:0.05,max:0.7,step:0.01,val:0.35,color:YELLOW},
-      {id:'vO',lbl:'overlap',min:0,max:0.35,step:0.01,val:0.12,color:GREEN}
+      {id:'vO',lbl:'cz. wsp.',min:0,max:0.35,step:0.01,val:0.12,color:GREEN}
     ]},
-  { title:'Tree Diagram',
-    desc:'Two-stage experiment. Multiply along branches, add across leaves for total probability.',
+  { title:'Drzewo prawdopodobie\u0144stwa',
+    desc:'Dwuetapowe do\u015Bwiadczenie. Mno\u017Cymy wzd\u0142u\u017C ga\u0142\u0119zi, dodajemy na li\u015Bciach, aby uzyska\u0107 ca\u0142kowite prawdopodobie\u0144stwo.',
     sliders:[
       {id:'t1',lbl:'P(A) =',min:0.05,max:0.95,step:0.01,val:0.6,color:CYAN},
       {id:'t2',lbl:'P(X|A)=',min:0.05,max:0.95,step:0.01,val:0.7,color:YELLOW},
@@ -204,9 +204,9 @@ function drawStage0(){
 
   // Labels
   cx.font='12px monospace';cx.fillStyle='rgba(255,255,255,0.35)';cx.textAlign='center';
-  cx.fillText('n = '+n+' outcomes',centerX,dieY+faceSize/2+22);
+  cx.fillText('n = '+n+' wynik\u00F3w',centerX,dieY+faceSize/2+22);
   cx.fillStyle=CYAN;
-  cx.fillText('k = '+k+' favorable',centerX,dieY+faceSize/2+40);
+  cx.fillText('k = '+k+' sprzyjaj\u0105cych',centerX,dieY+faceSize/2+40);
 
   // Probability display
   const dispY=195;
@@ -280,18 +280,18 @@ function drawStage1(){
   // Labels on bar
   cx.font='bold 14px monospace';cx.textAlign='center';cx.textBaseline='middle';
   if(pA>0.1){cx.fillStyle=CYAN;cx.fillText('P(A)',barX+aW/2,barY+barH/2);}
-  if(pNotA>0.1){cx.fillStyle=PINK;cx.fillText('P(not A)',barX+aW+(barW-aW)/2,barY+barH/2);}
+  if(pNotA>0.1){cx.fillStyle=PINK;cx.fillText('P(nie A)',barX+aW+(barW-aW)/2,barY+barH/2);}
   cx.textBaseline='alphabetic';
 
   // Values below bar
   const valY=barY+barH+30;
   cx.font='bold 16px monospace';cx.textAlign='center';
   cx.fillStyle=CYAN;cx.fillText('P(A) = '+pA.toFixed(2),180,valY);
-  cx.fillStyle=PINK;cx.fillText('P(not A) = '+pNotA.toFixed(2),420,valY);
+  cx.fillStyle=PINK;cx.fillText('P(nie A) = '+pNotA.toFixed(2),420,valY);
 
   // Formula
   cx.font='bold 18px monospace';cx.fillStyle=YELLOW;cx.textAlign='center';
-  cx.fillText('P(A) + P(not A) = 1',300,valY+45);
+  cx.fillText('P(A) + P(nie A) = 1',300,valY+45);
 
   // Sum verification
   cx.font='13px monospace';cx.fillStyle='rgba(255,255,255,0.45)';
@@ -439,7 +439,7 @@ function drawStage4(){
   // Root node
   gdot(rootX,rootY,6,'rgba(255,255,255,0.6)');
   cx.fillStyle='rgba(255,255,255,0.4)';cx.font='11px monospace';cx.textAlign='right';
-  cx.fillText('start',rootX-10,rootY+4);
+  cx.fillText('pocz\u0105tek',rootX-10,rootY+4);
 
   // Level 1 branches
   drawBranch(rootX,rootY,midX,topMidY,'P(A)',CYAN,pA);
