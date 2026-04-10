@@ -109,6 +109,9 @@
 
 <script>
 (function(){
+const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
+const T = (pl, en) => LANG === 'pl' ? pl : en;
+
 const cv=document.getElementById('qc'),cx=cv.getContext('2d');
 const W=600,H=310,OX=300,OY=175,SC=40;
 const px=x=>OX+x*SC, py=y=>OY-y*SC;
@@ -131,19 +134,19 @@ let s4m1=1,s4b1=0,s4m2=-0.5,s4b2=2;
 
 const stages=[
   {f:'y = mx + b',
-   d:'Ustaw nachylenie m i wyraz wolny b. Tr\u00F3jk\u0105t przyrost/odcinek pokazuje, jak m kontroluje stromizn\u0119.',
+   d:T('Ustaw nachylenie m i wyraz wolny b. Tr\u00F3jk\u0105t przyrost/odcinek pokazuje, jak m kontroluje stromizn\u0119.','Adjust slope m and intercept b. The rise/run triangle shows how m controls steepness.'),
    sl:'sl_mb'},
   {f:'y = mx  (b = 0)',
-   d:'Proste przechodz\u0105ce przez pocz\u0105tek uk\u0142adu. Przeci\u0105gnij m: nachylenie dodatnie \u2014 prosta ro\u015Bnie, ujemne \u2014 maleje, zero \u2014 pozioma.',
+   d:T('Proste przechodz\u0105ce przez pocz\u0105tek uk\u0142adu. Przeci\u0105gnij m: nachylenie dodatnie \u2014 prosta ro\u015Bnie, ujemne \u2014 maleje, zero \u2014 pozioma.','Lines through the origin. Drag m: positive slope \u2014 line rises, negative \u2014 line falls, zero \u2014 horizontal line.'),
    sl:'sl_slope'},
-  {f:'Dwa punkty wyznaczaj\u0105 prost\u0105',
-   d:'Przeci\u0105gnij dwa punkty. Nachylenie obliczane jako m = (y\u2082 \u2212 y\u2081) / (x\u2082 \u2212 x\u2081).',
+  {f:T('Dwa punkty wyznaczaj\u0105 prost\u0105','Two points define a line'),
+   d:T('Przeci\u0105gnij dwa punkty. Nachylenie obliczane jako m = (y\u2082 \u2212 y\u2081) / (x\u2082 \u2212 x\u2081).','Drag the two points. Slope is computed as m = (y\u2082 \u2212 y\u2081) / (x\u2082 \u2212 x\u2081).'),
    sl:''},
-  {f:'R\u00F3wnoleg\u0142o\u015B\u0107 i prostopad\u0142o\u015B\u0107',
-   d:'Proste r\u00F3wnoleg\u0142e maj\u0105 to samo nachylenie m. Proste prostopad\u0142e maj\u0105 nachylenia m i \u22121/m (iloczyn = \u22121).',
+  {f:T('R\u00F3wnoleg\u0142o\u015B\u0107 i prostopad\u0142o\u015B\u0107','Parallel & Perpendicular'),
+   d:T('Proste r\u00F3wnoleg\u0142e maj\u0105 to samo nachylenie m. Proste prostopad\u0142e maj\u0105 nachylenia m i \u22121/m (iloczyn = \u22121).','Parallel lines share slope m. Perpendicular lines have slopes m and \u22121/m (product = \u22121).'),
    sl:'sl_par'},
-  {f:'Uk\u0142ad dw\u00F3ch r\u00F3wna\u0144 liniowych',
-   d:'Dwie proste mog\u0105 si\u0119 przeci\u0105\u0107 (jedno rozwi\u0105zanie), by\u0107 r\u00F3wnoleg\u0142e (brak rozwi\u0105za\u0144) lub pokrywa\u0107 si\u0119 (niesko\u0144czenie wiele rozwi\u0105za\u0144).',
+  {f:T('Uk\u0142ad dw\u00F3ch r\u00F3wna\u0144 liniowych','Systems of two linear equations'),
+   d:T('Dwie proste mog\u0105 si\u0119 przeci\u0105\u0107 (jedno rozwi\u0105zanie), by\u0107 r\u00F3wnoleg\u0142e (brak rozwi\u0105za\u0144) lub pokrywa\u0107 si\u0119 (niesko\u0144czenie wiele rozwi\u0105za\u0144).','Two lines can intersect (one solution), be parallel (no solution), or overlap (infinite solutions).'),
    sl:'sl_sys'},
 ];
 
@@ -301,9 +304,9 @@ function drawRiseRun(m,b,baseX){
   // Labels
   cx.font='bold 11px monospace';cx.textAlign='center';
   cx.fillStyle='rgba(255,209,102,.8)';
-  cx.fillText('odcinek=1',px(x0+0.5),py(y0)+(m>=0?14:-6));
+  cx.fillText(T('odcinek','run')+'=1',px(x0+0.5),py(y0)+(m>=0?14:-6));
   const riseVal=m.toFixed(1);
-  cx.fillText('przyrost='+riseVal,px(x1)+(m>=0?30:-30),py((y1+y2)/2)+4);
+  cx.fillText(T('przyrost','rise')+'='+riseVal,px(x1)+(m>=0?30:-30),py((y1+y2)/2)+4);
 }
 
 // ── Stage renderers ──
@@ -340,9 +343,9 @@ function drawStage1(){
   cx.fillStyle=CYAN;cx.font='bold 13px monospace';cx.textAlign='left';
   cx.fillText('y = '+fmtN(m)+'x',18,28);
   let label='';
-  if(m>0.05)label='nachylenie dodatnie \u2014 prosta ro\u015Bnie';
-  else if(m<-0.05)label='nachylenie ujemne \u2014 prosta maleje';
-  else label='nachylenie zerowe \u2014 prosta pozioma';
+  if(m>0.05)label=T('nachylenie dodatnie \u2014 prosta ro\u015Bnie','positive slope \u2014 line rises');
+  else if(m<-0.05)label=T('nachylenie ujemne \u2014 prosta maleje','negative slope \u2014 line falls');
+  else label=T('nachylenie zerowe \u2014 prosta pozioma','zero slope \u2014 horizontal line');
   cx.fillStyle='rgba(255,255,255,.5)';cx.font='12px monospace';
   cx.fillText(label,18,48);
 }
@@ -386,9 +389,9 @@ function drawStage2(){
     cx.fillStyle='rgba(255,255,255,.5)';cx.font='12px monospace';
     cx.fillText('y = '+m.toFixed(2)+'x + '+b.toFixed(2),18,48);
   } else {
-    cx.fillText('m = \u0394y/\u0394x \u2014 nieokre\u015Blone (pionowa)',18,28);
+    cx.fillText(T('m = \u0394y/\u0394x \u2014 nieokre\u015Blone (pionowa)','m = \u0394y/\u0394x \u2014 undefined (vertical)'),18,28);
     cx.fillStyle='rgba(220,80,80,.7)';cx.font='12px monospace';
-    cx.fillText('x = '+p1.x.toFixed(1)+' (nie jest funkcj\u0105)',18,48);
+    cx.fillText('x = '+p1.x.toFixed(1)+T(' (nie jest funkcj\u0105)',' (not a function)'),18,48);
   }
 }
 
@@ -425,18 +428,18 @@ function drawStage3(){
     cx.beginPath();cx.strokeStyle='rgba(176,124,216,.7)';cx.lineWidth=2;
     cx.moveTo(px(0),0);cx.lineTo(px(0),H);cx.stroke();
     cx.fillStyle=PURPLE;cx.font='11px monospace';cx.textAlign='left';
-    cx.fillText('prostopad\u0142a: x = 0',px(0)+8,30);
+    cx.fillText(T('prostopad\u0142a: x = 0','perpendicular: x = 0'),px(0)+8,30);
   }
   // Labels
   cx.fillStyle='rgba(22,22,26,.88)';cx.strokeStyle='rgba(255,255,255,.10)';cx.lineWidth=.8;
   cx.beginPath();cx.roundRect(8,8,265,70,6);cx.fill();cx.stroke();
   cx.font='bold 12px monospace';cx.textAlign='left';
   cx.fillStyle=CYAN;cx.fillText('y = '+fmtN(m)+'x + '+fmtN(b),18,26);
-  cx.fillStyle=GREEN;cx.fillText('r\u00F3wnoleg\u0142a:  y = '+fmtN(m)+'x + '+fmtN(bPar),18,44);
+  cx.fillStyle=GREEN;cx.fillText(T('r\u00F3wnoleg\u0142a','parallel')+':  y = '+fmtN(m)+'x + '+fmtN(bPar),18,44);
   if(Math.abs(m)>0.05){
-    cx.fillStyle=PURPLE;cx.fillText('prostopad\u0142a:  m\u2082 = '+(-1/m).toFixed(2),18,62);
+    cx.fillStyle=PURPLE;cx.fillText(T('prostopad\u0142a','perpendicular')+':  m\u2082 = '+(-1/m).toFixed(2),18,62);
   } else {
-    cx.fillStyle=PURPLE;cx.fillText('prostopad\u0142a:  prosta pionowa',18,62);
+    cx.fillStyle=PURPLE;cx.fillText(T('prostopad\u0142a:  prosta pionowa','perpendicular:  vertical line'),18,62);
   }
   // Y-intercept dots
   gdot(px(0),py(b),5,CYAN);
@@ -455,16 +458,16 @@ function drawStage4(){
   let caseLabel='',caseCol='';
   if(Math.abs(dm)<0.001&&Math.abs(b1-b2)<0.001){
     // Same line
-    caseLabel='Ta sama prosta \u2014 niesko\u0144czenie wiele rozwi\u0105za\u0144';
+    caseLabel=T('Ta sama prosta \u2014 niesko\u0144czenie wiele rozwi\u0105za\u0144','Same line \u2014 infinite solutions');
     caseCol=GREEN;
   } else if(Math.abs(dm)<0.001){
     // Parallel
-    caseLabel='R\u00F3wnoleg\u0142e \u2014 brak rozwi\u0105za\u0144';
+    caseLabel=T('R\u00F3wnoleg\u0142e \u2014 brak rozwi\u0105za\u0144','Parallel \u2014 no solution');
     caseCol='rgba(220,80,80,.85)';
   } else {
     // Intersection
     const ix=(b2-b1)/dm,iy=m1*ix+b1;
-    caseLabel='Jedno rozwi\u0105zanie: ('+ix.toFixed(2)+', '+iy.toFixed(2)+')';
+    caseLabel=T('Jedno rozwi\u0105zanie','One solution')+': ('+ix.toFixed(2)+', '+iy.toFixed(2)+')';
     caseCol=GOLD;
     gdot(px(ix),py(iy),7,GOLD);
     // Dashed crosshairs
@@ -498,6 +501,8 @@ function tick(){
   requestAnimationFrame(tick);
 }
 
+document.getElementById('qprev').innerHTML='&larr; '+T('wstecz','prev');
+document.getElementById('qnext').innerHTML=T('dalej','next')+' &rarr;';
 goStage(0);tick();
 })();
 </script>

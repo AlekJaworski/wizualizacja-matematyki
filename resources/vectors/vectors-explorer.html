@@ -158,6 +158,9 @@
 
 <script>
 (function(){
+const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
+const T = (pl, en) => LANG === 'pl' ? pl : en;
+
 const cv=document.getElementById('vc'),cx=cv.getContext('2d');
 const W=600,H=310,OX=300,OY=155,SC=40;
 const px=x=>OX+x*SC, py=y=>OY-y*SC;
@@ -168,11 +171,11 @@ let stage=0;
 const stageCount=5;
 
 const stages=[
-  {id:'basics', f:'v = [a, b]', d:'Wektor 2D ma d\u0142ugo\u015B\u0107 |v| = \u221A(a\u00B2 + b\u00B2) i k\u0105t kierunkowy \u03B8. Ustaw suwaki, aby eksplorowa\u0107.'},
-  {id:'add', f:'u + v = [u.x+v.x, u.y+v.y]', d:'Dodawanie wektor\u00F3w: do\u0142\u00F3\u017C v na ko\u0144cu u (metoda tr\u00F3jk\u0105ta). Przek\u0105tna r\u00F3wnoleg\u0142oboku to suma.'},
-  {id:'scalar', f:'kv = [k*v.x, k*v.y]', d:'Mno\u017Cenie przez skalar rozci\u0105ga (|k|>1), skraca (|k|<1) lub odwraca (k<0) wektor.'},
-  {id:'dot', f:'u \u00B7 v = |u||v|cos(\u03B8)', d:'Iloczyn skalarny mierzy wsp\u00F3\u0142liniowo\u015B\u0107. Gdy wektory s\u0105 prostopad\u0142e, u \u00B7 v = 0. Pokazany jest rzut u na v.'},
-  {id:'lincomb', f:'w = au + bv', d:'Ka\u017Cdy punkt p\u0142aszczyzny mo\u017Cna osi\u0105gn\u0105\u0107 jako kombinacj\u0119 liniow\u0105 dw\u00F3ch nier\u00F3wnoleg\u0142ych wektor\u00F3w.'},
+  {id:'basics', f:'v = [a, b]', d:T('Wektor 2D ma długość |v| = √(a² + b²) i kąt kierunkowy θ. Ustaw suwaki, aby eksplorować.','A 2D vector has magnitude |v| = √(a² + b²) and direction angle θ. Drag sliders to explore.')},
+  {id:'add', f:'u + v = [u.x+v.x, u.y+v.y]', d:T('Dodawanie wektorów: dołóż v na końcu u (metoda trójkąta). Przekątna równoległoboku to suma.','Vector addition: place v at the tip of u (tip-to-tail). The diagonal of the parallelogram is the sum.')},
+  {id:'scalar', f:'kv = [k*v.x, k*v.y]', d:T('Mnożenie przez skalar rozciąga (|k|>1), skraca (|k|<1) lub odwraca (k<0) wektor.','Scalar multiplication stretches (|k|>1), shrinks (|k|<1) or flips (k<0) the vector.')},
+  {id:'dot', f:'u \u00B7 v = |u||v|cos(\u03B8)', d:T('Iloczyn skalarny mierzy współliniowość. Gdy wektory są prostopadłe, u · v = 0. Pokazany jest rzut u na v.','The dot product measures alignment. When vectors are perpendicular, u · v = 0. The projection of u onto v is shown.')},
+  {id:'lincomb', f:'w = au + bv', d:T('Każdy punkt płaszczyzny można osiągnąć jako kombinację liniową dwóch nierównoległych wektorów.','Any point in the plane can be reached as a linear combination of two non-parallel vectors.')},
 ];
 
 // ── Drawing helpers ──────────────────────────────────────────
@@ -395,7 +398,7 @@ function renderDotProduct(){
   drawVec(0,0,vx,vy,ORANGE,2.5);
   labelVec('u',0,0,ux,uy,CYAN);
   labelVec('v',0,0,vx,vy,ORANGE);
-  if(magV>0.01)labelVec('rzut',0,0,projX,projY,GREEN);
+  if(magV>0.01)labelVec(T('rzut','proj'),0,0,projX,projY,GREEN);
 
   // overlay
   const isPerp=Math.abs(dot)<0.15;
@@ -403,12 +406,12 @@ function renderDotProduct(){
   cx.beginPath();cx.roundRect(6,6,240,72,6);cx.fill();cx.stroke();
   cx.font='11px monospace';cx.textAlign='left';
   cx.fillStyle=isPerp?'#dc5050':'rgba(255,255,255,.7)';
-  cx.fillText('u \u00B7 v = '+dot.toFixed(2)+(isPerp?' \u2248 0 (prostopad\u0142e!)':''),16,22);
+  cx.fillText('u \u00B7 v = '+dot.toFixed(2)+(isPerp?T(' \u2248 0 (prostopadłe!)',' \u2248 0 (perpendicular!)'):''),16,22);
   cx.fillStyle='rgba(255,255,255,.5)';
   cx.fillText('|u| = '+magU.toFixed(2)+'  |v| = '+magV.toFixed(2),16,38);
   cx.fillText('\u03B8 = '+theta.toFixed(1)+'\u00B0',16,54);
   cx.fillStyle=GREEN;
-  if(magV>0.01)cx.fillText('rzut_v(u) = ['+projX.toFixed(1)+', '+projY.toFixed(1)+']',16,70);
+  if(magV>0.01)cx.fillText(T('rzut','proj')+'_v(u) = ['+projX.toFixed(1)+', '+projY.toFixed(1)+']',16,70);
 }
 
 function renderLinComb(){
@@ -518,6 +521,8 @@ function tick(){
   requestAnimationFrame(tick);
 }
 
+document.getElementById('vprev').innerHTML = '&larr; ' + T('wstecz','prev');
+document.getElementById('vnext').innerHTML = T('dalej','next') + ' &rarr;';
 goTo(0);tick();
 })();
 </script>
