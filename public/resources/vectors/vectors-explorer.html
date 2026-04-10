@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2D Vectors — Interactive Explorer</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+  #vf { margin: 0 0 5px; font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  #vd { margin: 0 0 10px; font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); min-height: 48px; }
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 36px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+  .nav { display: flex; align-items: center; justify-content: space-between; }
+  button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  button:hover { background: rgba(255,255,255,.08); }
+  button:disabled { opacity: .3; cursor: default; }
+  #vdots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.18); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  .sl-group { display: none; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="vc" width="600" height="310"></canvas>
+  <div class="panel">
+    <p id="vf"></p>
+    <p id="vd"></p>
+
+    <!-- Stage 0: Vector basics -->
+    <div id="sl_basics" class="sl-group">
+      <div class="sliders">
+        <div class="slider-row">
+          <span class="lbl" style="color:#58C4DD;">a =</span>
+          <input type="range" id="s_va" min="-5" max="5" step="0.1" value="3">
+          <span class="val" id="s_va_v" style="color:#58C4DD;"></span>
+        </div>
+        <div class="slider-row">
+          <span class="lbl" style="color:#58C4DD;">b =</span>
+          <input type="range" id="s_vb" min="-5" max="5" step="0.1" value="2">
+          <span class="val" id="s_vb_v" style="color:#58C4DD;"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stage 1: Vector addition -->
+    <div id="sl_add" class="sl-group">
+      <div class="sliders">
+        <div class="slider-row">
+          <span class="lbl" style="color:#58C4DD;">u.x =</span>
+          <input type="range" id="s_ux" min="-4" max="4" step="0.1" value="3">
+          <span class="val" id="s_ux_v" style="color:#58C4DD;"></span>
+        </div>
+        <div class="slider-row">
+          <span class="lbl" style="color:#58C4DD;">u.y =</span>
+          <input type="range" id="s_uy" min="-4" max="4" step="0.1" value="1">
+          <span class="val" id="s_uy_v" style="color:#58C4DD;"></span>
+        </div>
+        <div class="slider-row">
+          <span class="lbl" style="color:#FF6B35;">v.x =</span>
+          <input type="range" id="s_vx" min="-4" max="4" step="0.1" value="1">
+          <span class="val" id="s_vx_v" style="color:#FF6B35;"></span>
+        </div>
+        <div class="slider-row">
+          <span class="lbl" style="color:#FF6B35;">v.y =</span>
+          <input type="range" id="s_vy" min="-4" max="4" step="0.1" value="3">
+          <span class="val" id="s_vy_v" style="color:#FF6B35;"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stage 2: Scalar multiplication -->
+    <div id="sl_scalar" class="sl-group">
+      <div class="sliders">
+        <div class="slider-row">
+          <span class="lbl" style="color:#58C4DD;">v.x =</span>
+          <input type="range" id="s_smx" min="-4" max="4" step="0.1" value="2">
+          <span class="val" id="s_smx_v" style="color:#58C4DD;"></span>
+        </div>
+        <div class="slider-row">
+          <span class="lbl" style="color:#58C4DD;">v.y =</span>
+          <input type="range" id="s_smy" min="-4" max="4" step="0.1" value="1">
+          <span class="val" id="s_smy_v" style="color:#58C4DD;"></span>
+        </div>
+        <div class="slider-row">
+          <span class="lbl" style="color:#FFD166;">k =</span>
+          <input type="range" id="s_sk" min="-3" max="3" step="0.05" value="1.5">
+          <span class="val" id="s_sk_v" style="color:#FFD166;"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stage 3: Dot product -->
+    <div id="sl_dot" class="sl-group">
+      <div class="sliders">
+        <div class="slider-row">
+          <span class="lbl" style="color:#58C4DD;">u.x =</span>
+          <input type="range" id="s_dux" min="-4" max="4" step="0.1" value="3">
+          <span class="val" id="s_dux_v" style="color:#58C4DD;"></span>
+        </div>
+        <div class="slider-row">
+          <span class="lbl" style="color:#58C4DD;">u.y =</span>
+          <input type="range" id="s_duy" min="-4" max="4" step="0.1" value="1">
+          <span class="val" id="s_duy_v" style="color:#58C4DD;"></span>
+        </div>
+        <div class="slider-row">
+          <span class="lbl" style="color:#FF6B35;">v.x =</span>
+          <input type="range" id="s_dvx" min="-4" max="4" step="0.1" value="-1">
+          <span class="val" id="s_dvx_v" style="color:#FF6B35;"></span>
+        </div>
+        <div class="slider-row">
+          <span class="lbl" style="color:#FF6B35;">v.y =</span>
+          <input type="range" id="s_dvy" min="-4" max="4" step="0.1" value="3">
+          <span class="val" id="s_dvy_v" style="color:#FF6B35;"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stage 4: Linear combination -->
+    <div id="sl_lincomb" class="sl-group">
+      <div class="sliders">
+        <div class="slider-row">
+          <span class="lbl" style="color:#58C4DD;">u =</span>
+          <span class="val" style="color:rgba(255,255,255,.35);font-size:11px;">[2, 0.5]</span>
+        </div>
+        <div class="slider-row">
+          <span class="lbl" style="color:#FF6B35;">v =</span>
+          <span class="val" style="color:rgba(255,255,255,.35);font-size:11px;">[-0.5, 2]</span>
+        </div>
+        <div style="border-top:1px solid rgba(255,255,255,.08);margin:4px 0;"></div>
+        <div class="slider-row">
+          <span class="lbl" style="color:#58C4DD;">a =</span>
+          <input type="range" id="s_la" min="-3" max="3" step="0.05" value="1.5">
+          <span class="val" id="s_la_v" style="color:#58C4DD;"></span>
+        </div>
+        <div class="slider-row">
+          <span class="lbl" style="color:#FF6B35;">b =</span>
+          <input type="range" id="s_lb" min="-3" max="3" step="0.05" value="1">
+          <span class="val" id="s_lb_v" style="color:#FF6B35;"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav">
+      <button id="vprev">&larr; prev</button>
+      <div id="vdots"></div>
+      <button id="vnext">next &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+const cv=document.getElementById('vc'),cx=cv.getContext('2d');
+const W=600,H=310,OX=300,OY=155,SC=40;
+const px=x=>OX+x*SC, py=y=>OY-y*SC;
+
+const CYAN='#58C4DD',ORANGE='#FF6B35',GREEN='#83C167',YELLOW='#FFD166';
+
+let stage=0;
+const stageCount=5;
+
+const stages=[
+  {id:'basics', f:'v = [a, b]', d:'A 2D vector has magnitude |v| = \u221A(a\u00B2 + b\u00B2) and direction angle \u03B8. Drag sliders to explore.'},
+  {id:'add', f:'u + v = [u.x+v.x, u.y+v.y]', d:'Vector addition: place v at the tip of u (tip-to-tail). The diagonal of the parallelogram is the sum.'},
+  {id:'scalar', f:'kv = [k*v.x, k*v.y]', d:'Scalar multiplication stretches (|k|>1), shrinks (|k|<1), or flips (k<0) the vector.'},
+  {id:'dot', f:'u \u00B7 v = |u||v|cos(\u03B8)', d:'The dot product measures alignment. When perpendicular, u \u00B7 v = 0. The projection of u onto v is shown.'},
+  {id:'lincomb', f:'w = au + bv', d:'Any point in the plane can be reached as a linear combination of two non-parallel vectors.'},
+];
+
+// ── Drawing helpers ──────────────────────────────────────────
+
+function drawGrid(){
+  cx.strokeStyle='rgba(255,255,255,.05)';cx.lineWidth=.7;
+  for(let x=-8;x<=8;x++){cx.beginPath();cx.moveTo(px(x),0);cx.lineTo(px(x),H);cx.stroke();}
+  for(let y=-5;y<=5;y++){cx.beginPath();cx.moveTo(0,py(y));cx.lineTo(W,py(y));cx.stroke();}
+}
+
+function drawAxes(){
+  cx.strokeStyle='rgba(255,255,255,.38)';cx.lineWidth=1.5;
+  cx.beginPath();cx.moveTo(0,py(0));cx.lineTo(W-8,py(0));cx.stroke();
+  cx.beginPath();cx.moveTo(px(0),H);cx.lineTo(px(0),7);cx.stroke();
+  cx.fillStyle='rgba(255,255,255,.38)';
+  cx.beginPath();cx.moveTo(W,py(0));cx.lineTo(W-9,py(0)-4);cx.lineTo(W-9,py(0)+4);cx.closePath();cx.fill();
+  cx.beginPath();cx.moveTo(px(0),0);cx.lineTo(px(0)-4,9);cx.lineTo(px(0)+4,9);cx.closePath();cx.fill();
+  for(let x=-7;x<=7;x++){
+    if(!x)continue;
+    cx.strokeStyle='rgba(255,255,255,.18)';cx.lineWidth=1;
+    cx.beginPath();cx.moveTo(px(x),py(0)-3);cx.lineTo(px(x),py(0)+3);cx.stroke();
+    cx.fillStyle='rgba(255,255,255,.25)';cx.font='10px sans-serif';cx.textAlign='center';cx.fillText(x,px(x),py(0)+13);
+  }
+  for(let y=-3;y<=3;y++){
+    if(!y)continue;
+    cx.strokeStyle='rgba(255,255,255,.18)';cx.lineWidth=1;
+    cx.beginPath();cx.moveTo(px(0)-3,py(y));cx.lineTo(px(0)+3,py(y));cx.stroke();
+    cx.fillStyle='rgba(255,255,255,.25)';cx.textAlign='right';cx.font='10px sans-serif';cx.fillText(y,px(0)-7,py(y)+4);
+  }
+  cx.fillStyle='rgba(255,255,255,.4)';cx.font='12px sans-serif';
+  cx.textAlign='center';cx.fillText('x',W-4,py(0)+5);cx.fillText('y',px(0),11);
+}
+
+function drawArrow(x0,y0,x1,y1,col,lw,alpha){
+  cx.save();
+  cx.globalAlpha=alpha||1;
+  cx.strokeStyle=col;cx.fillStyle=col;cx.lineWidth=lw||2.5;
+  cx.beginPath();cx.moveTo(x0,y0);cx.lineTo(x1,y1);cx.stroke();
+  // arrowhead
+  const dx=x1-x0,dy=y1-y0;
+  const len=Math.sqrt(dx*dx+dy*dy);
+  if(len<2){cx.restore();return;}
+  const ux=dx/len,uy=dy/len;
+  const hs=10; // head size
+  const px1=x1-ux*hs+uy*hs*0.35;
+  const py1=y1-uy*hs-ux*hs*0.35;
+  const px2=x1-ux*hs-uy*hs*0.35;
+  const py2=y1-uy*hs+ux*hs*0.35;
+  cx.beginPath();cx.moveTo(x1,y1);cx.lineTo(px1,py1);cx.lineTo(px2,py2);cx.closePath();cx.fill();
+  cx.restore();
+}
+
+function drawVec(ox,oy,vx,vy,col,lw,alpha){
+  drawArrow(px(ox),py(oy),px(ox+vx),py(oy+vy),col,lw,alpha);
+}
+
+function drawDashedLine(x0,y0,x1,y1,col,alpha){
+  cx.save();
+  cx.globalAlpha=alpha||0.3;
+  cx.setLineDash([4,4]);cx.strokeStyle=col;cx.lineWidth=1.2;
+  cx.beginPath();cx.moveTo(x0,y0);cx.lineTo(x1,y1);cx.stroke();
+  cx.setLineDash([]);
+  cx.restore();
+}
+
+function gdot(xx,yy,r,col){
+  cx.beginPath();cx.arc(xx,yy,r,0,Math.PI*2);cx.fillStyle=col;
+  cx.shadowColor=col;cx.shadowBlur=12;cx.fill();cx.shadowBlur=0;
+}
+
+function labelVec(name,ox,oy,vx,vy,col){
+  const mx=px(ox+vx*0.5),my=py(oy+vy*0.5);
+  const len=Math.sqrt(vx*vx+vy*vy);
+  if(len<0.2)return;
+  const nx=-vy/len,ny=-vx/len; // perpendicular (screen-aware: ny sign inverted due to canvas)
+  cx.font='bold 12px monospace';cx.fillStyle=col;cx.textAlign='center';
+  cx.fillText(name,mx+nx*14,my+ny*14);
+}
+
+// ── Slider value readers ─────────────────────────────────────
+
+function rv(id){return +document.getElementById(id).value;}
+function sv(id,v){document.getElementById(id).textContent=(v<0?'\u2212'+Math.abs(v).toFixed(1):v.toFixed(1));}
+
+// ── Stage renderers ──────────────────────────────────────────
+
+function renderBasics(){
+  const a=rv('s_va'),b=rv('s_vb');
+  sv('s_va_v',a);sv('s_vb_v',b);
+  drawVec(0,0,a,b,CYAN,2.5);
+  gdot(px(a),py(b),4,CYAN);
+
+  // dashed components
+  drawDashedLine(px(a),py(0),px(a),py(b),CYAN,0.25);
+  drawDashedLine(px(0),py(b),px(a),py(b),CYAN,0.25);
+
+  const mag=Math.sqrt(a*a+b*b);
+  const angle=Math.atan2(b,a)*180/Math.PI;
+
+  // arc for angle
+  if(mag>0.3){
+    cx.beginPath();
+    cx.strokeStyle='rgba(88,196,221,.35)';cx.lineWidth=1.2;
+    const ar=20;
+    const startA=0,endA=-Math.atan2(b,a); // canvas y is inverted
+    cx.arc(px(0),py(0),ar,startA,endA,b>0);
+    cx.stroke();
+  }
+
+  // info overlay
+  cx.fillStyle='rgba(22,22,26,.88)';cx.strokeStyle='rgba(255,255,255,.10)';cx.lineWidth=.8;
+  cx.beginPath();cx.roundRect(6,6,200,72,6);cx.fill();cx.stroke();
+  cx.font='12px monospace';cx.textAlign='left';
+  cx.fillStyle=CYAN;cx.fillText('v = ['+a.toFixed(1)+', '+b.toFixed(1)+']',16,24);
+  cx.fillStyle='rgba(255,255,255,.6)';
+  cx.fillText('|v| = '+mag.toFixed(2),16,42);
+  cx.fillText('\u03B8 = '+angle.toFixed(1)+'\u00B0',16,60);
+  labelVec('v',0,0,a,b,CYAN);
+}
+
+function renderAddition(){
+  const ux=rv('s_ux'),uy=rv('s_uy'),vx=rv('s_vx'),vy=rv('s_vy');
+  sv('s_ux_v',ux);sv('s_uy_v',uy);sv('s_vx_v',vx);sv('s_vy_v',vy);
+
+  const sx=ux+vx,sy=uy+vy;
+
+  // parallelogram dashed lines
+  drawDashedLine(px(ux),py(uy),px(sx),py(sy),ORANGE,0.25);
+  drawDashedLine(px(vx),py(vy),px(sx),py(sy),CYAN,0.25);
+
+  // vectors
+  drawVec(0,0,ux,uy,CYAN,2.5);
+  drawVec(0,0,vx,vy,ORANGE,2.5);
+  // tip-to-tail: v starting at tip of u
+  drawVec(ux,uy,vx,vy,ORANGE,1.8,0.5);
+  // sum
+  drawVec(0,0,sx,sy,GREEN,2.8);
+
+  gdot(px(sx),py(sy),4,GREEN);
+  labelVec('u',0,0,ux,uy,CYAN);
+  labelVec('v',0,0,vx,vy,ORANGE);
+  labelVec('u+v',0,0,sx,sy,GREEN);
+
+  // overlay
+  cx.fillStyle='rgba(22,22,26,.88)';cx.strokeStyle='rgba(255,255,255,.10)';cx.lineWidth=.8;
+  cx.beginPath();cx.roundRect(6,6,220,54,6);cx.fill();cx.stroke();
+  cx.font='11px monospace';cx.textAlign='left';
+  cx.fillStyle=CYAN;cx.fillText('u = ['+ux.toFixed(1)+', '+uy.toFixed(1)+']',16,22);
+  cx.fillStyle=ORANGE;cx.fillText('v = ['+vx.toFixed(1)+', '+vy.toFixed(1)+']',16,37);
+  cx.fillStyle=GREEN;cx.fillText('u+v = ['+sx.toFixed(1)+', '+sy.toFixed(1)+']',16,52);
+}
+
+function renderScalar(){
+  const vx=rv('s_smx'),vy=rv('s_smy'),k=rv('s_sk');
+  sv('s_smx_v',vx);sv('s_smy_v',vy);sv('s_sk_v',k);
+
+  const kx=k*vx,ky=k*vy;
+
+  // original vector (dimmed)
+  drawVec(0,0,vx,vy,CYAN,2,0.35);
+  // scaled vector
+  drawVec(0,0,kx,ky,YELLOW,2.8);
+
+  gdot(px(kx),py(ky),4,YELLOW);
+  labelVec('v',0,0,vx,vy,'rgba(88,196,221,.5)');
+  labelVec('kv',0,0,kx,ky,YELLOW);
+
+  // overlay
+  cx.fillStyle='rgba(22,22,26,.88)';cx.strokeStyle='rgba(255,255,255,.10)';cx.lineWidth=.8;
+  cx.beginPath();cx.roundRect(6,6,230,54,6);cx.fill();cx.stroke();
+  cx.font='11px monospace';cx.textAlign='left';
+  cx.fillStyle='rgba(88,196,221,.55)';cx.fillText('v = ['+vx.toFixed(1)+', '+vy.toFixed(1)+']',16,22);
+  cx.fillStyle=YELLOW;cx.fillText('k = '+k.toFixed(2),16,37);
+  cx.fillText('kv = ['+kx.toFixed(1)+', '+ky.toFixed(1)+']',16,52);
+}
+
+function renderDotProduct(){
+  const ux=rv('s_dux'),uy=rv('s_duy'),vx=rv('s_dvx'),vy=rv('s_dvy');
+  sv('s_dux_v',ux);sv('s_duy_v',uy);sv('s_dvx_v',vx);sv('s_dvy_v',vy);
+
+  const dot=ux*vx+uy*vy;
+  const magU=Math.sqrt(ux*ux+uy*uy);
+  const magV=Math.sqrt(vx*vx+vy*vy);
+  const cosT=(magU>0.01&&magV>0.01)?dot/(magU*magV):0;
+  const theta=Math.acos(Math.max(-1,Math.min(1,cosT)))*180/Math.PI;
+
+  // projection of u onto v
+  let projX=0,projY=0;
+  if(magV>0.01){
+    const projScalar=dot/(magV*magV);
+    projX=projScalar*vx;
+    projY=projScalar*vy;
+
+    // projection dashed line
+    drawDashedLine(px(ux),py(uy),px(projX),py(projY),'rgba(255,255,255,.3)',0.5);
+    // projection vector
+    drawVec(0,0,projX,projY,'rgba(131,193,103,.7)',2,0.7);
+    gdot(px(projX),py(projY),3,GREEN);
+
+    // right-angle marker if close to perpendicular
+    if(Math.abs(dot)<0.3*magU*magV){
+      // no right angle marker needed when close
+    }
+  }
+
+  // angle arc
+  if(magU>0.3&&magV>0.3){
+    const angU=Math.atan2(uy,ux);
+    const angV=Math.atan2(vy,vx);
+    cx.beginPath();
+    cx.strokeStyle=Math.abs(dot)<0.15?'rgba(220,80,80,.6)':'rgba(255,255,255,.25)';
+    cx.lineWidth=1.4;
+    const ar=25;
+    // draw arc from angV to angU (in canvas coords, angle is negated)
+    cx.arc(px(0),py(0),ar,-angV,-angU,angU>angV);
+    cx.stroke();
+  }
+
+  drawVec(0,0,ux,uy,CYAN,2.5);
+  drawVec(0,0,vx,vy,ORANGE,2.5);
+  labelVec('u',0,0,ux,uy,CYAN);
+  labelVec('v',0,0,vx,vy,ORANGE);
+  if(magV>0.01)labelVec('proj',0,0,projX,projY,GREEN);
+
+  // overlay
+  const isPerp=Math.abs(dot)<0.15;
+  cx.fillStyle='rgba(22,22,26,.88)';cx.strokeStyle='rgba(255,255,255,.10)';cx.lineWidth=.8;
+  cx.beginPath();cx.roundRect(6,6,240,72,6);cx.fill();cx.stroke();
+  cx.font='11px monospace';cx.textAlign='left';
+  cx.fillStyle=isPerp?'#dc5050':'rgba(255,255,255,.7)';
+  cx.fillText('u \u00B7 v = '+dot.toFixed(2)+(isPerp?' \u2248 0 (perpendicular!)':''),16,22);
+  cx.fillStyle='rgba(255,255,255,.5)';
+  cx.fillText('|u| = '+magU.toFixed(2)+'  |v| = '+magV.toFixed(2),16,38);
+  cx.fillText('\u03B8 = '+theta.toFixed(1)+'\u00B0',16,54);
+  cx.fillStyle=GREEN;
+  if(magV>0.01)cx.fillText('proj_v(u) = ['+projX.toFixed(1)+', '+projY.toFixed(1)+']',16,70);
+}
+
+function renderLinComb(){
+  const a=rv('s_la'),b=rv('s_lb');
+  sv('s_la_v',a);sv('s_lb_v',b);
+
+  // basis vectors
+  const bux=2,buy=0.5,bvx=-0.5,bvy=2;
+  const wx=a*bux+b*bvx,wy=a*buy+b*bvy;
+
+  // scaled basis vectors (dimmed)
+  drawVec(0,0,a*bux,a*buy,CYAN,1.8,0.35);
+  drawVec(0,0,b*bvx,b*bvy,ORANGE,1.8,0.35);
+
+  // tip-to-tail construction
+  drawVec(0,0,a*bux,a*buy,CYAN,1.5,0.5);
+  drawVec(a*bux,a*buy,b*bvx,b*bvy,ORANGE,1.5,0.5);
+
+  // parallelogram
+  drawDashedLine(px(b*bvx),py(b*bvy),px(wx),py(wy),CYAN,0.2);
+  drawDashedLine(px(a*bux),py(a*buy),px(wx),py(wy),ORANGE,0.2);
+
+  // basis vectors (full)
+  drawVec(0,0,bux,buy,CYAN,2,0.3);
+  drawVec(0,0,bvx,bvy,ORANGE,2,0.3);
+
+  // result
+  drawVec(0,0,wx,wy,GREEN,2.8);
+  gdot(px(wx),py(wy),5,GREEN);
+
+  labelVec('u',0,0,bux,buy,'rgba(88,196,221,.4)');
+  labelVec('v',0,0,bvx,bvy,'rgba(255,107,53,.4)');
+  labelVec('au',0,0,a*bux,a*buy,CYAN);
+  labelVec('bv',a*bux,a*buy,b*bvx,b*bvy,ORANGE);
+  labelVec('w',0,0,wx,wy,GREEN);
+
+  // grid of reachable points (faint dots)
+  for(let i=-3;i<=3;i++){
+    for(let j=-3;j<=3;j++){
+      const gx=i*bux+j*bvx,gy=i*buy+j*bvy;
+      const spx=px(gx),spy=py(gy);
+      if(spx>5&&spx<W-5&&spy>5&&spy<H-5){
+        cx.beginPath();cx.arc(spx,spy,1.5,0,Math.PI*2);
+        cx.fillStyle='rgba(255,255,255,.08)';cx.fill();
+      }
+    }
+  }
+
+  // overlay
+  cx.fillStyle='rgba(22,22,26,.88)';cx.strokeStyle='rgba(255,255,255,.10)';cx.lineWidth=.8;
+  cx.beginPath();cx.roundRect(6,6,250,54,6);cx.fill();cx.stroke();
+  cx.font='11px monospace';cx.textAlign='left';
+  cx.fillStyle='rgba(255,255,255,.6)';
+  cx.fillText('w = '+a.toFixed(1)+'\u00B7u + '+b.toFixed(1)+'\u00B7v',16,22);
+  cx.fillStyle=GREEN;
+  cx.fillText('w = ['+wx.toFixed(1)+', '+wy.toFixed(1)+']',16,38);
+  cx.fillStyle='rgba(255,255,255,.35)';
+  cx.fillText('|w| = '+Math.sqrt(wx*wx+wy*wy).toFixed(2),16,52);
+}
+
+// ── Navigation ───────────────────────────────────────────────
+
+function renderDots(){
+  const dc=document.getElementById('vdots');
+  dc.innerHTML=stages.map((_,i)=>
+    `<span class="dot${i===stage?' active':''}" data-i="${i}"></span>`
+  ).join('');
+  dc.querySelectorAll('span').forEach(s=>s.addEventListener('click',()=>goTo(+s.dataset.i)));
+}
+
+function goTo(idx){
+  idx=Math.max(0,Math.min(stageCount-1,idx));
+  stage=idx;
+  const s=stages[idx];
+  document.getElementById('vf').innerHTML=s.f;
+  document.getElementById('vd').innerHTML=s.d;
+  // hide all slider groups
+  document.querySelectorAll('.sl-group').forEach(el=>el.style.display='none');
+  // show current
+  const ids=['sl_basics','sl_add','sl_scalar','sl_dot','sl_lincomb'];
+  document.getElementById(ids[idx]).style.display='block';
+  document.getElementById('vprev').disabled=idx===0;
+  document.getElementById('vnext').disabled=idx===stageCount-1;
+  renderDots();
+}
+
+document.getElementById('vprev').addEventListener('click',()=>goTo(stage-1));
+document.getElementById('vnext').addEventListener('click',()=>goTo(stage+1));
+
+// ── Attach slider listeners ──────────────────────────────────
+
+const allSliders=document.querySelectorAll('input[type=range]');
+allSliders.forEach(s=>s.addEventListener('input',()=>{})); // trigger repaint via tick
+
+// ── Main loop ────────────────────────────────────────────────
+
+function tick(){
+  cx.fillStyle='#0e0e12';cx.fillRect(0,0,W,H);
+  drawGrid();drawAxes();
+  switch(stage){
+    case 0:renderBasics();break;
+    case 1:renderAddition();break;
+    case 2:renderScalar();break;
+    case 3:renderDotProduct();break;
+    case 4:renderLinComb();break;
+  }
+  requestAnimationFrame(tick);
+}
+
+goTo(0);tick();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Probability Explorer — Interactive Visualization</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+  #qf { margin: 0 0 5px; font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  #qd { margin: 0 0 10px; font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); min-height: 48px; }
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 56px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 52px; text-align: right; }
+  .nav { display: flex; align-items: center; justify-content: space-between; }
+  button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  button:hover { background: rgba(255,255,255,.08); }
+  button:disabled { opacity: .3; cursor: default; }
+  #qdots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.18); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  #sliders-wrap { min-height: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="qc" width="600" height="310"></canvas>
+  <div class="panel">
+    <p id="qf"></p>
+    <p id="qd"></p>
+
+    <div id="sliders-wrap"></div>
+
+    <div class="nav">
+      <button id="qprev">&larr; prev</button>
+      <div id="qdots"></div>
+      <button id="qnext">next &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+const cv=document.getElementById('qc'),cx=cv.getContext('2d');
+const W=600,H=310;
+const CYAN='#58C4DD',ORANGE='#FF6B35',YELLOW='#FFD166',GREEN='#83C167',PINK='#E07090',PURPLE='#9D7FEA';
+let stageIdx=0, animT=0;
+
+// ── Stages ─────────────────────────────────────────────────────
+const stages=[
+  { title:'P(event) — Single Event',
+    desc:'A fair die with n sides. Adjust the number of favorable outcomes k. Probability = k/n.',
+    sliders:[
+      {id:'sn',lbl:'n =',min:2,max:12,step:1,val:6,color:CYAN},
+      {id:'sk',lbl:'k =',min:0,max:6,step:1,val:1,color:YELLOW}
+    ]},
+  { title:'P(A) + P(not A) = 1',
+    desc:'The complement rule. Everything that is not A makes up the rest of the probability.',
+    sliders:[
+      {id:'pa',lbl:'P(A) =',min:0,max:1,step:0.01,val:0.35,color:CYAN}
+    ]},
+  { title:'P(A \\u2229 B) = P(A) \\u00d7 P(B)',
+    desc:'For independent events, the joint probability equals the product. The shaded area shows P(A \\u2229 B).',
+    sliders:[
+      {id:'pA',lbl:'P(A) =',min:0,max:1,step:0.01,val:0.6,color:CYAN},
+      {id:'pB',lbl:'P(B) =',min:0,max:1,step:0.01,val:0.4,color:YELLOW}
+    ]},
+  { title:'P(A \\u222a B) = P(A) + P(B) \\u2212 P(A \\u2229 B)',
+    desc:'Addition rule for any two events. Adjust the overlap to see how double-counting is corrected.',
+    sliders:[
+      {id:'vA',lbl:'P(A) =',min:0.05,max:0.7,step:0.01,val:0.4,color:CYAN},
+      {id:'vB',lbl:'P(B) =',min:0.05,max:0.7,step:0.01,val:0.35,color:YELLOW},
+      {id:'vO',lbl:'overlap',min:0,max:0.35,step:0.01,val:0.12,color:GREEN}
+    ]},
+  { title:'Tree Diagram',
+    desc:'Two-stage experiment. Multiply along branches, add across leaves for total probability.',
+    sliders:[
+      {id:'t1',lbl:'P(A) =',min:0.05,max:0.95,step:0.01,val:0.6,color:CYAN},
+      {id:'t2',lbl:'P(X|A)=',min:0.05,max:0.95,step:0.01,val:0.7,color:YELLOW},
+      {id:'t3',lbl:'P(X|B)=',min:0.05,max:0.95,step:0.01,val:0.3,color:GREEN}
+    ]}
+];
+
+// ── Slider management ──────────────────────────────────────────
+const vals={};
+
+function buildSliders(idx){
+  const wrap=document.getElementById('sliders-wrap');
+  const s=stages[idx];
+  if(!s.sliders||!s.sliders.length){wrap.innerHTML='';return;}
+  let html='<div class="sliders">';
+  s.sliders.forEach(sl=>{
+    vals[sl.id]=sl.val;
+    html+=`<div class="slider-row">
+      <span class="lbl" style="color:${sl.color}">${sl.lbl}</span>
+      <input type="range" id="${sl.id}" min="${sl.min}" max="${sl.max}" step="${sl.step}" value="${sl.val}">
+      <span class="val" id="${sl.id}v" style="color:${sl.color}">${fmtVal(sl.val,sl.step)}</span>
+    </div>`;
+  });
+  html+='</div>';
+  wrap.innerHTML=html;
+  s.sliders.forEach(sl=>{
+    const inp=document.getElementById(sl.id);
+    inp.addEventListener('input',function(){
+      let v=+this.value;
+      // clamp k <= n for stage 0
+      if(idx===0 && sl.id==='sk'){
+        const n=+document.getElementById('sn').value;
+        if(v>n){v=n;this.value=v;}
+      }
+      if(idx===0 && sl.id==='sn'){
+        const kInp=document.getElementById('sk');
+        kInp.max=v;
+        if(+kInp.value>v){kInp.value=v;vals['sk']=v;document.getElementById('skv').textContent=fmtVal(v,1);}
+      }
+      // clamp overlap for stage 3
+      if(idx===3 && (sl.id==='vA'||sl.id==='vB'||sl.id==='vO')){
+        const pA_=+(document.getElementById('vA').value);
+        const pB_=+(document.getElementById('vB').value);
+        const oInp=document.getElementById('vO');
+        const maxO=Math.min(pA_,pB_);
+        oInp.max=maxO.toFixed(2);
+        if(+oInp.value>maxO){oInp.value=maxO;vals['vO']=maxO;document.getElementById('vOv').textContent=fmtVal(maxO,0.01);}
+      }
+      vals[sl.id]=v;
+      document.getElementById(sl.id+'v').textContent=fmtVal(v,sl.step);
+    });
+  });
+}
+
+function fmtVal(v,step){
+  if(step>=1) return Math.round(v).toString();
+  return v.toFixed(2);
+}
+
+// ── Navigation ─────────────────────────────────────────────────
+function renderDots(){
+  const dc=document.getElementById('qdots');
+  dc.innerHTML=stages.map((_,i)=>
+    `<span class="dot${i===stageIdx?' active':''}" data-i="${i}"></span>`
+  ).join('');
+  dc.querySelectorAll('span').forEach(s=>s.addEventListener('click',()=>goTo(+s.dataset.i)));
+}
+
+function goTo(idx){
+  idx=Math.max(0,Math.min(stages.length-1,idx));
+  stageIdx=idx; animT=0;
+  document.getElementById('qf').textContent=stages[idx].title;
+  document.getElementById('qd').textContent=stages[idx].desc;
+  document.getElementById('qprev').disabled=idx===0;
+  document.getElementById('qnext').disabled=idx===stages.length-1;
+  buildSliders(idx);
+  renderDots();
+}
+
+document.getElementById('qprev').addEventListener('click',()=>goTo(stageIdx-1));
+document.getElementById('qnext').addEventListener('click',()=>goTo(stageIdx+1));
+
+// ── Drawing helpers ────────────────────────────────────────────
+function clear(){cx.fillStyle='#0e0e12';cx.fillRect(0,0,W,H);}
+
+function gdot(x,y,r,col){
+  cx.beginPath();cx.arc(x,y,r,0,Math.PI*2);cx.fillStyle=col;
+  cx.shadowColor=col;cx.shadowBlur=12;cx.fill();cx.shadowBlur=0;
+}
+
+function roundRect(x,y,w,h,r){
+  cx.beginPath();cx.moveTo(x+r,y);cx.lineTo(x+w-r,y);cx.quadraticCurveTo(x+w,y,x+w,y+r);
+  cx.lineTo(x+w,y+h-r);cx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  cx.lineTo(x+r,y+h);cx.quadraticCurveTo(x,y+h,x,y+h-r);
+  cx.lineTo(x,y+r);cx.quadraticCurveTo(x,y,x+r,y);cx.closePath();
+}
+
+function ease(t){return t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;}
+
+// ── Stage 0: Single Event (Die) ───────────────────────────────
+function drawStage0(){
+  const n=vals['sn']||6, k=vals['sk']||1;
+  const p=n>0?k/n:0;
+  const centerX=300, dieY=90;
+
+  // Draw die faces in a row
+  const faceSize=36, gap=6;
+  const totalW=n*(faceSize+gap)-gap;
+  const startX=centerX-totalW/2;
+
+  for(let i=0;i<n;i++){
+    const fx=startX+i*(faceSize+gap), fy=dieY-faceSize/2;
+    const isFav=i<k;
+    cx.fillStyle=isFav?'rgba(88,196,221,0.15)':'rgba(255,255,255,0.04)';
+    cx.strokeStyle=isFav?CYAN:'rgba(255,255,255,0.15)';
+    cx.lineWidth=isFav?2:1;
+    roundRect(fx,fy,faceSize,faceSize,6);cx.fill();cx.stroke();
+    cx.fillStyle=isFav?CYAN:'rgba(255,255,255,0.4)';
+    cx.font='bold 16px monospace';cx.textAlign='center';cx.textBaseline='middle';
+    cx.fillText(i+1,fx+faceSize/2,fy+faceSize/2);
+  }
+  cx.textBaseline='alphabetic';
+
+  // Labels
+  cx.font='12px monospace';cx.fillStyle='rgba(255,255,255,0.35)';cx.textAlign='center';
+  cx.fillText('n = '+n+' outcomes',centerX,dieY+faceSize/2+22);
+  cx.fillStyle=CYAN;
+  cx.fillText('k = '+k+' favorable',centerX,dieY+faceSize/2+40);
+
+  // Probability display
+  const dispY=195;
+  cx.font='bold 20px monospace';cx.fillStyle=YELLOW;cx.textAlign='center';
+
+  // Fraction
+  cx.font='bold 18px monospace';
+  cx.fillText('P = '+k+'/'+n,centerX-170,dispY);
+
+  // Decimal
+  cx.fillStyle='rgba(255,255,255,0.7)';cx.font='16px monospace';
+  cx.fillText('= '+p.toFixed(4),centerX-30,dispY);
+
+  // Percentage
+  cx.fillStyle=GREEN;cx.font='bold 16px monospace';
+  cx.fillText('= '+(p*100).toFixed(1)+'%',centerX+110,dispY);
+
+  // Probability bar
+  const barX=60, barY=235, barW=480, barH=28;
+  cx.fillStyle='rgba(255,255,255,0.05)';
+  roundRect(barX,barY,barW,barH,6);cx.fill();
+  cx.strokeStyle='rgba(255,255,255,0.1)';cx.lineWidth=1;
+  roundRect(barX,barY,barW,barH,6);cx.stroke();
+
+  const fillW=barW*p;
+  if(fillW>0){
+    cx.save();cx.beginPath();roundRect(barX,barY,barW,barH,6);cx.clip();
+    cx.fillStyle='rgba(88,196,221,0.3)';cx.fillRect(barX,barY,fillW,barH);
+    cx.restore();
+  }
+
+  cx.fillStyle='rgba(255,255,255,0.3)';cx.font='11px monospace';cx.textAlign='center';
+  cx.fillText('0',barX,barY+barH+14);
+  cx.fillText('1',barX+barW,barY+barH+14);
+  if(p>0.05&&p<0.95){
+    cx.fillStyle=CYAN;
+    cx.fillText(p.toFixed(2),barX+fillW,barY+barH+14);
+    cx.strokeStyle=CYAN;cx.lineWidth=1.5;cx.setLineDash([3,3]);
+    cx.beginPath();cx.moveTo(barX+fillW,barY);cx.lineTo(barX+fillW,barY+barH);cx.stroke();
+    cx.setLineDash([]);
+  }
+}
+
+// ── Stage 1: Complement ───────────────────────────────────────
+function drawStage1(){
+  const pA=vals['pa']||0.35;
+  const pNotA=1-pA;
+
+  // Central bar
+  const barX=60, barY=80, barW=480, barH=60;
+
+  // Background
+  cx.fillStyle='rgba(255,255,255,0.03)';
+  roundRect(barX,barY,barW,barH,8);cx.fill();
+  cx.strokeStyle='rgba(255,255,255,0.1)';cx.lineWidth=1;
+  roundRect(barX,barY,barW,barH,8);cx.stroke();
+
+  // P(A) portion
+  const aW=barW*pA;
+  cx.save();cx.beginPath();roundRect(barX,barY,barW,barH,8);cx.clip();
+  cx.fillStyle='rgba(88,196,221,0.3)';cx.fillRect(barX,barY,aW,barH);
+  cx.fillStyle='rgba(224,112,144,0.2)';cx.fillRect(barX+aW,barY,barW-aW,barH);
+  cx.restore();
+
+  // Divider line
+  if(pA>0.02&&pA<0.98){
+    cx.strokeStyle='rgba(255,255,255,0.5)';cx.lineWidth=2;
+    cx.beginPath();cx.moveTo(barX+aW,barY);cx.lineTo(barX+aW,barY+barH);cx.stroke();
+  }
+
+  // Labels on bar
+  cx.font='bold 14px monospace';cx.textAlign='center';cx.textBaseline='middle';
+  if(pA>0.1){cx.fillStyle=CYAN;cx.fillText('P(A)',barX+aW/2,barY+barH/2);}
+  if(pNotA>0.1){cx.fillStyle=PINK;cx.fillText('P(not A)',barX+aW+(barW-aW)/2,barY+barH/2);}
+  cx.textBaseline='alphabetic';
+
+  // Values below bar
+  const valY=barY+barH+30;
+  cx.font='bold 16px monospace';cx.textAlign='center';
+  cx.fillStyle=CYAN;cx.fillText('P(A) = '+pA.toFixed(2),180,valY);
+  cx.fillStyle=PINK;cx.fillText('P(not A) = '+pNotA.toFixed(2),420,valY);
+
+  // Formula
+  cx.font='bold 18px monospace';cx.fillStyle=YELLOW;cx.textAlign='center';
+  cx.fillText('P(A) + P(not A) = 1',300,valY+45);
+
+  // Sum verification
+  cx.font='13px monospace';cx.fillStyle='rgba(255,255,255,0.45)';
+  cx.fillText(pA.toFixed(2)+' + '+pNotA.toFixed(2)+' = '+(pA+pNotA).toFixed(2),300,valY+70);
+
+  // 0 and 1 markers
+  cx.font='11px monospace';cx.fillStyle='rgba(255,255,255,0.3)';
+  cx.fillText('0',barX,barY-10);cx.fillText('1',barX+barW,barY-10);
+}
+
+// ── Stage 2: Independent Events (Area Model) ──────────────────
+function drawStage2(){
+  const pA=vals['pA']||0.6, pB=vals['pB']||0.4;
+  const pAB=pA*pB;
+
+  const boxX=120, boxY=30, boxW=300, boxH=200;
+
+  // Full rectangle outline
+  cx.strokeStyle='rgba(255,255,255,0.2)';cx.lineWidth=1.5;
+  cx.strokeRect(boxX,boxY,boxW,boxH);
+
+  // P(A) width, P(B) height
+  const aW=boxW*pA, bH=boxH*pB;
+
+  // Shaded intersection area
+  cx.fillStyle='rgba(88,196,221,0.08)';cx.fillRect(boxX,boxY,boxW,boxH);
+  cx.fillStyle='rgba(88,196,221,0.15)';cx.fillRect(boxX,boxY,aW,boxH);
+  cx.fillStyle='rgba(255,209,102,0.12)';cx.fillRect(boxX,boxY,boxW,bH);
+  cx.fillStyle='rgba(131,193,103,0.35)';cx.fillRect(boxX,boxY,aW,bH);
+
+  // P(A) bracket on bottom
+  cx.strokeStyle=CYAN;cx.lineWidth=2;
+  cx.beginPath();cx.moveTo(boxX,boxY+boxH+8);cx.lineTo(boxX,boxY+boxH+14);
+  cx.lineTo(boxX+aW,boxY+boxH+14);cx.lineTo(boxX+aW,boxY+boxH+8);cx.stroke();
+  cx.fillStyle=CYAN;cx.font='bold 12px monospace';cx.textAlign='center';
+  cx.fillText('P(A) = '+pA.toFixed(2),boxX+aW/2,boxY+boxH+28);
+
+  // P(B) bracket on right
+  cx.strokeStyle=YELLOW;cx.lineWidth=2;
+  cx.beginPath();cx.moveTo(boxX+boxW+8,boxY);cx.lineTo(boxX+boxW+14,boxY);
+  cx.lineTo(boxX+boxW+14,boxY+bH);cx.lineTo(boxX+boxW+8,boxY+bH);cx.stroke();
+  cx.fillStyle=YELLOW;cx.font='bold 12px monospace';cx.textAlign='left';
+  cx.fillText('P(B)',boxX+boxW+20,boxY+bH/2-6);
+  cx.fillText('= '+pB.toFixed(2),boxX+boxW+20,boxY+bH/2+10);
+
+  // Dashed lines
+  cx.setLineDash([4,4]);cx.strokeStyle='rgba(255,255,255,0.15)';cx.lineWidth=1;
+  cx.beginPath();cx.moveTo(boxX+aW,boxY);cx.lineTo(boxX+aW,boxY+boxH);cx.stroke();
+  cx.beginPath();cx.moveTo(boxX,boxY+bH);cx.lineTo(boxX+boxW,boxY+bH);cx.stroke();
+  cx.setLineDash([]);
+
+  // Label inside shaded area
+  cx.fillStyle=GREEN;cx.font='bold 13px monospace';cx.textAlign='center';
+  const labelX=boxX+aW/2, labelY=boxY+bH/2;
+  cx.fillText('P(A\u2229B)',labelX,labelY-4);
+  cx.fillText('= '+pAB.toFixed(3),labelX,labelY+14);
+
+  // Formula at bottom
+  cx.fillStyle=YELLOW;cx.font='bold 15px monospace';cx.textAlign='center';
+  cx.fillText('P(A \u2229 B) = P(A) \u00d7 P(B) = '+pA.toFixed(2)+' \u00d7 '+pB.toFixed(2)+' = '+pAB.toFixed(3),300,boxY+boxH+55);
+
+  // "1" markers
+  cx.fillStyle='rgba(255,255,255,0.2)';cx.font='11px monospace';cx.textAlign='center';
+  cx.fillText('1',boxX+boxW/2,boxY-6);
+  cx.textAlign='right';cx.fillText('1',boxX-8,boxY+boxH/2+4);
+}
+
+// ── Stage 3: Addition Rule (Venn Diagram) ─────────────────────
+function drawStage3(){
+  const pA=vals['vA']||0.4, pB=vals['vB']||0.35, pO=vals['vO']||0.12;
+  const pUnion=pA+pB-pO;
+
+  const cy_=140, r=85;
+  // Offset circles based on overlap
+  const maxSep=r*2;
+  const minSep=0;
+  const overlapRatio=Math.min(pA,pB)>0?pO/Math.min(pA,pB):0;
+  const sep=maxSep*(1-overlapRatio*0.7);
+  const cxA=300-sep/2, cxB=300+sep/2;
+
+  // Draw circles
+  cx.globalAlpha=0.15;
+  cx.fillStyle=CYAN;cx.beginPath();cx.arc(cxA,cy_,r,0,Math.PI*2);cx.fill();
+  cx.fillStyle=YELLOW;cx.beginPath();cx.arc(cxB,cy_,r,0,Math.PI*2);cx.fill();
+  cx.globalAlpha=1;
+
+  cx.strokeStyle=CYAN;cx.lineWidth=2;cx.beginPath();cx.arc(cxA,cy_,r,0,Math.PI*2);cx.stroke();
+  cx.strokeStyle=YELLOW;cx.lineWidth=2;cx.beginPath();cx.arc(cxB,cy_,r,0,Math.PI*2);cx.stroke();
+
+  // Overlap highlighting
+  if(pO>0.001){
+    cx.save();
+    cx.beginPath();cx.arc(cxA,cy_,r,0,Math.PI*2);cx.clip();
+    cx.fillStyle='rgba(131,193,103,0.25)';
+    cx.beginPath();cx.arc(cxB,cy_,r,0,Math.PI*2);cx.fill();
+    cx.restore();
+  }
+
+  // Labels on circles
+  cx.font='bold 13px monospace';cx.textAlign='center';
+  cx.fillStyle=CYAN;cx.fillText('A',cxA-30,cy_-10);
+  cx.fillText(pA.toFixed(2),cxA-30,cy_+10);
+  cx.fillStyle=YELLOW;cx.fillText('B',cxB+30,cy_-10);
+  cx.fillText(pB.toFixed(2),cxB+30,cy_+10);
+
+  if(pO>0.001){
+    cx.fillStyle=GREEN;cx.font='bold 11px monospace';
+    cx.fillText('A\u2229B',300,cy_-6);
+    cx.fillText(pO.toFixed(2),300,cy_+10);
+  }
+
+  // Formula
+  const fy=cy_+r+30;
+  cx.font='bold 14px monospace';cx.fillStyle=YELLOW;cx.textAlign='center';
+  cx.fillText('P(A \u222a B) = P(A) + P(B) \u2212 P(A \u2229 B)',300,fy);
+
+  cx.font='13px monospace';cx.fillStyle='rgba(255,255,255,0.55)';
+  cx.fillText(pA.toFixed(2)+' + '+pB.toFixed(2)+' \u2212 '+pO.toFixed(2)+' = '+pUnion.toFixed(2),300,fy+22);
+
+  // Result
+  cx.font='bold 16px monospace';cx.fillStyle=GREEN;
+  cx.fillText('P(A \u222a B) = '+pUnion.toFixed(3),300,fy+50);
+}
+
+// ── Stage 4: Tree Diagram ─────────────────────────────────────
+function drawStage4(){
+  const pA=vals['t1']||0.6, pXgA=vals['t2']||0.7, pXgB=vals['t3']||0.3;
+  const pB=1-pA;
+  const pYgA=1-pXgA, pYgB=1-pXgB;
+
+  const rootX=60, rootY=155;
+  const midX=230, topMidY=75, botMidY=235;
+  const leafX=430, positions=[35,115,195,275];
+
+  // Branches from root
+  function drawBranch(x1,y1,x2,y2,label,col,prob){
+    cx.strokeStyle=col;cx.lineWidth=2;
+    cx.beginPath();cx.moveTo(x1,y1);cx.lineTo(x2,y2);cx.stroke();
+    const mx=(x1+x2)/2, my=(y1+y2)/2;
+    cx.fillStyle=col;cx.font='bold 12px monospace';cx.textAlign='center';
+    const offY=y2<y1?-8:8;
+    cx.fillText(label+' = '+prob.toFixed(2),mx,my+offY);
+  }
+
+  // Root node
+  gdot(rootX,rootY,6,'rgba(255,255,255,0.6)');
+  cx.fillStyle='rgba(255,255,255,0.4)';cx.font='11px monospace';cx.textAlign='right';
+  cx.fillText('start',rootX-10,rootY+4);
+
+  // Level 1 branches
+  drawBranch(rootX,rootY,midX,topMidY,'P(A)',CYAN,pA);
+  drawBranch(rootX,rootY,midX,botMidY,'P(B)',PINK,pB);
+
+  // Level 1 nodes
+  gdot(midX,topMidY,5,CYAN);
+  gdot(midX,botMidY,5,PINK);
+  cx.font='bold 11px monospace';cx.textAlign='center';
+  cx.fillStyle=CYAN;cx.fillText('A',midX,topMidY-12);
+  cx.fillStyle=PINK;cx.fillText('B',midX,botMidY-12);
+
+  // Level 2 branches from A
+  drawBranch(midX,topMidY,leafX,positions[0],'P(X|A)',YELLOW,pXgA);
+  drawBranch(midX,topMidY,leafX,positions[1],'P(Y|A)',GREEN,pYgA);
+
+  // Level 2 branches from B
+  drawBranch(midX,botMidY,leafX,positions[2],'P(X|B)',YELLOW,pXgB);
+  drawBranch(midX,botMidY,leafX,positions[3],'P(Y|B)',GREEN,pYgB);
+
+  // Leaf nodes and joint probabilities
+  const leaves=[
+    {y:positions[0],label:'A\u2229X',prob:pA*pXgA,col:YELLOW},
+    {y:positions[1],label:'A\u2229Y',prob:pA*pYgA,col:GREEN},
+    {y:positions[2],label:'B\u2229X',prob:pA*pXgB,col:YELLOW},  // display only
+    {y:positions[3],label:'B\u2229Y',prob:pA*pYgB,col:GREEN}
+  ];
+  // fix: use correct probs
+  const jointProbs=[pA*pXgA, pA*pYgA, pB*pXgB, pB*pYgB];
+  const jointLabels=['A\u2229X','A\u2229Y','B\u2229X','B\u2229Y'];
+  const jointCols=[YELLOW,GREEN,YELLOW,GREEN];
+
+  for(let i=0;i<4;i++){
+    gdot(leafX,positions[i],4,jointCols[i]);
+    cx.font='bold 11px monospace';cx.textAlign='left';cx.fillStyle=jointCols[i];
+    cx.fillText(jointLabels[i]+': '+jointProbs[i].toFixed(3),leafX+12,positions[i]+4);
+  }
+
+  // Total P(X) at bottom
+  const pX=pA*pXgA+pB*pXgB;
+  cx.font='bold 14px monospace';cx.fillStyle=YELLOW;cx.textAlign='center';
+  cx.fillText('P(X) = '+jointProbs[0].toFixed(3)+' + '+jointProbs[2].toFixed(3)+' = '+pX.toFixed(3),300,H-12);
+
+  // Sum verification
+  cx.font='11px monospace';cx.fillStyle='rgba(255,255,255,0.3)';cx.textAlign='right';
+  const total=jointProbs.reduce((a,b)=>a+b,0);
+  cx.fillText('\u2211 = '+total.toFixed(3),W-15,H-12);
+}
+
+// ── Main render loop ───────────────────────────────────────────
+function tick(){
+  animT+=1/60;
+  clear();
+
+  switch(stageIdx){
+    case 0: drawStage0(); break;
+    case 1: drawStage1(); break;
+    case 2: drawStage2(); break;
+    case 3: drawStage3(); break;
+    case 4: drawStage4(); break;
+  }
+
+  requestAnimationFrame(tick);
+}
+
+goTo(0);
+tick();
+})();
+</script>
+</body>
+</html>
