@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { t } from "../../i18n.js";
 import { COLORS, FONT } from "../../styles/tokens.js";
 import { ResourcePanel } from "./ResourcePanel.jsx";
@@ -8,9 +7,10 @@ import { ResourcePanel } from "./ResourcePanel.jsx";
  * Displays topic details, prerequisites, dependents, and learning resources.
  * On mobile: bottom sheet. On desktop: side panel.
  */
-export function InfoPanel({ nodeId, nodes, adjacency, lang, SCOPE_COLORS, SCOPE_LABELS, SECTIONS, isMobile, onClose }) {
+export function InfoPanel({ nodeId, nodes, adjacency, lang, SCOPE_COLORS, SCOPE_LABELS, SECTIONS, isMobile, onClose, openResourceIdx, setOpenResourceIdx }) {
   const node = nodes.find(n => n.id === nodeId);
-  const [openResource, setOpenResource] = useState(null);
+  const resources = node?.resources ?? [];
+  const openResource = openResourceIdx != null ? resources[openResourceIdx] ?? null : null;
 
   if (!node) return null;
 
@@ -18,7 +18,6 @@ export function InfoPanel({ nodeId, nodes, adjacency, lang, SCOPE_COLORS, SCOPE_
   const lbl      = lang === "pl" ? node.labelPl : node.label;
   const prereqs  = adjacency.prereqs[nodeId] || [];
   const deps     = adjacency.dependents[nodeId] || [];
-  const resources = node.resources ?? [];
   const byId     = Object.fromEntries(nodes.map(n => [n.id, n]));
   const getLabel = id => lang === "pl" ? byId[id]?.labelPl : byId[id]?.label;
   const fs       = isMobile ? 14 : 11;
@@ -106,7 +105,7 @@ export function InfoPanel({ nodeId, nodes, adjacency, lang, SCOPE_COLORS, SCOPE_
               return (
                 <button
                   key={i}
-                  onClick={() => setOpenResource(res)}
+                  onClick={() => setOpenResourceIdx(i)}
                   style={{
                     display: "flex",
                     alignItems: "flex-start",
@@ -175,7 +174,7 @@ export function InfoPanel({ nodeId, nodes, adjacency, lang, SCOPE_COLORS, SCOPE_
         <ResourcePanel
           resource={openResource}
           lang={lang}
-          onClose={() => setOpenResource(null)}
+          onClose={() => setOpenResourceIdx(null)}
         />
       )}
     </>
