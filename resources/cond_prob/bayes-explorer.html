@@ -10,7 +10,11 @@
   .wrap { width: 100%; max-width: 640px; }
   canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
   .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
-  #qf { margin: 0 0 5px; font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  .title-row { display: flex; align-items: center; gap: 8px; margin: 0 0 5px; }
+  #qf { font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; flex: 1; }
+  #glossary-btn { background: none; border: 1px solid rgba(255,255,255,.15); border-radius: 50%; width: 26px; height: 26px; padding: 0; font-size: 15px; cursor: pointer; color: #FFD166; display: flex; align-items: center; justify-content: center; transition: background .15s, border-color .15s; flex-shrink: 0; }
+  #glossary-btn:hover { background: rgba(255,209,102,.1); border-color: rgba(255,209,102,.4); }
+  #glossary-btn.active { background: rgba(255,209,102,.15); border-color: #FFD166; }
   #qd { margin: 0 0 10px; font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); min-height: 48px; }
   .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
   .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
@@ -31,7 +35,10 @@
 <div class="wrap">
   <canvas id="qc" width="600" height="310"></canvas>
   <div class="panel">
-    <p id="qf"></p>
+    <div class="title-row">
+      <p id="qf"></p>
+      <button id="glossary-btn" title="">&#128161;</button>
+    </div>
     <p id="qd"></p>
 
     <div id="sliders-wrap"></div>
@@ -67,37 +74,27 @@ const sliderDef=[
   {id:'spec',lbl:T('Swoistość','Specificity'),min:0.80,max:1.00,step:0.01,val:0.95,color:GREEN}
 ];
 
+let showGlossary=false;
+
 const stages=[
-  // Stage 0: Introduction — story + glossary
   { title:T('Wyobraź sobie pandemię...','Imagine a pandemic...'),
     desc:T(
       'Rok 2020. Pojawia się nowy wirus. Rządy wdrażają masowe testy. Dostajesz wynik pozytywny — ale czy na pewno jesteś chory? Poznaj paradoks Bayesa.',
       'The year is 2020. A new virus emerges. Governments roll out mass testing. You test positive — but are you really sick? Discover the Bayes paradox.'
     ),
     sliders:[]},
-  // Stage 1: Glossary / legend
-  { title:T('Słowniczek — czułość, swoistość, precision','Glossary — sensitivity, specificity, precision'),
-    desc:T(
-      'Czułość i swoistość to stałe cechy testu — nie zależą od tego, jak rzadka jest choroba. Precision (PPV) się zmienia! Dlatego lekarze podają te pierwsze.',
-      'Sensitivity and specificity are fixed test properties — they don\'t depend on how rare the disease is. Precision (PPV) changes! That\'s why doctors report the former.'
-    ),
-    sliders:[]},
-  // Stage 2: Population
   { title:T('Populacja','The Population'),
     desc:T('Każda kropka to jedna osoba. Czerwone = naprawdę chore. Zmień chorobowość, żeby zobaczyć jak rzadka jest choroba.',
          'Each dot is one person. Red = actually sick. Adjust disease prevalence to see how rare it is.'),
     sliders:sliderDef},
-  // Stage 3: Test results (animated table)
   { title:T('Wyniki testu','Test Everyone'),
     desc:T('Testujemy wszystkich. Kropki przesuwają się do tabeli 2×2: chorzy/zdrowi × wynik +/−. Zwróć uwagę na fałszywe alarmy!',
          'Apply the test. Dots rearrange into a 2×2 table: sick/healthy × result +/−. Notice how many healthy people get false positives!'),
     sliders:sliderDef},
-  // Stage 4: The paradox
   { title:T('Paradoks ujawniony','The Paradox Revealed'),
     desc:T('Podświetl kolumnę „test +" — to Twój nowy świat po otrzymaniu wyniku. P(chory|+) jest zaskakująco niskie!',
          'Highlight the test+ column — your new world after getting the result. P(sick|+) is surprisingly low!'),
     sliders:sliderDef},
-  // Stage 5: Retest
   { title:T('Dlaczego powtórny test?','Why Retest?'),
     desc:T('Po powtórzeniu testu wśród osób z wynikiem + „chorobowość" w tej grupie jest znacznie wyższa, więc Bayes działa na Twoją korzyść.',
          'After a positive result, test again — the prevalence among positives is much higher, so Bayes flips in your favor.'),
@@ -192,9 +189,9 @@ function roundRect(x,y,w,h,r){
 function lerp(a,b,t){return a+(b-a)*t;}
 function ease(t){return t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;}
 
-function dotColor(cat, stageOverride){
-  const st=stageOverride!==undefined?stageOverride:stageIdx;
-  if(st<=2){
+function dotColor(cat, mode){
+  // mode: 'pop' = population view, 'test' = test result view
+  if(mode==='pop'){
     return (cat===3||cat===2)?PINK:'rgba(255,255,255,0.15)';
   }
   if(cat===3) return GREEN;
@@ -237,6 +234,101 @@ function drawTableFrame(s, highlightCol){
   cx.fillStyle=PURPLE;cx.fillText('FN: '+s.fn_,lx+2*halfW+gap-4,ly+halfH-4);
   cx.fillStyle=ORANGE;cx.fillText('FP: '+s.fp,lx+halfW-4,ly+2*halfH+gap-4);
   cx.fillStyle='rgba(255,255,255,0.3)';cx.fillText('TN: '+s.tn,lx+2*halfW+gap-4,ly+2*halfH+gap-4);
+}
+
+// ── Glossary overlay (drawn on top when toggled) ───────────────
+function drawGlossaryOverlay(){
+  // Darken background
+  cx.fillStyle='rgba(14,14,18,0.92)';
+  cx.fillRect(0,0,W,H);
+
+  const margin=16;
+  let y=22;
+
+  cx.textAlign='left';
+  cx.font='bold 13px monospace';
+  cx.fillStyle=CYAN;
+  cx.fillText(T('Słowniczek','Glossary'),margin,y);
+
+  // Close hint
+  cx.textAlign='right';cx.font='10px monospace';cx.fillStyle='rgba(255,255,255,0.3)';
+  cx.fillText(T('kliknij 💡 aby zamknąć','click 💡 to close'),W-margin,y);
+  cx.textAlign='left';
+  y+=22;
+
+  const terms = [
+    { color:PINK, term:T('Chorobowość (prevalence)','Prevalence'),
+      def:T('Jaki % populacji jest naprawdę chory.',
+            'What % of the population is actually sick.') },
+    { color:YELLOW, term:T('Czułość (sensitivity) = recall','Sensitivity = recall'),
+      def:T('P(+|chory) — patrzy na CHORYCH: ilu test wykryje?',
+            'P(+|sick) — looks at the SICK: how many does the test catch?') },
+    { color:GREEN, term:T('Swoistość (specificity)','Specificity'),
+      def:T('P(−|zdrowy) — patrzy na ZDROWYCH: ilu prawidłowo uzna za zdrowych?',
+            'P(−|healthy) — looks at the HEALTHY: how many correctly cleared?') },
+    { color:ORANGE, term:T('Fałszywy alarm (FP)','False Positive (FP)'),
+      def:T('Zdrowa osoba z wynikiem +.',
+            'A healthy person who tests +.') },
+    { color:CYAN, term:T('PPV (precision) = P(chory|+)','PPV (precision) = P(sick|+)'),
+      def:T('Patrzy na wyniki „+": ile to prawdziwi chorzy?',
+            'Looks at "+" results: how many are truly sick?') },
+  ];
+
+  terms.forEach(t=>{
+    cx.font='bold 11px monospace';cx.fillStyle=t.color;
+    cx.fillText(t.term,margin,y); y+=15;
+    cx.font='11px monospace';cx.fillStyle='rgba(255,255,255,0.45)';
+    cx.fillText(t.def,margin,y); y+=18;
+  });
+
+  // "Did you know?" section
+  y+=6;
+  cx.strokeStyle='rgba(255,255,255,0.08)';cx.lineWidth=0.5;
+  cx.beginPath();cx.moveTo(margin,y-4);cx.lineTo(W-margin,y-4);cx.stroke();
+  y+=8;
+
+  cx.font='bold 11px monospace';cx.fillStyle=YELLOW;
+  cx.fillText(T('💡 Czy wiesz, dlaczego swoistość ≠ precision?','💡 Did you know: specificity ≠ precision?'),margin,y);
+  y+=18;
+
+  cx.font='11px monospace';cx.fillStyle='rgba(255,255,255,0.5)';
+  const dyk = T(
+    'Czułość i swoistość to stałe cechy testu — nie zmieniają się, gdy choroba jest częstsza lub rzadsza. Precision (PPV) zależy od chorobowości! Dlatego medycyna podaje czułość i swoistość, a Bayes pozwala obliczyć PPV dla konkretnej sytuacji.',
+    'Sensitivity and specificity are fixed test properties — they don\'t change when the disease gets more or less common. Precision (PPV) depends on prevalence! That\'s why medicine reports sensitivity & specificity, and Bayes lets you compute PPV for any situation.'
+  );
+  const words=dyk.split(' ');let line='';const maxW=W-2*margin;
+  words.forEach(w=>{
+    const test=line?line+' '+w:w;
+    if(cx.measureText(test).width>maxW){cx.fillText(line,margin,y);y+=14;line=w;}
+    else line=test;
+  });
+  if(line){cx.fillText(line,margin,y);y+=14;}
+
+  // Confusion matrix mini-preview at bottom right
+  y+=4;
+  const bx=W-170, by=H-66;
+  cx.fillStyle='rgba(14,14,18,0.8)';
+  roundRect(bx-8,by-14,168,72,6);cx.fill();
+  cx.strokeStyle='rgba(255,255,255,0.08)';cx.lineWidth=0.5;
+  roundRect(bx-8,by-14,168,72,6);cx.stroke();
+
+  cx.font='bold 9px monospace';cx.textAlign='center';
+  cx.fillStyle='rgba(255,255,255,0.35)';
+  cx.fillText(T('Macierz pomyłek','Confusion Matrix'),bx+76,by-2);
+
+  cx.font='9px monospace';cx.fillStyle='rgba(255,255,255,0.3)';
+  cx.fillText('Test +',bx+40,by+12);cx.fillText('Test \u2212',bx+110,by+12);
+  cx.textAlign='right';
+  cx.fillStyle=PINK;cx.fillText(T('Chory','Sick'),bx-2,by+28);
+  cx.fillStyle='rgba(255,255,255,0.3)';cx.fillText(T('Zdrowy','Healthy'),bx-2,by+44);
+  cx.textAlign='center';
+  cx.fillStyle=GREEN;cx.fillText('TP',bx+40,by+28);
+  cx.fillStyle=PURPLE;cx.fillText('FN',bx+110,by+28);
+  cx.fillStyle=ORANGE;cx.fillText('FP',bx+40,by+44);
+  cx.fillStyle='rgba(255,255,255,0.2)';cx.fillText('TN',bx+110,by+44);
+  cx.strokeStyle='rgba(255,255,255,0.1)';cx.lineWidth=0.5;
+  cx.beginPath();cx.moveTo(bx+75,by+6);cx.lineTo(bx+75,by+51);cx.stroke();
+  cx.beginPath();cx.moveTo(bx+5,by+34);cx.lineTo(bx+145,by+34);cx.stroke();
 }
 
 // ── Stage 0: Introduction — pandemic story ─────────────────────
@@ -302,106 +394,11 @@ function drawStage0(){
 
   // Arrow hint
   cx.fillStyle='rgba(255,255,255,0.2)';cx.font='11px monospace';
-  cx.fillText(T('→ kliknij „dalej" aby poznać pojęcia','→ click "next" to learn the terms'),W/2,H-12);
+  cx.fillText(T('💡 = słowniczek pojęć','💡 = glossary of terms'),W/2,H-12);
 }
 
-// ── Stage 1: Glossary / term definitions ───────────────────────
+// ── Stage 1: Population ────────────────────────────────────────
 function drawStage1(){
-  const margin=16;
-  let y=24;
-
-  cx.textAlign='left';
-  cx.font='bold 14px monospace';
-  cx.fillStyle=CYAN;
-  cx.fillText(T('Kluczowe pojęcia','Key Terms'),margin,y);
-  y+=28;
-
-  const terms = [
-    {
-      color:PINK, term:T('Chorobowość (prevalence)','Prevalence'),
-      def:T('Jaki % populacji jest naprawdę chory. Im rzadsza choroba, tym więcej fałszywych alarmów.',
-            'What % of the population is actually sick. Rarer disease = more false alarms.')
-    },
-    {
-      color:YELLOW, term:T('Czułość (sensitivity) = recall','Sensitivity = recall'),
-      def:T('Patrzy na CHORYCH: ilu z nich test wykryje? P(+|chory). To samo co recall w ML. Czułość 95% = test łapie 95 na 100 chorych.',
-            'Looks at the SICK: how many does the test catch? P(+|sick). Same as recall in ML. 95% = catches 95 of 100 sick.')
-    },
-    {
-      color:GREEN, term:T('Swoistość (specificity) ≠ precision!','Specificity ≠ precision!'),
-      def:T('Patrzy na ZDROWYCH: ilu prawidłowo uzna za zdrowych? P(−|zdrowy). Swoistość 95% = 5 na 100 zdrowych dostaje fałszywy „+". Precision (PPV) to co innego — patrz niżej!',
-            'Looks at the HEALTHY: how many does it correctly clear? P(−|healthy). 95% = 5 in 100 healthy get a false "+". Precision (PPV) is different — see below!')
-    },
-    {
-      color:ORANGE, term:T('Fałszywy alarm (false positive, FP)','False Positive (FP)'),
-      def:T('Zdrowa osoba z wynikiem +. Przy rzadkiej chorobie i dużej populacji zdrowych, nawet mały % FP daje ogromną liczbę fałszywych alarmów!',
-            'A healthy person who tests +. With a rare disease and many healthy people, even a small FP rate creates a flood of false alarms!')
-    },
-    {
-      color:CYAN, term:T('PPV (precision) = P(chory | test +)','PPV (precision) = P(sick | test +)'),
-      def:T('To jest precision! Patrzy na wyniki „+": ile z nich to prawdziwi chorzy? Zależy od chorobowości — dlatego medycyna podaje czułość i swoistość (stałe cechy testu), a nie precision (zmienia się z chorobowością).',
-            'This IS precision! Looks at "+" results: how many are truly sick? Depends on prevalence — that\'s why medicine reports sensitivity & specificity (fixed test properties), not precision (changes with prevalence).')
-    },
-  ];
-
-  terms.forEach(t=>{
-    // Term name
-    cx.font='bold 11px monospace';
-    cx.fillStyle=t.color;
-    cx.fillText(t.term,margin,y);
-    y+=16;
-    // Definition — word-wrap
-    cx.font='11px monospace';
-    cx.fillStyle='rgba(255,255,255,0.45)';
-    const words=t.def.split(' ');
-    let line='';
-    const maxW=W-2*margin;
-    words.forEach(w=>{
-      const test=line?line+' '+w:w;
-      if(cx.measureText(test).width>maxW){
-        cx.fillText(line,margin,y);y+=14;
-        line=w;
-      } else line=test;
-    });
-    if(line){cx.fillText(line,margin,y);y+=14;}
-    y+=8;
-  });
-
-  // Confusion matrix mini-preview at bottom right
-  const bx=W-170, by=H-80;
-  cx.fillStyle='rgba(14,14,18,0.8)';
-  roundRect(bx-8,by-14,168,78,6);cx.fill();
-  cx.strokeStyle='rgba(255,255,255,0.08)';cx.lineWidth=0.5;
-  roundRect(bx-8,by-14,168,78,6);cx.stroke();
-
-  cx.font='bold 9px monospace';cx.textAlign='center';
-  cx.fillStyle='rgba(255,255,255,0.35)';
-  cx.fillText(T('Macierz pomyłek','Confusion Matrix'),bx+76,by-2);
-
-  cx.font='9px monospace';
-  // Headers
-  cx.fillStyle='rgba(255,255,255,0.3)';
-  cx.fillText(T('Test +','Test +'),bx+40,by+12);
-  cx.fillText(T('Test −','Test −'),bx+110,by+12);
-
-  cx.textAlign='right';
-  cx.fillStyle=PINK;cx.fillText(T('Chory','Sick'),bx-2,by+28);
-  cx.fillStyle='rgba(255,255,255,0.3)';cx.fillText(T('Zdrowy','Healthy'),bx-2,by+48);
-
-  cx.textAlign='center';
-  cx.fillStyle=GREEN;cx.fillText('TP',bx+40,by+28);
-  cx.fillStyle=PURPLE;cx.fillText('FN',bx+110,by+28);
-  cx.fillStyle=ORANGE;cx.fillText('FP',bx+40,by+48);
-  cx.fillStyle='rgba(255,255,255,0.2)';cx.fillText('TN',bx+110,by+48);
-
-  // Dividers
-  cx.strokeStyle='rgba(255,255,255,0.1)';cx.lineWidth=0.5;
-  cx.beginPath();cx.moveTo(bx+75,by+6);cx.lineTo(bx+75,by+55);cx.stroke();
-  cx.beginPath();cx.moveTo(bx+5,by+34);cx.lineTo(bx+145,by+34);cx.stroke();
-}
-
-// ── Stage 2: Population ────────────────────────────────────────
-function drawStage2(){
   const s=getStats();
   const cat=getCategories(s);
   const dotR=Math.min(Math.floor(Math.sqrt(W*H/s.N)/2.8),5);
@@ -409,7 +406,7 @@ function drawStage2(){
   for(let i=0;i<s.N;i++){
     const pos=randomGridPos(i,s.N);
     cx.beginPath();cx.arc(pos.x,pos.y,dotR,0,Math.PI*2);
-    cx.fillStyle=dotColor(cat[i],2);cx.fill();
+    cx.fillStyle=dotColor(cat[i],'pop');cx.fill();
   }
 
   cx.font='11px monospace';cx.textAlign='left';
@@ -419,8 +416,8 @@ function drawStage2(){
   cx.fillText('\u25cf '+T('Zdrowi','Healthy')+' ('+s.healthy+')',140,H-8);
 }
 
-// ── Stage 3: Animate to 2x2 table ─────────────────────────────
-function drawStage3(){
+// ── Stage 2: Animate to 2x2 table ─────────────────────────────
+function drawStage2(){
   const s=getStats();
   const cat=getCategories(s);
   const dotR=Math.min(Math.floor(Math.sqrt(W*H/s.N)/2.8),5);
@@ -432,8 +429,8 @@ function drawStage3(){
     const x=lerp(from.x,to.x,t);
     const y=lerp(from.y,to.y,t);
     cx.beginPath();cx.arc(x,y,dotR,0,Math.PI*2);
-    const c0=dotColor(cat[i],2);
-    const c1=dotColor(cat[i],3);
+    const c0=dotColor(cat[i],'pop');
+    const c1=dotColor(cat[i],'test');
     cx.fillStyle=t<0.3?c0:c1;
     cx.fill();
   }
@@ -441,8 +438,8 @@ function drawStage3(){
   if(t>0.5) drawTableFrame(s);
 }
 
-// ── Stage 4: Highlight test+ column (the paradox) ──────────────
-function drawStage4(){
+// ── Stage 3: Highlight test+ column (the paradox) ──────────────
+function drawStage3(){
   const s=getStats();
   const cat=getCategories(s);
   const dotR=Math.min(Math.floor(Math.sqrt(W*H/s.N)/2.8),5);
@@ -455,7 +452,7 @@ function drawStage4(){
     const isPos=(c===3||c===1);
     cx.beginPath();cx.arc(pos.x,pos.y,dotR,0,Math.PI*2);
     cx.globalAlpha=isPos?1:0.15;
-    cx.fillStyle=dotColor(c,3);
+    cx.fillStyle=dotColor(c,'test');
     cx.fill();
     cx.globalAlpha=1;
   }
@@ -489,8 +486,8 @@ function drawStage4(){
   }
 }
 
-// ── Stage 5: Retest ────────────────────────────────────────────
-function drawStage5(){
+// ── Stage 4: Retest ────────────────────────────────────────────
+function drawStage4(){
   const s=getStats();
   const cat=getCategories(s);
   const dotR=Math.min(Math.floor(Math.sqrt(W*H/s.N)/2.8),5);
@@ -511,7 +508,7 @@ function drawStage5(){
     const pos=tableGridPos(i,cat,s);
     const c=cat[i];
     const isFirstPos=(c===3||c===1);
-    let alpha=1, color=dotColor(c,3);
+    let alpha=1, color=dotColor(c,'test');
     if(!isFirstPos){ alpha=0.1; }
     else if(!retestPos.has(i)){ alpha=0.2; color='rgba(255,255,255,0.15)'; }
     cx.beginPath();cx.arc(pos.x,pos.y,dotR,0,Math.PI*2);
@@ -628,14 +625,23 @@ function tick(){
     case 2: drawStage2(); break;
     case 3: drawStage3(); break;
     case 4: drawStage4(); break;
-    case 5: drawStage5(); break;
   }
+
+  if(showGlossary) drawGlossaryOverlay();
 
   requestAnimationFrame(tick);
 }
 
 document.getElementById('qprev').innerHTML = '&larr; ' + T('wstecz','prev');
 document.getElementById('qnext').innerHTML = T('dalej','next') + ' &rarr;';
+
+const glossaryBtn=document.getElementById('glossary-btn');
+glossaryBtn.title=T('Słowniczek pojęć','Glossary of terms');
+glossaryBtn.addEventListener('click',()=>{
+  showGlossary=!showGlossary;
+  glossaryBtn.classList.toggle('active',showGlossary);
+});
+
 goTo(0);
 tick();
 })();
