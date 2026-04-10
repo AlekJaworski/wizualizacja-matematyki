@@ -53,11 +53,12 @@ export function ResourcePanel({ resource, lang, onClose }) {
     return null;
   }
 
-  // Resolve URL — prepend base if it's a relative path
+  // Resolve URL — prepend base if it's a relative path, append lang param
   const base = import.meta.env.BASE_URL ?? "/";
-  const resolvedUrl = resource.url.startsWith("http")
+  const rawUrl = resource.url.startsWith("http")
     ? resource.url
     : `${base.replace(/\/$/, "")}/${resource.url.replace(/^\//, "")}`;
+  const resolvedUrl = rawUrl + (rawUrl.includes("?") ? "&" : "?") + "lang=" + lang;
 
   return (
     <div
