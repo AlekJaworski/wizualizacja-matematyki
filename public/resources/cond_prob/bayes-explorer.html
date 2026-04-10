@@ -55,32 +55,49 @@ const CYAN='#58C4DD',ORANGE='#FF6B35',YELLOW='#FFD166',GREEN='#83C167',PINK='#E0
 let stageIdx=0;
 
 const vals={};
-let animProgress=0; // 0..1 for grid rearrangement animation
+let animProgress=0;
 let prevStage=-1;
 
-// Seeded random for stable assignments
 function seededRandom(seed){let s=seed;return function(){s=(s*16807+0)%2147483647;return(s-1)/2147483646;}}
 
 const sliderDef=[
   {id:'pop',lbl:T('Populacja N','People N'),min:200,max:2000,step:100,val:1000,color:CYAN},
   {id:'prev',lbl:T('Chorobowość','Prevalence'),min:0.001,max:0.05,step:0.001,val:0.01,color:PINK},
-  {id:'sens',lbl:T('Czułość testu','Sensitivity'),min:0.80,max:1.00,step:0.01,val:0.95,color:YELLOW},
+  {id:'sens',lbl:T('Czułość','Sensitivity'),min:0.80,max:1.00,step:0.01,val:0.95,color:YELLOW},
   {id:'spec',lbl:T('Swoistość','Specificity'),min:0.80,max:1.00,step:0.01,val:0.95,color:GREEN}
 ];
 
 const stages=[
+  // Stage 0: Introduction — story + glossary
+  { title:T('Wyobraź sobie pandemię...','Imagine a pandemic...'),
+    desc:T(
+      'Rok 2020. Pojawia się nowy wirus. Rządy wdrażają masowe testy. Dostajesz wynik pozytywny — ale czy na pewno jesteś chory? Poznaj paradoks Bayesa.',
+      'The year is 2020. A new virus emerges. Governments roll out mass testing. You test positive — but are you really sick? Discover the Bayes paradox.'
+    ),
+    sliders:[]},
+  // Stage 1: Glossary / legend
+  { title:T('Słowniczek — co znaczą te słowa?','Glossary — what do these terms mean?'),
+    desc:T(
+      'Zanim zaczniemy, poznaj kluczowe pojęcia. Każde z nich odgrywa rolę w paradoksie, który za chwilę zobaczysz.',
+      'Before we start, learn the key terms. Each one plays a role in the paradox you are about to see.'
+    ),
+    sliders:[]},
+  // Stage 2: Population
   { title:T('Populacja','The Population'),
     desc:T('Każda kropka to jedna osoba. Czerwone = naprawdę chore. Zmień chorobowość, żeby zobaczyć jak rzadka jest choroba.',
          'Each dot is one person. Red = actually sick. Adjust disease prevalence to see how rare it is.'),
     sliders:sliderDef},
+  // Stage 3: Test results (animated table)
   { title:T('Wyniki testu','Test Everyone'),
     desc:T('Testujemy wszystkich. Kropki przesuwają się do tabeli 2×2: chorzy/zdrowi × wynik +/−. Zwróć uwagę na fałszywe alarmy!',
          'Apply the test. Dots rearrange into a 2×2 table: sick/healthy × result +/−. Notice how many healthy people get false positives!'),
     sliders:sliderDef},
+  // Stage 4: The paradox
   { title:T('Paradoks ujawniony','The Paradox Revealed'),
     desc:T('Podświetl kolumnę „test +" — to Twój nowy świat po otrzymaniu wyniku. P(chory|+) jest zaskakująco niskie!',
          'Highlight the test+ column — your new world after getting the result. P(sick|+) is surprisingly low!'),
     sliders:sliderDef},
+  // Stage 5: Retest
   { title:T('Dlaczego powtórny test?','Why Retest?'),
     desc:T('Po powtórzeniu testu wśród osób z wynikiem + „chorobowość" w tej grupie jest znacznie wyższa, więc Bayes działa na Twoją korzyść.',
          'After a positive result, test again — the prevalence among positives is much higher, so Bayes flips in your favor.'),
@@ -104,7 +121,6 @@ function getStats(){
   const totalPos=tp+fp;
   const ppv=totalPos>0?tp/totalPos:0;
 
-  // Retest among positives
   const retest_tp=Math.round(tp*sens);
   const retest_fp=Math.round(fp*(1-spec));
   const retest_totalPos=retest_tp+retest_fp;
@@ -121,7 +137,6 @@ function getCategories(s){
     const j=Math.floor(rng()*((i+1)|0));
     [indices[i],indices[j]]=[indices[j],indices[i]];
   }
-  // 0=TN, 1=FP, 2=FN, 3=TP
   const cat=new Array(s.N);
   for(let i=0;i<s.N;i++){
     const idx=indices[i];
@@ -132,7 +147,6 @@ function getCategories(s){
 }
 
 // ── Grid positions ─────────────────────────────────────────────
-// Random grid: simple row-major in full canvas
 function randomGridPos(i, N){
   const cols=Math.ceil(Math.sqrt(N*W/H));
   const rows=Math.ceil(N/cols);
@@ -142,41 +156,26 @@ function randomGridPos(i, N){
   return {x:10+gapX/2+col*gapX, y:18+gapY/2+row*gapY};
 }
 
-// 2x2 table grid: sick/healthy rows, test+/test- columns
 function tableGridPos(i, cat, s){
-  // Quadrants: TL=TP(3), TR=FN(2), BL=FP(1), BR=TN(0)
   const quadCounts={3:s.tp, 2:s.fn_, 1:s.fp, 0:s.tn};
   const c=cat[i];
-
-  // Count how many of same category come before index i
   let rank=0;
   for(let j=0;j<i;j++) if(cat[j]===c) rank++;
-
   const count=quadCounts[c];
   if(count===0) return randomGridPos(i, s.N);
-
-  // Layout: left half = test+, right half = test-
-  // Top = sick, bottom = healthy
   const isTestPos=(c===3||c===1);
   const isSick=(c===3||c===2);
-
-  const margin=6;
-  const labelH=16; // space for row/col labels
-  const gap=4; // gap between quadrants
+  const margin=6, labelH=16, gap=4;
   const halfW=(W-2*margin-gap-labelH)/2;
   const halfH=(H-2*margin-gap-labelH)/2;
-
   const qx=margin+labelH+(isTestPos?0:halfW+gap);
   const qy=margin+labelH+(isSick?0:halfH+gap);
-
-  // Fill quadrant with dots
   const aspect=halfW/halfH;
   const qCols=Math.max(1,Math.ceil(Math.sqrt(count*aspect)));
   const qRows=Math.max(1,Math.ceil(count/qCols));
   const dotGapX=halfW/qCols;
   const dotGapY=halfH/qRows;
   const col=rank%qCols, row=Math.floor(rank/qCols);
-
   return {x:qx+dotGapX/2+col*dotGapX, y:qy+dotGapY/2+row*dotGapY};
 }
 
@@ -195,14 +194,13 @@ function ease(t){return t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;}
 
 function dotColor(cat, stageOverride){
   const st=stageOverride!==undefined?stageOverride:stageIdx;
-  if(st===0){
+  if(st<=2){
     return (cat===3||cat===2)?PINK:'rgba(255,255,255,0.15)';
   }
-  // Stages 1+: color by quadrant
-  if(cat===3) return GREEN;   // TP
-  if(cat===2) return PURPLE;  // FN
-  if(cat===1) return ORANGE;  // FP
-  return 'rgba(255,255,255,0.12)'; // TN
+  if(cat===3) return GREEN;
+  if(cat===2) return PURPLE;
+  if(cat===1) return ORANGE;
+  return 'rgba(255,255,255,0.12)';
 }
 
 // ── Draw 2x2 table frame ──────────────────────────────────────
@@ -212,14 +210,12 @@ function drawTableFrame(s, highlightCol){
   const halfH=(H-2*margin-gap-labelH)/2;
   const lx=margin+labelH, ly=margin+labelH;
 
-  // Column headers
   cx.font='bold 11px monospace';cx.textAlign='center';
   cx.fillStyle=highlightCol==='pos'?YELLOW:'rgba(255,255,255,0.5)';
   cx.fillText(T('Test +','Test +'),lx+halfW/2,margin+11);
   cx.fillStyle=highlightCol==='neg'?'rgba(255,255,255,0.6)':'rgba(255,255,255,0.3)';
   cx.fillText(T('Test \u2212','Test \u2212'),lx+halfW+gap+halfW/2,margin+11);
 
-  // Row headers
   cx.save();cx.translate(margin+8,ly+halfH/2);cx.rotate(-Math.PI/2);
   cx.fillStyle=PINK;cx.textAlign='center';cx.fillText(T('Chorzy','Sick'),0,0);
   cx.restore();
@@ -227,37 +223,181 @@ function drawTableFrame(s, highlightCol){
   cx.fillStyle='rgba(255,255,255,0.4)';cx.textAlign='center';cx.fillText(T('Zdrowi','Healthy'),0,0);
   cx.restore();
 
-  // Grid lines
   cx.strokeStyle='rgba(255,255,255,0.08)';cx.lineWidth=1;
-  // Vertical divider
   cx.beginPath();cx.moveTo(lx+halfW+gap/2,ly);cx.lineTo(lx+halfW+gap/2,ly+2*halfH+gap);cx.stroke();
-  // Horizontal divider
   cx.beginPath();cx.moveTo(lx,ly+halfH+gap/2);cx.lineTo(lx+2*halfW+gap,ly+halfH+gap/2);cx.stroke();
 
-  // Highlight column
   if(highlightCol==='pos'){
     cx.fillStyle='rgba(255,209,102,0.06)';
     cx.fillRect(lx,ly,halfW,2*halfH+gap);
   }
 
-  // Quadrant counts
   cx.font='bold 10px monospace';cx.textAlign='right';
-  // TP
-  cx.fillStyle=GREEN;
-  cx.fillText('TP: '+s.tp,lx+halfW-4,ly+halfH-4);
-  // FN
-  cx.fillStyle=PURPLE;
-  cx.fillText('FN: '+s.fn_,lx+2*halfW+gap-4,ly+halfH-4);
-  // FP
-  cx.fillStyle=ORANGE;
-  cx.fillText('FP: '+s.fp,lx+halfW-4,ly+2*halfH+gap-4);
-  // TN
-  cx.fillStyle='rgba(255,255,255,0.3)';
-  cx.fillText(T('PN','TN')+': '+s.tn,lx+2*halfW+gap-4,ly+2*halfH+gap-4);
+  cx.fillStyle=GREEN;cx.fillText('TP: '+s.tp,lx+halfW-4,ly+halfH-4);
+  cx.fillStyle=PURPLE;cx.fillText('FN: '+s.fn_,lx+2*halfW+gap-4,ly+halfH-4);
+  cx.fillStyle=ORANGE;cx.fillText('FP: '+s.fp,lx+halfW-4,ly+2*halfH+gap-4);
+  cx.fillStyle='rgba(255,255,255,0.3)';cx.fillText('TN: '+s.tn,lx+2*halfW+gap-4,ly+2*halfH+gap-4);
 }
 
-// ── Stage 0: Population ────────────────────────────────────────
+// ── Stage 0: Introduction — pandemic story ─────────────────────
 function drawStage0(){
+  // Atmospheric background with scattered faint dots
+  const rng=seededRandom(99);
+  for(let i=0;i<120;i++){
+    const x=rng()*W, y=rng()*H;
+    const isSick=i<3;
+    cx.beginPath();cx.arc(x,y,2.5,0,Math.PI*2);
+    cx.fillStyle=isSick?'rgba(224,112,144,0.5)':'rgba(255,255,255,0.06)';
+    cx.fill();
+  }
+
+  // Title text
+  cx.textAlign='center';
+  cx.font='bold 18px monospace';
+  cx.fillStyle=CYAN;
+  cx.fillText(T('COVID-19, 2020','COVID-19, 2020'),W/2,40);
+
+  cx.font='13px monospace';
+  cx.fillStyle='rgba(255,255,255,0.6)';
+  const lines = LANG==='pl' ? [
+    'Miliardy testów na całym świecie.',
+    'Szybkie testy antygenowe: czułość ~85%, swoistość ~97%.',
+    'Wyobraź sobie: masz wynik pozytywny.',
+    '',
+    'Ale przy niskiej chorobowości (np. 1%)...',
+    'większość wyników „+" to fałszywe alarmy!',
+    '',
+    'To nie błąd testu — to matematyka.',
+    'Twierdzenie Bayesa wyjaśnia dlaczego.',
+  ] : [
+    'Billions of tests worldwide.',
+    'Rapid antigen tests: sensitivity ~85%, specificity ~97%.',
+    'Imagine: you test positive.',
+    '',
+    'But with low prevalence (e.g. 1%)...',
+    'most "positive" results are false alarms!',
+    '',
+    'This is not a testing error — it\'s math.',
+    'Bayes\' theorem explains why.',
+  ];
+
+  let ly=72;
+  lines.forEach(line=>{
+    if(!line){ly+=8;return;}
+    // Highlight key lines
+    if(line.includes(T('fałszywe alarmy','false alarms'))){
+      cx.fillStyle=ORANGE;cx.font='bold 13px monospace';
+    } else if(line.includes(T('Twierdzenie Bayesa','Bayes\' theorem'))){
+      cx.fillStyle=YELLOW;cx.font='bold 13px monospace';
+    } else {
+      cx.fillStyle='rgba(255,255,255,0.55)';cx.font='13px monospace';
+    }
+    cx.fillText(line,W/2,ly);
+    ly+=20;
+  });
+
+  // Arrow hint
+  cx.fillStyle='rgba(255,255,255,0.2)';cx.font='11px monospace';
+  cx.fillText(T('→ kliknij „dalej" aby poznać pojęcia','→ click "next" to learn the terms'),W/2,H-12);
+}
+
+// ── Stage 1: Glossary / term definitions ───────────────────────
+function drawStage1(){
+  const margin=16;
+  let y=24;
+
+  cx.textAlign='left';
+  cx.font='bold 14px monospace';
+  cx.fillStyle=CYAN;
+  cx.fillText(T('Kluczowe pojęcia','Key Terms'),margin,y);
+  y+=28;
+
+  const terms = [
+    {
+      color:PINK, term:T('Chorobowość (prevalence)','Prevalence'),
+      def:T('Jaki % populacji jest naprawdę chory. Im rzadsza choroba, tym więcej fałszywych alarmów.',
+            'What % of the population is actually sick. Rarer disease = more false alarms.')
+    },
+    {
+      color:YELLOW, term:T('Czułość / recall (sensitivity)','Sensitivity / recall'),
+      def:T('Czy test wykrywa chorych? P(test + | chory). Czułość 95% = test wykrywa 95 na 100 chorych.',
+            'Does the test catch sick people? P(test + | sick). 95% sensitivity = catches 95 out of 100 sick.')
+    },
+    {
+      color:GREEN, term:T('Swoistość / precision (specificity)','Specificity'),
+      def:T('Czy test nie alarmuje fałszywie? P(test − | zdrowy). Swoistość 95% = 5 na 100 zdrowych dostaje „+".',
+            'Does the test avoid false alarms? P(test − | healthy). 95% specificity = 5 in 100 healthy get "+".')
+    },
+    {
+      color:ORANGE, term:T('Fałszywy alarm (false positive, FP)','False Positive (FP)'),
+      def:T('Zdrowa osoba z wynikiem +. To główny winowajca paradoksu!',
+            'A healthy person who tests +. The main culprit of the paradox!')
+    },
+    {
+      color:YELLOW, term:T('PPV — P(chory | test +)','PPV — P(sick | test +)'),
+      def:T('To co naprawdę chcesz wiedzieć: jeśli mam „+", jakie jest ryzyko, że jestem chory?',
+            'What you really want to know: if I test "+", what is the chance I am actually sick?')
+    },
+  ];
+
+  terms.forEach(t=>{
+    // Term name
+    cx.font='bold 11px monospace';
+    cx.fillStyle=t.color;
+    cx.fillText(t.term,margin,y);
+    y+=16;
+    // Definition — word-wrap
+    cx.font='11px monospace';
+    cx.fillStyle='rgba(255,255,255,0.45)';
+    const words=t.def.split(' ');
+    let line='';
+    const maxW=W-2*margin;
+    words.forEach(w=>{
+      const test=line?line+' '+w:w;
+      if(cx.measureText(test).width>maxW){
+        cx.fillText(line,margin,y);y+=14;
+        line=w;
+      } else line=test;
+    });
+    if(line){cx.fillText(line,margin,y);y+=14;}
+    y+=8;
+  });
+
+  // Confusion matrix mini-preview at bottom right
+  const bx=W-170, by=H-80;
+  cx.fillStyle='rgba(14,14,18,0.8)';
+  roundRect(bx-8,by-14,168,78,6);cx.fill();
+  cx.strokeStyle='rgba(255,255,255,0.08)';cx.lineWidth=0.5;
+  roundRect(bx-8,by-14,168,78,6);cx.stroke();
+
+  cx.font='bold 9px monospace';cx.textAlign='center';
+  cx.fillStyle='rgba(255,255,255,0.35)';
+  cx.fillText(T('Macierz pomyłek','Confusion Matrix'),bx+76,by-2);
+
+  cx.font='9px monospace';
+  // Headers
+  cx.fillStyle='rgba(255,255,255,0.3)';
+  cx.fillText(T('Test +','Test +'),bx+40,by+12);
+  cx.fillText(T('Test −','Test −'),bx+110,by+12);
+
+  cx.textAlign='right';
+  cx.fillStyle=PINK;cx.fillText(T('Chory','Sick'),bx-2,by+28);
+  cx.fillStyle='rgba(255,255,255,0.3)';cx.fillText(T('Zdrowy','Healthy'),bx-2,by+48);
+
+  cx.textAlign='center';
+  cx.fillStyle=GREEN;cx.fillText('TP',bx+40,by+28);
+  cx.fillStyle=PURPLE;cx.fillText('FN',bx+110,by+28);
+  cx.fillStyle=ORANGE;cx.fillText('FP',bx+40,by+48);
+  cx.fillStyle='rgba(255,255,255,0.2)';cx.fillText('TN',bx+110,by+48);
+
+  // Dividers
+  cx.strokeStyle='rgba(255,255,255,0.1)';cx.lineWidth=0.5;
+  cx.beginPath();cx.moveTo(bx+75,by+6);cx.lineTo(bx+75,by+55);cx.stroke();
+  cx.beginPath();cx.moveTo(bx+5,by+34);cx.lineTo(bx+145,by+34);cx.stroke();
+}
+
+// ── Stage 2: Population ────────────────────────────────────────
+function drawStage2(){
   const s=getStats();
   const cat=getCategories(s);
   const dotR=Math.min(Math.floor(Math.sqrt(W*H/s.N)/2.8),5);
@@ -265,10 +405,9 @@ function drawStage0(){
   for(let i=0;i<s.N;i++){
     const pos=randomGridPos(i,s.N);
     cx.beginPath();cx.arc(pos.x,pos.y,dotR,0,Math.PI*2);
-    cx.fillStyle=dotColor(cat[i],0);cx.fill();
+    cx.fillStyle=dotColor(cat[i],2);cx.fill();
   }
 
-  // Legend
   cx.font='11px monospace';cx.textAlign='left';
   cx.fillStyle=PINK;
   cx.fillText('\u25cf '+T('Chorzy','Sick')+' ('+s.sick+')',10,H-8);
@@ -276,8 +415,8 @@ function drawStage0(){
   cx.fillText('\u25cf '+T('Zdrowi','Healthy')+' ('+s.healthy+')',140,H-8);
 }
 
-// ── Stage 1: Animate to 2x2 table ─────────────────────────────
-function drawStage1(){
+// ── Stage 3: Animate to 2x2 table ─────────────────────────────
+function drawStage3(){
   const s=getStats();
   const cat=getCategories(s);
   const dotR=Math.min(Math.floor(Math.sqrt(W*H/s.N)/2.8),5);
@@ -288,11 +427,9 @@ function drawStage1(){
     const to=tableGridPos(i,cat,s);
     const x=lerp(from.x,to.x,t);
     const y=lerp(from.y,to.y,t);
-
     cx.beginPath();cx.arc(x,y,dotR,0,Math.PI*2);
-    // Fade from population colors to test-result colors
-    const c0=dotColor(cat[i],0);
-    const c1=dotColor(cat[i],1);
+    const c0=dotColor(cat[i],2);
+    const c1=dotColor(cat[i],3);
     cx.fillStyle=t<0.3?c0:c1;
     cx.fill();
   }
@@ -300,28 +437,25 @@ function drawStage1(){
   if(t>0.5) drawTableFrame(s);
 }
 
-// ── Stage 2: Highlight test+ column (the paradox) ──────────────
-function drawStage2(){
+// ── Stage 4: Highlight test+ column (the paradox) ──────────────
+function drawStage4(){
   const s=getStats();
   const cat=getCategories(s);
   const dotR=Math.min(Math.floor(Math.sqrt(W*H/s.N)/2.8),5);
 
-  // Draw table frame with highlighted positive column
   drawTableFrame(s,'pos');
 
   for(let i=0;i<s.N;i++){
     const pos=tableGridPos(i,cat,s);
     const c=cat[i];
     const isPos=(c===3||c===1);
-
     cx.beginPath();cx.arc(pos.x,pos.y,dotR,0,Math.PI*2);
     cx.globalAlpha=isPos?1:0.15;
-    cx.fillStyle=dotColor(c,1);
+    cx.fillStyle=dotColor(c,3);
     cx.fill();
     cx.globalAlpha=1;
   }
 
-  // Bayes formula overlay on right
   const ox=W-220, oy=40;
   cx.fillStyle='rgba(14,14,18,0.85)';
   roundRect(ox-10,oy-15,225,120,8);cx.fill();
@@ -351,22 +485,20 @@ function drawStage2(){
   }
 }
 
-// ── Stage 3: Retest ────────────────────────────────────────────
-function drawStage3(){
+// ── Stage 5: Retest ────────────────────────────────────────────
+function drawStage5(){
   const s=getStats();
   const cat=getCategories(s);
   const dotR=Math.min(Math.floor(Math.sqrt(W*H/s.N)/2.8),5);
 
   drawTableFrame(s,'pos');
 
-  // Among positives, assign retest results
   const tpList=[], fpList=[];
   for(let i=0;i<s.N;i++){
     if(cat[i]===3) tpList.push(i);
     if(cat[i]===1) fpList.push(i);
   }
 
-  // Determine retest result for each person
   const retestPos=new Set();
   for(let j=0;j<Math.min(s.retest_tp,tpList.length);j++) retestPos.add(tpList[j]);
   for(let j=0;j<Math.min(s.retest_fp,fpList.length);j++) retestPos.add(fpList[j]);
@@ -375,26 +507,13 @@ function drawStage3(){
     const pos=tableGridPos(i,cat,s);
     const c=cat[i];
     const isFirstPos=(c===3||c===1);
-
-    let alpha=1, color=dotColor(c,1);
-
-    if(!isFirstPos){
-      alpha=0.1;
-    } else if(!retestPos.has(i)){
-      // Was positive, now negative on retest → dim
-      alpha=0.2;
-      color='rgba(255,255,255,0.15)';
-    }
-    // Still positive on retest → bright
-
+    let alpha=1, color=dotColor(c,3);
+    if(!isFirstPos){ alpha=0.1; }
+    else if(!retestPos.has(i)){ alpha=0.2; color='rgba(255,255,255,0.15)'; }
     cx.beginPath();cx.arc(pos.x,pos.y,dotR,0,Math.PI*2);
-    cx.globalAlpha=alpha;
-    cx.fillStyle=color;
-    cx.fill();
-    cx.globalAlpha=1;
+    cx.globalAlpha=alpha;cx.fillStyle=color;cx.fill();cx.globalAlpha=1;
   }
 
-  // Stats overlay
   const ox=W-225, oy=35;
   cx.fillStyle='rgba(14,14,18,0.85)';
   roundRect(ox-10,oy-15,230,155,8);cx.fill();
@@ -422,21 +541,20 @@ function drawStage3(){
   cx.fillStyle=YELLOW;cx.font='bold 14px monospace';
   cx.fillText(T('P(chory|++)','P(sick|++)')+' = '+(s.retest_ppv*100).toFixed(1)+'%',ox,oy+113);
 
-  // Comparison bars
   const barX=ox, barY=oy+125, barW=200, barH=10;
   cx.fillStyle='rgba(255,255,255,0.06)';
   roundRect(barX,barY,barW,barH,3);cx.fill();
   cx.fillStyle='rgba(255,209,102,0.35)';
   roundRect(barX,barY,barW*s.ppv,barH,3);cx.fill();
   cx.fillStyle='rgba(255,255,255,0.25)';cx.font='9px monospace';cx.textAlign='right';
-  cx.fillText(T('1. test','1st test')+' '+(s.ppv*100).toFixed(0)+'%',barX-4,barY+8);
+  cx.fillText(T('1. test','1st')+' '+(s.ppv*100).toFixed(0)+'%',barX-4,barY+8);
 
   cx.fillStyle='rgba(255,255,255,0.06)';
   roundRect(barX,barY+14,barW,barH,3);cx.fill();
   cx.fillStyle='rgba(131,193,103,0.5)';
   roundRect(barX,barY+14,barW*s.retest_ppv,barH,3);cx.fill();
   cx.fillStyle='rgba(255,255,255,0.25)';
-  cx.fillText(T('2. test','2nd test')+' '+(s.retest_ppv*100).toFixed(0)+'%',barX-4,barY+22);
+  cx.fillText(T('2. test','2nd')+' '+(s.retest_ppv*100).toFixed(0)+'%',barX-4,barY+22);
 }
 
 // ── Slider management ──────────────────────────────────────────
@@ -497,9 +615,7 @@ document.getElementById('qnext').addEventListener('click',()=>goTo(stageIdx+1));
 
 // ── Main render loop ───────────────────────────────────────────
 function tick(){
-  // Advance animation
   if(animProgress<1) animProgress=Math.min(1,animProgress+0.018);
-
   clear();
 
   switch(stageIdx){
@@ -507,6 +623,8 @@ function tick(){
     case 1: drawStage1(); break;
     case 2: drawStage2(); break;
     case 3: drawStage3(); break;
+    case 4: drawStage4(); break;
+    case 5: drawStage5(); break;
   }
 
   requestAnimationFrame(tick);
