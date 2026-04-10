@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pl">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Derivative Explorer — Interactive Visualization</title>
+<title>Pochodna — Interaktywna wizualizacja</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
@@ -76,9 +76,9 @@
     </div>
 
     <div class="nav">
-      <button id="qprev">&larr; prev</button>
+      <button id="qprev">&larr; wstecz</button>
       <div id="qdots"></div>
-      <button id="qnext">next &rarr;</button>
+      <button id="qnext">dalej &rarr;</button>
     </div>
   </div>
 </div>
@@ -93,11 +93,11 @@ let stage=0;
 let sDx=2, sX0=1, sXsync=0, sN=2;
 
 const stages=[
-  {id:'secant',    slider:'sl_dx',    f:'f(x) = x\u00B2',                        d:'Secant line through two points. As \u0394x \u2192 0, the secant becomes the tangent \u2014 the derivative.'},
-  {id:'tangent',   slider:'sl_x0',    f:'f(x) = x\u00B2,  f\u2032(x) = 2x',     d:'Tangent line at a movable point. The slope equals 2x \u2014 the derivative at that point.'},
-  {id:'fvsfp',     slider:'sl_xsync', f:'f(x) = x\u00B3 \u2212 3x  vs  f\u2032(x) = 3x\u00B2 \u2212 3', d:'f\u2032 > 0 where f increases, f\u2032 < 0 where f decreases, f\u2032 = 0 at extrema.'},
-  {id:'power',     slider:'sl_n',     f:'Power rule: d/dx x\u207F = nx\u207F\u207B\u00B9',   d:'Slide n from 1 to 5. Watch how the derivative relates to the original power.'},
-  {id:'extrema',   slider:'',         f:'f(x) = x\u00B3 \u2212 3x + 1',         d:'Critical points where f\u2032(x) = 0. Sign of f\u2032 changes \u2192 local min or max.'},
+  {id:'secant',    slider:'sl_dx',    f:'f(x) = x\u00B2',                        d:'Sieczna przez dwa punkty. Gdy \u0394x \u2192 0, sieczna staje si\u0119 styczn\u0105 \u2014 pochodn\u0105.'},
+  {id:'tangent',   slider:'sl_x0',    f:'f(x) = x\u00B2,  f\u2032(x) = 2x',     d:'Styczna w ruchomym punkcie. Nachylenie wynosi 2x \u2014 pochodna w tym punkcie.'},
+  {id:'fvsfp',     slider:'sl_xsync', f:'f(x) = x\u00B3 \u2212 3x  vs  f\u2032(x) = 3x\u00B2 \u2212 3', d:'f\u2032 > 0 gdy f jest rosn\u0105ca, f\u2032 < 0 gdy f jest malej\u0105ca, f\u2032 = 0 w ekstremach.'},
+  {id:'power',     slider:'sl_n',     f:'Regu\u0142a pot\u0119gowa: d/dx x\u207F = nx\u207F\u207B\u00B9',   d:'Przesu\u0144 n od 1 do 5. Obserwuj, jak pochodna zale\u017Cy od wyj\u015Bciowej pot\u0119gi.'},
+  {id:'extrema',   slider:'',         f:'f(x) = x\u00B3 \u2212 3x + 1',         d:'Punkty krytyczne, w kt\u00F3rych f\u2032(x) = 0. Zmiana znaku f\u2032 \u2192 min. lok. lub maks. lok.'},
 ];
 
 // ── Slider wiring ──
@@ -236,14 +236,14 @@ function drawStage0(){
 
   // Slope label
   cx.fillStyle=TANG;cx.font='bold 13px monospace';cx.textAlign='left';
-  cx.fillText('slope = '+slope.toFixed(3),14,24);
+  cx.fillText('nachylenie = '+slope.toFixed(3),14,24);
   if(sDx<0.1){
     cx.fillStyle='rgba(255,255,255,.5)';cx.font='12px monospace';
     cx.fillText('= f\u2032(1) = 2',14,42);
   }
   // True derivative reference
   cx.fillStyle='rgba(255,255,255,.3)';cx.font='11px monospace';cx.textAlign='right';
-  cx.fillText('true f\u2032(1) = 2.000',W-10,24);
+  cx.fillText('dok\u0142adne f\u2032(1) = 2.000',W-10,24);
 }
 
 function drawStage1(){
@@ -270,7 +270,7 @@ function drawStage1(){
 
   // Labels
   cx.fillStyle=TANG;cx.font='bold 13px monospace';cx.textAlign='left';
-  cx.fillText('slope = f\u2032('+x0.toFixed(2)+') = '+slope.toFixed(2),14,24);
+  cx.fillText('nachylenie = f\u2032('+x0.toFixed(2)+') = '+slope.toFixed(2),14,24);
   cx.fillStyle='rgba(255,255,255,.5)';cx.font='12px monospace';
   cx.fillText('f\u2032(x) = 2x',14,42);
 
@@ -356,7 +356,7 @@ function drawStage2(){
     if(cpy_top>0&&cpy_top<topH){
       gdot(cpx,cpy_top,4,ROOT);
       cx.fillStyle=ROOT;cx.font='10px monospace';cx.textAlign='center';
-      cx.fillText(cx0===-1?'max':'min',cpx,cpy_top+(cx0===-1?-10:14));
+      cx.fillText(cx0===-1?'maks.':'min.',cpx,cpy_top+(cx0===-1?-10:14));
     }
     gdot(cpx,cpy_bot,4,ROOT);
   });
@@ -372,7 +372,7 @@ function drawStage2(){
   cx.fillText('f\u2032('+x.toFixed(2)+') = '+yfp.toFixed(2),W-10,topH+16);
 
   // Sign indicator
-  const sign=yfp>0.01?'> 0  (increasing)':yfp<-0.01?'< 0  (decreasing)':'\u2248 0  (extremum)';
+  const sign=yfp>0.01?'> 0  (rosn\u0105ca)':yfp<-0.01?'< 0  (malej\u0105ca)':'\u2248 0  (ekstremum)';
   const signCol=yfp>0.01?TANG:yfp<-0.01?'#FF6B6B':ROOT;
   cx.fillStyle=signCol;cx.font='11px monospace';cx.textAlign='right';
   cx.fillText('f\u2032 '+sign,W-10,topH+32);
@@ -435,8 +435,8 @@ function drawStage4(){
 
   // Critical points: x = -1, x = 1
   const crits=[
-    {x:-1, label:'local max', yOff:-14},
-    {x:1,  label:'local min', yOff:16}
+    {x:-1, label:'maks. lok.', yOff:-14},
+    {x:1,  label:'min. lok.', yOff:16}
   ];
 
   crits.forEach(cp=>{
@@ -468,7 +468,7 @@ function drawStage4(){
   cx.strokeRect(8,H-48,240,42);
 
   cx.font='11px monospace';cx.textAlign='left';
-  cx.fillStyle='rgba(255,255,255,.5)';cx.fillText('f\u2032 sign:',16,H-32);
+  cx.fillStyle='rgba(255,255,255,.5)';cx.fillText('znak f\u2032:',16,H-32);
   cx.fillStyle=TANG;cx.fillText('+ + +',76,H-32);
   cx.fillStyle='rgba(255,255,255,.3)';cx.fillText('|',118,H-32);
   cx.fillStyle='#FF6B6B';cx.fillText('\u2212 \u2212 \u2212',126,H-32);
