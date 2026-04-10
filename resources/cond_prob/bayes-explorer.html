@@ -76,10 +76,10 @@ const stages=[
     ),
     sliders:[]},
   // Stage 1: Glossary / legend
-  { title:T('Słowniczek — co znaczą te słowa?','Glossary — what do these terms mean?'),
+  { title:T('Słowniczek — czułość, swoistość, precision','Glossary — sensitivity, specificity, precision'),
     desc:T(
-      'Zanim zaczniemy, poznaj kluczowe pojęcia. Każde z nich odgrywa rolę w paradoksie, który za chwilę zobaczysz.',
-      'Before we start, learn the key terms. Each one plays a role in the paradox you are about to see.'
+      'Czułość i swoistość to stałe cechy testu — nie zależą od tego, jak rzadka jest choroba. Precision (PPV) się zmienia! Dlatego lekarze podają te pierwsze.',
+      'Sensitivity and specificity are fixed test properties — they don\'t depend on how rare the disease is. Precision (PPV) changes! That\'s why doctors report the former.'
     ),
     sliders:[]},
   // Stage 2: Population
@@ -267,8 +267,9 @@ function drawStage0(){
     'Ale przy niskiej chorobowości (np. 1%)...',
     'większość wyników „+" to fałszywe alarmy!',
     '',
-    'To nie błąd testu — to matematyka.',
-    'Twierdzenie Bayesa wyjaśnia dlaczego.',
+    'Dlaczego lekarze podają czułość i swoistość,',
+    'a nie precision? Bo precision zależy od chorobowości!',
+    'Twierdzenie Bayesa wyjaśnia ten paradoks.',
   ] : [
     'Billions of tests worldwide.',
     'Rapid antigen tests: sensitivity ~85%, specificity ~97%.',
@@ -277,8 +278,9 @@ function drawStage0(){
     'But with low prevalence (e.g. 1%)...',
     'most "positive" results are false alarms!',
     '',
-    'This is not a testing error — it\'s math.',
-    'Bayes\' theorem explains why.',
+    'Why do doctors report sensitivity & specificity,',
+    'not precision? Because precision depends on prevalence!',
+    'Bayes\' theorem explains this paradox.',
   ];
 
   let ly=72;
@@ -289,6 +291,8 @@ function drawStage0(){
       cx.fillStyle=ORANGE;cx.font='bold 13px monospace';
     } else if(line.includes(T('Twierdzenie Bayesa','Bayes\' theorem'))){
       cx.fillStyle=YELLOW;cx.font='bold 13px monospace';
+    } else if(line.includes('precision')){
+      cx.fillStyle=CYAN;cx.font='bold 13px monospace';
     } else {
       cx.fillStyle='rgba(255,255,255,0.55)';cx.font='13px monospace';
     }
@@ -319,24 +323,24 @@ function drawStage1(){
             'What % of the population is actually sick. Rarer disease = more false alarms.')
     },
     {
-      color:YELLOW, term:T('Czułość / recall (sensitivity)','Sensitivity / recall'),
-      def:T('Czy test wykrywa chorych? P(test + | chory). Czułość 95% = test wykrywa 95 na 100 chorych.',
-            'Does the test catch sick people? P(test + | sick). 95% sensitivity = catches 95 out of 100 sick.')
+      color:YELLOW, term:T('Czułość (sensitivity) = recall','Sensitivity = recall'),
+      def:T('Patrzy na CHORYCH: ilu z nich test wykryje? P(+|chory). To samo co recall w ML. Czułość 95% = test łapie 95 na 100 chorych.',
+            'Looks at the SICK: how many does the test catch? P(+|sick). Same as recall in ML. 95% = catches 95 of 100 sick.')
     },
     {
-      color:GREEN, term:T('Swoistość / precision (specificity)','Specificity'),
-      def:T('Czy test nie alarmuje fałszywie? P(test − | zdrowy). Swoistość 95% = 5 na 100 zdrowych dostaje „+".',
-            'Does the test avoid false alarms? P(test − | healthy). 95% specificity = 5 in 100 healthy get "+".')
+      color:GREEN, term:T('Swoistość (specificity) ≠ precision!','Specificity ≠ precision!'),
+      def:T('Patrzy na ZDROWYCH: ilu prawidłowo uzna za zdrowych? P(−|zdrowy). Swoistość 95% = 5 na 100 zdrowych dostaje fałszywy „+". Precision (PPV) to co innego — patrz niżej!',
+            'Looks at the HEALTHY: how many does it correctly clear? P(−|healthy). 95% = 5 in 100 healthy get a false "+". Precision (PPV) is different — see below!')
     },
     {
       color:ORANGE, term:T('Fałszywy alarm (false positive, FP)','False Positive (FP)'),
-      def:T('Zdrowa osoba z wynikiem +. To główny winowajca paradoksu!',
-            'A healthy person who tests +. The main culprit of the paradox!')
+      def:T('Zdrowa osoba z wynikiem +. Przy rzadkiej chorobie i dużej populacji zdrowych, nawet mały % FP daje ogromną liczbę fałszywych alarmów!',
+            'A healthy person who tests +. With a rare disease and many healthy people, even a small FP rate creates a flood of false alarms!')
     },
     {
-      color:YELLOW, term:T('PPV — P(chory | test +)','PPV — P(sick | test +)'),
-      def:T('To co naprawdę chcesz wiedzieć: jeśli mam „+", jakie jest ryzyko, że jestem chory?',
-            'What you really want to know: if I test "+", what is the chance I am actually sick?')
+      color:CYAN, term:T('PPV (precision) = P(chory | test +)','PPV (precision) = P(sick | test +)'),
+      def:T('To jest precision! Patrzy na wyniki „+": ile z nich to prawdziwi chorzy? Zależy od chorobowości — dlatego medycyna podaje czułość i swoistość (stałe cechy testu), a nie precision (zmienia się z chorobowością).',
+            'This IS precision! Looks at "+" results: how many are truly sick? Depends on prevalence — that\'s why medicine reports sensitivity & specificity (fixed test properties), not precision (changes with prevalence).')
     },
   ];
 
