@@ -11,6 +11,7 @@ import { useNodeDrag }      from "../hooks/useNodeDrag.js";
 import { useDiagnostic }    from "../hooks/useDiagnostic.js";
 import { useLocalStorage }  from "../hooks/useLocalStorage.js";
 import { useIsMobile }      from "../hooks/useIsMobile.js";
+import { useHashRouter }    from "../hooks/useHashRouter.js";
 
 import { EdgeLayer }           from "./graph/EdgeLayer.jsx";
 import { NodeLayer }           from "./graph/NodeLayer.jsx";
@@ -50,6 +51,7 @@ export default function CurriculumGraph({
   const [searchTerm,    setSearchTerm]    = useState("");
   const [selected,      setSelected]      = useState(null);
   const [hoveredNode,   setHoveredNode]   = useState(null);
+  const [openResourceIdx, setOpenResourceIdx] = useState(null);
 
   // ── Modals ──────────────────────────────────────────────────────
   const [showGoalModal,   setShowGoalModal]   = useState(false);
@@ -118,6 +120,50 @@ export default function CurriculumGraph({
     betaBeliefs, subgraphIds, ddClassification,
     ddNextNodeId, ddComplete,
   } = useDiagnostic(adjacency, QUESTION_BANK, courseId);
+
+  // ── Hash-based routing ──────────────────────────────────────────
+  const handleRoute = useCallback((route) => {
+    if (route.view === "node") {
+      setSelected(route.nodeId);
+      setOpenResourceIdx(null);
+    } else if (route.view === "resource") {
+      setSelected(route.nodeId);
+      setOpenResourceIdx(route.resourceIndex);
+    } else if (route.view === "diagnostic") {
+      if (route.mode === "quick") {
+        setDiagMode(true);
+        setMode("quick");
+        setSelected(null);
+      } else if (route.mode === "deepdive" && route.goalNode) {
+        setDiagMode(true);
+        startDeepDive(route.goalNode);
+      }
+    } else {
+      setSelected(null);
+      setOpenResourceIdx(null);
+    }
+  }, [setDiagMode, setMode, startDeepDive]);
+
+  const { setRoute } = useHashRouter(handleRoute);
+
+  // Sync state → hash (when state changes via UI, not via hash)
+  useEffect(() => {
+    if (diagMode) {
+      if (mode === "deepdive" && targetNode) {
+        setRoute({ view: "diagnostic", mode: "deepdive", goalNode: targetNode });
+      } else {
+        setRoute({ view: "diagnostic", mode: "quick" });
+      }
+    } else if (selected) {
+      if (openResourceIdx != null) {
+        setRoute({ view: "resource", nodeId: selected, resourceIndex: openResourceIdx });
+      } else {
+        setRoute({ view: "node", nodeId: selected });
+      }
+    } else {
+      setRoute({ view: "graph" });
+    }
+  }, [selected, openResourceIdx, diagMode, mode, targetNode, setRoute]);
 
   // ── Derived display state ───────────────────────────────────────
   const filteredIds = useMemo(() => {
@@ -394,6 +440,7 @@ export default function CurriculumGraph({
               selected={selected}
               onSelect={id => {
                 if (diagMode) { handleDiagClick(id, false); return; }
+                setOpenResourceIdx(null);
                 setSelected(id === selected ? null : id);
               }}
               onHover={setHoveredNode}
@@ -412,6 +459,7 @@ export default function CurriculumGraph({
             nodeId={selected} nodes={nodes} adjacency={adjacency} lang={lang}
             SCOPE_COLORS={SCOPE_COLORS} SCOPE_LABELS={SCOPE_LABELS} SECTIONS={SECTIONS}
             isMobile={isMobile} onClose={() => setSelected(null)}
+            openResourceIdx={openResourceIdx} setOpenResourceIdx={setOpenResourceIdx}
           />
         )}
 
