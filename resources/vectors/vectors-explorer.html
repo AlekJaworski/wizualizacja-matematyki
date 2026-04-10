@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pl">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>2D Vectors — Interactive Explorer</title>
+<title>Wektory 2D — Interaktywna wizualizacja</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
@@ -149,9 +149,9 @@
     </div>
 
     <div class="nav">
-      <button id="vprev">&larr; prev</button>
+      <button id="vprev">&larr; wstecz</button>
       <div id="vdots"></div>
-      <button id="vnext">next &rarr;</button>
+      <button id="vnext">dalej &rarr;</button>
     </div>
   </div>
 </div>
@@ -168,11 +168,11 @@ let stage=0;
 const stageCount=5;
 
 const stages=[
-  {id:'basics', f:'v = [a, b]', d:'A 2D vector has magnitude |v| = \u221A(a\u00B2 + b\u00B2) and direction angle \u03B8. Drag sliders to explore.'},
-  {id:'add', f:'u + v = [u.x+v.x, u.y+v.y]', d:'Vector addition: place v at the tip of u (tip-to-tail). The diagonal of the parallelogram is the sum.'},
-  {id:'scalar', f:'kv = [k*v.x, k*v.y]', d:'Scalar multiplication stretches (|k|>1), shrinks (|k|<1), or flips (k<0) the vector.'},
-  {id:'dot', f:'u \u00B7 v = |u||v|cos(\u03B8)', d:'The dot product measures alignment. When perpendicular, u \u00B7 v = 0. The projection of u onto v is shown.'},
-  {id:'lincomb', f:'w = au + bv', d:'Any point in the plane can be reached as a linear combination of two non-parallel vectors.'},
+  {id:'basics', f:'v = [a, b]', d:'Wektor 2D ma d\u0142ugo\u015B\u0107 |v| = \u221A(a\u00B2 + b\u00B2) i k\u0105t kierunkowy \u03B8. Ustaw suwaki, aby eksplorowa\u0107.'},
+  {id:'add', f:'u + v = [u.x+v.x, u.y+v.y]', d:'Dodawanie wektor\u00F3w: do\u0142\u00F3\u017C v na ko\u0144cu u (metoda tr\u00F3jk\u0105ta). Przek\u0105tna r\u00F3wnoleg\u0142oboku to suma.'},
+  {id:'scalar', f:'kv = [k*v.x, k*v.y]', d:'Mno\u017Cenie przez skalar rozci\u0105ga (|k|>1), skraca (|k|<1) lub odwraca (k<0) wektor.'},
+  {id:'dot', f:'u \u00B7 v = |u||v|cos(\u03B8)', d:'Iloczyn skalarny mierzy wsp\u00F3\u0142liniowo\u015B\u0107. Gdy wektory s\u0105 prostopad\u0142e, u \u00B7 v = 0. Pokazany jest rzut u na v.'},
+  {id:'lincomb', f:'w = au + bv', d:'Ka\u017Cdy punkt p\u0142aszczyzny mo\u017Cna osi\u0105gn\u0105\u0107 jako kombinacj\u0119 liniow\u0105 dw\u00F3ch nier\u00F3wnoleg\u0142ych wektor\u00F3w.'},
 ];
 
 // ── Drawing helpers ──────────────────────────────────────────
@@ -395,7 +395,7 @@ function renderDotProduct(){
   drawVec(0,0,vx,vy,ORANGE,2.5);
   labelVec('u',0,0,ux,uy,CYAN);
   labelVec('v',0,0,vx,vy,ORANGE);
-  if(magV>0.01)labelVec('proj',0,0,projX,projY,GREEN);
+  if(magV>0.01)labelVec('rzut',0,0,projX,projY,GREEN);
 
   // overlay
   const isPerp=Math.abs(dot)<0.15;
@@ -403,12 +403,12 @@ function renderDotProduct(){
   cx.beginPath();cx.roundRect(6,6,240,72,6);cx.fill();cx.stroke();
   cx.font='11px monospace';cx.textAlign='left';
   cx.fillStyle=isPerp?'#dc5050':'rgba(255,255,255,.7)';
-  cx.fillText('u \u00B7 v = '+dot.toFixed(2)+(isPerp?' \u2248 0 (perpendicular!)':''),16,22);
+  cx.fillText('u \u00B7 v = '+dot.toFixed(2)+(isPerp?' \u2248 0 (prostopad\u0142e!)':''),16,22);
   cx.fillStyle='rgba(255,255,255,.5)';
   cx.fillText('|u| = '+magU.toFixed(2)+'  |v| = '+magV.toFixed(2),16,38);
   cx.fillText('\u03B8 = '+theta.toFixed(1)+'\u00B0',16,54);
   cx.fillStyle=GREEN;
-  if(magV>0.01)cx.fillText('proj_v(u) = ['+projX.toFixed(1)+', '+projY.toFixed(1)+']',16,70);
+  if(magV>0.01)cx.fillText('rzut_v(u) = ['+projX.toFixed(1)+', '+projY.toFixed(1)+']',16,70);
 }
 
 function renderLinComb(){
