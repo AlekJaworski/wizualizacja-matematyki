@@ -333,68 +333,43 @@ function drawGlossaryOverlay(){
 
 // ── Stage 0: Introduction — pandemic story ─────────────────────
 function drawStage0(){
-  // Atmospheric background with scattered faint dots
+  // Atmospheric background — scattered people, a few sick
   const rng=seededRandom(99);
-  for(let i=0;i<120;i++){
-    const x=rng()*W, y=rng()*H;
-    const isSick=i<3;
-    cx.beginPath();cx.arc(x,y,2.5,0,Math.PI*2);
-    cx.fillStyle=isSick?'rgba(224,112,144,0.5)':'rgba(255,255,255,0.06)';
+  for(let i=0;i<200;i++){
+    const x=rng()*W, y=30+rng()*(H-50);
+    const isSick=i<4;
+    cx.beginPath();cx.arc(x,y,isSick?3.5:2,0,Math.PI*2);
+    cx.fillStyle=isSick?'rgba(224,112,144,0.6)':'rgba(255,255,255,0.07)';
     cx.fill();
   }
 
-  // Title text
+  // Big centered question
   cx.textAlign='center';
-  cx.font='bold 18px monospace';
-  cx.fillStyle=CYAN;
-  cx.fillText(T('COVID-19, 2020','COVID-19, 2020'),W/2,40);
 
-  cx.font='13px monospace';
-  cx.fillStyle='rgba(255,255,255,0.6)';
-  const lines = LANG==='pl' ? [
-    'Miliardy testów na całym świecie.',
-    'Szybkie testy antygenowe: czułość ~85%, swoistość ~97%.',
-    'Wyobraź sobie: masz wynik pozytywny.',
-    '',
-    'Ale przy niskiej chorobowości (np. 1%)...',
-    'większość wyników „+" to fałszywe alarmy!',
-    '',
-    'Dlaczego lekarze podają czułość i swoistość,',
-    'a nie precision? Bo precision zależy od chorobowości!',
-    'Twierdzenie Bayesa wyjaśnia ten paradoks.',
-  ] : [
-    'Billions of tests worldwide.',
-    'Rapid antigen tests: sensitivity ~85%, specificity ~97%.',
-    'Imagine: you test positive.',
-    '',
-    'But with low prevalence (e.g. 1%)...',
-    'most "positive" results are false alarms!',
-    '',
-    'Why do doctors report sensitivity & specificity,',
-    'not precision? Because precision depends on prevalence!',
-    'Bayes\' theorem explains this paradox.',
-  ];
+  cx.font='bold 15px monospace';cx.fillStyle='rgba(255,255,255,0.4)';
+  cx.fillText(T('COVID-19, 2020','COVID-19, 2020'),W/2,55);
 
-  let ly=72;
-  lines.forEach(line=>{
-    if(!line){ly+=8;return;}
-    // Highlight key lines
-    if(line.includes(T('fałszywe alarmy','false alarms'))){
-      cx.fillStyle=ORANGE;cx.font='bold 13px monospace';
-    } else if(line.includes(T('Twierdzenie Bayesa','Bayes\' theorem'))){
-      cx.fillStyle=YELLOW;cx.font='bold 13px monospace';
-    } else if(line.includes('precision')){
-      cx.fillStyle=CYAN;cx.font='bold 13px monospace';
-    } else {
-      cx.fillStyle='rgba(255,255,255,0.55)';cx.font='13px monospace';
-    }
-    cx.fillText(line,W/2,ly);
-    ly+=20;
-  });
+  cx.font='bold 20px monospace';cx.fillStyle='#fff';
+  cx.fillText(T('Masz wynik pozytywny.','You tested positive.'),W/2,110);
 
-  // Arrow hint
-  cx.fillStyle='rgba(255,255,255,0.2)';cx.font='11px monospace';
-  cx.fillText(T('💡 = słowniczek pojęć','💡 = glossary of terms'),W/2,H-12);
+  cx.font='bold 20px monospace';cx.fillStyle=ORANGE;
+  cx.fillText(T('Czy na pewno jesteś chory?','Are you really sick?'),W/2,145);
+
+  // Subtle stats
+  cx.font='12px monospace';cx.fillStyle='rgba(255,255,255,0.3)';
+  cx.fillText(T('czułość testu: 95%   •   swoistość: 95%   •   chorobowość: 1%',
+               'sensitivity: 95%   •   specificity: 95%   •   prevalence: 1%'),W/2,195);
+
+  // Teaser answer
+  cx.font='bold 14px monospace';cx.fillStyle=YELLOW;
+  cx.fillText(T('Szansa że jesteś chory: tylko ~16%','Chance you\'re sick: only ~16%'),W/2,240);
+
+  cx.font='12px monospace';cx.fillStyle='rgba(255,255,255,0.35)';
+  cx.fillText(T('Dlaczego? Twierdzenie Bayesa.','Why? Bayes\' theorem.'),W/2,265);
+
+  // Hint
+  cx.font='11px monospace';cx.fillStyle='rgba(255,255,255,0.18)';
+  cx.fillText(T('💡 = słowniczek   •   → dalej aby zobaczyć','💡 = glossary   •   → next to explore'),W/2,H-10);
 }
 
 // ── Stage 1: Population ────────────────────────────────────────
