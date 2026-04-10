@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Derivative Explorer — Interactive Visualization</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+  #qf { margin: 0 0 5px; font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  #qd { margin: 0 0 10px; font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); min-height: 48px; }
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 36px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+  .nav { display: flex; align-items: center; justify-content: space-between; }
+  button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  button:hover { background: rgba(255,255,255,.08); }
+  button:disabled { opacity: .3; cursor: default; }
+  #qdots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.18); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  .slider-wrap { display: none; margin-bottom: 8px; }
+  .slider-wrap.visible { display: block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="qc" width="600" height="310"></canvas>
+  <div class="panel">
+    <p id="qf"></p>
+    <p id="qd"></p>
+
+    <div id="sl_dx" class="slider-wrap">
+      <div class="sliders">
+        <div class="slider-row">
+          <span class="lbl" style="color:#83C167;">&Delta;x =</span>
+          <input type="range" id="s_dx" min="0.01" max="3" step="0.01" value="2">
+          <span class="val" id="v_dx" style="color:#83C167;"></span>
+        </div>
+      </div>
+    </div>
+
+    <div id="sl_x0" class="slider-wrap">
+      <div class="sliders">
+        <div class="slider-row">
+          <span class="lbl" style="color:#58C4DD;">x =</span>
+          <input type="range" id="s_x0" min="-3" max="3" step="0.05" value="1">
+          <span class="val" id="v_x0" style="color:#58C4DD;"></span>
+        </div>
+      </div>
+    </div>
+
+    <div id="sl_xsync" class="slider-wrap">
+      <div class="sliders">
+        <div class="slider-row">
+          <span class="lbl" style="color:#58C4DD;">x =</span>
+          <input type="range" id="s_xsync" min="-2.5" max="2.5" step="0.05" value="0">
+          <span class="val" id="v_xsync" style="color:#58C4DD;"></span>
+        </div>
+      </div>
+    </div>
+
+    <div id="sl_n" class="slider-wrap">
+      <div class="sliders">
+        <div class="slider-row">
+          <span class="lbl" style="color:#FFD166;">n =</span>
+          <input type="range" id="s_n" min="1" max="5" step="1" value="2">
+          <span class="val" id="v_n" style="color:#FFD166;"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav">
+      <button id="qprev">&larr; prev</button>
+      <div id="qdots"></div>
+      <button id="qnext">next &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+const cv=document.getElementById('qc'),cx=cv.getContext('2d');
+const W=600,H=310;
+const CURVE='#58C4DD',DERIV='#FF9F43',TANG='#83C167',ROOT='#FFD166';
+
+let stage=0;
+let sDx=2, sX0=1, sXsync=0, sN=2;
+
+const stages=[
+  {id:'secant',    slider:'sl_dx',    f:'f(x) = x\u00B2',                        d:'Secant line through two points. As \u0394x \u2192 0, the secant becomes the tangent \u2014 the derivative.'},
+  {id:'tangent',   slider:'sl_x0',    f:'f(x) = x\u00B2,  f\u2032(x) = 2x',     d:'Tangent line at a movable point. The slope equals 2x \u2014 the derivative at that point.'},
+  {id:'fvsfp',     slider:'sl_xsync', f:'f(x) = x\u00B3 \u2212 3x  vs  f\u2032(x) = 3x\u00B2 \u2212 3', d:'f\u2032 > 0 where f increases, f\u2032 < 0 where f decreases, f\u2032 = 0 at extrema.'},
+  {id:'power',     slider:'sl_n',     f:'Power rule: d/dx x\u207F = nx\u207F\u207B\u00B9',   d:'Slide n from 1 to 5. Watch how the derivative relates to the original power.'},
+  {id:'extrema',   slider:'',         f:'f(x) = x\u00B3 \u2212 3x + 1',         d:'Critical points where f\u2032(x) = 0. Sign of f\u2032 changes \u2192 local min or max.'},
+];
+
+// ── Slider wiring ──
+document.getElementById('s_dx').addEventListener('input',function(){sDx=+this.value;document.getElementById('v_dx').textContent=sDx.toFixed(2);});
+document.getElementById('s_x0').addEventListener('input',function(){sX0=+this.value;document.getElementById('v_x0').textContent=sX0.toFixed(2);});
+document.getElementById('s_xsync').addEventListener('input',function(){sXsync=+this.value;document.getElementById('v_xsync').textContent=sXsync.toFixed(2);});
+document.getElementById('s_n').addEventListener('input',function(){sN=+this.value;document.getElementById('v_n').textContent=sN;});
+
+// ── Navigation ──
+function renderDots(){
+  const dc=document.getElementById('qdots');
+  dc.innerHTML=stages.map((_,i)=>`<span class="dot${i===stage?' active':''}" data-i="${i}"></span>`).join('');
+  dc.querySelectorAll('span').forEach(s=>s.addEventListener('click',()=>goTo(+s.dataset.i)));
+}
+
+function goTo(idx){
+  stage=Math.max(0,Math.min(stages.length-1,idx));
+  const s=stages[stage];
+  document.getElementById('qf').innerHTML=s.f;
+  document.getElementById('qd').innerHTML=s.d;
+  document.querySelectorAll('.slider-wrap').forEach(el=>el.classList.remove('visible'));
+  if(s.slider)document.getElementById(s.slider).classList.add('visible');
+  document.getElementById('qprev').disabled=stage===0;
+  document.getElementById('qnext').disabled=stage===stages.length-1;
+  // update slider labels
+  document.getElementById('v_dx').textContent=sDx.toFixed(2);
+  document.getElementById('v_x0').textContent=sX0.toFixed(2);
+  document.getElementById('v_xsync').textContent=sXsync.toFixed(2);
+  document.getElementById('v_n').textContent=sN;
+  renderDots();
+}
+
+document.getElementById('qprev').addEventListener('click',()=>goTo(stage-1));
+document.getElementById('qnext').addEventListener('click',()=>goTo(stage+1));
+
+// ── Drawing helpers ──
+function drawGrid(ox,oy,sc,yStart,yEnd){
+  cx.strokeStyle='rgba(255,255,255,.05)';cx.lineWidth=.7;
+  for(let x=-6;x<=6;x++){const px=ox+x*sc;cx.beginPath();cx.moveTo(px,yStart);cx.lineTo(px,yEnd);cx.stroke();}
+  for(let y=-8;y<=8;y++){const py=oy-y*sc;if(py<yStart||py>yEnd)continue;cx.beginPath();cx.moveTo(0,py);cx.lineTo(W,py);cx.stroke();}
+}
+
+function drawAxes(ox,oy,sc,yStart,yEnd){
+  cx.strokeStyle='rgba(255,255,255,.38)';cx.lineWidth=1.5;
+  // x-axis
+  if(oy>=yStart&&oy<=yEnd){
+    cx.beginPath();cx.moveTo(0,oy);cx.lineTo(W-8,oy);cx.stroke();
+    cx.fillStyle='rgba(255,255,255,.38)';cx.beginPath();cx.moveTo(W,oy);cx.lineTo(W-9,oy-4);cx.lineTo(W-9,oy+4);cx.closePath();cx.fill();
+  }
+  // y-axis
+  cx.beginPath();cx.moveTo(ox,yEnd);cx.lineTo(ox,yStart+7);cx.stroke();
+  cx.fillStyle='rgba(255,255,255,.38)';cx.beginPath();cx.moveTo(ox,yStart);cx.lineTo(ox-4,yStart+9);cx.lineTo(ox+4,yStart+9);cx.closePath();cx.fill();
+  // ticks
+  for(let x=-5;x<=5;x++){
+    if(!x)continue;
+    const px=ox+x*sc;if(px<0||px>W)continue;
+    if(oy>=yStart&&oy<=yEnd){
+      cx.strokeStyle='rgba(255,255,255,.18)';cx.lineWidth=1;
+      cx.beginPath();cx.moveTo(px,oy-3);cx.lineTo(px,oy+3);cx.stroke();
+      cx.fillStyle='rgba(255,255,255,.25)';cx.font='11px sans-serif';cx.textAlign='center';cx.fillText(x,px,oy+14);
+    }
+  }
+  for(let y=-6;y<=6;y++){
+    if(!y)continue;
+    const py=oy-y*sc;if(py<yStart+5||py>yEnd-5)continue;
+    cx.strokeStyle='rgba(255,255,255,.18)';cx.lineWidth=1;
+    cx.beginPath();cx.moveTo(ox-3,py);cx.lineTo(ox+3,py);cx.stroke();
+    cx.fillStyle='rgba(255,255,255,.25)';cx.font='11px sans-serif';cx.textAlign='right';cx.fillText(y,ox-7,py+4);
+  }
+}
+
+function plotCurve(fn,ox,oy,sc,yStart,yEnd,color,lw,xmin,xmax){
+  cx.beginPath();cx.strokeStyle=color;cx.lineWidth=lw||2.5;
+  let mv=true;const steps=600;
+  xmin=xmin||-6;xmax=xmax||6;
+  for(let i=0;i<=steps;i++){
+    const x=xmin+(xmax-xmin)*i/steps;
+    const y=fn(x);
+    const px=ox+x*sc,py=oy-y*sc;
+    if(py<yStart-4||py>yEnd+4){mv=true;continue;}
+    if(mv){cx.moveTo(px,py);mv=false;}else cx.lineTo(px,py);
+  }
+  cx.stroke();
+}
+
+function gdot(xx,yy,r,col){
+  cx.beginPath();cx.arc(xx,yy,r,0,Math.PI*2);cx.fillStyle=col;
+  cx.shadowColor=col;cx.shadowBlur=14;cx.fill();cx.shadowBlur=0;
+}
+
+function drawLine(x1,y1,x2,y2,col,lw){
+  cx.beginPath();cx.strokeStyle=col;cx.lineWidth=lw||1.5;
+  cx.moveTo(x1,y1);cx.lineTo(x2,y2);cx.stroke();
+}
+
+// ── Stage renderers ──
+
+function drawStage0(){
+  // Secant to tangent: f(x)=x^2
+  const OX=300,OY=220,SC=50;
+  drawGrid(OX,OY,SC,0,H);
+  drawAxes(OX,OY,SC,0,H);
+  const f=x=>x*x;
+  plotCurve(f,OX,OY,SC,0,H,CURVE,2.5);
+
+  const x0=1;
+  const x1=x0+sDx;
+  const y0=f(x0),y1=f(x1);
+  const slope=(y1-y0)/(x1-x0);
+
+  // Draw secant/tangent line extended
+  const lineXmin=-4,lineXmax=5;
+  const lx1=OX+lineXmin*SC, ly1=OY-(y0+slope*(lineXmin-x0))*SC;
+  const lx2=OX+lineXmax*SC, ly2=OY-(y0+slope*(lineXmax-x0))*SC;
+  cx.save();
+  cx.beginPath();cx.rect(0,0,W,H);cx.clip();
+  drawLine(lx1,ly1,lx2,ly2,sDx<0.1?TANG:'rgba(131,193,103,.6)',2);
+  cx.restore();
+
+  // Points
+  gdot(OX+x0*SC,OY-y0*SC,5,CURVE);
+  if(sDx>0.05) gdot(OX+x1*SC,OY-y1*SC,5,'#FF9F43');
+
+  // Delta x bracket
+  if(sDx>0.05){
+    const bx0=OX+x0*SC, bx1=OX+x1*SC, by=OY-y0*SC;
+    cx.setLineDash([3,3]);cx.strokeStyle='rgba(255,255,255,.2)';cx.lineWidth=1;
+    cx.beginPath();cx.moveTo(bx0,by);cx.lineTo(bx1,by);cx.stroke();
+    cx.beginPath();cx.moveTo(bx1,by);cx.lineTo(bx1,OY-y1*SC);cx.stroke();
+    cx.setLineDash([]);
+    // labels
+    cx.fillStyle='rgba(255,255,255,.5)';cx.font='11px monospace';cx.textAlign='center';
+    cx.fillText('\u0394x='+sDx.toFixed(2),(bx0+bx1)/2,by+14);
+    cx.fillText('\u0394y='+(y1-y0).toFixed(2),bx1+30,(by+OY-y1*SC)/2);
+  }
+
+  // Slope label
+  cx.fillStyle=TANG;cx.font='bold 13px monospace';cx.textAlign='left';
+  cx.fillText('slope = '+slope.toFixed(3),14,24);
+  if(sDx<0.1){
+    cx.fillStyle='rgba(255,255,255,.5)';cx.font='12px monospace';
+    cx.fillText('= f\u2032(1) = 2',14,42);
+  }
+  // True derivative reference
+  cx.fillStyle='rgba(255,255,255,.3)';cx.font='11px monospace';cx.textAlign='right';
+  cx.fillText('true f\u2032(1) = 2.000',W-10,24);
+}
+
+function drawStage1(){
+  // Derivative as slope: f(x)=x^2, movable point
+  const OX=300,OY=220,SC=50;
+  drawGrid(OX,OY,SC,0,H);
+  drawAxes(OX,OY,SC,0,H);
+  const f=x=>x*x;
+  plotCurve(f,OX,OY,SC,0,H,CURVE,2.5);
+
+  const x0=sX0;
+  const y0=f(x0);
+  const slope=2*x0;
+
+  // Tangent line
+  const lineXmin=-5,lineXmax=5;
+  cx.save();cx.beginPath();cx.rect(0,0,W,H);cx.clip();
+  const lx1=OX+lineXmin*SC, ly1=OY-(y0+slope*(lineXmin-x0))*SC;
+  const lx2=OX+lineXmax*SC, ly2=OY-(y0+slope*(lineXmax-x0))*SC;
+  drawLine(lx1,ly1,lx2,ly2,TANG,2);
+  cx.restore();
+
+  gdot(OX+x0*SC,OY-y0*SC,6,CURVE);
+
+  // Labels
+  cx.fillStyle=TANG;cx.font='bold 13px monospace';cx.textAlign='left';
+  cx.fillText('slope = f\u2032('+x0.toFixed(2)+') = '+slope.toFixed(2),14,24);
+  cx.fillStyle='rgba(255,255,255,.5)';cx.font='12px monospace';
+  cx.fillText('f\u2032(x) = 2x',14,42);
+
+  // Derivative value bar on right side
+  const barX=W-30, barH=160, barY0=OY, barBot=barY0, barTop=barY0-barH;
+  cx.strokeStyle='rgba(255,255,255,.1)';cx.lineWidth=1;
+  cx.beginPath();cx.moveTo(barX,barBot+20);cx.lineTo(barX,barTop);cx.stroke();
+  // marker
+  const markerY=Math.max(barTop,Math.min(barBot+20,OY-slope*SC/4*2));
+  cx.fillStyle=DERIV;cx.font='11px monospace';cx.textAlign='right';
+  cx.fillText('f\u2032='+slope.toFixed(2),barX-6,markerY+4);
+  gdot(barX,markerY,4,DERIV);
+
+  // Point coordinates
+  cx.fillStyle='rgba(255,255,255,.4)';cx.font='11px monospace';cx.textAlign='left';
+  const ptPx=OX+x0*SC,ptPy=OY-y0*SC;
+  cx.fillText('('+x0.toFixed(2)+', '+y0.toFixed(2)+')',ptPx+10,ptPy-8);
+}
+
+function drawStage2(){
+  // f(x) vs f'(x) split view
+  const topH=155,botH=155;
+  const OX=300;
+  const SC=45;
+  const OY_top=120,OY_bot=120+topH;
+
+  // Top: f(x) = x^3 - 3x
+  drawGrid(OX,OY_top,SC,0,topH);
+  drawAxes(OX,OY_top,SC,0,topH);
+  const f=x=>x*x*x-3*x;
+  plotCurve(f,OX,OY_top,SC,0,topH,CURVE,2.5,-3,3);
+
+  // Divider
+  cx.strokeStyle='rgba(255,255,255,.08)';cx.lineWidth=1;
+  cx.beginPath();cx.moveTo(0,topH);cx.lineTo(W,topH);cx.stroke();
+
+  // Bottom: f'(x) = 3x^2 - 3
+  drawGrid(OX,OY_bot,SC,topH,H);
+  drawAxes(OX,OY_bot,SC,topH,H);
+  const fp=x=>3*x*x-3;
+  plotCurve(fp,OX,OY_bot,SC,topH,H,DERIV,2.5,-3,3);
+
+  // Zero line on bottom
+  cx.setLineDash([4,4]);cx.strokeStyle='rgba(255,255,255,.12)';cx.lineWidth=1;
+  cx.beginPath();cx.moveTo(0,OY_bot);cx.lineTo(W,OY_bot);cx.stroke();
+  cx.setLineDash([]);
+
+  // Synced vertical line
+  const x=sXsync;
+  const vpx=OX+x*SC;
+  cx.setLineDash([3,3]);cx.strokeStyle='rgba(255,255,255,.25)';cx.lineWidth=1;
+  cx.beginPath();cx.moveTo(vpx,0);cx.lineTo(vpx,H);cx.stroke();
+  cx.setLineDash([]);
+
+  // Points on curves
+  const yf=f(x),yfp=fp(x);
+  const ptTopY=OY_top-yf*SC;
+  const ptBotY=OY_bot-yfp*SC;
+  if(ptTopY>0&&ptTopY<topH) gdot(vpx,ptTopY,5,CURVE);
+  if(ptBotY>topH&&ptBotY<H) gdot(vpx,ptBotY,5,DERIV);
+
+  // Shading for sign of f'
+  cx.save();
+  // Positive regions (f increasing): x < -1 and x > 1
+  cx.globalAlpha=0.06;
+  cx.fillStyle=TANG;
+  // left region
+  const leftEnd=Math.min(OX+(-1)*SC,W);
+  if(leftEnd>0){cx.fillRect(0,0,leftEnd,topH);}
+  // right region
+  const rightStart=Math.max(OX+1*SC,0);
+  if(rightStart<W){cx.fillRect(rightStart,0,W-rightStart,topH);}
+  // Negative region (f decreasing): -1 < x < 1
+  cx.fillStyle='#FF6B6B';
+  const negL=Math.max(OX+(-1)*SC,0),negR=Math.min(OX+1*SC,W);
+  if(negR>negL){cx.fillRect(negL,0,negR-negL,topH);}
+  cx.globalAlpha=1;
+  cx.restore();
+
+  // Critical point markers (x = -1, x = 1)
+  [-1,1].forEach(cx0=>{
+    const cpx=OX+cx0*SC,cpy_top=OY_top-f(cx0)*SC,cpy_bot=OY_bot;
+    if(cpy_top>0&&cpy_top<topH){
+      gdot(cpx,cpy_top,4,ROOT);
+      cx.fillStyle=ROOT;cx.font='10px monospace';cx.textAlign='center';
+      cx.fillText(cx0===-1?'max':'min',cpx,cpy_top+(cx0===-1?-10:14));
+    }
+    gdot(cpx,cpy_bot,4,ROOT);
+  });
+
+  // Labels
+  cx.fillStyle=CURVE;cx.font='bold 12px monospace';cx.textAlign='left';
+  cx.fillText('f(x) = x\u00B3 \u2212 3x',10,16);
+  cx.fillStyle=DERIV;cx.fillText('f\u2032(x) = 3x\u00B2 \u2212 3',10,topH+16);
+
+  // Values at sync point
+  cx.fillStyle='rgba(255,255,255,.5)';cx.font='11px monospace';cx.textAlign='right';
+  cx.fillText('f('+x.toFixed(2)+') = '+yf.toFixed(2),W-10,16);
+  cx.fillText('f\u2032('+x.toFixed(2)+') = '+yfp.toFixed(2),W-10,topH+16);
+
+  // Sign indicator
+  const sign=yfp>0.01?'> 0  (increasing)':yfp<-0.01?'< 0  (decreasing)':'\u2248 0  (extremum)';
+  const signCol=yfp>0.01?TANG:yfp<-0.01?'#FF6B6B':ROOT;
+  cx.fillStyle=signCol;cx.font='11px monospace';cx.textAlign='right';
+  cx.fillText('f\u2032 '+sign,W-10,topH+32);
+}
+
+function drawStage3(){
+  // Power rule: f(x) = x^n, f'(x) = nx^(n-1)
+  const OX=300,OY=190,SC=50;
+  drawGrid(OX,OY,SC,0,H);
+  drawAxes(OX,OY,SC,0,H);
+
+  const n=sN;
+  const f=x=>Math.pow(x,n);
+  const fp=x=>n*Math.pow(x,n-1);
+
+  plotCurve(f,OX,OY,SC,0,H,CURVE,2.5,-3,3);
+  plotCurve(fp,OX,OY,SC,0,H,DERIV,2,-3,3);
+
+  // Labels
+  const supN=['\u00B9','\u00B2','\u00B3','\u2074','\u2075'];
+  const supNm1=['\u2070','\u00B9','\u00B2','\u00B3','\u2074'];
+  const nStr=supN[n-1]||n;
+  const nm1Str=n===1?'':n===2?'x':'x'+supNm1[n-2];
+
+  cx.fillStyle=CURVE;cx.font='bold 13px monospace';cx.textAlign='left';
+  cx.fillText('f(x) = x'+nStr,14,24);
+  cx.fillStyle=DERIV;cx.font='bold 13px monospace';
+  if(n===1){
+    cx.fillText('f\u2032(x) = 1',14,42);
+  } else {
+    cx.fillText('f\u2032(x) = '+n+nm1Str,14,42);
+  }
+
+  // Legend
+  cx.fillStyle=CURVE;cx.font='11px monospace';cx.textAlign='right';
+  cx.fillText('\u2500\u2500 f(x)',W-10,24);
+  cx.fillStyle=DERIV;
+  cx.fillText('\u2500\u2500 f\u2032(x)',W-10,40);
+
+  // At x=1 show both values
+  const x1=1,y1=f(x1),yp1=fp(x1);
+  gdot(OX+x1*SC,OY-y1*SC,4,CURVE);
+  gdot(OX+x1*SC,OY-yp1*SC,4,DERIV);
+  cx.fillStyle='rgba(255,255,255,.4)';cx.font='10px monospace';cx.textAlign='left';
+  cx.fillText('f(1)='+y1.toFixed(0),OX+x1*SC+8,OY-y1*SC-4);
+  cx.fillText('f\u2032(1)='+yp1.toFixed(0),OX+x1*SC+8,OY-yp1*SC+14);
+}
+
+function drawStage4(){
+  // Extrema: f(x) = x^3 - 3x + 1
+  const OX=300,OY=180,SC=48;
+  drawGrid(OX,OY,SC,0,H);
+  drawAxes(OX,OY,SC,0,H);
+
+  const f=x=>x*x*x-3*x+1;
+  const fp=x=>3*x*x-3;
+
+  plotCurve(f,OX,OY,SC,0,H,CURVE,2.5,-3,3);
+  plotCurve(fp,OX,OY,SC,0,H,DERIV,1.8,-3,3);
+
+  // Critical points: x = -1, x = 1
+  const crits=[
+    {x:-1, label:'local max', yOff:-14},
+    {x:1,  label:'local min', yOff:16}
+  ];
+
+  crits.forEach(cp=>{
+    const cpx=OX+cp.x*SC;
+    const cpy=OY-f(cp.x)*SC;
+    const cpyDer=OY-fp(cp.x)*SC;
+
+    // Dashed vertical at critical point
+    cx.setLineDash([3,4]);cx.strokeStyle='rgba(255,209,102,.2)';cx.lineWidth=1;
+    cx.beginPath();cx.moveTo(cpx,0);cx.lineTo(cpx,H);cx.stroke();
+    cx.setLineDash([]);
+
+    // Point on f
+    gdot(cpx,cpy,6,ROOT);
+    // Point on f' (should be at y=0)
+    gdot(cpx,OY,4,DERIV);
+
+    // Label
+    cx.fillStyle=ROOT;cx.font='bold 11px monospace';cx.textAlign='center';
+    cx.fillText(cp.label,cpx,cpy+cp.yOff);
+    cx.fillStyle='rgba(255,255,255,.4)';cx.font='10px monospace';
+    cx.fillText('('+cp.x+', '+f(cp.x).toFixed(1)+')',cpx,cpy+cp.yOff+(cp.yOff>0?14:-14));
+  });
+
+  // Sign diagram for f'
+  cx.fillStyle='rgba(14,14,18,.85)';
+  cx.fillRect(8,H-48,240,42);
+  cx.strokeStyle='rgba(255,255,255,.1)';cx.lineWidth=0.5;
+  cx.strokeRect(8,H-48,240,42);
+
+  cx.font='11px monospace';cx.textAlign='left';
+  cx.fillStyle='rgba(255,255,255,.5)';cx.fillText('f\u2032 sign:',16,H-32);
+  cx.fillStyle=TANG;cx.fillText('+ + +',76,H-32);
+  cx.fillStyle='rgba(255,255,255,.3)';cx.fillText('|',118,H-32);
+  cx.fillStyle='#FF6B6B';cx.fillText('\u2212 \u2212 \u2212',126,H-32);
+  cx.fillStyle='rgba(255,255,255,.3)';cx.fillText('|',168,H-32);
+  cx.fillStyle=TANG;cx.fillText('+ + +',176,H-32);
+
+  cx.fillStyle='rgba(255,255,255,.35)';cx.font='10px monospace';
+  cx.fillText('x<\u22121',82,H-16);
+  cx.fillText('\u22121<x<1',122,H-16);
+  cx.fillText('x>1',182,H-16);
+
+  // Labels
+  cx.fillStyle=CURVE;cx.font='bold 12px monospace';cx.textAlign='left';
+  cx.fillText('f(x) = x\u00B3 \u2212 3x + 1',14,20);
+  cx.fillStyle=DERIV;cx.fillText('f\u2032(x) = 3x\u00B2 \u2212 3',14,38);
+
+  // f'(x)=0 label
+  cx.fillStyle='rgba(255,255,255,.4)';cx.font='11px monospace';cx.textAlign='right';
+  cx.fillText('f\u2032(x) = 0  at  x = \u00B11',W-10,20);
+}
+
+// ── Main loop ──
+function tick(){
+  cx.fillStyle='#0e0e12';cx.fillRect(0,0,W,H);
+  switch(stage){
+    case 0: drawStage0(); break;
+    case 1: drawStage1(); break;
+    case 2: drawStage2(); break;
+    case 3: drawStage3(); break;
+    case 4: drawStage4(); break;
+  }
+  requestAnimationFrame(tick);
+}
+
+goTo(0);
+tick();
+})();
+</script>
+</body>
+</html>
