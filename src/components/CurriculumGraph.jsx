@@ -123,6 +123,7 @@ export default function CurriculumGraph({
 
   // ── Hash-based routing ──────────────────────────────────────────
   const handleRoute = useCallback((route) => {
+    if (route.lang) setLang(route.lang);
     if (route.view === "node") {
       setSelected(route.nodeId);
       setOpenResourceIdx(null);
@@ -142,7 +143,7 @@ export default function CurriculumGraph({
       setSelected(null);
       setOpenResourceIdx(null);
     }
-  }, [setDiagMode, setMode, startDeepDive]);
+  }, [setLang, setDiagMode, setMode, startDeepDive]);
 
   const { setRoute } = useHashRouter(handleRoute);
 
@@ -150,20 +151,20 @@ export default function CurriculumGraph({
   useEffect(() => {
     if (diagMode) {
       if (mode === "deepdive" && targetNode) {
-        setRoute({ view: "diagnostic", mode: "deepdive", goalNode: targetNode });
+        setRoute({ view: "diagnostic", mode: "deepdive", goalNode: targetNode, lang });
       } else {
-        setRoute({ view: "diagnostic", mode: "quick" });
+        setRoute({ view: "diagnostic", mode: "quick", lang });
       }
     } else if (selected) {
       if (openResourceIdx != null) {
-        setRoute({ view: "resource", nodeId: selected, resourceIndex: openResourceIdx });
+        setRoute({ view: "resource", nodeId: selected, resourceIndex: openResourceIdx, lang });
       } else {
-        setRoute({ view: "node", nodeId: selected });
+        setRoute({ view: "node", nodeId: selected, lang });
       }
     } else {
-      setRoute({ view: "graph" });
+      setRoute({ view: "graph", lang });
     }
-  }, [selected, openResourceIdx, diagMode, mode, targetNode, setRoute]);
+  }, [selected, openResourceIdx, diagMode, mode, targetNode, lang, setRoute]);
 
   // ── Derived display state ───────────────────────────────────────
   const filteredIds = useMemo(() => {

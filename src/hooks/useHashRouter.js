@@ -4,53 +4,63 @@ import { useEffect, useCallback, useRef } from "react";
  * Lightweight hash-based router.
  *
  * URL scheme (all under window.location.hash):
- *   #/                                → graph explore (no node selected)
- *   #/node/<nodeId>                   → node selected (InfoPanel open)
- *   #/node/<nodeId>/resource/<index>  → resource viewer open
- *   #/diagnostic/quick                → quick diagnostic mode
- *   #/diagnostic/deepdive/<goalNode>  → deep-dive mode with goal
+ *   #/<lang>/                                → graph explore
+ *   #/<lang>/node/<nodeId>                   → node selected (InfoPanel open)
+ *   #/<lang>/node/<nodeId>/resource/<index>  → resource viewer open
+ *   #/<lang>/diagnostic/quick                → quick diagnostic mode
+ *   #/<lang>/diagnostic/deepdive/<goalNode>  → deep-dive mode with goal
  *
- * The hook reads the hash on mount and on popstate, calling the provided
- * `onRoute` callback.  It also exposes `setRoute` to push new state.
+ * <lang> is "pl" or "en". Falls back to "pl" if missing.
  */
+
+const VALID_LANGS = new Set(["pl", "en"]);
 
 export function parseHash(hash) {
   const raw = (hash || "").replace(/^#\/?/, "");
   const parts = raw.split("/").filter(Boolean);
 
-  if (parts[0] === "node" && parts[1]) {
-    const nodeId = decodeURIComponent(parts[1]);
-    if (parts[2] === "resource" && parts[3] != null) {
-      return { view: "resource", nodeId, resourceIndex: parseInt(parts[3], 10) };
-    }
-    return { view: "node", nodeId };
+  // Extract language prefix
+  let lang = "pl";
+  let rest = parts;
+  if (parts.length > 0 && VALID_LANGS.has(parts[0])) {
+    lang = parts[0];
+    rest = parts.slice(1);
   }
 
-  if (parts[0] === "diagnostic") {
-    if (parts[1] === "deepdive" && parts[2]) {
-      return { view: "diagnostic", mode: "deepdive", goalNode: decodeURIComponent(parts[2]) };
+  if (rest[0] === "node" && rest[1]) {
+    const nodeId = decodeURIComponent(rest[1]);
+    if (rest[2] === "resource" && rest[3] != null) {
+      return { view: "resource", nodeId, resourceIndex: parseInt(rest[3], 10), lang };
     }
-    if (parts[1] === "quick") {
-      return { view: "diagnostic", mode: "quick" };
+    return { view: "node", nodeId, lang };
+  }
+
+  if (rest[0] === "diagnostic") {
+    if (rest[1] === "deepdive" && rest[2]) {
+      return { view: "diagnostic", mode: "deepdive", goalNode: decodeURIComponent(rest[2]), lang };
+    }
+    if (rest[1] === "quick") {
+      return { view: "diagnostic", mode: "quick", lang };
     }
   }
 
-  return { view: "graph" };
+  return { view: "graph", lang };
 }
 
 export function buildHash(route) {
-  if (!route) return "#/";
+  const lang = route?.lang || "pl";
+  if (!route) return `#/${lang}`;
   switch (route.view) {
     case "node":
-      return `#/node/${encodeURIComponent(route.nodeId)}`;
+      return `#/${lang}/node/${encodeURIComponent(route.nodeId)}`;
     case "resource":
-      return `#/node/${encodeURIComponent(route.nodeId)}/resource/${route.resourceIndex}`;
+      return `#/${lang}/node/${encodeURIComponent(route.nodeId)}/resource/${route.resourceIndex}`;
     case "diagnostic":
       if (route.mode === "deepdive" && route.goalNode)
-        return `#/diagnostic/deepdive/${encodeURIComponent(route.goalNode)}`;
-      return "#/diagnostic/quick";
+        return `#/${lang}/diagnostic/deepdive/${encodeURIComponent(route.goalNode)}`;
+      return `#/${lang}/diagnostic/quick`;
     default:
-      return "#/";
+      return `#/${lang}`;
   }
 }
 
@@ -85,10 +95,8 @@ export function useHashRouter(onRoute) {
 
     // Initial route from URL (deferred so component state is ready)
     const initial = parseHash(window.location.hash);
-    if (initial.view !== "graph") {
-      // Use microtask so the component has finished its first render
-      Promise.resolve().then(() => onRouteRef.current(initial));
-    }
+    // Always fire on initial load so language is applied
+    Promise.resolve().then(() => onRouteRef.current(initial));
 
     return () => window.removeEventListener("hashchange", handlePop);
   }, []);
