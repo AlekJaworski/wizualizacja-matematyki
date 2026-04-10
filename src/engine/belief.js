@@ -9,6 +9,22 @@
  * The algorithm only operates within this pruned graph.
  */
 
+// ── Tuning knobs ─────────────────────────────────────────────────
+export const DIAG_CONFIG = {
+  // Quick mode: max questions before auto-completing the session
+  quickMaxQuestions: 20,
+  // Quick mode: if unclassified ratio drops below this, session is "good enough"
+  quickCompletionRatio: 0.10,
+
+  // Deep-dive: Beta classification thresholds
+  deepKnownThreshold: 0.70,    // mean above this → "known"
+  deepUnknownThreshold: 0.30,  // mean below this → "unknown"
+  deepMinStrength: 2.5,        // min evidence before classifying
+
+  // Deep-dive: max questions before auto-completing
+  deepMaxQuestions: 15,
+};
+
 /**
  * Mark a node as known and propagate upward: all prerequisites must also be known.
  * @param {string} id
@@ -321,9 +337,9 @@ export function classifyNodes(nodeIds, betaBeliefs) {
     const strength = b.alpha + b.beta;
     const mean = b.alpha / strength;
 
-    if (mean > 0.75 && strength > 2) {
+    if (mean > DIAG_CONFIG.deepKnownThreshold && strength > DIAG_CONFIG.deepMinStrength) {
       result[id] = "known";
-    } else if (mean < 0.25 && strength > 2) {
+    } else if (mean < DIAG_CONFIG.deepUnknownThreshold && strength > DIAG_CONFIG.deepMinStrength) {
       result[id] = "unknown";
     } else {
       result[id] = "uncertain";
@@ -435,26 +451,38 @@ export function pickNextQuestionForSubgraph(subgraphIds, betaBeliefs, classifica
 }
 
 /**
- * Check if all nodes in a subgraph are classified (no "uncertain" remain).
+ * Check if deep-dive is complete:
+ *   - All nodes classified, OR
+ *   - Max questions reached
  * @param {string[]} subgraphIds
  * @param {Record<string,"known"|"unknown"|"uncertain">} classification
+ * @param {number} [questionsAnswered=0]
  * @returns {boolean}
  */
-export function isDeepDiveComplete(subgraphIds, classification) {
-  return subgraphIds.every(id => classification[id] !== "uncertain");
+export function isDeepDiveComplete(subgraphIds, classification, questionsAnswered = 0) {
+  if (subgraphIds.every(id => classification[id] !== "uncertain")) return true;
+  if (questionsAnswered >= DIAG_CONFIG.deepMaxQuestions) return true;
+  return false;
 }
 
 /**
  * Check whether the diagnostic session is complete.
- * Complete = no unclassified nodes remain in the active DAG.
- * (Every node is either known, unknown, or blocked by an unknown ancestor —
- * but blocked nodes are themselves marked unknown by propagateUnknown, so
- * "no unclassified nodes" is the exact right check.)
+ * Complete when:
+ *   - All nodes classified, OR
+ *   - Max questions reached, OR
+ *   - Unclassified ratio below threshold (good enough)
  *
  * @param {Array<{id:string}>} nodes
  * @param {Record<string,"known"|"unknown">} belief
+ * @param {number} [questionsAnswered=0]
  * @returns {boolean}
  */
-export function isSessionComplete(nodes, belief) {
-  return nodes.every(n => belief[n.id] === "known" || belief[n.id] === "unknown");
+export function isSessionComplete(nodes, belief, questionsAnswered = 0) {
+  const total = nodes.length;
+  if (total === 0) return true;
+  const unclassified = nodes.filter(n => belief[n.id] !== "known" && belief[n.id] !== "unknown").length;
+  if (unclassified === 0) return true;
+  if (questionsAnswered >= DIAG_CONFIG.quickMaxQuestions) return true;
+  if (unclassified / total <= DIAG_CONFIG.quickCompletionRatio) return true;
+  return false;
 }

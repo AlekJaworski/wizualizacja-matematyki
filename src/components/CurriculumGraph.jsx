@@ -18,11 +18,11 @@ import { InfoPanel }           from "./panels/InfoPanel.jsx";
 import { QuizPanel }           from "./panels/QuizPanel.jsx";
 import { DiagnosticPanel }     from "./panels/DiagnosticPanel.jsx";
 import { DeepDivePanel }       from "./panels/DeepDivePanel.jsx";
-import { FilterBar }           from "./ui/FilterBar.jsx";
 import { Legend }              from "./ui/Legend.jsx";
 import { GoalSelectionModal }  from "./ui/GoalSelectionModal.jsx";
 import { DiagnosticModeModal } from "./ui/DiagnosticModeModal.jsx";
 import { OnboardingModal }     from "./ui/OnboardingModal.jsx";
+import { SettingsDropdown }    from "./ui/SettingsDropdown.jsx";
 
 const DEFAULT_VIEW    = { x: 40,  y: 40,  scale: 0.72 };
 const DEFAULT_VIEW_MB = { x: 20,  y: 20,  scale: 0.42 };
@@ -54,7 +54,7 @@ export default function CurriculumGraph({
   // ── Modals ──────────────────────────────────────────────────────
   const [showGoalModal,   setShowGoalModal]   = useState(false);
   const [showModePicker,  setShowModePicker]  = useState(false);
-  const [showMobileMenu,  setShowMobileMenu]  = useState(false);
+
 
   // ── Onboarding ───────────────────────────────────────────────────
   const [onboardingSeen, setOnboardingSeen] = useLocalStorage("onboardingSeen", false);
@@ -173,10 +173,13 @@ export default function CurriculumGraph({
     }
   }, [isMobile]);
 
-  // ── Auto-advance quiz ────────────────────────────────────────────
+  // ── Auto-advance quiz (only after answering, not after manual close) ──
+  const autoAdvanceRef = useRef(false);
+
   useEffect(() => {
     if (!diagMode || mode !== "quick") return;
-    if (!quizNode && nextSuggestedId && !sessionComplete && hasStarted) {
+    if (!quizNode && nextSuggestedId && !sessionComplete && hasStarted && autoAdvanceRef.current) {
+      autoAdvanceRef.current = false;
       const timer = setTimeout(() => setQuizNode(nextSuggestedId), 400);
       return () => clearTimeout(timer);
     }
@@ -184,7 +187,8 @@ export default function CurriculumGraph({
 
   useEffect(() => {
     if (!diagMode || mode !== "deepdive") return;
-    if (!quizNode && ddNextNodeId && !ddComplete) {
+    if (!quizNode && ddNextNodeId && !ddComplete && autoAdvanceRef.current) {
+      autoAdvanceRef.current = false;
       const timer = setTimeout(() => setQuizNode(ddNextNodeId), 400);
       return () => clearTimeout(timer);
     }
@@ -194,13 +198,12 @@ export default function CurriculumGraph({
   useEffect(() => {
     const onKey = e => {
       if (e.key !== "Escape") return;
-      if (quizNode) { setQuizNode(null); return; }   // dismiss quiz without skipping
       setSelected(null);
       setShowGoalModal(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [quizNode]);
+  }, []);
 
   // ── Layout switcher ─────────────────────────────────────────────
   const switchLayout = useCallback(id => {
@@ -266,7 +269,7 @@ export default function CurriculumGraph({
   // Disable SVG interaction whenever any overlay modal is open so touch events
   // on fixed-position modals are not intercepted by the SVG's non-passive
   // touch listeners (which cover the full viewport).
-  const anyModalOpen = showOnboarding || showModePicker || showGoalModal || !!(diagMode && quizNode);
+  const anyModalOpen = showOnboarding || showModePicker || showGoalModal;
 
   // ── Shared button style ─────────────────────────────────────────
   const hdrBtn = (active, color = "#4a9eff") => ({
@@ -286,94 +289,69 @@ export default function CurriculumGraph({
     }}>
 
       {/* ── HEADER ─────────────────────────────────────────────────── */}
-      {isMobile ? (
-        /* Mobile header: title + diagnostic button + lang */
-        <div style={{
-          padding: "8px 12px",
-          borderBottom: `1px solid ${COLORS.borderSubtle}`,
-          display: "flex", alignItems: "center", gap: 8, flexShrink: 0,
+      <div style={{
+        padding: isMobile ? "8px 12px" : "8px 16px",
+        borderBottom: `1px solid ${COLORS.borderSubtle}`,
+        display: "flex", alignItems: "center", gap: isMobile ? 8 : 10, flexShrink: 0,
+      }}>
+        {onBackToCourses && (
+          <button onClick={onBackToCourses} style={{ ...hdrBtn(false), padding: "7px 10px" }}>←</button>
+        )}
+        <h1 style={{
+          margin: 0, fontSize: 13, fontWeight: 700,
+          color: COLORS.textPrimary, letterSpacing: isMobile ? 0.5 : 1,
+          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+          flex: 1,
         }}>
-          {onBackToCourses && (
-            <button onClick={onBackToCourses} style={{ ...hdrBtn(false), padding: "7px 10px" }}>←</button>
-          )}
-          <h1 style={{
-            margin: 0, fontSize: 13, fontWeight: 700,
-            color: COLORS.textPrimary, letterSpacing: 0.5,
-            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1,
-          }}>
-            {displayTitle}
-          </h1>
-          <button
-            onClick={handleDiagnosticToggle}
-            style={hdrBtn(diagMode, "#f39c12")}
-          >
-            {diagMode ? "✓" : t("diagnosticOff", lang)}
-          </button>
-          <button
-            style={hdrBtn(true, lang === "pl" ? "#f5a623" : "#4a9eff")}
-            onClick={() => setLang(l => l === "pl" ? "en" : "pl")}
-          >
-            {lang === "pl" ? "PL" : "EN"}
-          </button>
-        </div>
-      ) : (
-        /* Desktop header */
-        <div style={{
-          padding: "8px 16px", borderBottom: `1px solid ${COLORS.borderSubtle}`,
-          display: "flex", alignItems: "center", gap: 10, flexShrink: 0, flexWrap: "wrap",
-        }}>
-          {onBackToCourses && (
-            <button onClick={onBackToCourses} style={hdrBtn(false)}>←</button>
-          )}
-          <h1 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: COLORS.textPrimary, letterSpacing: 1, whiteSpace: "nowrap" }}>
-            {displayTitle}
-          </h1>
-          <span style={{ fontSize: 9, color: COLORS.textFaint, whiteSpace: "nowrap" }}>
-            {RAW_NODES.length} {t("topicsCount", lang)} · {RAW_EDGES.length} {t("edgesCount", lang)}
-          </span>
-          <span style={{ fontSize: 9, color: COLORS.textFaint, marginLeft: "auto" }}>
-            {diagMode
-              ? mode === "deepdive" ? t("hintDiagDeep", lang) : t("hintDiagQuick", lang)
-              : t("hintBrowse", lang)}
-          </span>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <div style={{ display: "flex", gap: 3 }}>
-              {LAYOUTS.map(l => (
-                <button key={l.meta.id} onClick={() => switchLayout(l.meta.id)}
-                  style={hdrBtn(layoutId === l.meta.id)}>
-                  {l.meta.label}
-                </button>
-              ))}
-            </div>
-            <span style={{ color: COLORS.border }}>|</span>
-            <button onClick={handleDiagnosticToggle} style={hdrBtn(diagMode, "#f39c12")}>
-              {diagMode
-                ? mode === "deepdive" ? t("diagnosticOnDeep", lang) : t("diagnosticOnQuick", lang)
-                : t("diagnosticOff", lang)}
-            </button>
-            {diagMode && (
-              <button onClick={() => setShowGoalModal(true)} style={hdrBtn(mode === "deepdive", "#8e44ad")}>
-                {t("goalBtn", lang)}
-              </button>
-            )}
-            <span style={{ color: COLORS.border }}>|</span>
-            <button style={hdrBtn(true, lang === "pl" ? "#f5a623" : "#4a9eff")}
-              onClick={() => setLang(l => l === "pl" ? "en" : "pl")}>
-              {lang === "pl" ? "PL" : "EN"}
-            </button>
-          </div>
-        </div>
-      )}
+          {displayTitle}
+        </h1>
 
-      {/* ── FILTER BAR ─────────────────────────────────────────────── */}
-      <FilterBar
-        filterScope={filterScope}     toggleScope={toggleScope}     clearScope={clearScope}
-        filterSection={filterSection} toggleSection={toggleSection} clearSection={clearSection}
-        searchTerm={searchTerm} setSearchTerm={setSearchTerm}
-        lang={lang} setLang={setLang}
-        SECTIONS={SECTIONS} SCOPE_COLORS={SCOPE_COLORS} SCOPE_LABELS={SCOPE_LABELS}
-        isMobile={isMobile}
-      />
+        {/* ── Mode toggle: Explore / Diagnostic ── */}
+        <div style={{ display: "flex", gap: 0, borderRadius: 6, overflow: "hidden", border: `1px solid ${COLORS.border}` }}>
+          <button
+            onClick={() => { if (diagMode) { setDiagMode(false); resetDiagnostic(); setSelected(null); } }}
+            style={{
+              padding: isMobile ? "7px 12px" : "7px 16px", fontSize: 12, cursor: "pointer",
+              border: "none", fontWeight: !diagMode ? 700 : 400,
+              background: !diagMode ? "#4a9eff22" : "transparent",
+              color: !diagMode ? "#4a9eff" : COLORS.textDim,
+            }}
+          >
+            {t("exploreMode", lang)}
+          </button>
+          <button
+            onClick={() => { if (!diagMode) setShowModePicker(true); }}
+            style={{
+              padding: isMobile ? "7px 12px" : "7px 16px", fontSize: 12, cursor: "pointer",
+              border: "none", borderLeft: `1px solid ${COLORS.border}`, fontWeight: diagMode ? 700 : 400,
+              background: diagMode ? "#f39c1222" : "transparent",
+              color: diagMode ? "#f39c12" : COLORS.textDim,
+            }}
+          >
+            {diagMode
+              ? mode === "deepdive" ? t("diagnosticOnDeep", lang) : t("diagnosticOnQuick", lang)
+              : t("diagnosticOff", lang)}
+          </button>
+        </div>
+
+        {/* Goal button (diagnostic deep-dive only) */}
+        {diagMode && (
+          <button onClick={() => setShowGoalModal(true)} style={hdrBtn(mode === "deepdive", "#8e44ad")}>
+            {t("goalBtn", lang)}
+          </button>
+        )}
+
+        {/* ── Settings gear ── */}
+        <SettingsDropdown
+          lang={lang} setLang={(l) => typeof l === "function" ? setLang(l) : setLang(l)}
+          layoutId={layoutId} layouts={LAYOUTS} onLayoutChange={switchLayout}
+          searchTerm={searchTerm} setSearchTerm={setSearchTerm}
+          filterScope={filterScope} toggleScope={toggleScope} clearScope={clearScope}
+          filterSection={filterSection} toggleSection={toggleSection} clearSection={clearSection}
+          SECTIONS={SECTIONS} SCOPE_COLORS={SCOPE_COLORS} SCOPE_LABELS={SCOPE_LABELS}
+          isMobile={isMobile}
+        />
+      </div>
 
       {/* ── CANVAS ─────────────────────────────────────────────────── */}
       <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
@@ -437,15 +415,17 @@ export default function CurriculumGraph({
           />
         )}
 
-        {/* Quiz modal */}
+        {/* Quiz panel (non-blocking side panel) */}
         {diagMode && quizNode && (
           <QuizPanel
             nodeId={quizNode} nodes={nodes} lang={lang}
             questionBank={QUESTION_BANK}
             excludeIndices={getAnsweredIndices(quizNode)}
-            onAnswer={(correct, question, questionIndex) =>
-              handleQuizAnswer(quizNode, correct, question, questionIndex)
-            }
+            isMobile={isMobile}
+            onAnswer={(correct, question, questionIndex) => {
+              autoAdvanceRef.current = true;
+              handleQuizAnswer(quizNode, correct, question, questionIndex);
+            }}
             onSkip={(questionIndex) => {
               if (typeof questionIndex === "number") {
                 setAnsweredQuestions(prev => new Set([...prev, `${quizNode}:${questionIndex}`]));
@@ -456,7 +436,7 @@ export default function CurriculumGraph({
         )}
 
         {/* Quick mode sidebar */}
-        {diagMode && mode === "quick" && !quizNode && (
+        {diagMode && mode === "quick" && (
           <DiagnosticPanel
             belief={belief} frontier={frontier} visibleFrontier={visibleFrontier}
             hasStarted={hasStarted} nextSuggestedId={nextSuggestedId}
@@ -471,7 +451,7 @@ export default function CurriculumGraph({
         )}
 
         {/* Deep-dive sidebar */}
-        {diagMode && mode === "deepdive" && !quizNode && targetNode && (
+        {diagMode && mode === "deepdive" && targetNode && (
           <DeepDivePanel
             nodes={nodes} lang={lang} targetNode={targetNode}
             subgraphIds={subgraphIds} ddClassification={ddClassification}

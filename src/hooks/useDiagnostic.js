@@ -108,8 +108,8 @@ export function useDiagnostic(adjacency, questionBank, courseId) {
   );
 
   const sessionComplete = useMemo(
-    () => diagMode && mode === "quick" && hasStarted && isSessionComplete(allNodeIds, belief),
-    [diagMode, mode, hasStarted, belief, allNodeIds]
+    () => diagMode && mode === "quick" && hasStarted && isSessionComplete(allNodeIds, belief, questionsAnswered),
+    [diagMode, mode, hasStarted, belief, allNodeIds, questionsAnswered]
   );
 
   // ── Deep-dive derived state ──────────────────────────────────────
@@ -131,8 +131,8 @@ export function useDiagnostic(adjacency, questionBank, courseId) {
 
   const ddComplete = useMemo(() => {
     if (!diagMode || mode !== "deepdive" || subgraphIds.length === 0) return false;
-    return isDeepDiveComplete(subgraphIds, ddClassification);
-  }, [diagMode, mode, subgraphIds, ddClassification]);
+    return isDeepDiveComplete(subgraphIds, ddClassification, questionsAnswered);
+  }, [diagMode, mode, subgraphIds, ddClassification, questionsAnswered]);
 
   // ── Handlers ─────────────────────────────────────────────────────
 
