@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trigonometry Explorer — Unit Circle & Graphs</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+  #tf { margin: 0 0 5px; font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  #td { margin: 0 0 10px; font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); min-height: 48px; }
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 36px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 56px; text-align: right; }
+  .nav { display: flex; align-items: center; justify-content: space-between; }
+  button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  button:hover { background: rgba(255,255,255,.08); }
+  button:disabled { opacity: .3; cursor: default; }
+  #tdots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.18); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="tc" width="600" height="310"></canvas>
+  <div class="panel">
+    <p id="tf"></p>
+    <p id="td"></p>
+
+    <div id="sl_angle" style="display:none;margin-bottom:8px;">
+      <div class="sliders">
+        <div class="slider-row">
+          <span class="lbl" style="color:#58C4DD;">&theta; =</span>
+          <input type="range" id="theta" min="0" max="360" step="1" value="45">
+          <span class="val" id="thetav" style="color:#58C4DD;"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav">
+      <button id="tprev">&larr; prev</button>
+      <div id="tdots"></div>
+      <button id="tnext">next &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+const cv=document.getElementById('tc'),cx=cv.getContext('2d');
+const W=600,H=310;
+const SIN='#58C4DD',COS='#FF9A3C',TAN='#83C167';
+
+let stage=0, theta=45, animTheta=45;
+let selectedAngle=-1;
+
+const DEG=Math.PI/180;
+
+const stages=[
+  {f:'Unit Circle',
+   d:'Drag \u03b8 to move the point around the unit circle. The x-projection is cos(\u03b8), the y-projection is sin(\u03b8).'},
+  {f:'sin / cos / tan Definitions',
+   d:'Right triangle with angle \u03b8. sin = opp/hyp, cos = adj/hyp, tan = opp/adj. Drag \u03b8 to see live values.'},
+  {f:'y = sin(x)',
+   d:'The sine wave traces the y-coordinate of the unit circle point. The vertical line syncs with the circle.'},
+  {f:'y = cos(x)',
+   d:'Cosine is the x-coordinate. Note cos(x) = sin(x + 90\u00b0) \u2014 a phase shift of \u03c0/2.'},
+  {f:'Key Angles',
+   d:'Special angles with exact values. Click any angle marker on the circle to highlight it.'},
+];
+
+const specialAngles=[
+  {deg:0,   sin:'0',      cos:'1',      sinV:0,           cosV:1},
+  {deg:30,  sin:'1/2',    cos:'\u221a3/2',  sinV:0.5,         cosV:Math.sqrt(3)/2},
+  {deg:45,  sin:'\u221a2/2',  cos:'\u221a2/2',  sinV:Math.sqrt(2)/2, cosV:Math.sqrt(2)/2},
+  {deg:60,  sin:'\u221a3/2',  cos:'1/2',      sinV:Math.sqrt(3)/2, cosV:0.5},
+  {deg:90,  sin:'1',      cos:'0',      sinV:1,           cosV:0},
+];
+
+function ease(t){return t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;}
+
+function renderDots(){
+  const dc=document.getElementById('tdots');
+  dc.innerHTML=stages.map((_,i)=>
+    `<span class="dot${i===stage?' active':''}" data-i="${i}"></span>`
+  ).join('');
+  dc.querySelectorAll('span').forEach(s=>s.addEventListener('click',()=>goTo(+s.dataset.i)));
+}
+
+function goTo(idx){
+  idx=Math.max(0,Math.min(stages.length-1,idx));
+  stage=idx;
+  selectedAngle=-1;
+  const s=stages[idx];
+  document.getElementById('tf').innerHTML=s.f;
+  document.getElementById('td').innerHTML=s.d;
+  document.getElementById('sl_angle').style.display=(idx<=3)?'block':'none';
+  document.getElementById('tprev').disabled=idx===0;
+  document.getElementById('tnext').disabled=idx===stages.length-1;
+  updateLabel();
+  renderDots();
+}
+
+function updateLabel(){
+  const deg=Math.round(theta);
+  document.getElementById('thetav').textContent=deg+'\u00b0 ('+((theta*DEG).toFixed(2))+' rad)';
+}
+
+document.getElementById('tprev').addEventListener('click',()=>goTo(stage-1));
+document.getElementById('tnext').addEventListener('click',()=>goTo(stage+1));
+document.getElementById('theta').addEventListener('input',function(){
+  theta=+this.value; animTheta=theta; updateLabel();
+});
+
+// Click detection for stage 4
+cv.addEventListener('click',function(e){
+  if(stage!==4) return;
+  const rect=cv.getBoundingClientRect();
+  const scaleX=W/rect.width, scaleY=H/rect.height;
+  const mx=(e.clientX-rect.left)*scaleX;
+  const my=(e.clientY-rect.top)*scaleY;
+  const ccx=155, ccy=155, cr=120;
+  for(let i=0;i<specialAngles.length;i++){
+    const a=specialAngles[i];
+    const rad=a.deg*DEG;
+    const px=ccx+cr*Math.cos(rad), py_=ccy-cr*Math.sin(rad);
+    const dx=mx-px, dy=my-py_;
+    if(dx*dx+dy*dy<200){
+      selectedAngle=(selectedAngle===i)?-1:i;
+      return;
+    }
+  }
+});
+
+// ── Drawing helpers ──────────────────────────────────────────
+
+function gdot(x,y,r,col){
+  cx.beginPath();cx.arc(x,y,r,0,Math.PI*2);cx.fillStyle=col;
+  cx.shadowColor=col;cx.shadowBlur=12;cx.fill();cx.shadowBlur=0;
+}
+
+function drawUnitCircle(ccx,ccy,cr,ang,showProjections){
+  const rad=ang*DEG;
+  const cosA=Math.cos(rad), sinA=Math.sin(rad);
+  const px=ccx+cr*cosA, py=ccy-cr*sinA;
+
+  // circle
+  cx.beginPath();cx.arc(ccx,ccy,cr,0,Math.PI*2);
+  cx.strokeStyle='rgba(255,255,255,.2)';cx.lineWidth=1.5;cx.stroke();
+
+  // axes through center
+  cx.strokeStyle='rgba(255,255,255,.15)';cx.lineWidth=1;
+  cx.beginPath();cx.moveTo(ccx-cr-15,ccy);cx.lineTo(ccx+cr+15,ccy);cx.stroke();
+  cx.beginPath();cx.moveTo(ccx,ccy-cr-15);cx.lineTo(ccx,ccy+cr+15);cx.stroke();
+
+  // angle arc
+  cx.beginPath();cx.arc(ccx,ccy,22,0,-rad,true);
+  cx.strokeStyle='rgba(255,255,255,.35)';cx.lineWidth=1.2;cx.stroke();
+  // angle label
+  const labelRad=rad/2;
+  cx.fillStyle='rgba(255,255,255,.5)';cx.font='11px monospace';cx.textAlign='center';
+  cx.fillText(Math.round(ang)+'\u00b0',ccx+32*Math.cos(-labelRad),ccy+32*Math.sin(-labelRad)+4);
+
+  // radius line
+  cx.beginPath();cx.moveTo(ccx,ccy);cx.lineTo(px,py);
+  cx.strokeStyle='rgba(255,255,255,.55)';cx.lineWidth=1.8;cx.stroke();
+
+  if(showProjections){
+    // cos projection (horizontal)
+    cx.setLineDash([4,4]);
+    cx.strokeStyle=COS;cx.lineWidth=1.5;
+    cx.beginPath();cx.moveTo(px,py);cx.lineTo(px,ccy);cx.stroke();
+    // sin projection (vertical)
+    cx.strokeStyle=SIN;
+    cx.beginPath();cx.moveTo(px,py);cx.lineTo(ccx,py);cx.stroke();
+    cx.setLineDash([]);
+
+    // cos bar on x-axis
+    cx.beginPath();cx.moveTo(ccx,ccy);cx.lineTo(px,ccy);
+    cx.strokeStyle=COS;cx.lineWidth=3;cx.stroke();
+
+    // sin bar on y-axis
+    cx.beginPath();cx.moveTo(ccx,ccy);cx.lineTo(ccx,py);
+    cx.strokeStyle=SIN;cx.lineWidth=3;cx.stroke();
+
+    // labels
+    cx.font='12px monospace';cx.textAlign='center';
+    cx.fillStyle=COS;
+    cx.fillText('cos='+(cosA).toFixed(3),(ccx+px)/2,ccy+16);
+    cx.fillStyle=SIN;
+    cx.fillText('sin='+(sinA).toFixed(3),ccx-45,(ccy+py)/2+4);
+  }
+
+  // point
+  gdot(px,py,5,'#fff');
+
+  // coordinate label
+  cx.fillStyle='rgba(255,255,255,.75)';cx.font='11px monospace';cx.textAlign='left';
+  cx.fillText('('+cosA.toFixed(2)+', '+sinA.toFixed(2)+')',px+8,py-8);
+}
+
+function drawRightTriangle(ang){
+  const rad=Math.max(5,Math.min(85,ang))*DEG;
+  const cosA=Math.cos(rad), sinA=Math.sin(rad);
+  const tx=80, ty=240, tw=200, th=180;
+  const adj=tw*cosA/1, opp=tw*sinA/1;
+  // scale to fit
+  const scale=Math.min(tw/Math.max(adj,1),th/Math.max(opp,1),1)*0.85;
+  const ax=adj*scale, oy=opp*scale;
+
+  const Ax=tx, Ay=ty;          // bottom-left (angle vertex)
+  const Bx=tx+ax, By=ty;       // bottom-right
+  const Cx=tx+ax, Cy=ty-oy;    // top-right
+
+  // triangle
+  cx.beginPath();cx.moveTo(Ax,Ay);cx.lineTo(Bx,By);cx.lineTo(Cx,Cy);cx.closePath();
+  cx.strokeStyle='rgba(255,255,255,.5)';cx.lineWidth=2;cx.stroke();
+
+  // right angle marker
+  const rm=12;
+  cx.beginPath();cx.moveTo(Bx-rm,By);cx.lineTo(Bx-rm,By-rm);cx.lineTo(Bx,By-rm);
+  cx.strokeStyle='rgba(255,255,255,.25)';cx.lineWidth=1;cx.stroke();
+
+  // angle arc
+  cx.beginPath();cx.arc(Ax,Ay,25,0,-rad,true);
+  cx.strokeStyle='rgba(255,255,255,.35)';cx.lineWidth=1.2;cx.stroke();
+  cx.fillStyle='rgba(255,255,255,.5)';cx.font='11px monospace';cx.textAlign='left';
+  cx.fillText('\u03b8',Ax+30,Ay-6);
+
+  // side labels
+  cx.font='13px monospace';cx.textAlign='center';
+  // adjacent (bottom)
+  cx.fillStyle=COS;
+  cx.fillText('adj',(Ax+Bx)/2,Ay+18);
+  // opposite (right side)
+  cx.fillStyle=SIN;
+  cx.save();cx.translate(Bx+18,(By+Cy)/2);cx.rotate(-Math.PI/2);cx.fillText('opp',0,0);cx.restore();
+  // hypotenuse
+  cx.fillStyle='rgba(255,255,255,.6)';
+  const hx=(Ax+Cx)/2-14, hy=(Ay+Cy)/2;
+  cx.fillText('hyp',hx,hy);
+
+  // formulas on the right
+  const fx=340, fy=60;
+  const sv=sinA.toFixed(3), cv_=cosA.toFixed(3), tv=Math.abs(ang%180-90)<1?'undef':Math.tan(rad).toFixed(3);
+
+  cx.font='14px monospace';cx.textAlign='left';
+  cx.fillStyle=SIN;
+  cx.fillText('sin(\u03b8) = opp/hyp = '+sv,fx,fy);
+  cx.fillStyle=COS;
+  cx.fillText('cos(\u03b8) = adj/hyp = '+cv_,fx,fy+28);
+  cx.fillStyle=TAN;
+  cx.fillText('tan(\u03b8) = opp/adj = '+tv,fx,fy+56);
+
+  // ratio visualisation bars
+  const barX=fx, barY=fy+80, barW=180, barH=10;
+  // sin bar
+  cx.fillStyle='rgba(88,196,221,.15)';cx.fillRect(barX,barY,barW,barH);
+  cx.fillStyle=SIN;cx.fillRect(barX,barY,barW*Math.abs(sinA),barH);
+  cx.fillStyle='rgba(255,255,255,.4)';cx.font='10px monospace';cx.fillText('sin',barX+barW+5,barY+9);
+  // cos bar
+  cx.fillStyle='rgba(255,154,60,.15)';cx.fillRect(barX,barY+18,barW,barH);
+  cx.fillStyle=COS;cx.fillRect(barX,barY+18,barW*Math.abs(cosA),barH);
+  cx.fillStyle='rgba(255,255,255,.4)';cx.fillText('cos',barX+barW+5,barY+27);
+  // tan bar (clamped)
+  const tanV=Math.min(Math.abs(Math.tan(rad)),5)/5;
+  cx.fillStyle='rgba(131,193,103,.15)';cx.fillRect(barX,barY+36,barW,barH);
+  cx.fillStyle=TAN;cx.fillRect(barX,barY+36,barW*tanV,barH);
+  cx.fillStyle='rgba(255,255,255,.4)';cx.fillText('tan',barX+barW+5,barY+45);
+}
+
+function drawSineGraph(ang){
+  const gx=310, gy=40, gw=270, gh=120;
+  const gcx_=gx, gcy=gy+gh/2;
+
+  // graph background
+  cx.fillStyle='rgba(22,22,26,.6)';
+  cx.fillRect(gx-5,gy-10,gw+15,gh+25);
+
+  // horizontal axis
+  cx.strokeStyle='rgba(255,255,255,.2)';cx.lineWidth=1;
+  cx.beginPath();cx.moveTo(gx,gcy);cx.lineTo(gx+gw,gcy);cx.stroke();
+  // vertical axis
+  cx.beginPath();cx.moveTo(gx,gy);cx.lineTo(gx,gy+gh);cx.stroke();
+
+  // labels
+  cx.fillStyle='rgba(255,255,255,.3)';cx.font='10px monospace';cx.textAlign='center';
+  cx.fillText('0\u00b0',gx,gcy+14);
+  cx.fillText('180\u00b0',gx+gw/2,gcy+14);
+  cx.fillText('360\u00b0',gx+gw,gcy+14);
+  cx.textAlign='right';
+  cx.fillText('1',gx-4,gy+4);
+  cx.fillText('-1',gx-4,gy+gh+4);
+
+  // sine curve
+  cx.beginPath();cx.strokeStyle=SIN;cx.lineWidth=2.2;
+  for(let i=0;i<=gw;i++){
+    const a=(i/gw)*360*DEG;
+    const y=gcy-Math.sin(a)*(gh/2-4);
+    if(i===0)cx.moveTo(gx+i,y);else cx.lineTo(gx+i,y);
+  }
+  cx.stroke();
+
+  // sweeping vertical line
+  const sx=gx+(ang/360)*gw;
+  const sy=gcy-Math.sin(ang*DEG)*(gh/2-4);
+  cx.setLineDash([3,3]);cx.strokeStyle='rgba(255,255,255,.3)';cx.lineWidth=1;
+  cx.beginPath();cx.moveTo(sx,gy);cx.lineTo(sx,gy+gh);cx.stroke();
+  cx.setLineDash([]);
+  gdot(sx,sy,4,SIN);
+
+  // amplitude/period annotations
+  cx.fillStyle='rgba(255,255,255,.25)';cx.font='10px monospace';cx.textAlign='left';
+  cx.fillText('amplitude = 1',gx+gw+4,gy+10);
+  cx.fillText('period = 360\u00b0',gx+gw+4,gy+24);
+
+  // title
+  cx.fillStyle=SIN;cx.font='13px monospace';cx.textAlign='left';
+  cx.fillText('y = sin(x)',gx,gy-14);
+
+  // unit circle on left, smaller
+  drawUnitCircle(145,155,110,ang,true);
+}
+
+function drawCosineGraph(ang){
+  const gx=310, gy=40, gw=270, gh=120;
+  const gcy=gy+gh/2;
+
+  cx.fillStyle='rgba(22,22,26,.6)';
+  cx.fillRect(gx-5,gy-10,gw+15,gh+25);
+
+  cx.strokeStyle='rgba(255,255,255,.2)';cx.lineWidth=1;
+  cx.beginPath();cx.moveTo(gx,gcy);cx.lineTo(gx+gw,gcy);cx.stroke();
+  cx.beginPath();cx.moveTo(gx,gy);cx.lineTo(gx,gy+gh);cx.stroke();
+
+  cx.fillStyle='rgba(255,255,255,.3)';cx.font='10px monospace';cx.textAlign='center';
+  cx.fillText('0\u00b0',gx,gcy+14);
+  cx.fillText('180\u00b0',gx+gw/2,gcy+14);
+  cx.fillText('360\u00b0',gx+gw,gcy+14);
+  cx.textAlign='right';
+  cx.fillText('1',gx-4,gy+4);
+  cx.fillText('-1',gx-4,gy+gh+4);
+
+  // cosine curve
+  cx.beginPath();cx.strokeStyle=COS;cx.lineWidth=2.2;
+  for(let i=0;i<=gw;i++){
+    const a=(i/gw)*360*DEG;
+    const y=gcy-Math.cos(a)*(gh/2-4);
+    if(i===0)cx.moveTo(gx+i,y);else cx.lineTo(gx+i,y);
+  }
+  cx.stroke();
+
+  // also draw faint sine for comparison
+  cx.beginPath();cx.strokeStyle='rgba(88,196,221,.25)';cx.lineWidth=1.2;
+  for(let i=0;i<=gw;i++){
+    const a=(i/gw)*360*DEG;
+    const y=gcy-Math.sin(a)*(gh/2-4);
+    if(i===0)cx.moveTo(gx+i,y);else cx.lineTo(gx+i,y);
+  }
+  cx.stroke();
+
+  const sx=gx+(ang/360)*gw;
+  const sy=gcy-Math.cos(ang*DEG)*(gh/2-4);
+  cx.setLineDash([3,3]);cx.strokeStyle='rgba(255,255,255,.3)';cx.lineWidth=1;
+  cx.beginPath();cx.moveTo(sx,gy);cx.lineTo(sx,gy+gh);cx.stroke();
+  cx.setLineDash([]);
+  gdot(sx,sy,4,COS);
+
+  // phase shift arrow
+  cx.fillStyle='rgba(255,255,255,.25)';cx.font='10px monospace';cx.textAlign='left';
+  cx.fillText('cos(x) = sin(x+90\u00b0)',gx+gw+4,gy+10);
+  cx.fillText('phase shift = 90\u00b0',gx+gw+4,gy+24);
+
+  cx.fillStyle=COS;cx.font='13px monospace';cx.textAlign='left';
+  cx.fillText('y = cos(x)',gx,gy-14);
+
+  // faint sin label
+  cx.fillStyle='rgba(88,196,221,.35)';cx.font='10px monospace';
+  cx.fillText('sin(x)',gx+gw*0.27,gy-3);
+
+  drawUnitCircle(145,155,110,ang,true);
+}
+
+function drawKeyAngles(){
+  const ccx=155, ccy=155, cr=120;
+
+  // draw circle
+  cx.beginPath();cx.arc(ccx,ccy,cr,0,Math.PI*2);
+  cx.strokeStyle='rgba(255,255,255,.2)';cx.lineWidth=1.5;cx.stroke();
+
+  // axes
+  cx.strokeStyle='rgba(255,255,255,.15)';cx.lineWidth=1;
+  cx.beginPath();cx.moveTo(ccx-cr-15,ccy);cx.lineTo(ccx+cr+15,ccy);cx.stroke();
+  cx.beginPath();cx.moveTo(ccx,ccy-cr-15);cx.lineTo(ccx,ccy+cr+15);cx.stroke();
+
+  // draw all special angles
+  for(let i=0;i<specialAngles.length;i++){
+    const a=specialAngles[i];
+    const rad=a.deg*DEG;
+    const px=ccx+cr*Math.cos(rad), py=ccy-cr*Math.sin(rad);
+    const isSelected=(selectedAngle===i);
+
+    // radius line
+    cx.beginPath();cx.moveTo(ccx,ccy);cx.lineTo(px,py);
+    cx.strokeStyle=isSelected?'rgba(255,255,255,.6)':'rgba(255,255,255,.15)';
+    cx.lineWidth=isSelected?2:1;cx.stroke();
+
+    // dot
+    gdot(px,py,isSelected?7:5,isSelected?'#58C4DD':'rgba(255,255,255,.5)');
+
+    // degree label near circle
+    const lr=cr+18;
+    const lx=ccx+lr*Math.cos(rad), ly=ccy-lr*Math.sin(rad);
+    cx.fillStyle=isSelected?'#58C4DD':'rgba(255,255,255,.4)';
+    cx.font=(isSelected?'bold ':'')+' 11px monospace';cx.textAlign='center';
+    cx.fillText(a.deg+'\u00b0',lx,ly+4);
+  }
+
+  // info panel on right
+  const fx=310, fy=30;
+  cx.fillStyle='rgba(22,22,26,.7)';
+  cx.fillRect(fx-10,fy-15,285,275);
+
+  cx.font='13px monospace';cx.textAlign='left';
+  cx.fillStyle='#58C4DD';
+  cx.fillText('Special Angles',fx,fy);
+
+  cx.font='11px monospace';
+  let ly=fy+28;
+  const colW=[50,80,80];
+  // header
+  cx.fillStyle='rgba(255,255,255,.35)';
+  cx.fillText('\u03b8',fx,ly);
+  cx.fillText('sin(\u03b8)',fx+colW[0],ly);
+  cx.fillText('cos(\u03b8)',fx+colW[0]+colW[1],ly);
+  ly+=6;
+  cx.strokeStyle='rgba(255,255,255,.1)';cx.lineWidth=0.5;
+  cx.beginPath();cx.moveTo(fx,ly);cx.lineTo(fx+220,ly);cx.stroke();
+  ly+=16;
+
+  for(let i=0;i<specialAngles.length;i++){
+    const a=specialAngles[i];
+    const isSel=(selectedAngle===i);
+    cx.fillStyle=isSel?'#fff':'rgba(255,255,255,.5)';
+    cx.font=(isSel?'bold ':'')+'12px monospace';
+    cx.fillText(a.deg+'\u00b0',fx,ly);
+    cx.fillStyle=isSel?SIN:'rgba(88,196,221,.6)';
+    cx.fillText(a.sin,fx+colW[0],ly);
+    cx.fillStyle=isSel?COS:'rgba(255,154,60,.6)';
+    cx.fillText(a.cos,fx+colW[0]+colW[1],ly);
+    ly+=24;
+  }
+
+  // if an angle is selected, show more detail
+  if(selectedAngle>=0){
+    const a=specialAngles[selectedAngle];
+    ly+=10;
+    cx.strokeStyle='rgba(255,255,255,.08)';cx.lineWidth=0.5;
+    cx.beginPath();cx.moveTo(fx,ly-8);cx.lineTo(fx+220,ly-8);cx.stroke();
+
+    cx.fillStyle='#58C4DD';cx.font='13px monospace';
+    cx.fillText('\u03b8 = '+a.deg+'\u00b0 = '+(a.deg*DEG).toFixed(4)+' rad',fx,ly+6);
+    ly+=24;
+    cx.fillStyle=SIN;cx.font='12px monospace';
+    cx.fillText('sin('+a.deg+'\u00b0) = '+a.sin+' = '+a.sinV.toFixed(6),fx,ly+6);
+    ly+=20;
+    cx.fillStyle=COS;
+    cx.fillText('cos('+a.deg+'\u00b0) = '+a.cos+' = '+a.cosV.toFixed(6),fx,ly+6);
+    ly+=20;
+    const tanV=a.deg===90?'undefined':(a.sinV/a.cosV).toFixed(6);
+    const tanExact=a.deg===0?'0':a.deg===30?'1/\u221a3':a.deg===45?'1':a.deg===60?'\u221a3':'undef';
+    cx.fillStyle=TAN;
+    cx.fillText('tan('+a.deg+'\u00b0) = '+tanExact+' = '+tanV,fx,ly+6);
+
+    // highlight on circle with projections
+    const rad=a.deg*DEG;
+    const px=ccx+cr*Math.cos(rad), py=ccy-cr*Math.sin(rad);
+    cx.setLineDash([4,4]);
+    cx.strokeStyle=COS;cx.lineWidth=1.5;
+    cx.beginPath();cx.moveTo(px,py);cx.lineTo(px,ccy);cx.stroke();
+    cx.strokeStyle=SIN;
+    cx.beginPath();cx.moveTo(px,py);cx.lineTo(ccx,py);cx.stroke();
+    cx.setLineDash([]);
+
+    cx.beginPath();cx.moveTo(ccx,ccy);cx.lineTo(px,ccy);
+    cx.strokeStyle=COS;cx.lineWidth=3;cx.stroke();
+    cx.beginPath();cx.moveTo(ccx,ccy);cx.lineTo(ccx,py);
+    cx.strokeStyle=SIN;cx.lineWidth=3;cx.stroke();
+  }
+
+  // instruction
+  cx.fillStyle='rgba(255,255,255,.25)';cx.font='10px monospace';cx.textAlign='center';
+  cx.fillText('click a point on the circle to select',ccx,ccy+cr+28);
+}
+
+// ── Main render ──────────────────────────────────────────────
+
+function tick(){
+  cx.fillStyle='#0e0e12';cx.fillRect(0,0,W,H);
+
+  switch(stage){
+    case 0: // unit circle
+      drawUnitCircle(W/2-50,H/2,130,theta,true);
+      break;
+    case 1: // triangle definitions
+      drawRightTriangle(theta);
+      break;
+    case 2: // sin graph
+      drawSineGraph(theta);
+      break;
+    case 3: // cos graph
+      drawCosineGraph(theta);
+      break;
+    case 4: // key angles
+      drawKeyAngles();
+      break;
+  }
+
+  requestAnimationFrame(tick);
+}
+
+goTo(0);tick();
+})();
+</script>
+</body>
+</html>
