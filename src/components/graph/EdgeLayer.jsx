@@ -36,7 +36,7 @@ export function EdgeLayer({ edges, nodes, highlightedIds }) {
         const sx = a.x + (dx / dist) * rA;
         const sy = a.y + (dy / dist) * rA;
 
-        const stroke      = isDimmed ? "#0f1825" : isHighlighted ? "#4a9eff" : "#2a3f5a";
+        const stroke      = isDimmed ? "#151b26" : isHighlighted ? "#4a9eff" : "#334766";
         const strokeWidth = isHighlighted ? 1.8 : 1;
         const opacity     = isDimmed ? 0.15 : isHighlighted ? 1 : 0.55;
         const markerId    = isDimmed

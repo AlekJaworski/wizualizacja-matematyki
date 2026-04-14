@@ -104,7 +104,7 @@ export function ResourcePanel({ resource, lang, onClose }) {
           alignItems: "center",
           gap: 10,
           padding: "10px 14px",
-          background: "#0d1520f8",
+          background: "#161c28f8",
           borderBottom: `1px solid ${typeColor}22`,
           flexShrink: 0,
           fontFamily: FONT,

@@ -475,14 +475,24 @@ export function isDeepDiveComplete(subgraphIds, classification, questionsAnswere
  * @param {Array<{id:string}>} nodes
  * @param {Record<string,"known"|"unknown">} belief
  * @param {number} [questionsAnswered=0]
+ * @param {{ maxQuestions?: number, completionRatio?: number }} [overrides]
  * @returns {boolean}
  */
-export function isSessionComplete(nodes, belief, questionsAnswered = 0) {
+export function isSessionComplete(nodes, belief, questionsAnswered = 0, overrides) {
+  const maxQ  = overrides?.maxQuestions    ?? DIAG_CONFIG.quickMaxQuestions;
+  const ratio = overrides?.completionRatio ?? DIAG_CONFIG.quickCompletionRatio;
   const total = nodes.length;
   if (total === 0) return true;
   const unclassified = nodes.filter(n => belief[n.id] !== "known" && belief[n.id] !== "unknown").length;
   if (unclassified === 0) return true;
-  if (questionsAnswered >= DIAG_CONFIG.quickMaxQuestions) return true;
-  if (unclassified / total <= DIAG_CONFIG.quickCompletionRatio) return true;
+  if (questionsAnswered >= maxQ) return true;
+  if (unclassified / total <= ratio) return true;
   return false;
 }
+
+/** Preset quiz length configurations. */
+export const QUIZ_PRESETS = {
+  quick:    { maxQuestions: 10, completionRatio: 0.15, labelKey: "presetQuick",    descKey: "presetQuickDesc" },
+  standard: { maxQuestions: 20, completionRatio: 0.10, labelKey: "presetStandard", descKey: "presetStandardDesc" },
+  thorough: { maxQuestions: 35, completionRatio: 0.05, labelKey: "presetThorough", descKey: "presetThoroughDesc" },
+};

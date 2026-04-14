@@ -2,13 +2,7 @@
 function nodeRadius(n) { return 6 + n.level * 2; }
 
 /**
- * Renders all curriculum topic nodes as SVG groups (circle + label).
- * Supports normal inspection mode and diagnostic quiz mode styling.
- */
-/**
  * How many characters to show in a node label given the current zoom scale.
- * At low zoom labels are very small — fewer chars avoids visual noise.
- * At high zoom we have room for longer names.
  */
 function labelMaxChars(scale) {
   if (scale < 0.4)  return 8;
@@ -31,6 +25,9 @@ export function NodeLayer({
   scale,
   scopeColors,
 }) {
+  // Show belief colors if belief has any entries (works in both diagMode and explore with overlay)
+  const hasBelief = belief && Object.keys(belief).length > 0;
+
   return (
     <g>
       {nodes.map(n => {
@@ -49,26 +46,31 @@ export function NodeLayer({
         let ringColor    = null;
         let ringWidth    = 2;
 
-        if (diagMode) {
+        // Apply belief coloring (diagMode OR explore with quiz results overlay)
+        if (hasBelief) {
           const state      = belief[n.id];
-          const isFrontier = frontier.includes(n.id);
-          fillOpacity  = filtered ? 0.1 : 0.9;
-          labelOpacity = filtered ? 0.15 : 0.9;
+          const isFrontier = frontier?.includes(n.id);
 
           if (state === "known") {
             fillColor = "#27ae60";
             ringColor = "#2ecc71";
+            fillOpacity = filtered ? 0.1 : 0.85;
+            labelOpacity = filtered ? 0.15 : 0.9;
           } else if (state === "unknown") {
             fillColor   = "#c0392b";
-            fillOpacity = filtered ? 0.1 : 0.5;
+            fillOpacity = filtered ? 0.1 : 0.45;
             ringColor   = "#e74c3c";
+            labelOpacity = filtered ? 0.15 : 0.7;
           } else if (isFrontier) {
             fillColor = "#f39c12";
             ringColor = "#f1c40f";
             ringWidth = 3;
+            fillOpacity = filtered ? 0.1 : 0.9;
+            labelOpacity = filtered ? 0.15 : 0.9;
           } else {
-            fillColor   = baseColor;
-            fillOpacity = filtered ? 0.1 : 0.35;
+            // Unclassified — keep scope color but dimmer
+            fillOpacity = filtered ? 0.1 : (diagMode ? 0.35 : 0.5);
+            labelOpacity = filtered ? 0.15 : 0.7;
           }
         }
 
@@ -81,7 +83,7 @@ export function NodeLayer({
             onMouseEnter={() => onHover(n.id)}
             onMouseLeave={() => onHover(null)}
           >
-            {(isSelected || (diagMode && ringColor)) && (
+            {(isSelected || ringColor) && (
               <circle
                 cx={n.x} cy={n.y}
                 r={r + (isSelected ? 5 : 4)}
@@ -95,14 +97,14 @@ export function NodeLayer({
               cx={n.x} cy={n.y} r={r}
               fill={fillColor}
               fillOpacity={fillOpacity}
-              stroke={!diagMode && (highlighted || isSelected) ? baseColor : "none"}
+              stroke={(highlighted || isSelected) && !hasBelief ? baseColor : "none"}
               strokeWidth={1.5}
             />
             <text
               x={n.x} y={n.y + r + 10}
               textAnchor="middle"
               fontSize={8}
-              fill="#c8d6e5"
+              fill="#cdd8e4"
               opacity={labelOpacity}
               style={{ pointerEvents: "none", userSelect: "none" }}
             >

@@ -155,6 +155,63 @@ const STRINGS = {
   onboardingSkip:      { pl: "Pomiń",       en: "Skip" },
   onboardingLangHint:  { pl: "Możesz zmienić język w pasku filtrów (PL / EN).",
                          en: "You can switch language in the filter bar (PL / EN)." },
+
+  // ── Hero screen ──────────────────────────────────────────────────
+  heroTitle:     { pl: "Znajdź swoje luki w matematyce",
+                   en: "Find your gaps in mathematics" },
+  heroSub:       { pl: "Odpowiedz na kilkanaście pytań. Pokażemy Ci, od czego zacząć, żeby Twoja wiedza stała na solidnych fundamentach.",
+                   en: "Answer a handful of questions. We'll show you exactly where to start so your knowledge stands on solid foundations." },
+  heroStart:     { pl: "Sprawdź się",        en: "Start assessment" },
+  heroBrowse:    { pl: "Przeglądaj mapę →",  en: "Browse the map →" },
+  heroLength:    { pl: "Czas:",            en: "Length:" },
+  heroQuestions:  { pl: "pytań",           en: "questions" },
+  presetQuick:    { pl: "Szybki",          en: "Quick" },
+  presetQuickDesc:{ pl: "Szybki ogląd",    en: "Quick overview" },
+  presetStandard: { pl: "Standardowy",     en: "Standard" },
+  presetStandardDesc:{ pl: "Dobry balans", en: "Good balance" },
+  presetThorough: { pl: "Dokładny",        en: "Thorough" },
+  presetThoroughDesc:{ pl: "Szczegółowy obraz", en: "Detailed picture" },
+  heroStep1:     { pl: "Odpowiadasz na pytania",        en: "Answer questions" },
+  heroStep2:     { pl: "Algorytm mapuje Twoją wiedzę",  en: "Algorithm maps your knowledge" },
+  heroStep3:     { pl: "Dostajesz plan, od czego zacząć", en: "Get a plan for where to start" },
+
+  // ── Quiz flow ────────────────────────────────────────────────────
+  quizExit:       { pl: "Wyjdź",              en: "Exit" },
+  quizQuestion:   { pl: "Pytanie",            en: "Question" },
+  quizClassified: { pl: "zbadane",            en: "classified" },
+  quizAccuracy:   { pl: "trafność",           en: "accuracy" },
+  quizCheck:      { pl: "Sprawdź",            en: "Check" },
+  quizContinue:   { pl: "Dalej",              en: "Continue" },
+  quizNoQuestion: { pl: "Brak pytania dla tego tematu. Czy go znasz?",
+                    en: "No question available for this topic. Do you know it?" },
+  quizYes:        { pl: "Tak, znam",          en: "Yes, I know it" },
+  quizNo:         { pl: "Nie, nie znam",       en: "No, I don't" },
+
+  // ── Results screen ───────────────────────────────────────────────
+  resultsTitle:      { pl: "Twoja diagnoza",              en: "Your diagnosis" },
+  resultsAnswered:   { pl: "pytań",                       en: "questions" },
+  resultsAccuracy:   { pl: "trafność",                    en: "accuracy" },
+  resultsKnown:      { pl: "Znasz",                       en: "Known" },
+  resultsToStudy:    { pl: "Do nauki",                    en: "To study" },
+  resultsGapsTitle:  { pl: "Zacznij tutaj",               en: "Start here" },
+  resultsGapsSub:    { pl: "Te tematy to Twoje najniższe luki — najlepszy punkt startowy, żeby zbudować solidną bazę.",
+                       en: "These are your lowest gaps — the best starting point to build a solid foundation." },
+  resultsHasResource:{ pl: "ma materiały",                en: "has resources" },
+  resultsMore:       { pl: "więcej tematów do nauki",     en: "more topics to study" },
+  resultsAllGood:    { pl: "Wszystko opanowane!",         en: "All clear!" },
+  resultsAllGoodSub: { pl: "Nie znaleziono luk w Twojej wiedzy.",
+                       en: "No gaps found in your knowledge." },
+  resultsSeeMap:     { pl: "Zobacz swoją mapę",           en: "See your map" },
+  resultsRetake:     { pl: "Spróbuj ponownie",            en: "Try again" },
+
+  // ── Belief status in InfoPanel ───────────────────────────────────
+  beliefKnown:       { pl: "Znasz ten temat",             en: "You know this topic" },
+  beliefUnknown:     { pl: "Do nauki",                    en: "To study" },
+
+  // ── Topic view ───────────────────────────────────────────────────
+  topicBack:         { pl: "Wróć do mapy",                en: "Back to map" },
+  topicNoResources:  { pl: "Brak materiałów do nauki dla tego tematu — wkrótce!",
+                       en: "No learning resources for this topic yet — coming soon!" },
 };
 
 /**

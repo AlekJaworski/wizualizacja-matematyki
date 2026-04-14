@@ -2,18 +2,18 @@
 
 export const COLORS = {
   // Background layers
-  bg:          "#0a0e17",
-  surface:     "#0d1520",
-  surfaceHi:   "#0d1520ee",
-  border:      "#1e2d45",
-  borderSubtle:"#1a2235",
+  bg:          "#10141c",
+  surface:     "#161c28",
+  surfaceHi:   "#161c28ee",
+  border:      "#263248",
+  borderSubtle:"#1f2a3c",
 
   // Text
-  textPrimary:  "#f5f6fa",
-  textBody:     "#c8d6e5",
-  textMuted:    "#8a9dbe",
-  textDim:      "#6b7d9a",
-  textFaint:    "#3a4d63",
+  textPrimary:  "#f0f2f5",
+  textBody:     "#cdd8e4",
+  textMuted:    "#95a5bd",
+  textDim:      "#7b8fa8",
+  textFaint:    "#4a5e78",
 
   // Semantic
   known:    "#27ae60",
@@ -24,9 +24,9 @@ export const COLORS = {
   frontierHi:"#f1c40f",
 
   // Graph edges
-  edgeDefault:    "#2a3f5a",
+  edgeDefault:    "#334766",
   edgeHighlighted:"#4a9eff",
-  edgeDimmed:     "#0f1825",
+  edgeDimmed:     "#151b26",
 };
 
 export const FONT = "'JetBrains Mono','SF Mono','Fira Code',monospace";

@@ -42,7 +42,7 @@ export function OnboardingModal({ isOpen, onSelect, onClose, lang }) {
       <div style={{
         width: "100%", maxWidth: 480,
         background: COLORS.surface,
-        border: "1px solid #1e2d45",
+        border: "1px solid #263248",
         borderRadius: 12,
         overflow: "hidden",
         display: "flex", flexDirection: "column",
@@ -51,8 +51,8 @@ export function OnboardingModal({ isOpen, onSelect, onClose, lang }) {
         {/* Hero */}
         <div style={{
           padding: "28px 24px 20px",
-          background: "linear-gradient(135deg, #0d1520 0%, #0a1628 100%)",
-          borderBottom: "1px solid #1e2d45",
+          background: "linear-gradient(135deg, #0d1520 0%, #101b2a 100%)",
+          borderBottom: "1px solid #263248",
           textAlign: "center",
         }}>
           <div style={{ fontSize: 32, marginBottom: 10 }}>◉</div>
