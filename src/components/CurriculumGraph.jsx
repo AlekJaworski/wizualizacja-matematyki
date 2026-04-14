@@ -16,6 +16,7 @@ import { useHashRouter }    from "../hooks/useHashRouter.js";
 import { EdgeLayer }           from "./graph/EdgeLayer.jsx";
 import { NodeLayer }           from "./graph/NodeLayer.jsx";
 import { InfoPanel }           from "./panels/InfoPanel.jsx";
+import { TopicView }           from "./screens/TopicView.jsx";
 import { QuizPanel }           from "./panels/QuizPanel.jsx";
 import { DiagnosticPanel }     from "./panels/DiagnosticPanel.jsx";
 import { DeepDivePanel }       from "./panels/DeepDivePanel.jsx";
@@ -38,6 +39,9 @@ export default function CurriculumGraph({
   SCOPE_LABELS,
   COURSE_META,
   onBackToCourses,
+  initialBelief,
+  initialLang,
+  onBackToHome,
 }) {
   const isMobile = useIsMobile();
 
@@ -45,7 +49,7 @@ export default function CurriculumGraph({
   const [layoutId, setLayoutId] = useState(DEFAULT_LAYOUT_ID);
 
   // ── Language & filters ──────────────────────────────────────────
-  const [lang,          setLang]          = useLocalStorage("lang", "pl");
+  const [lang,          setLang]          = useLocalStorage("lang", initialLang ?? "pl");
   const [filterScope,   setFilterScope]   = useState(new Set());
   const [filterSection, setFilterSection] = useState(new Set());
   const [searchTerm,    setSearchTerm]    = useState("");
@@ -58,9 +62,10 @@ export default function CurriculumGraph({
   const [showModePicker,  setShowModePicker]  = useState(false);
 
 
-  // ── Onboarding ───────────────────────────────────────────────────
+  // ── Onboarding (skipped when arriving from quiz results) ────────
+  const cameFromQuiz = !!initialBelief;
   const [onboardingSeen, setOnboardingSeen] = useLocalStorage("onboardingSeen", false);
-  const [showOnboarding, setShowOnboarding] = useState(!onboardingSeen);
+  const [showOnboarding, setShowOnboarding] = useState(!onboardingSeen && !cameFromQuiz);
 
   const handleOnboardingClose = useCallback(() => {
     setOnboardingSeen(true);
@@ -113,13 +118,20 @@ export default function CurriculumGraph({
     resetDiagnostic,
     startDeepDive,
     targetNode,
-    belief,
+    belief, setBelief,
     frontier, visibleFrontier, hasStarted,
     nextSuggestedId, expectedRemaining, pCorrect,
     sessionComplete,
     betaBeliefs, subgraphIds, ddClassification,
     ddNextNodeId, ddComplete,
   } = useDiagnostic(adjacency, QUESTION_BANK, courseId);
+
+  // ── Seed belief from quiz results (visual overlay, not diagnostic mode) ──
+  useEffect(() => {
+    if (initialBelief && Object.keys(initialBelief).length > 0) {
+      setBelief(initialBelief);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps — run once on mount
 
   // ── Hash-based routing ──────────────────────────────────────────
   const handleRoute = useCallback((route) => {
@@ -178,6 +190,7 @@ export default function CurriculumGraph({
     return result.length < RAW_NODES.length ? new Set(result.map(n => n.id)) : null;
   }, [RAW_NODES, filterScope, filterSection, searchTerm]);
 
+  // Highlight connections for hovered or selected node
   const activeNode     = selected || hoveredNode;
   const highlightedIds = useMemo(() => {
     if (!activeNode) return null;
@@ -341,8 +354,8 @@ export default function CurriculumGraph({
         borderBottom: `1px solid ${COLORS.borderSubtle}`,
         display: "flex", alignItems: "center", gap: isMobile ? 8 : 10, flexShrink: 0,
       }}>
-        {onBackToCourses && (
-          <button onClick={onBackToCourses} style={{ ...hdrBtn(false), padding: "7px 10px" }}>←</button>
+        {(onBackToHome || onBackToCourses) && (
+          <button onClick={onBackToHome ?? onBackToCourses} style={{ ...hdrBtn(false), padding: "7px 10px" }}>←</button>
         )}
         <h1 style={{
           margin: 0, fontSize: 13, fontWeight: 700,
@@ -426,7 +439,7 @@ export default function CurriculumGraph({
               <path d="M0,0 L6,3 L0,6 L1.5,3 Z" fill="#4a9eff" />
             </marker>
             <marker id="arrow-dim" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="userSpaceOnUse">
-              <path d="M0,0 L6,3 L0,6 L1.5,3 Z" fill="#0f1825" />
+              <path d="M0,0 L6,3 L0,6 L1.5,3 Z" fill="#151b26" />
             </marker>
           </defs>
 
@@ -454,13 +467,14 @@ export default function CurriculumGraph({
           </g>
         </svg>
 
-        {/* Info panel */}
+        {/* Topic detail view — full overlay when a node is selected */}
         {selected && !diagMode && (
-          <InfoPanel
+          <TopicView
             nodeId={selected} nodes={nodes} adjacency={adjacency} lang={lang}
             SCOPE_COLORS={SCOPE_COLORS} SCOPE_LABELS={SCOPE_LABELS} SECTIONS={SECTIONS}
-            isMobile={isMobile} onClose={() => setSelected(null)}
-            openResourceIdx={openResourceIdx} setOpenResourceIdx={setOpenResourceIdx}
+            belief={effectiveBelief}
+            onClose={() => setSelected(null)}
+            onNavigate={(id) => setSelected(id)}
           />
         )}
 

@@ -88,12 +88,13 @@ export function useDiagnostic(adjacency, questionBank, courseId) {
     return [...ids].map(id => ({ id }));
   }, [adjacency, questionBank]);
 
-  const frontier = useMemo(
-    () => (diagMode && mode === "quick") ? computeFrontier(allNodeIds, belief, adjacency) : [],
-    [diagMode, mode, belief, adjacency, allNodeIds]
-  );
-
   const hasStarted = useMemo(() => Object.keys(belief).length > 0 || stats.questionsAnswered > 0, [belief, stats]);
+
+  // Compute frontier whenever belief has entries (diagMode or explore with overlay)
+  const frontier = useMemo(
+    () => hasStarted ? computeFrontier(allNodeIds, belief, adjacency) : [],
+    [hasStarted, belief, adjacency, allNodeIds]
+  );
 
   const visibleFrontier = hasStarted ? frontier : [];
 
@@ -236,7 +237,7 @@ export function useDiagnostic(adjacency, questionBank, courseId) {
     targetNode,
 
     // Quick mode
-    belief,
+    belief, setBelief,
     frontier,
     visibleFrontier,
     hasStarted,

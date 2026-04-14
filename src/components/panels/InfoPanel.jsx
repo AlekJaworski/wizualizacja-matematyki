@@ -7,7 +7,7 @@ import { ResourcePanel } from "./ResourcePanel.jsx";
  * Displays topic details, prerequisites, dependents, and learning resources.
  * On mobile: bottom sheet. On desktop: side panel.
  */
-export function InfoPanel({ nodeId, nodes, adjacency, lang, SCOPE_COLORS, SCOPE_LABELS, SECTIONS, isMobile, onClose, openResourceIdx, setOpenResourceIdx }) {
+export function InfoPanel({ nodeId, nodes, adjacency, lang, SCOPE_COLORS, SCOPE_LABELS, SECTIONS, isMobile, onClose, openResourceIdx, setOpenResourceIdx, belief }) {
   const node = nodes.find(n => n.id === nodeId);
   const resources = node?.resources ?? [];
   const openResource = openResourceIdx != null ? resources[openResourceIdx] ?? null : null;
@@ -48,12 +48,25 @@ export function InfoPanel({ nodeId, nodes, adjacency, lang, SCOPE_COLORS, SCOPE_
         )}
       </div>
 
-      <div style={{ color: COLORS.textDim, fontSize: fsSmall, marginBottom: 12, lineHeight: 1.6 }}>
+      <div style={{ color: COLORS.textDim, fontSize: fsSmall, marginBottom: 8, lineHeight: 1.6 }}>
         {SECTIONS?.[node.section]?.label}
         {" · "}
         {SCOPE_LABELS?.[node.scope]?.[lang === "pl" ? "pl" : "en"]}
         {" · "}{t("level", lang)} {node.level}
       </div>
+
+      {/* Belief status from quiz */}
+      {belief && belief[nodeId] && (
+        <div style={{
+          fontSize: fsSmall, fontWeight: 600, marginBottom: 10,
+          padding: "5px 10px", borderRadius: 5, display: "inline-block",
+          background: belief[nodeId] === "known" ? "#27ae6015" : "#e74c3c15",
+          border: `1px solid ${belief[nodeId] === "known" ? "#27ae6040" : "#e74c3c40"}`,
+          color: belief[nodeId] === "known" ? "#2ecc71" : "#ff6b6b",
+        }}>
+          {belief[nodeId] === "known" ? t("beliefKnown", lang) : t("beliefUnknown", lang)}
+        </div>
+      )}
 
       {prereqs.length > 0 ? (
         <>
@@ -150,7 +163,7 @@ export function InfoPanel({ nodeId, nodes, adjacency, lang, SCOPE_COLORS, SCOPE_
       {isMobile ? (
         <div style={{
           position: "fixed", left: 0, right: 0, bottom: 0,
-          background: "#0d1520f5", backdropFilter: "blur(8px)",
+          background: "#161c28f5", backdropFilter: "blur(8px)",
           borderTop: `1px solid ${color}40`, borderRadius: "14px 14px 0 0",
           padding: "16px 16px 32px",
           zIndex: 30, maxHeight: "60vh", overflowY: "auto",
@@ -160,7 +173,7 @@ export function InfoPanel({ nodeId, nodes, adjacency, lang, SCOPE_COLORS, SCOPE_
       ) : (
         <div style={{
           position: "absolute", right: 16, top: 16, width: 240,
-          background: "#0d1520ee", backdropFilter: "blur(6px)",
+          background: "#161c28ee", backdropFilter: "blur(6px)",
           border: `1px solid ${color}40`, borderRadius: 8,
           padding: "12px 14px", fontSize: 11, color: COLORS.textBody,
           lineHeight: 1.6, zIndex: 10, maxHeight: "80vh", overflowY: "auto",
