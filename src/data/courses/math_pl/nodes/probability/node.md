@@ -9,3 +9,4 @@ y: 220
 resources:
   - "interactive|probability-explorer.html|Probability Explorer|Eksplorator prawdopodobieństwa"
 ---
+Prawdopodobieństwo klasyczne: P(A) = |A|/|Ω| (liczba zdarzeń sprzyjających / wszystkich). P(A') = 1 − P(A). Dla zdarzeń niezależnych: P(A∩B) = P(A)·P(B). Dla dowolnych: P(A∪B) = P(A) + P(B) − P(A∩B).

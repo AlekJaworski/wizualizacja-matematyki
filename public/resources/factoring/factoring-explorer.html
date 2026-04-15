@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rozkład na czynniki — Dwie proste × parabola</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+  #qf { margin: 0 0 5px; font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  #qd { margin: 0 0 10px; font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); min-height: 48px; }
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 36px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+  .nav { display: flex; align-items: center; justify-content: space-between; }
+  button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  button:hover { background: rgba(255,255,255,.08); }
+  button:disabled { opacity: .3; cursor: default; }
+  #qdots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.18); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  #sliders-wrap { min-height: 0; }
+  .link-btn { display: inline-block; margin-top: 8px; padding: 6px 14px; border-radius: 6px; background: rgba(88,196,221,.12); border: 1px solid rgba(88,196,221,.3); color: #58C4DD; font-size: 12px; text-decoration: none; font-family: monospace; transition: background .15s; }
+  .link-btn:hover { background: rgba(88,196,221,.22); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="310"></canvas>
+  <div class="panel">
+    <p id="qf"></p>
+    <p id="qd"></p>
+    <div id="sliders-wrap"></div>
+    <div class="nav">
+      <button id="qprev">&larr;</button>
+      <div id="qdots"></div>
+      <button id="qnext">&rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const cv = document.getElementById('cv');
+  const cx = cv.getContext('2d');
+  const W = 600, H = 310;
+
+  const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
+  const T = (pl, en) => LANG === 'pl' ? pl : en;
+
+  // Colors
+  const COL_F = '#4a9eff';  // first factor (blue)
+  const COL_G = '#FF6B35';  // second factor (orange)
+  const COL_P = '#83C167';  // product / parabola (green)
+  const COL_SCALED = '#FFD166'; // scaled line (yellow)
+  const COL_CURSOR = 'rgba(255,255,255,0.25)';
+
+  // Coordinate system
+  const OX = W / 2, OY = H / 2, SC = 40;
+  function px(x) { return OX + x * SC; }
+  function py(y) { return OY - y * SC; }
+
+  // State
+  let r1 = -2, r2 = 2, x0 = 1.5;
+  let stage = 0;
+  let tracePoints = [];
+  let animating = false;
+  let animX = -5;
+
+  // ── Drawing helpers ──────────────────────────────────────────
+  function clear() {
+    cx.fillStyle = '#0e0e12';
+    cx.fillRect(0, 0, W, H);
+  }
+
+  function drawGrid() {
+    cx.strokeStyle = 'rgba(255,255,255,0.04)';
+    cx.lineWidth = 0.7;
+    for (let x = -7; x <= 7; x++) {
+      cx.beginPath(); cx.moveTo(px(x), 0); cx.lineTo(px(x), H); cx.stroke();
+    }
+    for (let y = -4; y <= 4; y++) {
+      cx.beginPath(); cx.moveTo(0, py(y)); cx.lineTo(W, py(y)); cx.stroke();
+    }
+  }
+
+  function drawAxes() {
+    cx.strokeStyle = 'rgba(255,255,255,0.2)';
+    cx.lineWidth = 1;
+    cx.beginPath(); cx.moveTo(0, py(0)); cx.lineTo(W, py(0)); cx.stroke();
+    cx.beginPath(); cx.moveTo(px(0), 0); cx.lineTo(px(0), H); cx.stroke();
+
+    cx.fillStyle = 'rgba(255,255,255,0.25)';
+    cx.font = '9px monospace';
+    cx.textAlign = 'center';
+    for (let x = -6; x <= 6; x++) {
+      if (x === 0) continue;
+      cx.fillText(x, px(x), py(0) + 13);
+    }
+    cx.textAlign = 'right';
+    for (let y = -3; y <= 3; y++) {
+      if (y === 0) continue;
+      cx.fillText(y, px(0) - 6, py(y) + 3);
+    }
+  }
+
+  function plotLine(fn, color, alpha, dash) {
+    cx.save();
+    cx.strokeStyle = color;
+    cx.globalAlpha = alpha;
+    cx.lineWidth = 2;
+    if (dash) cx.setLineDash(dash);
+    cx.beginPath();
+    for (let sx = 0; sx <= W; sx += 2) {
+      const x = (sx - OX) / SC;
+      const y = fn(x);
+      const sy = py(y);
+      if (sy < -50 || sy > H + 50) { cx.moveTo(sx, sy); continue; }
+      if (sx === 0) cx.moveTo(sx, sy); else cx.lineTo(sx, sy);
+    }
+    cx.stroke();
+    cx.restore();
+  }
+
+  function gdot(x, y, r, col) {
+    cx.beginPath();
+    cx.arc(px(x), py(y), r, 0, Math.PI * 2);
+    cx.fillStyle = col;
+    cx.shadowColor = col;
+    cx.shadowBlur = 10;
+    cx.fill();
+    cx.shadowBlur = 0;
+  }
+
+  function label(text, x, y, col, align, size) {
+    cx.save();
+    cx.font = (size || 11) + 'px monospace';
+    cx.fillStyle = col;
+    cx.textAlign = align || 'left';
+    cx.fillText(text, px(x), py(y));
+    cx.restore();
+  }
+
+  function infoBox(text, sx, sy, col) {
+    cx.save();
+    cx.font = '12px monospace';
+    const w = cx.measureText(text).width + 14;
+    cx.fillStyle = 'rgba(14,14,18,0.85)';
+    cx.strokeStyle = col + '40';
+    cx.lineWidth = 1;
+    roundRect(cx, sx - w/2, sy - 10, w, 22, 4);
+    cx.fill(); cx.stroke();
+    cx.fillStyle = col;
+    cx.textAlign = 'center';
+    cx.fillText(text, sx, sy + 4);
+    cx.restore();
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+    ctx.closePath();
+  }
+
+  // ── Factor functions ─────────────────────────────────────────
+  function f(x) { return x - r1; }
+  function g(x) { return x - r2; }
+  function product(x) { return f(x) * g(x); }
+
+  // ── Stages ───────────────────────────────────────────────────
+  const stages = [
+    {
+      title: () => T('Dwie proste', 'Two lines'),
+      desc: () => T(
+        'Zaczynamy od dwóch prostych: f(x) = (x − r₁) i g(x) = (x − r₂). Każda przecina oś X w swoim miejscu zerowym. Przesuń r₁ i r₂.',
+        'Start with two lines: f(x) = (x − r₁) and g(x) = (x − r₂). Each crosses the x-axis at its root. Move r₁ and r₂.'
+      ),
+      sliders: [
+        { id: 'r1', lbl: 'r₁', color: COL_F, min: -4, max: 4, step: 0.5, val: -2 },
+        { id: 'r2', lbl: 'r₂', color: COL_G, min: -4, max: 4, step: 0.5, val: 2 },
+      ],
+      draw() {
+        plotLine(f, COL_F, 0.9);
+        plotLine(g, COL_G, 0.9);
+        gdot(r1, 0, 5, COL_F);
+        gdot(r2, 0, 5, COL_G);
+        label('f(x) = (x − r₁)', r1 + 0.3, f(r1 + 2) + 0.3, COL_F);
+        label('g(x) = (x − r₂)', r2 - 3.5, g(r2 - 2) + 0.3, COL_G);
+      }
+    },
+    {
+      title: () => T('Odczytaj wartość', 'Read the value'),
+      desc: () => T(
+        'Przy x₀ odczytaj f(x₀) — to po prostu liczba. Ta liczba przeskaluje drugą prostą. Przesuń x₀ i patrz, jak zmienia się wartość f.',
+        'At x₀, read f(x₀) — it\'s just a number. That number will scale the other line. Move x₀ and watch how f\'s value changes.'
+      ),
+      sliders: [
+        { id: 'r1', lbl: 'r₁', color: COL_F, min: -4, max: 4, step: 0.5, val: r1 },
+        { id: 'r2', lbl: 'r₂', color: COL_G, min: -4, max: 4, step: 0.5, val: r2 },
+        { id: 'x0', lbl: 'x₀', color: '#fff', min: -5, max: 5, step: 0.1, val: 1.5 },
+      ],
+      draw() {
+        plotLine(f, COL_F, 0.5);
+        plotLine(g, COL_G, 0.5);
+
+        // Cursor
+        cx.strokeStyle = COL_CURSOR;
+        cx.lineWidth = 1;
+        cx.setLineDash([4, 4]);
+        cx.beginPath(); cx.moveTo(px(x0), 0); cx.lineTo(px(x0), H); cx.stroke();
+        cx.setLineDash([]);
+
+        // f(x0) value
+        const fval = f(x0);
+        gdot(x0, fval, 6, COL_F);
+
+        // Horizontal line showing the value
+        cx.strokeStyle = COL_F + '50';
+        cx.lineWidth = 1;
+        cx.setLineDash([3, 3]);
+        cx.beginPath(); cx.moveTo(px(x0), py(fval)); cx.lineTo(px(0), py(fval)); cx.stroke();
+        cx.setLineDash([]);
+
+        // Value label
+        infoBox('f(' + x0.toFixed(1) + ') = ' + fval.toFixed(1), px(x0), py(fval) - 18, COL_F);
+
+        gdot(r1, 0, 4, COL_F);
+        gdot(r2, 0, 4, COL_G);
+      }
+    },
+    {
+      title: () => T('Przeskaluj drugą prostą', 'Scale the other line'),
+      desc: () => T(
+        'f(x₀) to liczba. Pomnóż nią g(x) — dostajesz żółtą linię f(x₀)·g(x). Punkt, w którym ta linia przecina x₀, leży na paraboli.',
+        'f(x₀) is a number. Multiply g(x) by it — you get the yellow line f(x₀)·g(x). Where this line meets x₀ is a point on the parabola.'
+      ),
+      sliders: [
+        { id: 'r1', lbl: 'r₁', color: COL_F, min: -4, max: 4, step: 0.5, val: r1 },
+        { id: 'r2', lbl: 'r₂', color: COL_G, min: -4, max: 4, step: 0.5, val: r2 },
+        { id: 'x0', lbl: 'x₀', color: '#fff', min: -5, max: 5, step: 0.1, val: x0 },
+      ],
+      draw() {
+        const fval = f(x0);
+        const gval = g(x0);
+        const pval = fval * gval;
+
+        // Faint original lines
+        plotLine(f, COL_F, 0.25);
+        plotLine(g, COL_G, 0.25);
+
+        // Scaled line: f(x0) * g(x)
+        const scaledG = (x) => fval * g(x);
+        plotLine(scaledG, COL_SCALED, 0.8, [6, 4]);
+
+        // Faint parabola
+        plotLine(product, COL_P, 0.15);
+
+        // Cursor
+        cx.strokeStyle = COL_CURSOR;
+        cx.lineWidth = 1;
+        cx.setLineDash([4, 4]);
+        cx.beginPath(); cx.moveTo(px(x0), 0); cx.lineTo(px(x0), H); cx.stroke();
+        cx.setLineDash([]);
+
+        // The product point
+        gdot(x0, pval, 6, COL_P);
+
+        // Labels
+        infoBox('f(' + x0.toFixed(1) + ') = ' + fval.toFixed(1), px(x0) - 70, 20, COL_F);
+        infoBox(fval.toFixed(1) + ' × g(x)', px(x0) + 70, 20, COL_SCALED);
+        infoBox(T('iloczyn', 'product') + ' = ' + pval.toFixed(1), px(x0), py(pval) - 18, COL_P);
+
+        gdot(r1, 0, 4, COL_F);
+        gdot(r2, 0, 4, COL_G);
+      }
+    },
+    {
+      title: () => T('Buduj parabolę', 'Build the parabola'),
+      desc: () => T(
+        'Przesuń x₀ i patrz, jak punkt iloczynu kreśli parabolę. Gdzie linia = 0, parabola = 0 (miejsca zerowe). Gdzie obie linie mają ten sam znak, parabola > 0.',
+        'Sweep x₀ and watch the product point trace out the parabola. Where a line = 0, the parabola = 0 (roots). Where both lines agree in sign, the parabola > 0.'
+      ),
+      sliders: [
+        { id: 'r1', lbl: 'r₁', color: COL_F, min: -4, max: 4, step: 0.5, val: r1 },
+        { id: 'r2', lbl: 'r₂', color: COL_G, min: -4, max: 4, step: 0.5, val: r2 },
+        { id: 'x0', lbl: 'x₀', color: '#fff', min: -5, max: 5, step: 0.1, val: x0 },
+      ],
+      draw() {
+        const fval = f(x0);
+        const gval = g(x0);
+        const pval = fval * gval;
+
+        // Lines faint
+        plotLine(f, COL_F, 0.2);
+        plotLine(g, COL_G, 0.2);
+
+        // Full parabola
+        plotLine(product, COL_P, 0.7);
+
+        // Scaled line at current position
+        const scaledG = (x) => fval * g(x);
+        plotLine(scaledG, COL_SCALED, 0.4, [6, 4]);
+
+        // Sign regions — shade between roots
+        const minR = Math.min(r1, r2);
+        const maxR = Math.max(r1, r2);
+        cx.save();
+        cx.globalAlpha = 0.06;
+        cx.fillStyle = '#e74c3c';
+        cx.beginPath();
+        cx.moveTo(px(minR), py(0));
+        for (let x = minR; x <= maxR; x += 0.05) {
+          cx.lineTo(px(x), py(product(x)));
+        }
+        cx.lineTo(px(maxR), py(0));
+        cx.closePath();
+        cx.fill();
+        cx.restore();
+
+        // Cursor
+        cx.strokeStyle = COL_CURSOR;
+        cx.lineWidth = 1;
+        cx.setLineDash([4, 4]);
+        cx.beginPath(); cx.moveTo(px(x0), 0); cx.lineTo(px(x0), H); cx.stroke();
+        cx.setLineDash([]);
+
+        // Product point
+        gdot(x0, pval, 6, COL_P);
+        gdot(r1, 0, 5, COL_F);
+        gdot(r2, 0, 5, COL_G);
+
+        // Value label
+        infoBox('(' + fval.toFixed(1) + ')×(' + gval.toFixed(1) + ') = ' + pval.toFixed(1), px(x0), py(pval) - 18, COL_P);
+
+        // Sign labels
+        if (r1 !== r2) {
+          const midBetween = (minR + maxR) / 2;
+          label('−', midBetween, -0.5, '#e74c3c88', 'center', 14);
+          if (minR > -4.5) label('+', minR - 1.5, 0.5, '#27ae6088', 'center', 14);
+          if (maxR < 4.5) label('+', maxR + 1.5, 0.5, '#27ae6088', 'center', 14);
+        }
+      }
+    },
+    {
+      title: () => T('Co dalej? Pochodna', 'What\'s next? The derivative'),
+      desc: () => T(
+        'Zauważ: trzymaliśmy jedną prostą "zamrożoną" w punkcie. Ale obie proste zmieniają się jednocześnie — dlatego pochodna x² to 2x, nie x. Każda prosta dokłada swoją zmianę.',
+        'Notice: we froze one line at a point. But both lines change simultaneously — that\'s why the derivative of x² is 2x, not x. Each line contributes its own rate of change.'
+      ),
+      sliders: [
+        { id: 'r1', lbl: 'r₁', color: COL_F, min: -4, max: 4, step: 0.5, val: 0 },
+        { id: 'r2', lbl: 'r₂', color: COL_G, min: -4, max: 4, step: 0.5, val: 0 },
+        { id: 'x0', lbl: 'x₀', color: '#fff', min: -4, max: 4, step: 0.1, val: 2 },
+      ],
+      draw() {
+        // Show x*x case
+        const fval = f(x0);
+        const gval = g(x0);
+
+        // Both lines (same when r1=r2=0)
+        plotLine(f, COL_F, 0.4);
+        if (r1 !== r2) plotLine(g, COL_G, 0.4);
+
+        // Parabola
+        plotLine(product, COL_P, 0.8);
+
+        // Scaled line from f's perspective
+        const scaledG = (x) => fval * g(x);
+        plotLine(scaledG, COL_SCALED, 0.35, [4, 4]);
+
+        // Scaled line from g's perspective
+        const scaledF = (x) => gval * f(x);
+        plotLine(scaledF, '#E07090', 0.35, [4, 4]);
+
+        // Cursor
+        cx.strokeStyle = COL_CURSOR;
+        cx.lineWidth = 1;
+        cx.setLineDash([4, 4]);
+        cx.beginPath(); cx.moveTo(px(x0), 0); cx.lineTo(px(x0), H); cx.stroke();
+        cx.setLineDash([]);
+
+        // Both scaled lines meet at the same product point
+        const pval = fval * gval;
+        gdot(x0, pval, 6, COL_P);
+        gdot(r1, 0, 4, COL_F);
+        if (r1 !== r2) gdot(r2, 0, 4, COL_G);
+
+        // Show both contributions
+        const slopeF = fval; // slope of fval * g(x) = fval * (x - r2) at x0
+        const slopeG = gval; // slope of gval * f(x) = gval * (x - r1) at x0
+        infoBox(T('nachylenie', 'slope') + ': ' + slopeF.toFixed(1) + ' + ' + slopeG.toFixed(1) + ' = ' + (slopeF + slopeG).toFixed(1), px(x0), py(pval) - 18, COL_P);
+
+        // Link to derivative explorer
+        const linkEl = document.getElementById('deriv-link');
+        if (linkEl) linkEl.style.display = 'inline-block';
+      }
+    },
+  ];
+
+  // ── Slider management ────────────────────────────────────────
+  const slWrap = document.getElementById('sliders-wrap');
+
+  function buildSliders(defs) {
+    let html = '<div class="sliders">';
+    defs.forEach(s => {
+      html += `<div class="slider-row">
+        <span class="lbl" style="color:${s.color}">${s.lbl} =</span>
+        <input type="range" id="s_${s.id}" min="${s.min}" max="${s.max}" step="${s.step}" value="${s.val}">
+        <span class="val" id="v_${s.id}" style="color:${s.color}"></span>
+      </div>`;
+    });
+    html += '</div>';
+    if (stage === stages.length - 1) {
+      html += `<a id="deriv-link" class="link-btn" href="../derivative/product-rule-explorer.html${window.location.search}" style="display:none;">
+        ${T('Dlaczego pochodna x² = 2x? →', 'Why is the derivative of x² = 2x? →')}
+      </a>`;
+    }
+    slWrap.innerHTML = html;
+
+    defs.forEach(s => {
+      const el = document.getElementById('s_' + s.id);
+      document.getElementById('v_' + s.id).textContent = (+el.value).toFixed(s.step < 1 ? 1 : 0);
+      el.addEventListener('input', function() {
+        const v = +this.value;
+        document.getElementById('v_' + s.id).textContent = v.toFixed(s.step < 1 ? 1 : 0);
+        if (s.id === 'r1') r1 = v;
+        if (s.id === 'r2') r2 = v;
+        if (s.id === 'x0') x0 = v;
+      });
+    });
+  }
+
+  // ── Navigation ───────────────────────────────────────────────
+  const prevBtn = document.getElementById('qprev');
+  const nextBtn = document.getElementById('qnext');
+  const dotsEl  = document.getElementById('qdots');
+  const titleEl = document.getElementById('qf');
+  const descEl  = document.getElementById('qd');
+
+  function goTo(idx) {
+    stage = Math.max(0, Math.min(stages.length - 1, idx));
+    const s = stages[stage];
+    titleEl.textContent = s.title();
+    descEl.textContent = s.desc();
+
+    if (s.sliders) {
+      // Sync slider vals from current state
+      s.sliders.forEach(sl => {
+        if (sl.id === 'r1') sl.val = r1;
+        if (sl.id === 'r2') sl.val = r2;
+        if (sl.id === 'x0') sl.val = x0;
+      });
+      buildSliders(s.sliders);
+    } else {
+      slWrap.innerHTML = '';
+    }
+
+    // Set r1/r2 to 0 for the derivative stage
+    if (stage === stages.length - 1) {
+      r1 = 0; r2 = 0;
+      const r1El = document.getElementById('s_r1');
+      const r2El = document.getElementById('s_r2');
+      if (r1El) { r1El.value = 0; document.getElementById('v_r1').textContent = '0.0'; }
+      if (r2El) { r2El.value = 0; document.getElementById('v_r2').textContent = '0.0'; }
+    }
+
+    prevBtn.disabled = stage === 0;
+    nextBtn.disabled = stage === stages.length - 1;
+    renderDots();
+  }
+
+  function renderDots() {
+    dotsEl.innerHTML = stages.map((_, i) =>
+      `<span class="dot${i === stage ? ' active' : ''}" data-i="${i}"></span>`
+    ).join('');
+    dotsEl.querySelectorAll('.dot').forEach(d =>
+      d.addEventListener('click', () => goTo(+d.dataset.i))
+    );
+  }
+
+  prevBtn.addEventListener('click', () => goTo(stage - 1));
+  nextBtn.addEventListener('click', () => goTo(stage + 1));
+
+  // ── Render loop ──────────────────────────────────────────────
+  function tick() {
+    clear();
+    drawGrid();
+    drawAxes();
+    stages[stage].draw();
+    requestAnimationFrame(tick);
+  }
+
+  goTo(0);
+  tick();
+})();
+</script>
+</body>
+</html>
