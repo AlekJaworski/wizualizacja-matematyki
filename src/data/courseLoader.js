@@ -82,9 +82,10 @@ export function parseFrontmatter(raw) {
 export function buildNodes(nodeFiles, idPattern) {
   return Object.entries(nodeFiles).map(([path, raw]) => {
     const id = path.match(idPattern)?.[1];
-    const { meta } = parseFrontmatter(raw);
+    const { meta, body } = parseFrontmatter(raw);
     return {
       id,
+      body:      body || "",
       label:     meta.label     ?? id,
       labelPl:   meta.labelPl   ?? meta.label ?? id,
       scope:     meta.scope     ?? "default",

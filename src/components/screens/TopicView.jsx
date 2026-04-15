@@ -116,6 +116,9 @@ export function TopicView({
           </div>
         )}
 
+        {/* ── Description + "nie kumam" example ─────────────────── */}
+        {node.body && <NodeDescription body={node.body} lang={lang} />}
+
         {/* ── Prerequisites ──────────────────────────────────────── */}
         <Section title={t("prerequisites", lang)} color="#4a9eff" empty={prereqs.length === 0} emptyText={t("noPrereqs", lang)}>
           {prereqs.map(id => (
@@ -209,6 +212,58 @@ export function TopicView({
           lang={lang}
           onClose={() => setOpenResourceIdx(null)}
         />
+      )}
+    </div>
+  );
+}
+
+/** Description block with optional collapsible "nie kumam?" example */
+function NodeDescription({ body, lang }) {
+  const [showExample, setShowExample] = useState(false);
+  const parts = body.split("<!-- example -->");
+  const description = parts[0]?.trim();
+  const example = parts[1]?.trim();
+
+  if (!description) return null;
+
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{
+        fontSize: 13, color: COLORS.textBody, lineHeight: 1.7,
+      }}>
+        {description}
+      </div>
+      {example && (
+        <>
+          <button
+            onClick={() => setShowExample(v => !v)}
+            style={{
+              marginTop: 10, padding: "6px 14px",
+              fontSize: 12, fontFamily: FONT,
+              borderRadius: 6,
+              border: `1px solid ${showExample ? "#FFD16640" : COLORS.border}`,
+              background: showExample ? "#FFD16610" : "transparent",
+              color: showExample ? "#FFD166" : COLORS.textDim,
+              cursor: "pointer",
+              transition: "all 0.15s",
+            }}
+          >
+            {showExample
+              ? (lang === "pl" ? "Schowaj przykład" : "Hide example")
+              : (lang === "pl" ? "Nie kumam — pokaż na liczbach" : "Show me a concrete example")}
+          </button>
+          {showExample && (
+            <div style={{
+              marginTop: 10, padding: "12px 14px",
+              borderRadius: 8, fontSize: 13,
+              background: "#FFD16608",
+              border: "1px solid #FFD16620",
+              color: "#e8d5a0", lineHeight: 1.7,
+            }}>
+              {example}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

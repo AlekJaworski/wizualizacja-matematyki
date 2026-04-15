@@ -186,7 +186,7 @@ export function QuizFlow({ RAW_NODES, RAW_EDGES, QUESTION_BANK, lang, quizPreset
         display: "flex", alignItems: "center", justifyContent: "center",
         color: COLORS.textDim, fontSize: 14,
       }}>
-        {t("quizContinue", lang)}...
+        {t("quizProcessing", lang)}
       </div>
     );
   }
@@ -213,7 +213,11 @@ export function QuizFlow({ RAW_NODES, RAW_EDGES, QUESTION_BANK, lang, quizPreset
         display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
         <button
-          onClick={onExit}
+          onClick={() => {
+            if (stats.questionsAnswered === 0 || window.confirm(t("quizExitConfirm", lang))) {
+              onExit();
+            }
+          }}
           style={{
             padding: "6px 12px", fontSize: 12,
             fontFamily: FONT, borderRadius: 6,
