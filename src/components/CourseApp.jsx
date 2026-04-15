@@ -89,7 +89,7 @@ export default function CourseApp() {
           stats={quizStats}
           lang={lang}
           onSeeMap={handleSeeMap}
-          onRetake={handleStartQuiz}
+          onRetake={() => handleStartQuiz(quizPreset)}
         />
       );
 

@@ -200,16 +200,6 @@ export function TopicView({
           </div>
         )}
 
-        {/* No resources hint */}
-        {resources.length === 0 && (
-          <div style={{
-            marginTop: 28, padding: "16px 18px", borderRadius: 8,
-            background: "#ffffff04", border: `1px solid ${COLORS.border}`,
-            fontSize: 12, color: COLORS.textFaint, lineHeight: 1.6,
-          }}>
-            {t("topicNoResources", lang)}
-          </div>
-        )}
       </div>
 
       {/* Resource viewer modal */}

@@ -40,8 +40,8 @@ export function ResultsScreen({
   }, [unknownNodes, adjacency, belief]);
 
   const accuracyPct = stats.correct + stats.incorrect > 0
-    ? Math.round(((stats.correct + 0.5) / (stats.correct + stats.incorrect + 1)) * 100)
-    : 50;
+    ? Math.round((stats.correct / (stats.correct + stats.incorrect)) * 100)
+    : 0;
 
   const hasGaps = lowestGaps.length > 0;
 
