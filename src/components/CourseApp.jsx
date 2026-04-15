@@ -21,7 +21,10 @@ export default function CourseApp() {
   const course = COURSES[courseId];
 
   const [lang, setLang] = useLocalStorage("lang", "pl");
-  const [themeId, setThemeId] = useLocalStorage("theme", "midnight");
+  const systemPrefers = typeof window !== "undefined"
+    && window.matchMedia?.("(prefers-color-scheme: light)").matches
+    ? "bright" : "midnight";
+  const [themeId, setThemeId] = useLocalStorage("theme", systemPrefers);
   const [phase, setPhase] = useState("hero");
 
   // Apply theme on mount and change
