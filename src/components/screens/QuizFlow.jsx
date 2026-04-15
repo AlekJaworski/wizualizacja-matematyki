@@ -42,6 +42,8 @@ export function QuizFlow({ RAW_NODES, RAW_EDGES, QUESTION_BANK, lang, quizPreset
   const [belief, setBelief] = useState({});
   const [stats, setStats] = useState({ correct: 0, incorrect: 0, questionsAnswered: 0 });
   const [answeredQuestions, setAnsweredQuestions] = useState(new Set());
+  // Evidence: nodeId → { correct: bool, questionText: string }
+  const [evidence, setEvidence] = useState({});
   const [phase, setPhase] = useState("answering"); // "answering" | "revealed" | "done"
   const [picked, setPicked] = useState(null);
   const [fadeKey, setFadeKey] = useState(0); // for transition
@@ -114,6 +116,12 @@ export function QuizFlow({ RAW_NODES, RAW_EDGES, QUESTION_BANK, lang, quizPreset
     // Update belief
     setBelief(prev => propagateWithTests(currentNodeId, correct, tests, prev, adjacency));
 
+    // Record evidence for this node
+    setEvidence(prev => ({
+      ...prev,
+      [currentNodeId]: { correct, questionText: question?.q ?? null },
+    }));
+
     // Track answered question
     if (question?.index != null) {
       setAnsweredQuestions(prev => new Set([...prev, `${currentNodeId}:${question.index}`]));
@@ -136,6 +144,10 @@ export function QuizFlow({ RAW_NODES, RAW_EDGES, QUESTION_BANK, lang, quizPreset
   const handleSelfAssess = useCallback((known) => {
     const tests = { [currentNodeId]: 1.0 };
     setBelief(prev => propagateWithTests(currentNodeId, known, tests, prev, adjacency));
+    setEvidence(prev => ({
+      ...prev,
+      [currentNodeId]: { correct: known, questionText: null },
+    }));
     setAnsweredQuestions(prev => new Set([...prev, `${currentNodeId}:-1`]));
     setStats(prev => ({
       correct: prev.correct + (known ? 1 : 0),
@@ -164,7 +176,7 @@ export function QuizFlow({ RAW_NODES, RAW_EDGES, QUESTION_BANK, lang, quizPreset
   // ── Done → pass results up ────────────────────────────────────
   useEffect(() => {
     if (phase === "done") {
-      onComplete(belief, stats);
+      onComplete(belief, stats, evidence);
     }
   }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
 

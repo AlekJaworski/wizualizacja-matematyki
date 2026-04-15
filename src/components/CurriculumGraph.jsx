@@ -40,6 +40,7 @@ export default function CurriculumGraph({
   COURSE_META,
   onBackToCourses,
   initialBelief,
+  initialEvidence,
   initialLang,
   onBackToHome,
 }) {
@@ -473,6 +474,7 @@ export default function CurriculumGraph({
             nodeId={selected} nodes={nodes} adjacency={adjacency} lang={lang}
             SCOPE_COLORS={SCOPE_COLORS} SCOPE_LABELS={SCOPE_LABELS} SECTIONS={SECTIONS}
             belief={effectiveBelief}
+            evidence={initialEvidence}
             onClose={() => setSelected(null)}
             onNavigate={(id) => setSelected(id)}
           />
@@ -529,6 +531,7 @@ export default function CurriculumGraph({
         {/* Legend — hidden on mobile to save space */}
         {!isMobile && (
           <Legend lang={lang} diagMode={diagMode}
+            hasBelief={Object.keys(effectiveBelief).length > 0}
             SCOPE_COLORS={SCOPE_COLORS} SCOPE_LABELS={SCOPE_LABELS} SECTIONS={SECTIONS}
           />
         )}

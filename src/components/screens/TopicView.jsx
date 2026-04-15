@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { FONT, COLORS } from "../../styles/tokens.js";
 import { t } from "../../i18n.js";
+import { renderLatex } from "../../utils/latex.js";
 import { ResourcePanel } from "../panels/ResourcePanel.jsx";
 
 /**
@@ -17,7 +18,7 @@ import { ResourcePanel } from "../panels/ResourcePanel.jsx";
 export function TopicView({
   nodeId, nodes, adjacency, lang,
   SCOPE_COLORS, SCOPE_LABELS, SECTIONS,
-  belief, onClose, onNavigate,
+  belief, evidence, onClose, onNavigate,
 }) {
   const [openResourceIdx, setOpenResourceIdx] = useState(null);
 
@@ -102,18 +103,13 @@ export function TopicView({
           {sectionLbl} · {scopeLabel} · {t("level", lang)} {node.level}
         </div>
 
-        {/* Belief status */}
+        {/* Belief status + evidence */}
         {status && (
-          <div style={{
-            display: "inline-block",
-            fontSize: 12, fontWeight: 600,
-            padding: "6px 14px", borderRadius: 6, marginBottom: 20,
-            background: status === "known" ? "#27ae6012" : "#e74c3c12",
-            border: `1px solid ${status === "known" ? "#27ae6040" : "#e74c3c40"}`,
-            color: status === "known" ? "#2ecc71" : "#ff6b6b",
-          }}>
-            {status === "known" ? t("beliefKnown", lang) : t("beliefUnknown", lang)}
-          </div>
+          <EvidenceBlock
+            nodeId={nodeId} status={status} evidence={evidence}
+            adjacency={adjacency} belief={belief} nodes={nodes}
+            lang={lang} onNavigate={onNavigate}
+          />
         )}
 
         {/* ── Description + "nie kumam" example ─────────────────── */}
@@ -212,6 +208,106 @@ export function TopicView({
           lang={lang}
           onClose={() => setOpenResourceIdx(null)}
         />
+      )}
+    </div>
+  );
+}
+
+/** Evidence block — shows WHY a node is green/red and how certain we are */
+function EvidenceBlock({ nodeId, status, evidence, adjacency, belief, nodes, lang, onNavigate }) {
+  const ev = evidence?.[nodeId];
+  const directlyTested = !!ev;
+  const statusColor = status === "known" ? "#27ae60" : "#e74c3c";
+  const statusColorLight = status === "known" ? "#2ecc71" : "#ff6b6b";
+  const byId = Object.fromEntries(nodes.map(n => [n.id, n]));
+  const getLabel = id => lang === "pl" ? byId[id]?.labelPl : byId[id]?.label;
+
+  // Find the node that was directly tested and caused this inference
+  let inferredFrom = null;
+  if (!directlyTested && evidence) {
+    if (status === "known") {
+      // Known was propagated upward from a dependent that was tested correctly
+      const deps = adjacency.dependents[nodeId] ?? [];
+      inferredFrom = deps.find(d => evidence[d]?.correct && belief[d] === "known");
+    } else {
+      // Unknown was propagated downward from a prerequisite that was tested incorrectly
+      const prereqs = adjacency.prereqs[nodeId] ?? [];
+      inferredFrom = prereqs.find(p => evidence[p] && !evidence[p].correct && belief[p] === "unknown");
+    }
+  }
+
+  return (
+    <div style={{
+      marginBottom: 20, padding: "12px 14px", borderRadius: 8,
+      background: `${statusColor}08`,
+      border: `1px solid ${statusColor}20`,
+    }}>
+      {/* Status header */}
+      <div style={{
+        display: "flex", alignItems: "center", gap: 8, marginBottom: 8,
+      }}>
+        <div style={{
+          width: 8, height: 8, borderRadius: "50%",
+          background: statusColor,
+        }} />
+        <span style={{ fontSize: 13, fontWeight: 600, color: statusColorLight }}>
+          {status === "known" ? t("beliefKnown", lang) : t("beliefUnknown", lang)}
+        </span>
+        <span style={{
+          fontSize: 10, padding: "2px 8px", borderRadius: 4,
+          background: directlyTested ? `${statusColor}15` : "#ffffff08",
+          color: directlyTested ? statusColorLight : COLORS.textFaint,
+          border: `1px solid ${directlyTested ? statusColor + "30" : COLORS.border}`,
+        }}>
+          {directlyTested
+            ? (lang === "pl" ? "sprawdzone" : "tested")
+            : (lang === "pl" ? "wywnioskowane" : "inferred")}
+        </span>
+      </div>
+
+      {/* Direct evidence: show the question */}
+      {directlyTested && (
+        <div style={{ fontSize: 12, color: COLORS.textDim, lineHeight: 1.6 }}>
+          {ev.correct
+            ? (lang === "pl" ? "Odpowiedź poprawna" : "Answered correctly")
+            : (lang === "pl" ? "Odpowiedź niepoprawna" : "Answered incorrectly")}
+          {ev.questionText && (
+            <div style={{
+              marginTop: 8, padding: "8px 10px", borderRadius: 6,
+              background: "#ffffff06", borderLeft: `2px solid ${statusColor}40`,
+              fontSize: 12, color: COLORS.textBody, lineHeight: 1.6,
+            }}>
+              <span dangerouslySetInnerHTML={{ __html: renderLatex(ev.questionText) }} />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Inferred: explain why */}
+      {!directlyTested && (
+        <div style={{ fontSize: 12, color: COLORS.textDim, lineHeight: 1.6 }}>
+          {status === "known"
+            ? (lang === "pl"
+                ? "Wywnioskowane — jeśli znasz trudniejszy temat, to prawdopodobnie znasz też ten."
+                : "Inferred — if you know a harder topic, you likely know this one too.")
+            : (lang === "pl"
+                ? "Wywnioskowane — jeśli nie znasz podstawy, to tematy które na niej bazują też mogą sprawiać problem."
+                : "Inferred — if you don't know the foundation, topics that build on it may also be difficult.")}
+          {inferredFrom && (
+            <button
+              onClick={() => onNavigate(inferredFrom)}
+              style={{
+                display: "block", marginTop: 6,
+                padding: "4px 10px", borderRadius: 4,
+                background: "#ffffff06", border: `1px solid ${COLORS.border}`,
+                color: "#4a9eff", cursor: "pointer",
+                fontSize: 11, fontFamily: FONT,
+              }}
+            >
+              {lang === "pl" ? "Na podstawie:" : "Based on:"} {getLabel(inferredFrom)} →
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

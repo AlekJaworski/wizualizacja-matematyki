@@ -8,8 +8,8 @@ import { t } from "../../i18n.js";
  * SCOPE_COLORS, SCOPE_LABELS, SECTIONS are passed as props so the component
  * works for any course.
  */
-export function Legend({ lang, diagMode, SCOPE_COLORS, SCOPE_LABELS, SECTIONS }) {
-  const [open, setOpen] = useState(false);
+export function Legend({ lang, diagMode, hasBelief, SCOPE_COLORS, SCOPE_LABELS, SECTIONS }) {
+  const [open, setOpen] = useState(hasBelief);
 
   const scopes = Object.entries(SCOPE_COLORS).map(([k, c]) => ({
     color: c,
@@ -41,8 +41,8 @@ export function Legend({ lang, diagMode, SCOPE_COLORS, SCOPE_LABELS, SECTIONS })
       {open && (
         <div style={{ padding: "4px 10px 8px", borderTop: "1px solid #1a2235" }}>
 
-          {/* Diagnostic colours — only shown in diagnostic mode */}
-          {diagMode && (
+          {/* Diagnostic colours — shown in diagnostic mode or when belief overlay is active */}
+          {(diagMode || hasBelief) && (
             <div style={{ marginBottom: 8 }}>
               {[
                 { color: COLORS.knownHi,  label: t("legendKnown",       lang) },

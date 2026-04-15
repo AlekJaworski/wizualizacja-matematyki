@@ -23,18 +23,21 @@ export default function CourseApp() {
   const [phase, setPhase] = useState("hero");
   const [quizBelief, setQuizBelief] = useState(null);
   const [quizStats, setQuizStats] = useState(null);
+  const [quizEvidence, setQuizEvidence] = useState(null);
   const [quizPreset, setQuizPreset] = useState("standard");
 
   const handleStartQuiz = useCallback((preset = "standard") => {
     setQuizPreset(preset);
     setQuizBelief(null);
     setQuizStats(null);
+    setQuizEvidence(null);
     setPhase("quiz");
   }, []);
 
-  const handleQuizComplete = useCallback((belief, stats) => {
+  const handleQuizComplete = useCallback((belief, stats, evidence) => {
     setQuizBelief(belief);
     setQuizStats(stats);
+    setQuizEvidence(evidence ?? {});
     setPhase("results");
   }, []);
 
@@ -45,6 +48,7 @@ export default function CourseApp() {
   const handleBrowseMap = useCallback(() => {
     setQuizBelief(null);
     setQuizStats(null);
+    setQuizEvidence(null);
     setPhase("map");
   }, []);
 
@@ -87,6 +91,7 @@ export default function CourseApp() {
           SCOPE_LABELS={course.SCOPE_LABELS}
           belief={quizBelief}
           stats={quizStats}
+          evidence={quizEvidence}
           lang={lang}
           onSeeMap={handleSeeMap}
           onRetake={() => handleStartQuiz(quizPreset)}
@@ -106,6 +111,7 @@ export default function CourseApp() {
           SCOPE_LABELS={course.SCOPE_LABELS}
           COURSE_META={course.COURSE_META}
           initialBelief={quizBelief}
+          initialEvidence={quizEvidence}
           initialLang={lang}
           onBackToHome={handleBackToHero}
         />
