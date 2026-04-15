@@ -18,7 +18,7 @@ import { ResourcePanel } from "../panels/ResourcePanel.jsx";
 export function TopicView({
   nodeId, nodes, adjacency, lang,
   SCOPE_COLORS, SCOPE_LABELS, SECTIONS,
-  belief, evidence, onClose, onNavigate,
+  belief, evidence, onClose, onNavigate, onShowPath,
 }) {
   const [openResourceIdx, setOpenResourceIdx] = useState(null);
 
@@ -66,17 +66,32 @@ export function TopicView({
         padding: "32px 24px 64px",
       }}>
         {/* Back button */}
-        <button
-          onClick={onClose}
-          style={{
-            padding: "6px 14px", fontSize: 12, fontFamily: FONT,
-            borderRadius: 6, border: `1px solid ${COLORS.border}`,
-            background: "transparent", color: COLORS.textDim,
-            cursor: "pointer", marginBottom: 28,
-          }}
-        >
-          ← {t("topicBack", lang)}
-        </button>
+        <div style={{ display: "flex", gap: 8, marginBottom: 28 }}>
+          <button
+            onClick={onClose}
+            style={{
+              padding: "6px 14px", fontSize: 12, fontFamily: FONT,
+              borderRadius: 6, border: `1px solid ${COLORS.border}`,
+              background: "transparent", color: COLORS.textDim,
+              cursor: "pointer",
+            }}
+          >
+            ← {t("topicBack", lang)}
+          </button>
+          {onShowPath && prereqs.length > 0 && (
+            <button
+              onClick={() => onShowPath(nodeId)}
+              style={{
+                padding: "6px 14px", fontSize: 12, fontFamily: FONT,
+                borderRadius: 6, border: `1px solid ${color}30`,
+                background: `${color}08`, color: color,
+                cursor: "pointer",
+              }}
+            >
+              {t("topicLearnPath", lang)}
+            </button>
+          )}
+        </div>
 
         {/* Header */}
         <div style={{

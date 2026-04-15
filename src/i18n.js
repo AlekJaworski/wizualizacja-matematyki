@@ -213,8 +213,14 @@ const STRINGS = {
 
   // ── Topic view ───────────────────────────────────────────────────
   topicBack:         { pl: "Wróć do mapy",                en: "Back to map" },
-  topicNoResources:  { pl: "Brak materiałów do nauki dla tego tematu — wkrótce!",
-                       en: "No learning resources for this topic yet — coming soon!" },
+  topicLearnPath:    { pl: "Ścieżka do tego tematu",     en: "Path to this topic" },
+
+  // ── Learning path ────────────────────────────────────────────────
+  pathLabel:         { pl: "Ścieżka nauki",              en: "Learning path" },
+  pathTopics:        { pl: "tematów w ścieżce",          en: "topics in path" },
+  pathKnown:         { pl: "znasz",                      en: "known" },
+  pathToStudy:       { pl: "do nauki",                   en: "to study" },
+  pathGoal:          { pl: "— cel",                      en: "— goal" },
 };
 
 /**

@@ -17,6 +17,7 @@ import { EdgeLayer }           from "./graph/EdgeLayer.jsx";
 import { NodeLayer }           from "./graph/NodeLayer.jsx";
 import { InfoPanel }           from "./panels/InfoPanel.jsx";
 import { TopicView }           from "./screens/TopicView.jsx";
+import { LearningPath }        from "./screens/LearningPath.jsx";
 import { QuizPanel }           from "./panels/QuizPanel.jsx";
 import { DiagnosticPanel }     from "./panels/DiagnosticPanel.jsx";
 import { DeepDivePanel }       from "./panels/DeepDivePanel.jsx";
@@ -57,6 +58,7 @@ export default function CurriculumGraph({
   const [selected,      setSelected]      = useState(null);
   const [hoveredNode,   setHoveredNode]   = useState(null);
   const [openResourceIdx, setOpenResourceIdx] = useState(null);
+  const [pathGoal,      setPathGoal]      = useState(null);
 
   // ── Modals ──────────────────────────────────────────────────────
   const [showGoalModal,   setShowGoalModal]   = useState(false);
@@ -469,7 +471,7 @@ export default function CurriculumGraph({
         </svg>
 
         {/* Topic detail view — full overlay when a node is selected */}
-        {selected && !diagMode && (
+        {selected && !diagMode && !pathGoal && (
           <TopicView
             nodeId={selected} nodes={nodes} adjacency={adjacency} lang={lang}
             SCOPE_COLORS={SCOPE_COLORS} SCOPE_LABELS={SCOPE_LABELS} SECTIONS={SECTIONS}
@@ -477,6 +479,21 @@ export default function CurriculumGraph({
             evidence={initialEvidence}
             onClose={() => setSelected(null)}
             onNavigate={(id) => setSelected(id)}
+            onShowPath={(id) => { setSelected(null); setPathGoal(id); }}
+          />
+        )}
+
+        {/* Learning path overlay */}
+        {pathGoal && (
+          <LearningPath
+            goalId={pathGoal}
+            RAW_NODES={RAW_NODES} RAW_EDGES={RAW_EDGES}
+            SCOPE_COLORS={SCOPE_COLORS} SCOPE_LABELS={SCOPE_LABELS} SECTIONS={SECTIONS}
+            belief={effectiveBelief}
+            evidence={initialEvidence}
+            lang={lang}
+            onSelectTopic={(id) => { setPathGoal(null); setSelected(id); }}
+            onClose={() => setPathGoal(null)}
           />
         )}
 
