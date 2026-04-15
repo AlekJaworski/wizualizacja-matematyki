@@ -109,15 +109,15 @@ export function LearningPath({
       `}</style>
 
       <div style={{
-        maxWidth: 520, width: "100%",
+        maxWidth: "min(520px, calc(100% - 32px))", width: "100%",
         margin: "0 auto",
-        padding: "32px 24px 64px",
+        padding: "24px 16px 48px",
       }}>
         {/* Back */}
         <button
           onClick={onClose}
           style={{
-            padding: "6px 14px", fontSize: 12, fontFamily: FONT,
+            padding: "10px 14px", fontSize: 12, fontFamily: FONT,
             borderRadius: 6, border: `1px solid ${COLORS.border}`,
             background: "transparent", color: COLORS.textDim,
             cursor: "pointer", marginBottom: 24,

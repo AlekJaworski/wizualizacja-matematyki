@@ -220,7 +220,7 @@ export function QuizFlow({ RAW_NODES, RAW_EDGES, QUESTION_BANK, lang, quizPreset
     }}>
       {/* Top bar */}
       <div style={{
-        width: "100%", maxWidth: 520,
+        width: "100%", maxWidth: "min(520px, calc(100% - 32px))",
         padding: "20px 0 0",
         display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
@@ -231,7 +231,7 @@ export function QuizFlow({ RAW_NODES, RAW_EDGES, QUESTION_BANK, lang, quizPreset
             }
           }}
           style={{
-            padding: "6px 12px", fontSize: 12,
+            padding: "10px 14px", fontSize: 12,
             fontFamily: FONT, borderRadius: 6,
             border: `1px solid ${COLORS.border}`,
             background: "transparent",
@@ -246,7 +246,7 @@ export function QuizFlow({ RAW_NODES, RAW_EDGES, QUESTION_BANK, lang, quizPreset
 
       {/* Progress bar */}
       <div style={{
-        width: "100%", maxWidth: 520,
+        width: "100%", maxWidth: "min(520px, calc(100% - 32px))",
         marginTop: 16,
       }}>
         <div style={{
@@ -274,7 +274,7 @@ export function QuizFlow({ RAW_NODES, RAW_EDGES, QUESTION_BANK, lang, quizPreset
       <div
         key={fadeKey}
         style={{
-          width: "100%", maxWidth: 520,
+          width: "100%", maxWidth: "min(520px, calc(100% - 32px))",
           marginTop: 40,
           animation: "fadeIn 0.25s ease",
         }}

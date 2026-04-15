@@ -61,16 +61,16 @@ export function TopicView({
       `}</style>
 
       <div style={{
-        maxWidth: 580, width: "100%",
+        maxWidth: "min(580px, calc(100% - 32px))", width: "100%",
         margin: "0 auto",
-        padding: "32px 24px 64px",
+        padding: "24px 16px 48px",
       }}>
         {/* Back button */}
         <div style={{ display: "flex", gap: 8, marginBottom: 28 }}>
           <button
             onClick={onClose}
             style={{
-              padding: "6px 14px", fontSize: 12, fontFamily: FONT,
+              padding: "10px 14px", fontSize: 12, fontFamily: FONT,
               borderRadius: 6, border: `1px solid ${COLORS.border}`,
               background: "transparent", color: COLORS.textDim,
               cursor: "pointer",
@@ -82,7 +82,7 @@ export function TopicView({
             <button
               onClick={() => onShowPath(nodeId)}
               style={{
-                padding: "6px 14px", fontSize: 12, fontFamily: FONT,
+                padding: "10px 14px", fontSize: 12, fontFamily: FONT,
                 borderRadius: 6, border: `1px solid ${color}30`,
                 background: `${color}08`, color: color,
                 cursor: "pointer",
@@ -313,7 +313,7 @@ function EvidenceBlock({ nodeId, status, evidence, adjacency, belief, nodes, lan
               onClick={() => onNavigate(inferredFrom)}
               style={{
                 display: "block", marginTop: 6,
-                padding: "4px 10px", borderRadius: 4,
+                padding: "10px 14px", borderRadius: 4,
                 background: "#ffffff06", border: `1px solid ${COLORS.border}`,
                 color: "#4a9eff", cursor: "pointer",
                 fontSize: 11, fontFamily: FONT,
@@ -349,7 +349,7 @@ function NodeDescription({ body, lang }) {
           <button
             onClick={() => setShowExample(v => !v)}
             style={{
-              marginTop: 10, padding: "6px 14px",
+              marginTop: 10, padding: "10px 14px",
               fontSize: 12, fontFamily: FONT,
               borderRadius: 6,
               border: `1px solid ${showExample ? "#FFD16640" : COLORS.border}`,

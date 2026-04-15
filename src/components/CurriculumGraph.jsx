@@ -378,6 +378,7 @@ export default function CurriculumGraph({
               border: "none", fontWeight: !diagMode ? 700 : 400,
               background: !diagMode ? "#4a9eff22" : "transparent",
               color: !diagMode ? "#4a9eff" : COLORS.textDim,
+              minHeight: 36,
             }}
           >
             {t("exploreMode", lang)}
@@ -389,6 +390,7 @@ export default function CurriculumGraph({
               border: "none", borderLeft: `1px solid ${COLORS.border}`, fontWeight: diagMode ? 700 : 400,
               background: diagMode ? "#f39c1222" : "transparent",
               color: diagMode ? "#f39c12" : COLORS.textDim,
+              minHeight: 36,
             }}
           >
             {diagMode

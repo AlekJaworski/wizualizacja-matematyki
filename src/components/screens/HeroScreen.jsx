@@ -56,7 +56,7 @@ export function HeroScreen({ lang, setLang, themeId, onThemeChange, onStartQuiz,
               key={l}
               onClick={() => setLang(l)}
               style={{
-                padding: "6px 14px", fontSize: 12, cursor: "pointer",
+                padding: "10px 14px", fontSize: 12, cursor: "pointer",
                 border: "none",
                 borderLeft: l === "en" ? `1px solid ${COLORS.border}` : "none",
                 background: lang === l ? "#4a9eff18" : "transparent",

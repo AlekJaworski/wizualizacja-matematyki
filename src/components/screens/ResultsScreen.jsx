@@ -53,7 +53,7 @@ export function ResultsScreen({
       alignItems: "center",
       padding: "40px 20px 60px",
     }}>
-      <div style={{ maxWidth: 520, width: "100%" }}>
+      <div style={{ maxWidth: "min(520px, calc(100% - 32px))", width: "100%" }}>
         {/* Header */}
         <div style={{
           fontSize: 11, color: COLORS.textFaint,
