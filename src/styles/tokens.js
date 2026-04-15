@@ -49,6 +49,22 @@ export const THEMES = {
     edgeHighlighted:"#e8a84c",
     edgeDimmed:     "#1a1614",
   },
+  bright: {
+    name: "Bright",
+    bg:          "#f7f7f2",
+    surface:     "#ffffff",
+    surfaceHi:   "#ffffffee",
+    border:      "#e0ddd5",
+    borderSubtle:"#ebe8e2",
+    textPrimary:  "#1a1a1a",
+    textBody:     "#3a3a3a",
+    textMuted:    "#6b6b6b",
+    textDim:      "#8a8a8a",
+    textFaint:    "#b5b5b5",
+    edgeDefault:    "#c5c0b6",
+    edgeHighlighted:"#58cc02",
+    edgeDimmed:     "#edebe6",
+  },
 };
 
 /** Active COLORS object — mutated in-place by applyTheme(). */

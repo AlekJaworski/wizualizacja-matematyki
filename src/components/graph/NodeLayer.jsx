@@ -1,3 +1,5 @@
+import { COLORS } from "../../styles/tokens.js";
+
 /** Returns the visual radius of a node by curriculum level. */
 function nodeRadius(n) { return 6 + n.level * 2; }
 
@@ -104,7 +106,7 @@ export function NodeLayer({
               x={n.x} y={n.y + r + 10}
               textAnchor="middle"
               fontSize={8}
-              fill="#cdd8e4"
+              fill={COLORS.textBody}
               opacity={labelOpacity}
               style={{ pointerEvents: "none", userSelect: "none" }}
             >
