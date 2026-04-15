@@ -1,33 +1,79 @@
 /** Design tokens — shared colors, typography, and style helpers. */
 
+export const THEMES = {
+  midnight: {
+    name: "Midnight",
+    bg:          "#10141c",
+    surface:     "#161c28",
+    surfaceHi:   "#161c28ee",
+    border:      "#263248",
+    borderSubtle:"#1f2a3c",
+    textPrimary:  "#f0f2f5",
+    textBody:     "#cdd8e4",
+    textMuted:    "#95a5bd",
+    textDim:      "#7b8fa8",
+    textFaint:    "#4a5e78",
+    edgeDefault:    "#334766",
+    edgeHighlighted:"#4a9eff",
+    edgeDimmed:     "#151b26",
+  },
+  highContrast: {
+    name: "High Contrast",
+    bg:          "#08090d",
+    surface:     "#111318",
+    surfaceHi:   "#111318ee",
+    border:      "#2e3a50",
+    borderSubtle:"#1c2436",
+    textPrimary:  "#ffffff",
+    textBody:     "#dce4ef",
+    textMuted:    "#a3b5cc",
+    textDim:      "#8899b3",
+    textFaint:    "#556a85",
+    edgeDefault:    "#3d5577",
+    edgeHighlighted:"#5ab0ff",
+    edgeDimmed:     "#0d1118",
+  },
+  warm: {
+    name: "Warm",
+    bg:          "#131110",
+    surface:     "#1c1916",
+    surfaceHi:   "#1c1916ee",
+    border:      "#33291f",
+    borderSubtle:"#28211a",
+    textPrimary:  "#f2ede6",
+    textBody:     "#d4cabb",
+    textMuted:    "#a89d8e",
+    textDim:      "#8a7e6f",
+    textFaint:    "#5c5347",
+    edgeDefault:    "#4a3f32",
+    edgeHighlighted:"#e8a84c",
+    edgeDimmed:     "#1a1614",
+  },
+};
+
+/** Active COLORS object — mutated in-place by applyTheme(). */
 export const COLORS = {
   // Background layers
-  bg:          "#10141c",
-  surface:     "#161c28",
-  surfaceHi:   "#161c28ee",
-  border:      "#263248",
-  borderSubtle:"#1f2a3c",
+  ...THEMES.midnight,
 
-  // Text
-  textPrimary:  "#f0f2f5",
-  textBody:     "#cdd8e4",
-  textMuted:    "#95a5bd",
-  textDim:      "#7b8fa8",
-  textFaint:    "#4a5e78",
-
-  // Semantic
+  // Semantic (constant across themes)
   known:    "#27ae60",
   knownHi:  "#2ecc71",
   unknown:  "#c0392b",
   unknownHi:"#e74c3c",
   frontier: "#f39c12",
   frontierHi:"#f1c40f",
-
-  // Graph edges
-  edgeDefault:    "#334766",
-  edgeHighlighted:"#4a9eff",
-  edgeDimmed:     "#151b26",
 };
+
+/**
+ * Switch the active color palette. Mutates COLORS in-place so all
+ * components pick up new values on next render.
+ */
+export function applyTheme(themeId) {
+  const theme = THEMES[themeId];
+  if (!theme) return;
+  Object.assign(COLORS, theme);
+}
 
 export const FONT = "'JetBrains Mono','SF Mono','Fira Code',monospace";
 

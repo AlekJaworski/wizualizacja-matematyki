@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FONT, COLORS } from "../../styles/tokens.js";
+import { FONT, COLORS, THEMES } from "../../styles/tokens.js";
 import { t } from "../../i18n.js";
 import { QUIZ_PRESETS } from "../../engine/belief.js";
 
@@ -8,7 +8,7 @@ import { QUIZ_PRESETS } from "../../engine/belief.js";
  * One clear purpose: start the diagnostic quiz.
  * Secondary: browse the map directly.
  */
-export function HeroScreen({ lang, setLang, onStartQuiz, onBrowseMap }) {
+export function HeroScreen({ lang, setLang, themeId, onThemeChange, onStartQuiz, onBrowseMap }) {
   const [preset, setPreset] = useState("standard");
   return (
     <div style={{
@@ -19,28 +19,54 @@ export function HeroScreen({ lang, setLang, onStartQuiz, onBrowseMap }) {
       padding: "32px 20px",
       position: "relative",
     }}>
-      {/* Language toggle — top right */}
+      {/* Top right controls */}
       <div style={{
         position: "absolute", top: 16, right: 20,
-        display: "flex", gap: 0,
-        borderRadius: 6, overflow: "hidden",
-        border: `1px solid ${COLORS.border}`,
+        display: "flex", gap: 10, alignItems: "center",
       }}>
-        {["pl", "en"].map(l => (
-          <button
-            key={l}
-            onClick={() => setLang(l)}
-            style={{
-              padding: "6px 14px", fontSize: 12, cursor: "pointer",
-              border: "none",
-              borderLeft: l === "en" ? `1px solid ${COLORS.border}` : "none",
-              background: lang === l ? "#4a9eff18" : "transparent",
-              color: lang === l ? "#4a9eff" : COLORS.textDim,
-              fontWeight: lang === l ? 600 : 400,
-              fontFamily: FONT,
-            }}
-          >{l.toUpperCase()}</button>
-        ))}
+        {/* Theme picker */}
+        <div style={{ display: "flex", gap: 5 }}>
+          {Object.entries(THEMES).map(([id, theme]) => (
+            <button
+              key={id}
+              onClick={() => onThemeChange(id)}
+              title={theme.name}
+              style={{
+                width: 18, height: 18, borderRadius: "50%",
+                background: theme.bg,
+                border: themeId === id
+                  ? `2px solid ${theme.textPrimary}`
+                  : `2px solid ${theme.border}`,
+                cursor: "pointer",
+                padding: 0,
+                boxShadow: themeId === id ? `0 0 6px ${theme.textDim}` : "none",
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Language toggle */}
+        <div style={{
+          display: "flex", gap: 0,
+          borderRadius: 6, overflow: "hidden",
+          border: `1px solid ${COLORS.border}`,
+        }}>
+          {["pl", "en"].map(l => (
+            <button
+              key={l}
+              onClick={() => setLang(l)}
+              style={{
+                padding: "6px 14px", fontSize: 12, cursor: "pointer",
+                border: "none",
+                borderLeft: l === "en" ? `1px solid ${COLORS.border}` : "none",
+                background: lang === l ? "#4a9eff18" : "transparent",
+                color: lang === l ? "#4a9eff" : COLORS.textDim,
+                fontWeight: lang === l ? 600 : 400,
+                fontFamily: FONT,
+              }}
+            >{l.toUpperCase()}</button>
+          ))}
+        </div>
       </div>
 
       {/* Content */}

@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { COURSES, DEFAULT_COURSE_ID } from "../data/courses/index.js";
 import { useLocalStorage } from "../hooks/useLocalStorage.js";
+import { applyTheme } from "../styles/tokens.js";
 import CurriculumGraph from "./CurriculumGraph.jsx";
 import { HeroScreen } from "./screens/HeroScreen.jsx";
 import { QuizFlow } from "./screens/QuizFlow.jsx";
@@ -20,7 +21,17 @@ export default function CourseApp() {
   const course = COURSES[courseId];
 
   const [lang, setLang] = useLocalStorage("lang", "pl");
+  const [themeId, setThemeId] = useLocalStorage("theme", "midnight");
   const [phase, setPhase] = useState("hero");
+
+  // Apply theme on mount and change
+  const handleThemeChange = useCallback((id) => {
+    applyTheme(id);
+    setThemeId(id);
+  }, [setThemeId]);
+
+  // Apply saved theme on mount
+  applyTheme(themeId);
   const [quizBelief, setQuizBelief] = useState(null);
   const [quizStats, setQuizStats] = useState(null);
   const [quizEvidence, setQuizEvidence] = useState(null);
@@ -64,6 +75,8 @@ export default function CourseApp() {
         <HeroScreen
           lang={lang}
           setLang={setLang}
+          themeId={themeId}
+          onThemeChange={handleThemeChange}
           onStartQuiz={handleStartQuiz}
           onBrowseMap={handleBrowseMap}
         />
