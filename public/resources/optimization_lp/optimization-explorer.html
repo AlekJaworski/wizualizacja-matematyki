@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Optymalizacja — Optimization Explorer</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+  #qf { margin: 0 0 5px; font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  #qd { margin: 0 0 10px; font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); min-height: 48px; }
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 36px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+  .nav { display: flex; align-items: center; justify-content: space-between; }
+  button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  button:hover { background: rgba(255,255,255,.08); }
+  button:disabled { opacity: .3; cursor: default; }
+  #qdots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.18); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  #sliders-wrap { min-height: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="310"></canvas>
+  <div class="panel">
+    <p id="qf"></p>
+    <p id="qd"></p>
+    <div id="sliders-wrap"></div>
+    <div class="nav">
+      <button id="qprev">&larr;</button>
+      <div id="qdots"></div>
+      <button id="qnext">&rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const cv = document.getElementById('cv');
+  const cx = cv.getContext('2d');
+  const W = 600, H = 310;
+
+  const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
+  const T = (pl, en) => LANG === 'pl' ? pl : en;
+
+  const COL_RECT = '#4a9eff';
+  const COL_AREA = '#83C167';
+  const COL_VERTEX = '#FFD166';
+  const COL_PARA = '#58C4DD';
+  const COL_PROJ = '#FF6B35';
+
+  let stage = 0;
+  let perim = 20, wid = 3;
+  let oa = -1, ob = 6, oc = 0;
+  let projT = 1.5;
+
+  function clear() { cx.fillStyle = '#0e0e12'; cx.fillRect(0, 0, W, H); }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath();
+  }
+
+  function infoBox(text, sx, sy, col) {
+    cx.save(); cx.font = '12px monospace';
+    const w = cx.measureText(text).width + 14;
+    cx.fillStyle = 'rgba(14,14,18,0.85)'; cx.strokeStyle = col + '40'; cx.lineWidth = 1;
+    roundRect(cx, sx - w/2, sy - 10, w, 22, 4); cx.fill(); cx.stroke();
+    cx.fillStyle = col; cx.textAlign = 'center'; cx.fillText(text, sx, sy + 4); cx.restore();
+  }
+
+  function drawAxesCustom(ox, oy, xLabel, yLabel, xMax, yMax, sc) {
+    cx.strokeStyle = 'rgba(255,255,255,0.2)'; cx.lineWidth = 1;
+    cx.beginPath(); cx.moveTo(ox, oy); cx.lineTo(ox + xMax * sc + 20, oy); cx.stroke();
+    cx.beginPath(); cx.moveTo(ox, oy); cx.lineTo(ox, oy - yMax * sc - 20); cx.stroke();
+    cx.fillStyle = 'rgba(255,255,255,0.3)'; cx.font = '10px monospace';
+    cx.textAlign = 'center'; cx.fillText(xLabel, ox + xMax * sc / 2, oy + 16);
+    cx.save(); cx.translate(ox - 16, oy - yMax * sc / 2); cx.rotate(-Math.PI/2);
+    cx.fillText(yLabel, 0, 0); cx.restore();
+  }
+
+  function plotCustom(fn, ox, oy, sc, xMin, xMax, color, alpha) {
+    cx.save(); cx.strokeStyle = color; cx.globalAlpha = alpha; cx.lineWidth = 2;
+    cx.beginPath(); let first = true;
+    for (let x = xMin; x <= xMax; x += 0.05) {
+      const sx = ox + x * sc;
+      const sy = oy - fn(x) * sc;
+      if (sy < -50 || sy > H + 50) { first = true; continue; }
+      if (first) { cx.moveTo(sx, sy); first = false; } else cx.lineTo(sx, sy);
+    }
+    cx.stroke(); cx.restore();
+  }
+
+  function gdot(sx, sy, r, col) {
+    cx.beginPath(); cx.arc(sx, sy, r, 0, Math.PI * 2);
+    cx.fillStyle = col; cx.shadowColor = col; cx.shadowBlur = 10; cx.fill(); cx.shadowBlur = 0;
+  }
+
+  const stages = [
+    {
+      title: () => T('Prostok\u0105t o sta\u0142ym obwodzie', 'Rectangle with fixed perimeter'),
+      desc: () => T(
+        'Masz ogrodzenie o d\u0142ugo\u015Bci P. Chcesz ogrodzi\u0107 prostok\u0105t o jak najwi\u0119kszym polu. Przesu\u0144 szeroko\u015B\u0107 \u2014 wysoko\u015B\u0107 si\u0119 dostosuje.',
+        'You have fencing of length P. You want to enclose the largest rectangle. Drag the width \u2014 the height adjusts.'
+      ),
+      sliders: [
+        { id: 'perim', lbl: 'P', color: COL_RECT, min: 12, max: 40, step: 2, val: () => perim },
+        { id: 'wid', lbl: 'w', color: COL_AREA, min: 0.5, max: 9.5, step: 0.1, val: () => wid },
+      ],
+      draw() {
+        const halfP = perim / 2;
+        const h = halfP - wid;
+        if (h <= 0) return;
+        const area = wid * h;
+        const sc = 18;
+        const rx = W / 2 - wid * sc / 2;
+        const ry = H / 2 - h * sc / 2;
+        cx.strokeStyle = COL_RECT; cx.lineWidth = 2;
+        cx.strokeRect(rx, ry, wid * sc, h * sc);
+        cx.fillStyle = COL_AREA + '20';
+        cx.fillRect(rx, ry, wid * sc, h * sc);
+
+        cx.fillStyle = 'rgba(255,255,255,0.5)'; cx.font = '11px monospace'; cx.textAlign = 'center';
+        cx.fillText(T('szer.','w') + ' = ' + wid.toFixed(1), rx + wid * sc / 2, ry + h * sc + 18);
+        cx.save(); cx.translate(rx - 12, ry + h * sc / 2); cx.rotate(-Math.PI/2);
+        cx.fillText(T('wys.','h') + ' = ' + h.toFixed(1), 0, 0); cx.restore();
+
+        infoBox(T('Pole','Area') + ' = ' + wid.toFixed(1) + ' \u00D7 ' + h.toFixed(1) + ' = ' + area.toFixed(1), W / 2, 22, COL_AREA);
+        infoBox('P = ' + perim, W / 2, H - 16, COL_RECT);
+      }
+    },
+    {
+      title: () => T('Pole jako funkcja szeroko\u015Bci', 'Area as function of width'),
+      desc: () => T(
+        'Pole = w \u00B7 (P/2 \u2212 w) = \u2212w\u00B2 + (P/2)w \u2014 to parabola! Wierzcho\u0142ek wskazuje maksymalne pole.',
+        'Area = w \u00B7 (P/2 \u2212 w) = \u2212w\u00B2 + (P/2)w \u2014 it\u2019s a parabola! The vertex shows the maximum area.'
+      ),
+      sliders: [
+        { id: 'perim', lbl: 'P', color: COL_RECT, min: 12, max: 40, step: 2, val: () => perim },
+        { id: 'wid', lbl: 'w', color: COL_AREA, min: 0.5, max: 9.5, step: 0.1, val: () => wid },
+      ],
+      draw() {
+        const halfP = perim / 2;
+        const fn = (w) => w * (halfP - w);
+        const wMax = halfP;
+        const aMax = halfP * halfP / 4;
+        const ox = 60, oy = H - 30;
+        const scX = (W - 100) / wMax;
+        const scY = (H - 60) / (aMax * 1.1);
+
+        drawAxesCustom(ox, oy, 'w', T('Pole','Area'), wMax, aMax * 1.1, 1);
+
+        cx.save(); cx.strokeStyle = COL_PARA; cx.lineWidth = 2; cx.beginPath();
+        for (let w = 0; w <= wMax; w += 0.1) {
+          const sx = ox + w * scX;
+          const sy = oy - fn(w) * scY;
+          if (w === 0) cx.moveTo(sx, sy); else cx.lineTo(sx, sy);
+        }
+        cx.stroke(); cx.restore();
+
+        // vertex
+        const vx = halfP / 2, vy = fn(vx);
+        gdot(ox + vx * scX, oy - vy * scY, 6, COL_VERTEX);
+        infoBox(T('wierzch.','vertex') + ': w=' + vx.toFixed(1) + ', A=' + vy.toFixed(1), ox + vx * scX, oy - vy * scY - 18, COL_VERTEX);
+
+        // current point
+        const h = halfP - wid;
+        if (h > 0) {
+          const area = fn(wid);
+          gdot(ox + wid * scX, oy - area * scY, 5, COL_AREA);
+          cx.strokeStyle = COL_AREA + '40'; cx.lineWidth = 1; cx.setLineDash([3,3]);
+          cx.beginPath(); cx.moveTo(ox + wid * scX, oy); cx.lineTo(ox + wid * scX, oy - area * scY); cx.stroke();
+          cx.setLineDash([]);
+        }
+      }
+    },
+    {
+      title: () => T('Kwadrat jest optymalny', 'Square is optimal'),
+      desc: () => T(
+        'Maksymalne pole \u2192 wierzcho\u0142ek paraboli: w = P/4. Wtedy h = P/4 = w. Prostok\u0105t o najwi\u0119kszym polu to kwadrat!',
+        'Maximum area \u2192 vertex of the parabola: w = P/4. Then h = P/4 = w. The rectangle with the largest area is a square!'
+      ),
+      sliders: [
+        { id: 'perim', lbl: 'P', color: COL_RECT, min: 12, max: 40, step: 2, val: () => perim },
+      ],
+      draw() {
+        const halfP = perim / 2;
+        const opt = perim / 4;
+        const area = opt * opt;
+        const sc = 18;
+        const rx = W / 2 - opt * sc / 2;
+        const ry = H / 2 - opt * sc / 2 + 10;
+        cx.strokeStyle = COL_VERTEX; cx.lineWidth = 2.5;
+        cx.strokeRect(rx, ry, opt * sc, opt * sc);
+        cx.fillStyle = COL_VERTEX + '15';
+        cx.fillRect(rx, ry, opt * sc, opt * sc);
+
+        cx.fillStyle = 'rgba(255,255,255,0.5)'; cx.font = '11px monospace'; cx.textAlign = 'center';
+        cx.fillText('w = P/4 = ' + opt.toFixed(1), rx + opt * sc / 2, ry + opt * sc + 18);
+        cx.save(); cx.translate(rx - 12, ry + opt * sc / 2); cx.rotate(-Math.PI/2);
+        cx.fillText('h = P/4 = ' + opt.toFixed(1), 0, 0); cx.restore();
+
+        infoBox(T('Maks. pole','Max area') + ' = (P/4)\u00B2 = ' + area.toFixed(1), W / 2, 22, COL_VERTEX);
+        infoBox('P = ' + perim + '  \u2192  ' + T('kwadrat','square') + ' ' + opt.toFixed(1) + '\u00D7' + opt.toFixed(1), W / 2, H - 16, COL_RECT);
+      }
+    },
+    {
+      title: () => T('Og\u00F3lna optymalizacja', 'General optimization'),
+      desc: () => T(
+        'Dla f(x) = ax\u00B2+bx+c wierzcho\u0142ek jest w x = \u2212b/(2a). Gdy a<0, to maksimum; gdy a>0, to minimum. Przesu\u0144 a, b, c.',
+        'For f(x) = ax\u00B2+bx+c the vertex is at x = \u2212b/(2a). When a<0 it\u2019s a maximum; when a>0 it\u2019s a minimum. Slide a, b, c.'
+      ),
+      sliders: [
+        { id: 'oa', lbl: 'a', color: '#4a9eff', min: -3, max: 3, step: 0.25, val: () => oa },
+        { id: 'ob', lbl: 'b', color: '#FF6B35', min: -6, max: 6, step: 0.5, val: () => ob },
+        { id: 'oc', lbl: 'c', color: '#83C167', min: -5, max: 5, step: 0.5, val: () => oc },
+      ],
+      draw() {
+        const OX2 = W/2, OY2 = H/2, SC2 = 30;
+        const pxf = (x) => OX2 + x * SC2;
+        const pyf = (y) => OY2 - y * SC2;
+
+        cx.strokeStyle = 'rgba(255,255,255,0.04)'; cx.lineWidth = 0.7;
+        for (let x = -10; x <= 10; x++) { cx.beginPath(); cx.moveTo(pxf(x),0); cx.lineTo(pxf(x),H); cx.stroke(); }
+        for (let y = -5; y <= 5; y++) { cx.beginPath(); cx.moveTo(0,pyf(y)); cx.lineTo(W,pyf(y)); cx.stroke(); }
+        cx.strokeStyle = 'rgba(255,255,255,0.2)'; cx.lineWidth = 1;
+        cx.beginPath(); cx.moveTo(0,pyf(0)); cx.lineTo(W,pyf(0)); cx.stroke();
+        cx.beginPath(); cx.moveTo(pxf(0),0); cx.lineTo(pxf(0),H); cx.stroke();
+
+        if (oa === 0) {
+          const fn = (x) => ob * x + oc;
+          cx.save(); cx.strokeStyle = COL_PARA; cx.lineWidth = 2; cx.beginPath();
+          for (let sx = 0; sx <= W; sx += 2) {
+            const x = (sx - OX2) / SC2;
+            const sy = pyf(fn(x));
+            if (sx === 0) cx.moveTo(sx, sy); else cx.lineTo(sx, sy);
+          }
+          cx.stroke(); cx.restore();
+          infoBox(T('a=0: prosta, brak ekstremum','a=0: line, no extremum'), W/2, 22, COL_PARA);
+          return;
+        }
+
+        const fn = (x) => oa * x * x + ob * x + oc;
+        const vx = -ob / (2 * oa);
+        const vy = fn(vx);
+
+        cx.save(); cx.strokeStyle = COL_PARA; cx.lineWidth = 2; cx.beginPath();
+        for (let sx = 0; sx <= W; sx += 2) {
+          const x = (sx - OX2) / SC2;
+          const y = fn(x);
+          const sy = pyf(y);
+          if (sy < -100 || sy > H + 100) { cx.moveTo(sx, sy); continue; }
+          if (sx === 0) cx.moveTo(sx, sy); else cx.lineTo(sx, sy);
+        }
+        cx.stroke(); cx.restore();
+
+        const svx = pxf(vx), svy = pyf(vy);
+        if (svy > 0 && svy < H) {
+          gdot(svx, svy, 6, COL_VERTEX);
+          cx.strokeStyle = COL_VERTEX + '40'; cx.lineWidth = 1; cx.setLineDash([3,3]);
+          cx.beginPath(); cx.moveTo(svx, svy); cx.lineTo(svx, pyf(0)); cx.stroke(); cx.setLineDash([]);
+          const kind = oa < 0 ? T('maks.','max') : T('min.','min');
+          infoBox(kind + ': x=' + vx.toFixed(2) + ', f=' + vy.toFixed(2), svx, svy - 18, COL_VERTEX);
+        }
+        infoBox('x = -b/(2a) = ' + vx.toFixed(2), W/2, H - 16, 'rgba(255,255,255,0.5)');
+      }
+    },
+    {
+      title: () => T('Zadanie: pocisk', 'Problem: projectile'),
+      desc: () => T(
+        'Wysoko\u015B\u0107 pocisku: h(t) = \u22125t\u00B2 + 30t. Kiedy osi\u0105ga maks.? Wierzcho\u0142ek: t = \u221230/(2\u00B7(\u22125)) = 3. h(3) = 45.',
+        'Projectile height: h(t) = \u22125t\u00B2 + 30t. When is it max? Vertex: t = \u221230/(2\u00B7(\u22125)) = 3. h(3) = 45.'
+      ),
+      sliders: [
+        { id: 'projT', lbl: 't', color: COL_PROJ, min: 0, max: 6, step: 0.1, val: () => projT },
+      ],
+      draw() {
+        const fn = (t) => -5 * t * t + 30 * t;
+        const ox = 60, oy = H - 30;
+        const scX = (W - 100) / 7;
+        const scY = (H - 60) / 50;
+
+        // axes
+        cx.strokeStyle = 'rgba(255,255,255,0.2)'; cx.lineWidth = 1;
+        cx.beginPath(); cx.moveTo(ox, oy); cx.lineTo(ox + 7 * scX, oy); cx.stroke();
+        cx.beginPath(); cx.moveTo(ox, oy); cx.lineTo(ox, oy - 50 * scY); cx.stroke();
+        cx.fillStyle = 'rgba(255,255,255,0.25)'; cx.font = '9px monospace'; cx.textAlign = 'center';
+        for (let t = 0; t <= 6; t++) cx.fillText(t, ox + t * scX, oy + 13);
+        cx.textAlign = 'right';
+        for (let h = 0; h <= 45; h += 15) cx.fillText(h, ox - 6, oy - h * scY + 3);
+        cx.textAlign = 'center';
+        cx.fillText('t (s)', ox + 3.5 * scX, oy + 26);
+        cx.fillText('h (m)', ox - 20, oy - 50 * scY - 6);
+
+        // parabola
+        cx.save(); cx.strokeStyle = COL_PARA; cx.lineWidth = 2; cx.beginPath();
+        for (let t = 0; t <= 6; t += 0.05) {
+          const sx = ox + t * scX;
+          const sy = oy - fn(t) * scY;
+          if (t === 0) cx.moveTo(sx, sy); else cx.lineTo(sx, sy);
+        }
+        cx.stroke(); cx.restore();
+
+        // vertex
+        gdot(ox + 3 * scX, oy - 45 * scY, 6, COL_VERTEX);
+        infoBox(T('maks.','max') + ': t=3, h=45', ox + 3 * scX, oy - 45 * scY - 18, COL_VERTEX);
+
+        // current point
+        const hVal = fn(projT);
+        if (hVal >= 0) {
+          const stx = ox + projT * scX;
+          const sty = oy - hVal * scY;
+          gdot(stx, sty, 5, COL_PROJ);
+          cx.strokeStyle = COL_PROJ + '40'; cx.lineWidth = 1; cx.setLineDash([3,3]);
+          cx.beginPath(); cx.moveTo(stx, oy); cx.lineTo(stx, sty); cx.stroke(); cx.setLineDash([]);
+          infoBox('h(' + projT.toFixed(1) + ') = ' + hVal.toFixed(1), stx, sty - 18, COL_PROJ);
+        }
+      }
+    },
+  ];
+
+  // ── Slider management ────────────────────────────────────────
+  const slWrap = document.getElementById('sliders-wrap');
+
+  function buildSliders(defs) {
+    let html = '<div class="sliders">';
+    defs.forEach(s => {
+      const v = typeof s.val === 'function' ? s.val() : s.val;
+      html += `<div class="slider-row">
+        <span class="lbl" style="color:${s.color}">${s.lbl} =</span>
+        <input type="range" id="s_${s.id}" min="${s.min}" max="${s.max}" step="${s.step}" value="${v}">
+        <span class="val" id="v_${s.id}" style="color:${s.color}"></span>
+      </div>`;
+    });
+    html += '</div>';
+    slWrap.innerHTML = html;
+
+    defs.forEach(s => {
+      const el = document.getElementById('s_' + s.id);
+      document.getElementById('v_' + s.id).textContent = (+el.value).toFixed(s.step < 1 ? 1 : 0);
+      el.addEventListener('input', function() {
+        const v = +this.value;
+        document.getElementById('v_' + s.id).textContent = v.toFixed(s.step < 1 ? 1 : 0);
+        if (s.id === 'perim') perim = v;
+        if (s.id === 'wid') wid = v;
+        if (s.id === 'oa') oa = v;
+        if (s.id === 'ob') ob = v;
+        if (s.id === 'oc') oc = v;
+        if (s.id === 'projT') projT = v;
+      });
+    });
+  }
+
+  // ── Navigation ───────────────────────────────────────────────
+  const prevBtn = document.getElementById('qprev');
+  const nextBtn = document.getElementById('qnext');
+  const dotsEl  = document.getElementById('qdots');
+  const titleEl = document.getElementById('qf');
+  const descEl  = document.getElementById('qd');
+
+  function goTo(idx) {
+    stage = Math.max(0, Math.min(stages.length - 1, idx));
+    const s = stages[stage];
+    titleEl.textContent = s.title();
+    descEl.textContent = s.desc();
+    if (s.sliders) buildSliders(s.sliders);
+    else slWrap.innerHTML = '';
+    prevBtn.disabled = stage === 0;
+    nextBtn.disabled = stage === stages.length - 1;
+    renderDots();
+  }
+
+  function renderDots() {
+    dotsEl.innerHTML = stages.map((_, i) =>
+      `<span class="dot${i === stage ? ' active' : ''}" data-i="${i}"></span>`
+    ).join('');
+    dotsEl.querySelectorAll('.dot').forEach(d =>
+      d.addEventListener('click', () => goTo(+d.dataset.i))
+    );
+  }
+
+  prevBtn.addEventListener('click', () => goTo(stage - 1));
+  nextBtn.addEventListener('click', () => goTo(stage + 1));
+
+  function tick() {
+    clear(); stages[stage].draw();
+    requestAnimationFrame(tick);
+  }
+
+  goTo(0);
+  tick();
+})();
+</script>
+</body>
+</html>

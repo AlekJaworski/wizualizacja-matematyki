@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dwumian Newtona — Binomial Theorem Explorer</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+  #qf { margin: 0 0 5px; font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  #qd { margin: 0 0 10px; font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); min-height: 48px; }
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 36px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+  .nav { display: flex; align-items: center; justify-content: space-between; }
+  button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  button:hover { background: rgba(255,255,255,.08); }
+  button:disabled { opacity: .3; cursor: default; }
+  #qdots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.18); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  #sliders-wrap { min-height: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="310"></canvas>
+  <div class="panel">
+    <p id="qf"></p>
+    <p id="qd"></p>
+    <div id="sliders-wrap"></div>
+    <div class="nav">
+      <button id="qprev">&larr;</button>
+      <div id="qdots"></div>
+      <button id="qnext">&rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const cv = document.getElementById('cv');
+  const cx = cv.getContext('2d');
+  const W = 600, H = 310;
+
+  const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
+  const T = (pl, en) => LANG === 'pl' ? pl : en;
+
+  const COL_A = '#4a9eff';
+  const COL_B = '#FF6B35';
+  const COL_HL = '#58C4DD';
+  const COL_COEFF = '#83C167';
+  const COL_TERM = '#FFD166';
+  const COL_VAL = '#E07090';
+
+  let stage = 0;
+  let nPow = 3;
+  let kTerm = 1;
+  let xVal = 0.5;
+
+  function clear() { cx.fillStyle = '#0e0e12'; cx.fillRect(0, 0, W, H); }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath();
+  }
+
+  function infoBox(text, sx, sy, col) {
+    cx.save(); cx.font = '12px monospace';
+    const w = cx.measureText(text).width + 14;
+    cx.fillStyle = 'rgba(14,14,18,0.85)'; cx.strokeStyle = col + '40'; cx.lineWidth = 1;
+    roundRect(cx, sx - w/2, sy - 10, w, 22, 4); cx.fill(); cx.stroke();
+    cx.fillStyle = col; cx.textAlign = 'center'; cx.fillText(text, sx, sy + 4); cx.restore();
+  }
+
+  function factorial(n) { let r = 1; for (let i = 2; i <= n; i++) r *= i; return r; }
+  function comb(n, k) { if (k < 0 || k > n) return 0; return factorial(n) / (factorial(k) * factorial(n - k)); }
+
+  function sup(n) {
+    const s = { 0: '\u2070', 1: '\u00B9', 2: '\u00B2', 3: '\u00B3', 4: '\u2074', 5: '\u2075', 6: '\u2076', 7: '\u2077', 8: '\u2078', 9: '\u2079' };
+    return String(n).split('').map(c => s[c] || c).join('');
+  }
+
+  function drawProductBox(text, x, y, col, highlight) {
+    cx.save(); cx.font = '11px monospace';
+    const w = cx.measureText(text).width + 10;
+    cx.fillStyle = highlight ? col + '30' : 'rgba(255,255,255,0.04)';
+    cx.strokeStyle = highlight ? col + '80' : 'rgba(255,255,255,0.12)';
+    cx.lineWidth = 1;
+    roundRect(cx, x - w/2, y - 9, w, 20, 3); cx.fill(); cx.stroke();
+    cx.fillStyle = highlight ? col : 'rgba(255,255,255,0.5)';
+    cx.textAlign = 'center'; cx.fillText(text, x, y + 4); cx.restore();
+  }
+
+  const stages = [
+    {
+      title: () => T('(a+b)\u00B2 \u2014 4 iloczyny', '(a+b)\u00B2 \u2014 4 products'),
+      desc: () => T(
+        '(a+b)(a+b): z ka\u017Cdego nawiasu wybierasz a lub b. 4 iloczyny: aa, ab, ba, bb. Grupuj: a\u00B2 + 2ab + b\u00B2.',
+        '(a+b)(a+b): from each bracket you pick a or b. 4 products: aa, ab, ba, bb. Group: a\u00B2 + 2ab + b\u00B2.'
+      ),
+      sliders: [],
+      draw() {
+        const products = [
+          { txt: 'a\u00B7a = a\u00B2', group: 0 },
+          { txt: 'a\u00B7b = ab', group: 1 },
+          { txt: 'b\u00B7a = ab', group: 1 },
+          { txt: 'b\u00B7b = b\u00B2', group: 2 },
+        ];
+        const groupColors = [COL_A, COL_HL, COL_B];
+        const groupLabels = ['a\u00B2', '2ab', 'b\u00B2'];
+
+        // title
+        infoBox('(a+b)\u00B2 = (a+b)(a+b)', W/2, 22, 'rgba(255,255,255,0.6)');
+
+        // products
+        const startY = 55;
+        products.forEach((p, i) => {
+          const x = 80 + i * 125;
+          drawProductBox(p.txt, x, startY, groupColors[p.group], true);
+          // bracket labels
+          cx.fillStyle = 'rgba(255,255,255,0.25)'; cx.font = '9px monospace'; cx.textAlign = 'center';
+          cx.fillText(T('nawias','bracket') + ' 1\u00D72', x, startY + 18);
+        });
+
+        // grouping arrows & result
+        const gy = 110;
+        cx.fillStyle = 'rgba(255,255,255,0.3)'; cx.font = '11px monospace'; cx.textAlign = 'center';
+        cx.fillText(T('Grupujemy:','Group:'), 50, gy + 5);
+
+        // groups
+        const groups = [
+          { items: [0], label: '1\u00D7a\u00B2', coeff: 1, col: COL_A },
+          { items: [1, 2], label: '2\u00D7ab', coeff: 2, col: COL_HL },
+          { items: [3], label: '1\u00D7b\u00B2', coeff: 1, col: COL_B },
+        ];
+
+        groups.forEach((g, gi) => {
+          const gx = 160 + gi * 140;
+          cx.fillStyle = g.col; cx.font = '14px monospace'; cx.textAlign = 'center';
+          cx.fillText(g.label, gx, gy + 5);
+          // box around
+          cx.strokeStyle = g.col + '40'; cx.lineWidth = 1;
+          roundRect(cx, gx - 50, gy - 14, 100, 28, 5); cx.stroke();
+        });
+
+        // final formula
+        const fy = 170;
+        infoBox('(a+b)\u00B2 = a\u00B2 + 2ab + b\u00B2', W/2, fy, COL_COEFF);
+
+        // Pascal row
+        cx.fillStyle = 'rgba(255,255,255,0.35)'; cx.font = '11px monospace'; cx.textAlign = 'center';
+        cx.fillText(T('Wsp\u00F3\u0142czynniki: 1, 2, 1 \u2014 wiersz 2 tr\u00F3jk\u0105ta Pascala',
+          'Coefficients: 1, 2, 1 \u2014 row 2 of Pascal\u2019s triangle'), W/2, fy + 30);
+      }
+    },
+    {
+      title: () => T('(a+b)\u00B3 \u2014 8 iloczyn\u00F3w', '(a+b)\u00B3 \u2014 8 products'),
+      desc: () => T(
+        '3 nawiasy \u2192 2\u00B3 = 8 iloczyn\u00F3w. Grupuj wg pot\u0119g: a\u00B3 + 3a\u00B2b + 3ab\u00B2 + b\u00B3. Wsp\u00F3\u0142czynniki: 1,3,3,1.',
+        '3 brackets \u2192 2\u00B3 = 8 products. Group by powers: a\u00B3 + 3a\u00B2b + 3ab\u00B2 + b\u00B3. Coefficients: 1,3,3,1.'
+      ),
+      sliders: [],
+      draw() {
+        const products = ['aaa','aab','aba','abb','baa','bab','bba','bbb'];
+        const groups = { 'a\u00B3': [], 'a\u00B2b': [], 'ab\u00B2': [], 'b\u00B3': [] };
+        const gkeys = ['a\u00B3','a\u00B2b','ab\u00B2','b\u00B3'];
+        const gcolors = [COL_A, '#6ab8ff', '#ff9566', COL_B];
+
+        products.forEach(p => {
+          const aCount = (p.match(/a/g) || []).length;
+          if (aCount === 3) groups['a\u00B3'].push(p);
+          else if (aCount === 2) groups['a\u00B2b'].push(p);
+          else if (aCount === 1) groups['ab\u00B2'].push(p);
+          else groups['b\u00B3'].push(p);
+        });
+
+        infoBox('(a+b)\u00B3 = (a+b)(a+b)(a+b)  \u2192  2\u00B3 = 8 ' + T('iloczyn\u00F3w','products'), W/2, 20, 'rgba(255,255,255,0.6)');
+
+        // Show products in rows by group
+        let gy = 50;
+        gkeys.forEach((key, gi) => {
+          const items = groups[key];
+          const coeff = items.length;
+          cx.fillStyle = gcolors[gi]; cx.font = '12px monospace'; cx.textAlign = 'left';
+          cx.fillText(coeff + '\u00D7' + key + ':', 20, gy + 4);
+
+          items.forEach((item, ii) => {
+            drawProductBox(item, 140 + ii * 70, gy, gcolors[gi], true);
+          });
+          gy += 32;
+        });
+
+        // formula
+        infoBox('(a+b)\u00B3 = a\u00B3 + 3a\u00B2b + 3ab\u00B2 + b\u00B3', W/2, gy + 10, COL_COEFF);
+
+        // Pascal row
+        cx.fillStyle = 'rgba(255,255,255,0.35)'; cx.font = '11px monospace'; cx.textAlign = 'center';
+        cx.fillText(T('Wsp\u00F3\u0142czynniki: 1, 3, 3, 1 \u2014 wiersz 3 tr\u00F3jk\u0105ta Pascala',
+          'Coefficients: 1, 3, 3, 1 \u2014 row 3 of Pascal\u2019s triangle'), W/2, gy + 38);
+      }
+    },
+    {
+      title: () => T('Tr\u00F3jk\u0105t Pascala', 'Pascal\u2019s triangle'),
+      desc: () => T(
+        'Ka\u017Cdy wiersz tr\u00F3jk\u0105ta Pascala to wsp\u00F3\u0142czynniki (a+b)\u207F. Przesu\u0144 n, by pod\u015Bwietli\u0107 wiersz.',
+        'Each row of Pascal\u2019s triangle gives the coefficients of (a+b)\u207F. Slide n to highlight a row.'
+      ),
+      sliders: [
+        { id: 'nPow', lbl: 'n', color: COL_HL, min: 0, max: 6, step: 1, val: () => nPow },
+      ],
+      draw() {
+        // Draw Pascal's triangle rows 0-6
+        const maxRow = 6;
+        const cellW = 48, cellH = 34;
+        const startY = 20;
+
+        for (let row = 0; row <= maxRow; row++) {
+          const numCells = row + 1;
+          const rowW = numCells * cellW;
+          const startX = W / 2 - rowW / 2;
+          const y = startY + row * cellH;
+          const isActive = row === nPow;
+
+          for (let k = 0; k <= row; k++) {
+            const x = startX + k * cellW + cellW / 2;
+            const val = comb(row, k);
+
+            if (isActive) {
+              cx.fillStyle = COL_HL + '25'; cx.strokeStyle = COL_HL + '60'; cx.lineWidth = 1.5;
+              roundRect(cx, x - 18, y - 12, 36, 24, 4); cx.fill(); cx.stroke();
+              cx.fillStyle = COL_HL;
+            } else {
+              cx.fillStyle = 'rgba(255,255,255,0.3)';
+            }
+            cx.font = (isActive ? '13' : '11') + 'px monospace'; cx.textAlign = 'center';
+            cx.fillText(val, x, y + 5);
+          }
+
+          // row label
+          cx.fillStyle = isActive ? COL_HL : 'rgba(255,255,255,0.15)';
+          cx.font = '9px monospace'; cx.textAlign = 'right';
+          cx.fillText('n=' + row, W / 2 - (row + 1) * cellW / 2 - 10, y + 4);
+        }
+
+        // expansion for active row
+        let expansion = '(a+b)' + sup(nPow) + ' = ';
+        for (let k = 0; k <= nPow; k++) {
+          const c = comb(nPow, k);
+          if (k > 0) expansion += ' + ';
+          if (c > 1) expansion += c;
+          if (nPow - k > 0) expansion += 'a' + (nPow - k > 1 ? sup(nPow - k) : '');
+          if (k > 0) expansion += 'b' + (k > 1 ? sup(k) : '');
+          if (c === 1 && nPow - k === 0 && k === 0) expansion += '1';
+        }
+        infoBox(expansion, W / 2, H - 18, COL_COEFF);
+      }
+    },
+    {
+      title: () => T('Konkretny wyraz', 'Specific term'),
+      desc: () => T(
+        'k-ty wyraz (a+b)\u207F to C(n,k)\u00B7a\u207F\u207B\u1D4F\u00B7b\u1D4F. Przesu\u0144 n i k, by zobaczy\u0107 wsp\u00F3\u0142czynnik.',
+        'The k-th term of (a+b)\u207F is C(n,k)\u00B7a\u207F\u207B\u1D4F\u00B7b\u1D4F. Slide n and k to see the coefficient.'
+      ),
+      sliders: [
+        { id: 'nPow', lbl: 'n', color: COL_HL, min: 1, max: 6, step: 1, val: () => nPow },
+        { id: 'kTerm', lbl: 'k', color: COL_TERM, min: 0, max: 6, step: 1, val: () => kTerm },
+      ],
+      draw() {
+        const k = Math.min(kTerm, nPow);
+        const c = comb(nPow, k);
+
+        // Show all terms with one highlighted
+        const terms = [];
+        for (let i = 0; i <= nPow; i++) {
+          let t = '';
+          const ci = comb(nPow, i);
+          if (ci > 1) t += ci;
+          if (nPow - i > 0) t += 'a' + (nPow - i > 1 ? sup(nPow - i) : '');
+          if (i > 0) t += 'b' + (i > 1 ? sup(i) : '');
+          if (ci === 1 && nPow - i === 0 && i === 0) t += '1';
+          terms.push(t);
+        }
+
+        const termW = Math.min(80, (W - 40) / (nPow + 1));
+        const ty = 70;
+        for (let i = 0; i <= nPow; i++) {
+          const tx = 20 + (W - 40) * (i + 0.5) / (nPow + 1);
+          const isHL = i === k;
+          drawProductBox(terms[i], tx, ty, isHL ? COL_TERM : 'rgba(255,255,255,0.3)', isHL);
+          if (i < nPow) {
+            cx.fillStyle = 'rgba(255,255,255,0.2)'; cx.font = '14px monospace'; cx.textAlign = 'center';
+            cx.fillText('+', (20 + (W - 40) * (i + 1) / (nPow + 1)), ty + 3);
+          }
+        }
+
+        // Detailed breakdown of highlighted term
+        const dy = 130;
+        cx.fillStyle = COL_TERM; cx.font = '14px monospace'; cx.textAlign = 'center';
+        const termStr = T('Wyraz k=','Term k=') + k + ':';
+        cx.fillText(termStr, W / 2, dy);
+
+        cx.font = '13px monospace';
+        const aExp = nPow - k;
+        const parts = [
+          { txt: 'C(' + nPow + ',' + k + ')=' + c, col: COL_COEFF },
+          { txt: ' \u00B7 ', col: 'rgba(255,255,255,0.5)' },
+          { txt: 'a' + sup(aExp), col: COL_A },
+          { txt: ' \u00B7 ', col: 'rgba(255,255,255,0.5)' },
+          { txt: 'b' + sup(k), col: COL_B },
+        ];
+
+        let totalW = 0;
+        parts.forEach(p => { totalW += cx.measureText(p.txt).width; });
+        let curX = W / 2 - totalW / 2;
+        parts.forEach(p => {
+          cx.fillStyle = p.col; cx.textAlign = 'left';
+          cx.fillText(p.txt, curX, dy + 28);
+          curX += cx.measureText(p.txt).width;
+        });
+
+        infoBox(T('Wsp\u00F3\u0142czynnik','Coefficient') + ' = C(' + nPow + ',' + k + ') = ' + c, W / 2, dy + 60, COL_COEFF);
+
+        // Pascal's triangle mini
+        cx.fillStyle = 'rgba(255,255,255,0.2)'; cx.font = '9px monospace'; cx.textAlign = 'center';
+        cx.fillText(T('Wiersz ','Row ') + nPow + ': ' + Array.from({length: nPow+1}, (_,i) => {
+          return i === k ? '[' + comb(nPow,i) + ']' : comb(nPow,i);
+        }).join('  '), W/2, dy + 90);
+      }
+    },
+    {
+      title: () => T('Zastosowanie: (1+x)\u207F', 'Application: (1+x)\u207F'),
+      desc: () => T(
+        '(1+x)\u207F = 1 + nx + C(n,2)x\u00B2 + ... Podstaw warto\u015B\u0107 x, by obliczy\u0107 rozwinienie. Przydatne do przybli\u017Ce\u0144!',
+        '(1+x)\u207F = 1 + nx + C(n,2)x\u00B2 + ... Plug in x to compute the expansion. Useful for approximations!'
+      ),
+      sliders: [
+        { id: 'nPow', lbl: 'n', color: COL_HL, min: 1, max: 6, step: 1, val: () => nPow },
+        { id: 'xVal', lbl: 'x', color: COL_VAL, min: -1, max: 2, step: 0.1, val: () => xVal },
+      ],
+      draw() {
+        // expansion of (1+x)^n
+        const terms = [];
+        let total = 0;
+        for (let k = 0; k <= nPow; k++) {
+          const c = comb(nPow, k);
+          const val = c * Math.pow(xVal, k);
+          terms.push({ coeff: c, k: k, val: val });
+          total += val;
+        }
+
+        // Show expansion
+        let expansion = '(1+x)' + sup(nPow) + ' = ';
+        for (let k = 0; k <= nPow; k++) {
+          if (k > 0) expansion += ' + ';
+          const c = comb(nPow, k);
+          if (c > 1) expansion += c;
+          if (k === 0 && c === 1) expansion += '1';
+          if (k > 0) expansion += 'x' + (k > 1 ? sup(k) : '');
+        }
+        infoBox(expansion, W / 2, 22, COL_HL);
+
+        // Show substitution
+        cx.fillStyle = 'rgba(255,255,255,0.5)'; cx.font = '12px monospace'; cx.textAlign = 'center';
+        cx.fillText('x = ' + xVal.toFixed(1) + '  \u2192  (1 + ' + xVal.toFixed(1) + ')' + sup(nPow) + ' = ' + Math.pow(1 + xVal, nPow).toFixed(4), W/2, 50);
+
+        // Term-by-term breakdown
+        const startY = 78;
+        const maxTermsPerRow = 4;
+        cx.font = '11px monospace';
+        for (let k = 0; k <= nPow; k++) {
+          const row = Math.floor(k / maxTermsPerRow);
+          const col = k % maxTermsPerRow;
+          const tx = 30 + col * 145;
+          const ty = startY + row * 40;
+          const t = terms[k];
+
+          cx.fillStyle = COL_COEFF; cx.textAlign = 'left';
+          cx.fillText('C(' + nPow + ',' + k + ')=' + t.coeff, tx, ty);
+          cx.fillStyle = COL_VAL;
+          cx.fillText('\u00B7(' + xVal.toFixed(1) + ')' + sup(k) + '=' + t.val.toFixed(3), tx, ty + 16);
+        }
+
+        // Sum
+        const sumY = startY + (Math.floor(nPow / maxTermsPerRow) + 1) * 40 + 10;
+        infoBox(T('Suma','Sum') + ' = ' + total.toFixed(4) + '  |  ' + T('Dok\u0142adna warto\u015B\u0107','Exact') + ' = ' + Math.pow(1 + xVal, nPow).toFixed(4), W / 2, Math.min(sumY, H - 20), COL_VAL);
+
+        // verification
+        cx.fillStyle = 'rgba(255,255,255,0.3)'; cx.font = '10px monospace'; cx.textAlign = 'center';
+        const exact = Math.pow(1 + xVal, nPow);
+        cx.fillText(T('Sprawdzenie: ','Check: ') + (1 + xVal).toFixed(1) + sup(nPow) + ' = ' + exact.toFixed(4), W/2, H - 14);
+      }
+    },
+  ];
+
+  // ── Slider management ────────────────────────────────────────
+  const slWrap = document.getElementById('sliders-wrap');
+
+  function buildSliders(defs) {
+    let html = '<div class="sliders">';
+    defs.forEach(s => {
+      const v = typeof s.val === 'function' ? s.val() : s.val;
+      html += `<div class="slider-row">
+        <span class="lbl" style="color:${s.color}">${s.lbl} =</span>
+        <input type="range" id="s_${s.id}" min="${s.min}" max="${s.max}" step="${s.step}" value="${v}">
+        <span class="val" id="v_${s.id}" style="color:${s.color}"></span>
+      </div>`;
+    });
+    html += '</div>';
+    slWrap.innerHTML = html;
+
+    defs.forEach(s => {
+      const el = document.getElementById('s_' + s.id);
+      document.getElementById('v_' + s.id).textContent = (+el.value).toFixed(s.step < 1 ? 1 : 0);
+      el.addEventListener('input', function() {
+        const v = +this.value;
+        document.getElementById('v_' + s.id).textContent = v.toFixed(s.step < 1 ? 1 : 0);
+        if (s.id === 'nPow') nPow = v;
+        if (s.id === 'kTerm') kTerm = v;
+        if (s.id === 'xVal') xVal = v;
+      });
+    });
+  }
+
+  // ── Navigation ───────────────────────────────────────────────
+  const prevBtn = document.getElementById('qprev');
+  const nextBtn = document.getElementById('qnext');
+  const dotsEl  = document.getElementById('qdots');
+  const titleEl = document.getElementById('qf');
+  const descEl  = document.getElementById('qd');
+
+  function goTo(idx) {
+    stage = Math.max(0, Math.min(stages.length - 1, idx));
+    const s = stages[stage];
+    titleEl.textContent = s.title();
+    descEl.textContent = s.desc();
+    if (s.sliders && s.sliders.length) buildSliders(s.sliders);
+    else slWrap.innerHTML = '';
+    prevBtn.disabled = stage === 0;
+    nextBtn.disabled = stage === stages.length - 1;
+    renderDots();
+  }
+
+  function renderDots() {
+    dotsEl.innerHTML = stages.map((_, i) =>
+      `<span class="dot${i === stage ? ' active' : ''}" data-i="${i}"></span>`
+    ).join('');
+    dotsEl.querySelectorAll('.dot').forEach(d =>
+      d.addEventListener('click', () => goTo(+d.dataset.i))
+    );
+  }
+
+  prevBtn.addEventListener('click', () => goTo(stage - 1));
+  nextBtn.addEventListener('click', () => goTo(stage + 1));
+
+  function tick() {
+    clear(); stages[stage].draw();
+    requestAnimationFrame(tick);
+  }
+
+  goTo(0);
+  tick();
+})();
+</script>
+</body>
+</html>

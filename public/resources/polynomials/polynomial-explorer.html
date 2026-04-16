@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wielomiany — Polynomial Explorer</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+  #qf { margin: 0 0 5px; font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  #qd { margin: 0 0 10px; font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); min-height: 48px; }
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 36px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+  .nav { display: flex; align-items: center; justify-content: space-between; }
+  button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  button:hover { background: rgba(255,255,255,.08); }
+  button:disabled { opacity: .3; cursor: default; }
+  #qdots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.18); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  #sliders-wrap { min-height: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="310"></canvas>
+  <div class="panel">
+    <p id="qf"></p>
+    <p id="qd"></p>
+    <div id="sliders-wrap"></div>
+    <div class="nav">
+      <button id="qprev">&larr;</button>
+      <div id="qdots"></div>
+      <button id="qnext">&rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const cv = document.getElementById('cv');
+  const cx = cv.getContext('2d');
+  const W = 600, H = 310;
+
+  const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
+  const T = (pl, en) => LANG === 'pl' ? pl : en;
+
+  const COL_1 = '#4a9eff';
+  const COL_2 = '#FF6B35';
+  const COL_3 = '#83C167';
+  const COL_4 = '#E07090';
+  const COL_SUM = '#58C4DD';
+  const COL_CURSOR = 'rgba(255,255,255,0.25)';
+  const COLORS = [COL_1, COL_2, COL_3, COL_4, '#FFD166'];
+
+  const OX = W / 2, OY = H / 2, SC = 40;
+  function px(x) { return OX + x * SC; }
+  function py(y) { return OY - y * SC; }
+
+  let stage = 0;
+  let degree = 3, a2 = 1, a_coeff = 1, b_coeff = 0, c_coeff = 0, x0 = 1.5;
+  let lead = 1, polyDeg = 3;
+
+  function clear() { cx.fillStyle = '#0e0e12'; cx.fillRect(0, 0, W, H); }
+
+  function drawGrid() {
+    cx.strokeStyle = 'rgba(255,255,255,0.04)'; cx.lineWidth = 0.7;
+    for (let x = -7; x <= 7; x++) { cx.beginPath(); cx.moveTo(px(x), 0); cx.lineTo(px(x), H); cx.stroke(); }
+    for (let y = -4; y <= 4; y++) { cx.beginPath(); cx.moveTo(0, py(y)); cx.lineTo(W, py(y)); cx.stroke(); }
+  }
+
+  function drawAxes() {
+    cx.strokeStyle = 'rgba(255,255,255,0.2)'; cx.lineWidth = 1;
+    cx.beginPath(); cx.moveTo(0, py(0)); cx.lineTo(W, py(0)); cx.stroke();
+    cx.beginPath(); cx.moveTo(px(0), 0); cx.lineTo(px(0), H); cx.stroke();
+    cx.fillStyle = 'rgba(255,255,255,0.25)'; cx.font = '9px monospace'; cx.textAlign = 'center';
+    for (let x = -6; x <= 6; x++) { if (x === 0) continue; cx.fillText(x, px(x), py(0) + 13); }
+    cx.textAlign = 'right';
+    for (let y = -3; y <= 3; y++) { if (y === 0) continue; cx.fillText(y, px(0) - 6, py(y) + 3); }
+  }
+
+  function plotLine(fn, color, alpha, dash) {
+    cx.save(); cx.strokeStyle = color; cx.globalAlpha = alpha; cx.lineWidth = 2;
+    if (dash) cx.setLineDash(dash);
+    cx.beginPath();
+    for (let sx = 0; sx <= W; sx += 2) {
+      const x = (sx - OX) / SC;
+      const y = fn(x);
+      const sy = py(y);
+      if (sy < -100 || sy > H + 100) { cx.moveTo(sx, sy); continue; }
+      if (sx === 0) cx.moveTo(sx, sy); else cx.lineTo(sx, sy);
+    }
+    cx.stroke(); cx.restore();
+  }
+
+  function gdot(x, y, r, col) {
+    cx.beginPath(); cx.arc(px(x), py(y), r, 0, Math.PI * 2);
+    cx.fillStyle = col; cx.shadowColor = col; cx.shadowBlur = 10; cx.fill(); cx.shadowBlur = 0;
+  }
+
+  function label(text, sx, sy, col, align, size) {
+    cx.save(); cx.font = (size || 11) + 'px monospace'; cx.fillStyle = col;
+    cx.textAlign = align || 'left'; cx.fillText(text, sx, sy); cx.restore();
+  }
+
+  function infoBox(text, sx, sy, col) {
+    cx.save(); cx.font = '12px monospace';
+    const w = cx.measureText(text).width + 14;
+    cx.fillStyle = 'rgba(14,14,18,0.85)'; cx.strokeStyle = col + '40'; cx.lineWidth = 1;
+    roundRect(cx, sx - w/2, sy - 10, w, 22, 4); cx.fill(); cx.stroke();
+    cx.fillStyle = col; cx.textAlign = 'center'; cx.fillText(text, sx, sy + 4); cx.restore();
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath();
+  }
+
+  const stages = [
+    {
+      title: () => T('Poszczególne wyrazy', 'Individual terms'),
+      desc: () => T(
+        'Wielomian to suma wyrazów. Każdy wyraz to potęga x: x, x², x³... Im wyższy stopień, tym szybciej rośnie krzywa dalej od zera. Przesuń suwak stopnia.',
+        'A polynomial is a sum of terms. Each term is a power of x: x, x², x³... Higher degree means faster growth away from zero. Slide the degree.'
+      ),
+      sliders: [
+        { id: 'degree', lbl: T('st.','deg'), color: COL_SUM, min: 1, max: 5, step: 1, val: () => degree },
+      ],
+      draw() {
+        for (let d = 1; d <= degree; d++) {
+          const fn = (x) => Math.pow(x, d);
+          plotLine(fn, COLORS[d-1], 0.8);
+          const lx = 1.2 + d * 0.15;
+          const ly = Math.pow(lx, d);
+          if (py(ly) > 10 && py(ly) < H - 10) {
+            label('x' + (d > 1 ? sup(d) : ''), px(lx) + 4, py(ly) - 8, COLORS[d-1], 'left', 11);
+          }
+        }
+      }
+    },
+    {
+      title: () => T('Współczynnik rozciąga/odbija', 'Coefficient stretches/flips'),
+      desc: () => T(
+        'Współczynnik a przy x² rozciąga lub ściska parabolę. Gdy a < 0, krzywa się odbija. Przesuń a₂ i obserwuj, jak zmienia się kształt a₂·x².',
+        'The coefficient a on x² stretches or compresses the parabola. When a < 0, the curve flips. Slide a₂ and watch how a₂·x² changes.'
+      ),
+      sliders: [
+        { id: 'a2', lbl: 'a\u2082', color: COL_1, min: -3, max: 3, step: 0.25, val: () => a2 },
+      ],
+      draw() {
+        plotLine(x => Math.pow(x, 2), 'rgba(255,255,255,0.15)', 0.5, [4, 4]);
+        plotLine(x => a2 * Math.pow(x, 2), COL_1, 0.9);
+        label('x\u00B2', px(1.5) + 4, py(1.5*1.5) - 8, 'rgba(255,255,255,0.3)', 'left', 10);
+        const lbl = (a2 === 1 ? '' : a2 === -1 ? '-' : a2.toFixed(a2 % 1 ? 2 : 0)) + 'x\u00B2';
+        label(lbl, px(-1.8), py(a2 * 1.8*1.8) - 12, COL_1, 'left', 12);
+      }
+    },
+    {
+      title: () => T('Składanie wyrazów', 'Combining terms'),
+      desc: () => T(
+        'f(x) = ax\u00B2 + bx + c buduje się wyraz po wyrazie. Każdy wyraz dodaje swój wkład. Razem dają parabolę. Przesuń a, b, c.',
+        'f(x) = ax\u00B2 + bx + c is built term by term. Each term adds its contribution. Together they form a parabola. Slide a, b, c.'
+      ),
+      sliders: [
+        { id: 'a_coeff', lbl: 'a', color: COL_1, min: -2, max: 2, step: 0.25, val: () => a_coeff },
+        { id: 'b_coeff', lbl: 'b', color: COL_2, min: -3, max: 3, step: 0.5, val: () => b_coeff },
+        { id: 'c_coeff', lbl: 'c', color: COL_3, min: -3, max: 3, step: 0.5, val: () => c_coeff },
+      ],
+      draw() {
+        plotLine(x => a_coeff * x * x, COL_1, 0.35, [4, 4]);
+        plotLine(x => b_coeff * x, COL_2, 0.35, [4, 4]);
+        if (c_coeff !== 0) {
+          cx.strokeStyle = COL_3 + '50'; cx.lineWidth = 1; cx.setLineDash([4, 4]);
+          cx.beginPath(); cx.moveTo(0, py(c_coeff)); cx.lineTo(W, py(c_coeff)); cx.stroke();
+          cx.setLineDash([]);
+        }
+        const f = (x) => a_coeff * x * x + b_coeff * x + c_coeff;
+        plotLine(f, COL_SUM, 0.9);
+        let eq = 'f(x) = ';
+        if (a_coeff !== 0) eq += (a_coeff === 1 ? '' : a_coeff === -1 ? '-' : a_coeff) + 'x\u00B2';
+        if (b_coeff !== 0) eq += (b_coeff > 0 && a_coeff !== 0 ? ' + ' : ' ') + (b_coeff === 1 ? '' : b_coeff === -1 ? '-' : b_coeff) + 'x';
+        if (c_coeff !== 0) eq += (c_coeff > 0 ? ' + ' : ' ') + c_coeff;
+        if (a_coeff === 0 && b_coeff === 0 && c_coeff === 0) eq += '0';
+        infoBox(eq, W / 2, 22, COL_SUM);
+      }
+    },
+    {
+      title: () => T('Zachowanie na krańcach', 'End behavior'),
+      desc: () => T(
+        'Stopień i znak współczynnika wiodącego decydują, jak wielomian zachowuje się przy x \u2192 \u00B1\u221E. Parzysty stopień: oba końce w tę samą stronę. Nieparzysty: w przeciwne.',
+        'Degree and sign of the leading coefficient determine end behavior. Even degree: both ends go the same way. Odd degree: opposite directions.'
+      ),
+      sliders: [
+        { id: 'polyDeg', lbl: T('st.','deg'), color: COL_SUM, min: 1, max: 5, step: 1, val: () => polyDeg },
+        { id: 'lead', lbl: T('wsp.','lc'), color: COL_1, min: -2, max: 2, step: 0.5, val: () => lead },
+      ],
+      draw() {
+        const f = (x) => lead * Math.pow(x, polyDeg);
+        plotLine(f, COL_SUM, 0.9);
+        const isEven = polyDeg % 2 === 0;
+        const lbl = (lead > 0 ? '+' : '-') + ' ' + T('wsp. wiodący','leading coeff') + ', ' + (isEven ? T('parzysty','even') : T('nieparzysty','odd')) + ' ' + T('stopień','degree');
+        infoBox(lbl, W / 2, 22, COL_SUM);
+        // arrows
+        cx.save(); cx.font = '16px monospace'; cx.fillStyle = COL_SUM;
+        const leftVal = f(-5);
+        const rightVal = f(5);
+        cx.textAlign = 'center';
+        cx.fillText(leftVal > 0 ? '\u2191' : '\u2193', 30, H / 2);
+        cx.fillText(rightVal > 0 ? '\u2191' : '\u2193', W - 30, H / 2);
+        cx.font = '10px monospace'; cx.fillStyle = 'rgba(255,255,255,0.4)';
+        cx.fillText('x\u2192-\u221E', 30, H / 2 + 16);
+        cx.fillText('x\u2192+\u221E', W - 30, H / 2 + 16);
+        cx.restore();
+      }
+    },
+    {
+      title: () => T('Oblicz krok po kroku', 'Evaluate step by step'),
+      desc: () => T(
+        'Przesuń x\u2080 i zobacz, jak obliczamy f(x\u2080) = a\u00B7x\u00B2 + b\u00B7x + c wyraz po wyrazie. Każdy wyraz to osobna liczba.',
+        'Drag x\u2080 and see f(x\u2080) = a\u00B7x\u00B2 + b\u00B7x + c computed term by term. Each term is a separate number.'
+      ),
+      sliders: [
+        { id: 'a_coeff', lbl: 'a', color: COL_1, min: -2, max: 2, step: 0.25, val: () => a_coeff },
+        { id: 'b_coeff', lbl: 'b', color: COL_2, min: -3, max: 3, step: 0.5, val: () => b_coeff },
+        { id: 'c_coeff', lbl: 'c', color: COL_3, min: -3, max: 3, step: 0.5, val: () => c_coeff },
+        { id: 'x0', lbl: 'x\u2080', color: '#fff', min: -4, max: 4, step: 0.1, val: () => x0 },
+      ],
+      draw() {
+        const f = (x) => a_coeff * x * x + b_coeff * x + c_coeff;
+        plotLine(f, COL_SUM, 0.5);
+
+        cx.strokeStyle = COL_CURSOR; cx.lineWidth = 1; cx.setLineDash([4, 4]);
+        cx.beginPath(); cx.moveTo(px(x0), 0); cx.lineTo(px(x0), H); cx.stroke(); cx.setLineDash([]);
+
+        const t1 = a_coeff * x0 * x0;
+        const t2 = b_coeff * x0;
+        const t3 = c_coeff;
+        const total = t1 + t2 + t3;
+        gdot(x0, total, 6, COL_SUM);
+
+        const baseY = H - 20;
+        cx.save(); cx.font = '11px monospace'; cx.textAlign = 'left';
+        const lines = [
+          { txt: 'a\u00B7x\u00B2 = ' + t1.toFixed(2), col: COL_1 },
+          { txt: 'b\u00B7x  = ' + t2.toFixed(2), col: COL_2 },
+          { txt: 'c    = ' + t3.toFixed(2), col: COL_3 },
+          { txt: 'f(x\u2080)= ' + total.toFixed(2), col: COL_SUM },
+        ];
+        lines.forEach((l, i) => {
+          cx.fillStyle = l.col;
+          cx.fillText(l.txt, 14, 22 + i * 16);
+        });
+        cx.restore();
+      }
+    },
+  ];
+
+  function sup(n) {
+    const s = { 2: '\u00B2', 3: '\u00B3', 4: '\u2074', 5: '\u2075' };
+    return s[n] || n;
+  }
+
+  // ── Slider management ────────────────────────────────────────
+  const slWrap = document.getElementById('sliders-wrap');
+
+  function buildSliders(defs) {
+    let html = '<div class="sliders">';
+    defs.forEach(s => {
+      const v = typeof s.val === 'function' ? s.val() : s.val;
+      html += `<div class="slider-row">
+        <span class="lbl" style="color:${s.color}">${s.lbl} =</span>
+        <input type="range" id="s_${s.id}" min="${s.min}" max="${s.max}" step="${s.step}" value="${v}">
+        <span class="val" id="v_${s.id}" style="color:${s.color}"></span>
+      </div>`;
+    });
+    html += '</div>';
+    slWrap.innerHTML = html;
+
+    defs.forEach(s => {
+      const el = document.getElementById('s_' + s.id);
+      document.getElementById('v_' + s.id).textContent = (+el.value).toFixed(s.step < 1 ? 1 : 0);
+      el.addEventListener('input', function() {
+        const v = +this.value;
+        document.getElementById('v_' + s.id).textContent = v.toFixed(s.step < 1 ? 1 : 0);
+        if (s.id === 'degree') degree = v;
+        if (s.id === 'a2') a2 = v;
+        if (s.id === 'a_coeff') a_coeff = v;
+        if (s.id === 'b_coeff') b_coeff = v;
+        if (s.id === 'c_coeff') c_coeff = v;
+        if (s.id === 'x0') x0 = v;
+        if (s.id === 'lead') lead = v;
+        if (s.id === 'polyDeg') polyDeg = v;
+      });
+    });
+  }
+
+  // ── Navigation ───────────────────────────────────────────────
+  const prevBtn = document.getElementById('qprev');
+  const nextBtn = document.getElementById('qnext');
+  const dotsEl  = document.getElementById('qdots');
+  const titleEl = document.getElementById('qf');
+  const descEl  = document.getElementById('qd');
+
+  function goTo(idx) {
+    stage = Math.max(0, Math.min(stages.length - 1, idx));
+    const s = stages[stage];
+    titleEl.textContent = s.title();
+    descEl.textContent = s.desc();
+    if (s.sliders) buildSliders(s.sliders);
+    else slWrap.innerHTML = '';
+    prevBtn.disabled = stage === 0;
+    nextBtn.disabled = stage === stages.length - 1;
+    renderDots();
+  }
+
+  function renderDots() {
+    dotsEl.innerHTML = stages.map((_, i) =>
+      `<span class="dot${i === stage ? ' active' : ''}" data-i="${i}"></span>`
+    ).join('');
+    dotsEl.querySelectorAll('.dot').forEach(d =>
+      d.addEventListener('click', () => goTo(+d.dataset.i))
+    );
+  }
+
+  prevBtn.addEventListener('click', () => goTo(stage - 1));
+  nextBtn.addEventListener('click', () => goTo(stage + 1));
+
+  function tick() {
+    clear(); drawGrid(); drawAxes(); stages[stage].draw();
+    requestAnimationFrame(tick);
+  }
+
+  goTo(0);
+  tick();
+})();
+</script>
+</body>
+</html>
