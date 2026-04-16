@@ -42,6 +42,7 @@ export default function CurriculumGraph({
   onBackToCourses,
   initialBelief,
   initialEvidence,
+  initialSelectedNode,
   initialLang,
   onBackToHome,
 }) {
@@ -55,7 +56,7 @@ export default function CurriculumGraph({
   const [filterScope,   setFilterScope]   = useState(new Set());
   const [filterSection, setFilterSection] = useState(new Set());
   const [searchTerm,    setSearchTerm]    = useState("");
-  const [selected,      setSelected]      = useState(null);
+  const [selected,      setSelected]      = useState(initialSelectedNode ?? null);
   const [hoveredNode,   setHoveredNode]   = useState(null);
   const [openResourceIdx, setOpenResourceIdx] = useState(null);
   const [pathGoal,      setPathGoal]      = useState(null);

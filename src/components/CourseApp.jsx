@@ -26,6 +26,7 @@ export default function CourseApp() {
     ? "bright" : "midnight";
   const [themeId, setThemeId] = useLocalStorage("theme", systemPrefers);
   const [phase, setPhase] = useState("hero");
+  const [initialSelectedNode, setInitialSelectedNode] = useState(null);
 
   // Apply theme on mount and change
   const handleThemeChange = useCallback((id) => {
@@ -55,7 +56,8 @@ export default function CourseApp() {
     setPhase("results");
   }, []);
 
-  const handleSeeMap = useCallback(() => {
+  const handleSeeMap = useCallback((selectedNodeId) => {
+    setInitialSelectedNode(selectedNodeId ?? null);
     setPhase("map");
   }, []);
 
@@ -111,6 +113,7 @@ export default function CourseApp() {
           lang={lang}
           onSeeMap={handleSeeMap}
           onRetake={() => handleStartQuiz(quizPreset)}
+          onSelectTopic={(id) => handleSeeMap(id)}
         />
       );
 
@@ -128,6 +131,7 @@ export default function CourseApp() {
           COURSE_META={course.COURSE_META}
           initialBelief={quizBelief}
           initialEvidence={quizEvidence}
+          initialSelectedNode={initialSelectedNode}
           initialLang={lang}
           onBackToHome={handleBackToHero}
         />

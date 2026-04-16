@@ -19,7 +19,7 @@ import { computeFrontier } from "../../engine/belief.js";
  */
 export function ResultsScreen({
   RAW_NODES, RAW_EDGES, SCOPE_COLORS, SCOPE_LABELS,
-  belief, stats, lang, onSeeMap, onRetake,
+  belief, stats, evidence, lang, onSeeMap, onRetake, onSelectTopic,
 }) {
   const adjacency = useMemo(() => buildAdjacency(RAW_NODES, RAW_EDGES), [RAW_NODES, RAW_EDGES]);
   const nodeById = useMemo(
@@ -114,13 +114,18 @@ export function ResultsScreen({
                 return (
                   <div
                     key={n.id}
+                    onClick={() => onSelectTopic?.(n.id)}
                     style={{
                       padding: "12px 14px",
                       borderRadius: 8,
                       background: "#e74c3c08",
                       border: `1px solid #e74c3c20`,
                       display: "flex", alignItems: "center", gap: 12,
+                      cursor: onSelectTopic ? "pointer" : "default",
+                      transition: "background 0.15s, border-color 0.15s",
                     }}
+                    onMouseEnter={e => { if (onSelectTopic) { e.currentTarget.style.background = "#e74c3c14"; e.currentTarget.style.borderColor = "#e74c3c40"; }}}
+                    onMouseLeave={e => { if (onSelectTopic) { e.currentTarget.style.background = "#e74c3c08"; e.currentTarget.style.borderColor = "#e74c3c20"; }}}
                   >
                     <span style={{
                       width: 24, height: 24, borderRadius: "50%",
