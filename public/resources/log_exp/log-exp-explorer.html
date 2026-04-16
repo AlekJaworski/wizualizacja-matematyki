@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Logarytmy i wykładnicze — Eksplorator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+  #qf { margin: 0 0 5px; font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  #qd { margin: 0 0 10px; font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); min-height: 48px; }
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 36px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+  .nav { display: flex; align-items: center; justify-content: space-between; }
+  button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  button:hover { background: rgba(255,255,255,.08); }
+  button:disabled { opacity: .3; cursor: default; }
+  #qdots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.18); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  #sliders-wrap { min-height: 0; }
+  .link-btn { display: inline-block; margin-top: 8px; padding: 6px 14px; border-radius: 6px; background: rgba(88,196,221,.12); border: 1px solid rgba(88,196,221,.3); color: #58C4DD; font-size: 12px; text-decoration: none; font-family: monospace; transition: background .15s; }
+  .link-btn:hover { background: rgba(88,196,221,.22); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="310"></canvas>
+  <div class="panel">
+    <p id="qf"></p>
+    <p id="qd"></p>
+    <div id="sliders-wrap"></div>
+    <div class="nav">
+      <button id="qprev">&larr;</button>
+      <div id="qdots"></div>
+      <button id="qnext">&rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const cv = document.getElementById('cv');
+  const cx = cv.getContext('2d');
+  const W = 600, H = 310;
+
+  const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
+  const T = (pl, en) => LANG === 'pl' ? pl : en;
+
+  // Colors
+  const COL_EXP   = '#FF6B35';  // orange — exponential
+  const COL_LOG   = '#58C4DD';  // cyan — logarithm
+  const COL_MIRR  = '#FFD166';  // yellow — mirror line
+  const COL_GREEN = '#83C167';  // green
+  const COL_PINK  = '#E07090';  // pink
+  const COL_PURP  = '#C080FF';  // purple
+  const COL_BLUE  = '#4a9eff';  // blue
+
+  // Coordinate system
+  let OX, OY, SC;
+  function setCoords(ox, oy, sc) { OX = ox; OY = oy; SC = sc; }
+  function px(x) { return OX + x * SC; }
+  function py(y) { return OY - y * SC; }
+
+  // State
+  let stage = 0;
+  let targetVal = 8;
+  let base = 2;
+  let xSlowVal = 10;
+  let logA = 3;
+  let logB = 5;
+  let baseChange = 2;
+  let animT = 0;
+  let animDir = 1;
+
+  // ── Drawing helpers ──────────────────────────────────────────
+  function clear() {
+    cx.fillStyle = '#0e0e12';
+    cx.fillRect(0, 0, W, H);
+  }
+
+  function drawGrid(xMin, xMax, yMin, yMax) {
+    cx.strokeStyle = 'rgba(255,255,255,0.04)';
+    cx.lineWidth = 0.7;
+    for (let x = Math.ceil(xMin); x <= Math.floor(xMax); x++) {
+      cx.beginPath(); cx.moveTo(px(x), 0); cx.lineTo(px(x), H); cx.stroke();
+    }
+    for (let y = Math.ceil(yMin); y <= Math.floor(yMax); y++) {
+      cx.beginPath(); cx.moveTo(0, py(y)); cx.lineTo(W, py(y)); cx.stroke();
+    }
+  }
+
+  function drawAxes(xMin, xMax, yMin, yMax) {
+    cx.strokeStyle = 'rgba(255,255,255,0.2)';
+    cx.lineWidth = 1;
+    cx.beginPath(); cx.moveTo(0, py(0)); cx.lineTo(W, py(0)); cx.stroke();
+    cx.beginPath(); cx.moveTo(px(0), 0); cx.lineTo(px(0), H); cx.stroke();
+
+    cx.fillStyle = 'rgba(255,255,255,0.25)';
+    cx.font = '9px monospace';
+    cx.textAlign = 'center';
+    for (let x = Math.ceil(xMin); x <= Math.floor(xMax); x++) {
+      if (x === 0) continue;
+      cx.fillText(x, px(x), py(0) + 13);
+    }
+    cx.textAlign = 'right';
+    for (let y = Math.ceil(yMin); y <= Math.floor(yMax); y++) {
+      if (y === 0) continue;
+      cx.fillText(y, px(0) - 6, py(y) + 3);
+    }
+  }
+
+  function gdot(sx, sy, r, col) {
+    cx.beginPath(); cx.arc(sx, sy, r, 0, Math.PI * 2);
+    cx.fillStyle = col; cx.shadowColor = col; cx.shadowBlur = 12;
+    cx.fill(); cx.shadowBlur = 0;
+  }
+
+  function plotFn(fn, color, alpha, dash, xMinPx, xMaxPx) {
+    cx.save();
+    cx.strokeStyle = color;
+    cx.globalAlpha = alpha || 1;
+    cx.lineWidth = 2.5;
+    if (dash) cx.setLineDash(dash);
+    cx.beginPath();
+    let started = false;
+    const x0 = xMinPx !== undefined ? xMinPx : 0;
+    const x1 = xMaxPx !== undefined ? xMaxPx : W;
+    for (let sx = x0; sx <= x1; sx += 1.5) {
+      const x = (sx - OX) / SC;
+      const y = fn(x);
+      if (!isFinite(y) || isNaN(y)) { started = false; continue; }
+      const sy = py(y);
+      if (sy < -200 || sy > H + 200) { started = false; continue; }
+      if (!started) { cx.moveTo(sx, sy); started = true; }
+      else cx.lineTo(sx, sy);
+    }
+    cx.stroke();
+    cx.restore();
+  }
+
+  function infoBox(text, sx, sy, col, alpha) {
+    cx.save();
+    cx.font = '12px monospace';
+    if (alpha !== undefined) cx.globalAlpha = alpha;
+    const w = cx.measureText(text).width + 16;
+    cx.fillStyle = 'rgba(14,14,18,0.88)';
+    cx.strokeStyle = col + '50';
+    cx.lineWidth = 1;
+    roundRect(cx, sx - w/2, sy - 12, w, 24, 5);
+    cx.fill(); cx.stroke();
+    cx.fillStyle = col;
+    cx.textAlign = 'center';
+    cx.fillText(text, sx, sy + 4);
+    cx.restore();
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+    ctx.closePath();
+  }
+
+  function fmt(v) {
+    if (Math.abs(v - Math.round(v)) < 0.01) return Math.round(v).toString();
+    return v.toFixed(2);
+  }
+
+  function fmtSlider(v, step) {
+    if (step < 0.1) return v.toFixed(2);
+    if (step < 1) return v.toFixed(1);
+    return v.toFixed(0);
+  }
+
+  function logBase(b, x) {
+    return Math.log(x) / Math.log(b);
+  }
+
+  // Smooth easing
+  function ease(t) { return t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2)/2; }
+
+  // ── Stages ───────────────────────────────────────────────────
+  const stages = [
+    // Stage 1: Power is a question, logarithm is the answer
+    {
+      title: () => T('Potęga to pytanie, logarytm to odpowiedź', 'Power is a question, logarithm is the answer'),
+      desc: () => T(
+        '2ⁿ daje wynik. Logarytm odwraca pytanie: mam wynik, jaka potęga? 2^? = ' + Math.round(targetVal) + ' → log₂(' + Math.round(targetVal) + ') = ' + fmt(logBase(2, targetVal)) + '. Przesuń suwak, by zmienić cel.',
+        '2ⁿ gives a result. Logarithm reverses the question: I have the result, what power? 2^? = ' + Math.round(targetVal) + ' → log₂(' + Math.round(targetVal) + ') = ' + fmt(logBase(2, targetVal)) + '. Move the slider to change the target.'
+      ),
+      sliders: [
+        { id: 'target', lbl: T('cel','target'), color: COL_EXP, min: 1, max: 64, step: 1, get: () => targetVal, set: v => targetVal = v },
+      ],
+      draw() {
+        setCoords(50, H * 0.75, 1);
+        const blockW = 50;
+        const blockH = 28;
+        const gap = 8;
+
+        // Draw powers of 2 as growing block towers
+        const powers = [1, 2, 4, 8, 16, 32, 64];
+        const maxBlocks = 6; // show n=0..6
+
+        // Draw tower blocks
+        for (let n = 0; n <= maxBlocks; n++) {
+          const val = Math.pow(2, n);
+          const xCenter = 42 + n * (blockW + gap + 16);
+          const towerH = Math.min(n * blockH * 0.6, H * 0.5);
+
+          // Stack of blocks
+          const numBlocks = Math.min(n, 5);
+          for (let b = 0; b < numBlocks; b++) {
+            const bx = xCenter - blockW/2;
+            const by = H * 0.7 - (b + 1) * (blockH * 0.6);
+            const isHighlight = val === Math.round(targetVal);
+
+            cx.fillStyle = isHighlight ? COL_EXP + '40' : 'rgba(88,196,221,0.08)';
+            cx.strokeStyle = isHighlight ? COL_EXP : 'rgba(88,196,221,0.25)';
+            cx.lineWidth = isHighlight ? 1.5 : 0.8;
+            roundRect(cx, bx, by, blockW, blockH * 0.55, 3);
+            cx.fill(); cx.stroke();
+          }
+
+          // Value on top
+          cx.font = (val === Math.round(targetVal) ? 'bold ' : '') + '13px monospace';
+          cx.fillStyle = val === Math.round(targetVal) ? COL_EXP : 'rgba(255,255,255,0.5)';
+          cx.textAlign = 'center';
+          const topY = H * 0.7 - numBlocks * (blockH * 0.6) - 8;
+          cx.fillText(val, xCenter, topY);
+
+          // n label below
+          cx.font = '10px monospace';
+          cx.fillStyle = 'rgba(255,255,255,0.35)';
+          cx.fillText('2' + (n === 0 ? '⁰' : n === 1 ? '¹' : n === 2 ? '²' : n === 3 ? '³' : n === 4 ? '⁴' : n === 5 ? '⁵' : '⁶'), xCenter, H * 0.78);
+        }
+
+        // The "reverse question" at bottom
+        const logVal = logBase(2, targetVal);
+        const t = (animT % 120) / 120;
+        const pulse = 0.7 + 0.3 * Math.sin(t * Math.PI * 2);
+
+        // Forward arrow
+        cx.save();
+        cx.font = '13px monospace';
+        cx.fillStyle = COL_EXP;
+        cx.globalAlpha = pulse;
+        cx.textAlign = 'center';
+        cx.fillText('2^? = ' + Math.round(targetVal), W * 0.3, H * 0.92);
+        cx.restore();
+
+        // Reverse arrow + answer
+        cx.save();
+        cx.font = 'bold 14px monospace';
+        cx.fillStyle = COL_LOG;
+        cx.textAlign = 'center';
+        cx.fillText('→  log₂(' + Math.round(targetVal) + ') = ' + fmt(logVal), W * 0.68, H * 0.92);
+        cx.restore();
+
+        // Highlight the matching power
+        infoBox(T('Potęga: 2ⁿ → wynik', 'Power: 2ⁿ → result'), W * 0.3, 18, COL_EXP);
+        infoBox(T('Logarytm: wynik → n', 'Logarithm: result → n'), W * 0.72, 18, COL_LOG);
+      }
+    },
+
+    // Stage 2: Two graphs — one mirror
+    {
+      title: () => T('Dwa wykresy — jedno lustro', 'Two graphs — one mirror'),
+      desc: () => T(
+        'y = ' + fmt(base) + 'ˣ rośnie szybko, y = log_' + fmt(base) + '(x) rośnie wolno. Odbij dowolny punkt jednego wykresu przez prostą y = x — trafia na drugi! Zmień podstawę suwakiem.',
+        'y = ' + fmt(base) + 'ˣ grows fast, y = log_' + fmt(base) + '(x) grows slowly. Reflect any point on one curve through y = x — it lands on the other! Change the base with the slider.'
+      ),
+      sliders: [
+        { id: 'base', lbl: T('baza','base'), color: COL_EXP, min: 1.5, max: 10, step: 0.5, get: () => base, set: v => base = v },
+      ],
+      draw() {
+        setCoords(W * 0.25, H * 0.7, 34);
+
+        drawGrid(-3, 10, -3, 8);
+        drawAxes(-3, 10, -3, 8);
+
+        // Mirror line y = x (dashed)
+        plotFn(x => x, COL_MIRR, 0.35, [6, 4]);
+        cx.save();
+        cx.font = '10px monospace';
+        cx.fillStyle = COL_MIRR;
+        cx.globalAlpha = 0.6;
+        cx.textAlign = 'left';
+        cx.fillText('y = x', px(5.5), py(5.5) - 6);
+        cx.restore();
+
+        // Exponential: y = base^x
+        plotFn(x => Math.pow(base, x), COL_EXP, 0.9);
+
+        // Logarithm: y = log_base(x)
+        plotFn(x => x > 0 ? logBase(base, x) : NaN, COL_LOG, 0.9);
+
+        // Animated reflection point
+        const t = (animT % 200) / 200;
+        const xAnim = -1 + t * 6;
+        const yExp = Math.pow(base, xAnim);
+        const yLog = logBase(base, yExp);
+
+        if (yExp < 8 && yExp > -3) {
+          // Point on exp curve
+          const expPx = px(xAnim), expPy = py(yExp);
+          gdot(expPx, expPy, 5, COL_EXP);
+
+          // Mirror point on log curve (swap x,y)
+          const logPx = px(yExp), logPy = py(xAnim);
+          if (logPx > 0 && logPx < W && logPy > 0 && logPy < H) {
+            gdot(logPx, logPy, 5, COL_LOG);
+
+            // Reflection line through y=x
+            cx.save();
+            cx.strokeStyle = COL_MIRR;
+            cx.globalAlpha = 0.25;
+            cx.lineWidth = 1;
+            cx.setLineDash([3, 3]);
+            cx.beginPath();
+            cx.moveTo(expPx, expPy);
+            cx.lineTo(logPx, logPy);
+            cx.stroke();
+            cx.restore();
+          }
+        }
+
+        // Labels
+        infoBox('y = ' + fmt(base) + 'ˣ', W * 0.8, 22, COL_EXP);
+        infoBox('y = log_' + fmt(base) + '(x)', W * 0.8, 48, COL_LOG);
+
+        // Mark (1, 0) on log
+        gdot(px(1), py(0), 4, COL_LOG);
+        cx.save();
+        cx.font = '9px monospace';
+        cx.fillStyle = COL_LOG;
+        cx.globalAlpha = 0.7;
+        cx.textAlign = 'left';
+        cx.fillText('(1, 0)', px(1) + 6, py(0) - 6);
+        cx.restore();
+
+        // Mark (0, 1) on exp
+        gdot(px(0), py(1), 4, COL_EXP);
+        cx.save();
+        cx.font = '9px monospace';
+        cx.fillStyle = COL_EXP;
+        cx.globalAlpha = 0.7;
+        cx.textAlign = 'right';
+        cx.fillText('(0, 1)', px(0) - 6, py(1) - 6);
+        cx.restore();
+      }
+    },
+
+    // Stage 3: Why does log grow so slowly?
+    {
+      title: () => T('Dlaczego log rośnie tak wolno?', 'Why does log grow so slowly?'),
+      desc: () => T(
+        'Żeby log₂ wzrósł o 1, x musi się PODWOIĆ. x = ' + Math.round(xSlowVal) + ' → log₂ = ' + fmt(logBase(2, xSlowVal)) + '. Podwój x → log rośnie tylko o 1. To dlatego log \"kompresuje\" ogromne liczby.',
+        'For log₂ to increase by 1, x must DOUBLE. x = ' + Math.round(xSlowVal) + ' → log₂ = ' + fmt(logBase(2, xSlowVal)) + '. Double x → log grows only by 1. That is why log \"compresses\" huge numbers.'
+      ),
+      sliders: [
+        { id: 'xslow', lbl: 'x', color: COL_LOG, min: 1, max: 1024, step: 1, get: () => xSlowVal, set: v => xSlowVal = v },
+      ],
+      draw() {
+        setCoords(50, H * 0.55, 1);
+
+        // Table of x vs log2(x)
+        const tableData = [
+          [1, 0], [2, 1], [4, 2], [8, 3], [16, 4], [32, 5], [64, 6], [128, 7], [256, 8], [512, 9], [1024, 10]
+        ];
+
+        // Draw a bar chart: x on horizontal, log2(x) as bar height
+        const barW = 42;
+        const maxBars = 8;
+        const startX = 30;
+        const barGap = 4;
+        const maxBarH = 160;
+
+        // Find appropriate range to show
+        let showData = tableData.filter(d => d[0] <= Math.max(xSlowVal * 1.5, 8));
+        if (showData.length > maxBars) showData = showData.slice(showData.length - maxBars);
+        if (showData.length < 3) showData = tableData.slice(0, 4);
+
+        const totalW = showData.length * (barW + barGap);
+        const offsetX = (W - totalW) / 2;
+
+        // Max log value for scaling
+        const maxLog = Math.max(showData[showData.length - 1][1], 1);
+
+        showData.forEach((d, i) => {
+          const bx = offsetX + i * (barW + barGap);
+          const logVal = d[1];
+          const barH = (logVal / maxLog) * maxBarH;
+          const by = H * 0.7 - barH;
+          const isActive = d[0] === Math.round(xSlowVal);
+
+          // Bar
+          cx.fillStyle = isActive ? COL_LOG + '50' : 'rgba(88,196,221,0.12)';
+          cx.strokeStyle = isActive ? COL_LOG : 'rgba(88,196,221,0.3)';
+          cx.lineWidth = isActive ? 1.5 : 0.8;
+          if (barH > 0) {
+            roundRect(cx, bx, by, barW, barH, 3);
+            cx.fill(); cx.stroke();
+          }
+
+          // x label below
+          cx.font = (isActive ? 'bold ' : '') + '10px monospace';
+          cx.fillStyle = isActive ? COL_EXP : 'rgba(255,255,255,0.4)';
+          cx.textAlign = 'center';
+          cx.fillText(d[0], bx + barW/2, H * 0.76);
+
+          // log value on top of bar
+          cx.font = '11px monospace';
+          cx.fillStyle = isActive ? COL_LOG : 'rgba(255,255,255,0.5)';
+          cx.fillText(logVal, bx + barW/2, by - 6);
+
+          // "×2" arrows between bars
+          if (i > 0) {
+            const prevX = offsetX + (i-1) * (barW + barGap) + barW/2;
+            const curX = bx + barW/2;
+            const arrowY = H * 0.82;
+
+            cx.save();
+            cx.strokeStyle = COL_EXP;
+            cx.globalAlpha = 0.3;
+            cx.lineWidth = 1;
+            cx.beginPath();
+            cx.moveTo(prevX + 8, arrowY);
+            cx.lineTo(curX - 8, arrowY);
+            cx.stroke();
+            // arrowhead
+            cx.beginPath();
+            cx.moveTo(curX - 8, arrowY);
+            cx.lineTo(curX - 13, arrowY - 3);
+            cx.lineTo(curX - 13, arrowY + 3);
+            cx.fill();
+
+            cx.font = '8px monospace';
+            cx.fillStyle = COL_EXP;
+            cx.globalAlpha = 0.5;
+            cx.textAlign = 'center';
+            cx.fillText('×2', (prevX + curX) / 2, arrowY - 5);
+            cx.restore();
+          }
+        });
+
+        // Current value indicator
+        const curLog = logBase(2, xSlowVal);
+        infoBox('x = ' + Math.round(xSlowVal) + '  →  log₂ = ' + fmt(curLog), W / 2, 18, COL_LOG);
+
+        // "×2 → +1" rule
+        const doubledX = Math.min(xSlowVal * 2, 1024);
+        const doubledLog = logBase(2, doubledX);
+        infoBox('x×2 = ' + Math.round(doubledX) + '  →  log₂ = ' + fmt(doubledLog) + '  (+1!)', W / 2, 46, COL_EXP, 0.8);
+
+        // x axis label
+        cx.font = '10px monospace';
+        cx.fillStyle = 'rgba(255,255,255,0.3)';
+        cx.textAlign = 'center';
+        cx.fillText('x ' + T('podwaja się →', 'doubles →'), W/2, H * 0.90);
+        cx.fillText(T('log rośnie o 1 ↑', 'log grows by 1 ↑'), W/2, H * 0.96);
+      }
+    },
+
+    // Stage 4: Rules of logarithms — where do they come from?
+    {
+      title: () => T('Reguły logarytmów — skąd się biorą?', 'Rules of logarithms — where do they come from?'),
+      desc: () => T(
+        'log(a·b) = log(a) + log(b). Mnożenie danych wejściowych = dodawanie wyników. a = ' + Math.round(logA) + ', b = ' + Math.round(logB) + ': log₂(' + Math.round(logA) + '·' + Math.round(logB) + ') = log₂(' + Math.round(logA*logB) + ') = ' + fmt(logBase(2, logA*logB)) + ' = ' + fmt(logBase(2, logA)) + ' + ' + fmt(logBase(2, logB)),
+        'log(a·b) = log(a) + log(b). Multiplying inputs = adding outputs. a = ' + Math.round(logA) + ', b = ' + Math.round(logB) + ': log₂(' + Math.round(logA) + '·' + Math.round(logB) + ') = log₂(' + Math.round(logA*logB) + ') = ' + fmt(logBase(2, logA*logB)) + ' = ' + fmt(logBase(2, logA)) + ' + ' + fmt(logBase(2, logB))
+      ),
+      sliders: [
+        { id: 'logA', lbl: 'a', color: COL_GREEN, min: 1, max: 16, step: 1, get: () => logA, set: v => logA = v },
+        { id: 'logB', lbl: 'b', color: COL_PURP, min: 1, max: 16, step: 1, get: () => logB, set: v => logB = v },
+      ],
+      draw() {
+        const la = logBase(2, logA);
+        const lb = logBase(2, logB);
+        const lab = logBase(2, logA * logB);
+        const maxLog = Math.max(lab, 1);
+
+        // Input bars (multiplication) — top half
+        const barMaxW = 400;
+        const barH = 26;
+        const maxInput = 256;
+        const inputScale = barMaxW / maxInput;
+
+        const topY = 55;
+        const leftX = 90;
+
+        // Bar for a
+        const aW = Math.min(logA * inputScale, barMaxW);
+        cx.fillStyle = COL_GREEN + '30';
+        cx.strokeStyle = COL_GREEN;
+        cx.lineWidth = 1;
+        roundRect(cx, leftX, topY, aW, barH, 4);
+        cx.fill(); cx.stroke();
+        cx.font = '11px monospace';
+        cx.fillStyle = COL_GREEN;
+        cx.textAlign = 'left';
+        cx.fillText('a = ' + Math.round(logA), leftX + 6, topY + 17);
+
+        // Bar for b
+        const bW = Math.min(logB * inputScale, barMaxW);
+        cx.fillStyle = COL_PURP + '30';
+        cx.strokeStyle = COL_PURP;
+        roundRect(cx, leftX, topY + barH + 6, bW, barH, 4);
+        cx.fill(); cx.stroke();
+        cx.fillStyle = COL_PURP;
+        cx.fillText('b = ' + Math.round(logB), leftX + 6, topY + barH + 23);
+
+        // Combined bar a·b
+        const abW = Math.min(logA * logB * inputScale, barMaxW);
+        cx.fillStyle = COL_EXP + '25';
+        cx.strokeStyle = COL_EXP;
+        cx.lineWidth = 1.5;
+        roundRect(cx, leftX, topY + 2*(barH + 6), abW, barH, 4);
+        cx.fill(); cx.stroke();
+        cx.fillStyle = COL_EXP;
+        cx.fillText('a·b = ' + Math.round(logA * logB), leftX + 6, topY + 2*(barH + 6) + 17);
+
+        // Multiplication sign
+        cx.font = '10px monospace';
+        cx.fillStyle = 'rgba(255,255,255,0.4)';
+        cx.textAlign = 'right';
+        cx.fillText(T('WEJŚCIE', 'INPUT'), leftX - 8, topY + barH + 10);
+        cx.fillText(T('mnożenie', 'multiply'), leftX - 8, topY + barH + 22);
+
+        // Output bars (addition) — bottom half
+        const outY = topY + 3 * (barH + 6) + 20;
+        const logScale = barMaxW / Math.max(maxLog, 0.1);
+
+        // Bar for log(a)
+        const laW = Math.max(la * logScale, 2);
+        cx.fillStyle = COL_GREEN + '30';
+        cx.strokeStyle = COL_GREEN;
+        cx.lineWidth = 1;
+        roundRect(cx, leftX, outY, laW, barH, 4);
+        cx.fill(); cx.stroke();
+        cx.fillStyle = COL_GREEN;
+        cx.textAlign = 'left';
+        cx.fillText('log₂(a) = ' + fmt(la), leftX + 6, outY + 17);
+
+        // Bar for log(b) stacked next to log(a)
+        const lbW = Math.max(lb * logScale, 2);
+        cx.fillStyle = COL_PURP + '30';
+        cx.strokeStyle = COL_PURP;
+        roundRect(cx, leftX + laW, outY, lbW, barH, 4);
+        cx.fill(); cx.stroke();
+        if (lbW > 60) {
+          cx.fillStyle = COL_PURP;
+          cx.fillText('log₂(b) = ' + fmt(lb), leftX + laW + 6, outY + 17);
+        }
+
+        // Combined bar = log(a·b)
+        const labW = Math.max(lab * logScale, 2);
+        cx.fillStyle = COL_EXP + '25';
+        cx.strokeStyle = COL_EXP;
+        cx.lineWidth = 1.5;
+        roundRect(cx, leftX, outY + barH + 6, labW, barH, 4);
+        cx.fill(); cx.stroke();
+        cx.fillStyle = COL_EXP;
+        cx.fillText('log₂(a·b) = ' + fmt(lab), leftX + 6, outY + barH + 23);
+
+        cx.font = '10px monospace';
+        cx.fillStyle = 'rgba(255,255,255,0.4)';
+        cx.textAlign = 'right';
+        cx.fillText(T('WYJŚCIE', 'OUTPUT'), leftX - 8, outY + barH + 10);
+        cx.fillText(T('dodawanie', 'addition'), leftX - 8, outY + barH + 22);
+
+        // Big formula at top
+        infoBox('log₂(' + Math.round(logA) + '·' + Math.round(logB) + ') = log₂(' + Math.round(logA) + ') + log₂(' + Math.round(logB) + ')', W/2, 18, COL_LOG);
+
+        // Arrow showing "multiply → add"
+        const midX = 40;
+        cx.save();
+        cx.strokeStyle = COL_MIRR;
+        cx.globalAlpha = 0.4;
+        cx.lineWidth = 1.5;
+        cx.setLineDash([4, 3]);
+        cx.beginPath();
+        cx.moveTo(midX, topY + barH);
+        cx.lineTo(midX, outY + barH/2);
+        cx.stroke();
+        // arrowhead
+        cx.setLineDash([]);
+        cx.beginPath();
+        cx.moveTo(midX, outY + barH/2);
+        cx.lineTo(midX - 4, outY + barH/2 - 8);
+        cx.lineTo(midX + 4, outY + barH/2 - 8);
+        cx.closePath();
+        cx.fillStyle = COL_MIRR;
+        cx.fill();
+        cx.restore();
+
+        cx.save();
+        cx.font = '9px monospace';
+        cx.fillStyle = COL_MIRR;
+        cx.globalAlpha = 0.7;
+        cx.textAlign = 'center';
+        cx.save();
+        cx.translate(20, (topY + outY) / 2 + 20);
+        cx.rotate(-Math.PI / 2);
+        cx.fillText(T('× → +', '× → +'), 0, 0);
+        cx.restore();
+        cx.restore();
+      }
+    },
+
+    // Stage 5: Change of base
+    {
+      title: () => T('Zmiana podstawy', 'Change of base'),
+      desc: () => T(
+        'log_a(x) = log_b(x) / log_b(a). Wszystkie krzywe logarytmiczne przechodzą przez (1, 0). Zmiana podstawy to po prostu skalowanie. Baza = ' + fmt(baseChange) + '.',
+        'log_a(x) = log_b(x) / log_b(a). All logarithmic curves pass through (1, 0). Change of base is just scaling. Base = ' + fmt(baseChange) + '.'
+      ),
+      sliders: [
+        { id: 'basech', lbl: T('baza','base'), color: COL_LOG, min: 1.5, max: 10, step: 0.5, get: () => baseChange, set: v => baseChange = v },
+      ],
+      draw() {
+        setCoords(W * 0.2, H * 0.75, 50);
+
+        drawGrid(-1, 10, -3, 5);
+        drawAxes(-1, 10, -3, 5);
+
+        // Draw log base 2 (reference)
+        plotFn(x => x > 0 ? logBase(2, x) : NaN, COL_BLUE, 0.5);
+        // Draw log base e
+        plotFn(x => x > 0 ? Math.log(x) : NaN, COL_GREEN, 0.5);
+        // Draw log base 10
+        plotFn(x => x > 0 ? Math.log10(x) : NaN, COL_PINK, 0.5);
+        // Draw selected base (bright)
+        plotFn(x => x > 0 ? logBase(baseChange, x) : NaN, COL_LOG, 1.0);
+
+        // Labels for each curve
+        const labelX = 7;
+        if (labelX * SC + OX < W - 40) {
+          cx.font = '9px monospace';
+          cx.textAlign = 'left';
+
+          cx.fillStyle = COL_BLUE;
+          cx.globalAlpha = 0.6;
+          const y2 = logBase(2, labelX);
+          if (py(y2) > 10 && py(y2) < H - 10) cx.fillText('log₂', px(labelX) + 4, py(y2) - 4);
+          cx.globalAlpha = 1;
+
+          cx.fillStyle = COL_GREEN;
+          cx.globalAlpha = 0.6;
+          const ye = Math.log(labelX);
+          if (py(ye) > 10 && py(ye) < H - 10) cx.fillText('ln', px(labelX) + 4, py(ye) - 4);
+          cx.globalAlpha = 1;
+
+          cx.fillStyle = COL_PINK;
+          cx.globalAlpha = 0.6;
+          const y10 = Math.log10(labelX);
+          if (py(y10) > 10 && py(y10) < H - 10) cx.fillText('log₁₀', px(labelX) + 4, py(y10) - 4);
+          cx.globalAlpha = 1;
+        }
+
+        // Mark (1, 0) — all curves pass through here
+        gdot(px(1), py(0), 6, COL_MIRR);
+        cx.font = '10px monospace';
+        cx.fillStyle = COL_MIRR;
+        cx.textAlign = 'left';
+        cx.fillText(T('(1, 0) — wspólny!', '(1, 0) — shared!'), px(1) + 10, py(0) + 4);
+
+        // Show conversion formula
+        const convX = 4;
+        const logBVal = logBase(baseChange, convX);
+        const log2Val = logBase(2, convX);
+        const ratio = logBase(2, baseChange);
+
+        infoBox('log_' + fmt(baseChange) + '(x) = log₂(x) / log₂(' + fmt(baseChange) + ')', W/2, 18, COL_LOG);
+        infoBox('log_' + fmt(baseChange) + '(' + convX + ') = ' + fmt(log2Val) + ' / ' + fmt(ratio) + ' = ' + fmt(logBVal), W/2, 46, COL_MIRR, 0.8);
+
+        // Show the selected point
+        gdot(px(convX), py(logBVal), 5, COL_LOG);
+        gdot(px(convX), py(log2Val), 5, COL_BLUE);
+
+        // Dashed line between them
+        cx.save();
+        cx.strokeStyle = COL_MIRR;
+        cx.globalAlpha = 0.25;
+        cx.lineWidth = 1;
+        cx.setLineDash([3, 3]);
+        cx.beginPath();
+        cx.moveTo(px(convX), py(logBVal));
+        cx.lineTo(px(convX), py(log2Val));
+        cx.stroke();
+        cx.restore();
+
+        cx.font = '9px monospace';
+        cx.fillStyle = COL_MIRR;
+        cx.globalAlpha = 0.6;
+        cx.textAlign = 'left';
+        cx.fillText(T('skalowanie ×' + fmt(1/ratio), 'scaling ×' + fmt(1/ratio)), px(convX) + 8, (py(logBVal) + py(log2Val)) / 2 + 3);
+        cx.globalAlpha = 1;
+      }
+    },
+  ];
+
+  // ── Slider management ────────────────────────────────────────
+  const slWrap = document.getElementById('sliders-wrap');
+
+  function buildSliders(defs) {
+    let html = '<div class="sliders">';
+    defs.forEach(function(s) {
+      const v = s.get();
+      html += '<div class="slider-row">' +
+        '<span class="lbl" style="color:' + s.color + '">' + s.lbl + ' =</span>' +
+        '<input type="range" id="s_' + s.id + '" min="' + s.min + '" max="' + s.max + '" step="' + s.step + '" value="' + v + '">' +
+        '<span class="val" id="v_' + s.id + '" style="color:' + s.color + '"></span>' +
+      '</div>';
+    });
+    html += '</div>';
+    slWrap.innerHTML = html;
+
+    defs.forEach(function(s) {
+      const el = document.getElementById('s_' + s.id);
+      const valEl = document.getElementById('v_' + s.id);
+      valEl.textContent = fmtSlider(+el.value, s.step);
+      el.addEventListener('input', function() {
+        const v = +this.value;
+        valEl.textContent = fmtSlider(v, s.step);
+        s.set(v);
+      });
+    });
+  }
+
+  // ── Navigation ───────────────────────────────────────────────
+  const prevBtn = document.getElementById('qprev');
+  const nextBtn = document.getElementById('qnext');
+  const dotsEl  = document.getElementById('qdots');
+  const titleEl = document.getElementById('qf');
+  const descEl  = document.getElementById('qd');
+
+  function goTo(idx) {
+    stage = Math.max(0, Math.min(stages.length - 1, idx));
+    const s = stages[stage];
+    titleEl.textContent = s.title();
+    descEl.textContent = s.desc();
+
+    if (s.sliders) {
+      buildSliders(s.sliders);
+    } else {
+      slWrap.innerHTML = '';
+    }
+
+    prevBtn.disabled = stage === 0;
+    nextBtn.disabled = stage === stages.length - 1;
+    renderDots();
+  }
+
+  function renderDots() {
+    dotsEl.innerHTML = stages.map(function(_, i) {
+      return '<span class="dot' + (i === stage ? ' active' : '') + '" data-i="' + i + '"></span>';
+    }).join('');
+    dotsEl.querySelectorAll('.dot').forEach(function(d) {
+      d.addEventListener('click', function() { goTo(+d.dataset.i); });
+    });
+  }
+
+  prevBtn.addEventListener('click', function() { goTo(stage - 1); });
+  nextBtn.addEventListener('click', function() { goTo(stage + 1); });
+
+  // ── Render loop ──────────────────────────────────────────────
+  function tick() {
+    animT++;
+    clear();
+    stages[stage].draw();
+    requestAnimationFrame(tick);
+  }
+
+  goTo(0);
+  tick();
+})();
+</script>
+</body>
+</html>
