@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ulamki — wizualna podroz</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+  #qf { margin: 0 0 5px; font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  #qd { margin: 0 0 10px; font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); min-height: 48px; }
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 36px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+  .nav { display: flex; align-items: center; justify-content: space-between; }
+  button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  button:hover { background: rgba(255,255,255,.08); }
+  button:disabled { opacity: .3; cursor: default; }
+  #qdots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.18); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  #sliders-wrap { min-height: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="310"></canvas>
+  <div class="panel">
+    <p id="qf"></p>
+    <p id="qd"></p>
+    <div id="sliders-wrap"></div>
+    <div class="nav">
+      <button id="qprev">&larr;</button>
+      <div id="qdots"></div>
+      <button id="qnext">&rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const cv = document.getElementById('cv');
+  const cx = cv.getContext('2d');
+  const W = 600, H = 310;
+
+  const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
+  const T = (pl, en) => LANG === 'pl' ? pl : en;
+
+  // Colors
+  const COL_A = '#4a9eff';
+  const COL_B = '#FF6B35';
+  const COL_P = '#83C167';
+  const COL_EQ = '#FFD166';
+  const COL_DIM = 'rgba(255,255,255,.15)';
+
+  // State
+  let sA = 3, sB = 4;          // numerator / denominator (stage 1)
+  let sMul = 1;                 // multiplier (stage 2)
+  let sA1 = 1, sB1 = 2, sA2 = 1, sB2 = 3; // two fractions (stage 3-5)
+
+  let stage = 0;
+
+  // ── Drawing helpers ──────────────────────────────────────────
+  function clear() {
+    cx.fillStyle = '#0e0e12';
+    cx.fillRect(0, 0, W, H);
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+    ctx.closePath();
+  }
+
+  function textLine(text, y, col, size, align) {
+    cx.save();
+    cx.font = (size || 14) + 'px monospace';
+    cx.fillStyle = col || 'rgba(255,255,255,.7)';
+    cx.textAlign = align || 'center';
+    cx.fillText(text, W/2, y);
+    cx.restore();
+  }
+
+  function drawBar(x, y, w, h, parts, filled, col, dimCol) {
+    const pw = w / parts;
+    for (let i = 0; i < parts; i++) {
+      cx.save();
+      cx.fillStyle = i < filled ? col : (dimCol || COL_DIM);
+      if (i < filled) { cx.shadowColor = col; cx.shadowBlur = 6; }
+      roundRect(cx, x + i * pw + 1, y, pw - 2, h, 3);
+      cx.fill();
+      cx.shadowBlur = 0;
+      cx.restore();
+    }
+  }
+
+  function gcd(a, b) { return b === 0 ? a : gcd(b, a % b); }
+
+  function lcm(a, b) { return (a * b) / gcd(a, b); }
+
+  function fracStr(a, b) {
+    return a + '/' + b;
+  }
+
+  function simplify(a, b) {
+    const g = gcd(Math.abs(a), Math.abs(b));
+    return [a / g, b / g];
+  }
+
+  // ── Stages ───────────────────────────────────────────────────
+  const stages = [
+    // Stage 1: What is a fraction?
+    {
+      title: () => T('Czym jest ulamek?', 'What is a fraction?'),
+      desc: () => {
+        const a = sA, b = sB;
+        return T(
+          fracStr(a,b) + ' znaczy: podziel na ' + b + ' rownych czesci, wez ' + a + '. Ulamek to po prostu dzielenie!',
+          fracStr(a,b) + ' means: split into ' + b + ' equal parts, take ' + a + '. A fraction is just division!'
+        );
+      },
+      sliders: [
+        { id: 'sA', lbl: 'a', color: COL_A, min: 1, max: 8, step: 1, val: 3 },
+        { id: 'sB', lbl: 'b', color: COL_B, min: 2, max: 8, step: 1, val: 4 },
+      ],
+      draw() {
+        const a = sA, b = sB;
+        const filled = Math.min(a, b);
+        const overflow = a > b ? a - b : 0;
+        const barW = 440, barH = 40;
+        const barX = (W - barW) / 2;
+
+        // Title
+        textLine(fracStr(a, b), 30, COL_A, 22);
+
+        // Main bar
+        const barY = 60;
+        drawBar(barX, barY, barW, barH, b, filled, COL_A, COL_DIM);
+
+        // Label each piece
+        cx.save();
+        cx.font = '11px monospace';
+        cx.fillStyle = 'rgba(255,255,255,.4)';
+        cx.textAlign = 'center';
+        const pw = barW / b;
+        for (let i = 0; i < b; i++) {
+          cx.fillText('1/' + b, barX + i * pw + pw / 2, barY + barH + 16);
+        }
+        cx.restore();
+
+        // If a > b, show overflow bar
+        if (overflow > 0) {
+          const bar2Y = barY + barH + 35;
+          drawBar(barX, bar2Y, barW, barH, b, overflow, COL_A, COL_DIM);
+          textLine(T('Ulamek > 1 — wiecej niz calosc!', 'Fraction > 1 — more than the whole!'), bar2Y + barH + 20, COL_EQ, 12);
+        }
+
+        // Fraction value
+        const val = (a / b).toFixed(4).replace(/0+$/, '').replace(/\.$/, '');
+        const resultY = a > b ? 230 : 180;
+        textLine(fracStr(a, b) + '  =  ' + a + ' \u00F7 ' + b + '  =  ' + val, resultY, 'rgba(255,255,255,.5)', 14);
+
+        // Pie chart
+        const pieR = 45;
+        const pieCX = W / 2;
+        const pieY = a > b ? 275 : 245;
+        const sliceAngle = (2 * Math.PI) / b;
+
+        for (let i = 0; i < b; i++) {
+          cx.save();
+          cx.beginPath();
+          cx.moveTo(pieCX, pieY);
+          cx.arc(pieCX, pieY, pieR, -Math.PI / 2 + i * sliceAngle, -Math.PI / 2 + (i + 1) * sliceAngle);
+          cx.closePath();
+          cx.fillStyle = i < filled ? COL_A : COL_DIM;
+          if (i < filled) { cx.shadowColor = COL_A; cx.shadowBlur = 6; }
+          cx.fill();
+          cx.shadowBlur = 0;
+          cx.strokeStyle = '#0e0e12';
+          cx.lineWidth = 2;
+          cx.stroke();
+          cx.restore();
+        }
+      }
+    },
+
+    // Stage 2: Equivalent fractions
+    {
+      title: () => T('Ulamki rownowazne', 'Equivalent fractions'),
+      desc: () => T(
+        'Pomnoz licznik i mianownik przez te sama liczbe — dostajesz tyle samo! 1/2 = 2/4 = 3/6. Wiecej kawalkow, ale ta sama ilosc.',
+        'Multiply numerator and denominator by the same number — you get the same amount! 1/2 = 2/4 = 3/6. More pieces, same amount.'
+      ),
+      sliders: [
+        { id: 'sA', lbl: 'a', color: COL_A, min: 1, max: 4, step: 1, val: 1 },
+        { id: 'sB', lbl: 'b', color: COL_B, min: 2, max: 6, step: 1, val: 2 },
+        { id: 'sMul', lbl: '\u00D7', color: COL_EQ, min: 1, max: 4, step: 1, val: 1 },
+      ],
+      draw() {
+        const a = sA, b = sB, m = sMul;
+        const barW = 440, barH = 28;
+        const barX = (W - barW) / 2;
+
+        textLine(T('Pomnoz licznik i mianownik przez ', 'Multiply top and bottom by ') + m, 28, 'rgba(255,255,255,.45)', 12);
+
+        // Draw bars for each multiplier from 1 to m
+        for (let k = 1; k <= Math.max(m, 3); k++) {
+          const an = a * k, bn = b * k;
+          const barY = 45 + (k - 1) * (barH + 32);
+          const isActive = k <= m;
+
+          // Fraction label on left
+          cx.save();
+          cx.font = '14px monospace';
+          cx.fillStyle = k === m ? COL_EQ : (isActive ? 'rgba(255,255,255,.55)' : 'rgba(255,255,255,.2)');
+          cx.textAlign = 'right';
+          cx.fillText(fracStr(an, bn), barX - 12, barY + barH / 2 + 5);
+          cx.restore();
+
+          // Bar
+          const col = k === m ? COL_EQ : (isActive ? COL_A : 'rgba(255,255,255,.08)');
+          const dimC = isActive ? COL_DIM : 'rgba(255,255,255,.06)';
+          drawBar(barX, barY, barW, barH, bn, an, col, dimC);
+
+          // Equality sign
+          if (k > 1 && k <= m) {
+            cx.save();
+            cx.font = '14px monospace';
+            cx.fillStyle = COL_P;
+            cx.textAlign = 'center';
+            cx.fillText('=', W / 2, barY - 6);
+            cx.restore();
+          }
+        }
+
+        // Explanation at bottom
+        const ey = H - 30;
+        if (m > 1) {
+          const [sa, sb] = simplify(a * m, b * m);
+          textLine(fracStr(a, b) + ' = ' + fracStr(a * m, b * m) + T('  (ta sama wartosc!)', '  (same value!)'), ey, COL_P, 14);
+        } else {
+          textLine(T('Przesun suwak \u00D7 w prawo!', 'Move the \u00D7 slider to the right!'), ey, 'rgba(255,255,255,.35)', 13);
+        }
+      }
+    },
+
+    // Stage 3: Addition — common denominator
+    {
+      title: () => T('Dodawanie — wspolny mianownik', 'Addition — common denominator'),
+      desc: () => T(
+        'Zeby dodac ulamki, potrzebujesz takich samych kawalkow. Sprowadz do wspolnego mianownika, potem policz kawalki.',
+        'To add fractions you need same-sized pieces. Convert to a common denominator, then count pieces.'
+      ),
+      sliders: [
+        { id: 'sA1', lbl: 'a', color: COL_A, min: 1, max: 5, step: 1, val: 1 },
+        { id: 'sB1', lbl: 'b', color: COL_A, min: 2, max: 6, step: 1, val: 2 },
+        { id: 'sA2', lbl: 'c', color: COL_B, min: 1, max: 5, step: 1, val: 1 },
+        { id: 'sB2', lbl: 'd', color: COL_B, min: 2, max: 6, step: 1, val: 3 },
+      ],
+      draw() {
+        const a1 = sA1, b1 = sB1, a2 = sA2, b2 = sB2;
+        const L = lcm(b1, b2);
+        const na1 = a1 * (L / b1), na2 = a2 * (L / b2);
+        const sumN = na1 + na2;
+        const [sn, sd] = simplify(sumN, L);
+
+        const barW = 400, barH = 22;
+        const barX = (W - barW) / 2;
+
+        // Original fractions
+        textLine(T('Rozne kawalki:', 'Different pieces:'), 22, 'rgba(255,255,255,.4)', 11);
+
+        // Bar 1 (original)
+        const b1Y = 38;
+        cx.save(); cx.font = '13px monospace'; cx.fillStyle = COL_A; cx.textAlign = 'right';
+        cx.fillText(fracStr(a1, b1), barX - 10, b1Y + barH / 2 + 4); cx.restore();
+        drawBar(barX, b1Y, barW, barH, b1, Math.min(a1, b1), COL_A);
+
+        // Bar 2 (original)
+        const b2Y = b1Y + barH + 8;
+        cx.save(); cx.font = '13px monospace'; cx.fillStyle = COL_B; cx.textAlign = 'right';
+        cx.fillText(fracStr(a2, b2), barX - 10, b2Y + barH / 2 + 4); cx.restore();
+        drawBar(barX, b2Y, barW, barH, b2, Math.min(a2, b2), COL_B);
+
+        // Arrow
+        const arrowY = b2Y + barH + 18;
+        cx.save();
+        cx.strokeStyle = 'rgba(255,255,255,.2)'; cx.lineWidth = 1.5;
+        cx.beginPath(); cx.moveTo(W / 2, arrowY); cx.lineTo(W / 2, arrowY + 18); cx.stroke();
+        cx.beginPath(); cx.moveTo(W / 2 - 4, arrowY + 14); cx.lineTo(W / 2, arrowY + 18); cx.lineTo(W / 2 + 4, arrowY + 14); cx.stroke();
+        cx.restore();
+
+        textLine(T('Wspolny mianownik: ', 'Common denominator: ') + L, arrowY + 8, 'rgba(255,255,255,.35)', 11);
+
+        // Converted fractions
+        const c1Y = arrowY + 28;
+        cx.save(); cx.font = '13px monospace'; cx.fillStyle = COL_A; cx.textAlign = 'right';
+        cx.fillText(fracStr(na1, L), barX - 10, c1Y + barH / 2 + 4); cx.restore();
+        drawBar(barX, c1Y, barW, barH, L, Math.min(na1, L), COL_A);
+
+        const c2Y = c1Y + barH + 8;
+        cx.save(); cx.font = '13px monospace'; cx.fillStyle = COL_B; cx.textAlign = 'right';
+        cx.fillText(fracStr(na2, L), barX - 10, c2Y + barH / 2 + 4); cx.restore();
+        drawBar(barX, c2Y, barW, barH, L, Math.min(na2, L), COL_B);
+
+        // Result bar
+        const rY = c2Y + barH + 16;
+        cx.save(); cx.font = '13px monospace'; cx.fillStyle = COL_P; cx.textAlign = 'right';
+        cx.fillText(fracStr(sumN, L), barX - 10, rY + barH / 2 + 4); cx.restore();
+
+        // Draw result bar with both colors
+        const pw = barW / L;
+        for (let i = 0; i < L; i++) {
+          cx.save();
+          let col = COL_DIM;
+          if (i < na1) { col = COL_A; cx.shadowColor = COL_A; cx.shadowBlur = 4; }
+          else if (i < na1 + na2) { col = COL_B; cx.shadowColor = COL_B; cx.shadowBlur = 4; }
+          cx.fillStyle = col;
+          roundRect(cx, barX + i * pw + 1, rY, pw - 2, barH, 2);
+          cx.fill();
+          cx.shadowBlur = 0;
+          cx.restore();
+        }
+
+        // Formula
+        const fY = rY + barH + 22;
+        let resultStr = fracStr(a1, b1) + ' + ' + fracStr(a2, b2) + ' = ' + fracStr(na1, L) + ' + ' + fracStr(na2, L) + ' = ' + fracStr(sumN, L);
+        if (sn !== sumN || sd !== L) resultStr += ' = ' + fracStr(sn, sd);
+        textLine(resultStr, fY, COL_P, 13);
+      }
+    },
+
+    // Stage 4: Multiplication — grid
+    {
+      title: () => T('Mnozenie ulamkow', 'Multiplying fractions'),
+      desc: () => T(
+        'a/b \u00D7 c/d = (a\u00D7c)/(b\u00D7d). Wizualnie: zamaluj a/b wierszy i c/d kolumn siatki. Przeciecie = wynik.',
+        'a/b \u00D7 c/d = (a\u00D7c)/(b\u00D7d). Visually: shade a/b of rows and c/d of columns of a grid. The overlap = result.'
+      ),
+      sliders: [
+        { id: 'sA1', lbl: 'a', color: COL_A, min: 1, max: 5, step: 1, val: 3 },
+        { id: 'sB1', lbl: 'b', color: COL_A, min: 2, max: 6, step: 1, val: 4 },
+        { id: 'sA2', lbl: 'c', color: COL_B, min: 1, max: 5, step: 1, val: 2 },
+        { id: 'sB2', lbl: 'd', color: COL_B, min: 2, max: 6, step: 1, val: 3 },
+      ],
+      draw() {
+        const a1 = sA1, b1 = sB1, a2 = sA2, b2 = sB2;
+        const prodN = a1 * a2, prodD = b1 * b2;
+        const [sn, sd] = simplify(prodN, prodD);
+
+        // Grid dimensions
+        const gridSize = Math.min(200, H - 80);
+        const cellW = gridSize / b2;
+        const cellH = gridSize / b1;
+        const gx = (W - gridSize) / 2;
+        const gy = 40;
+
+        // Title
+        textLine(fracStr(a1, b1) + ' \u00D7 ' + fracStr(a2, b2), 24, 'rgba(255,255,255,.6)', 16);
+
+        // Draw grid
+        for (let r = 0; r < b1; r++) {
+          for (let c = 0; c < b2; c++) {
+            const inRow = r < a1;
+            const inCol = c < a2;
+            cx.save();
+            let col;
+            if (inRow && inCol) {
+              col = COL_P; cx.shadowColor = COL_P; cx.shadowBlur = 4;
+            } else if (inRow) {
+              col = COL_A + '40';
+            } else if (inCol) {
+              col = COL_B + '40';
+            } else {
+              col = 'rgba(255,255,255,.06)';
+            }
+            cx.fillStyle = col;
+            roundRect(cx, gx + c * cellW + 1, gy + r * cellH + 1, cellW - 2, cellH - 2, 2);
+            cx.fill();
+            cx.shadowBlur = 0;
+            cx.restore();
+          }
+        }
+
+        // Row label (left)
+        cx.save();
+        cx.font = '13px monospace'; cx.fillStyle = COL_A; cx.textAlign = 'right';
+        cx.fillText(fracStr(a1, b1), gx - 10, gy + (a1 * cellH) / 2 + 4);
+        // Bracket
+        cx.strokeStyle = COL_A + '60'; cx.lineWidth = 1.5;
+        cx.beginPath();
+        cx.moveTo(gx - 4, gy); cx.lineTo(gx - 7, gy); cx.lineTo(gx - 7, gy + a1 * cellH); cx.lineTo(gx - 4, gy + a1 * cellH);
+        cx.stroke();
+        cx.restore();
+
+        // Column label (top)
+        cx.save();
+        cx.font = '13px monospace'; cx.fillStyle = COL_B; cx.textAlign = 'center';
+        cx.fillText(fracStr(a2, b2), gx + (a2 * cellW) / 2, gy - 8);
+        // Bracket
+        cx.strokeStyle = COL_B + '60'; cx.lineWidth = 1.5;
+        cx.beginPath();
+        cx.moveTo(gx, gy - 3); cx.lineTo(gx, gy - 6); cx.lineTo(gx + a2 * cellW, gy - 6); cx.lineTo(gx + a2 * cellW, gy - 3);
+        cx.stroke();
+        cx.restore();
+
+        // Result label
+        cx.save();
+        cx.font = '12px monospace'; cx.fillStyle = COL_P; cx.textAlign = 'center';
+        cx.fillText(fracStr(prodN, prodD), gx + (a2 * cellW) / 2, gy + (a1 * cellH) / 2 + 4);
+        cx.restore();
+
+        // Formula at bottom
+        const fY = gy + gridSize + 30;
+        let formula = fracStr(a1, b1) + ' \u00D7 ' + fracStr(a2, b2) + ' = ' + fracStr(prodN, prodD);
+        if (sn !== prodN || sd !== prodD) formula += ' = ' + fracStr(sn, sd);
+        textLine(formula, fY, COL_P, 15);
+
+        const val = (prodN / prodD).toFixed(4).replace(/0+$/, '').replace(/\.$/, '');
+        textLine('= ' + val, fY + 24, COL_EQ, 14);
+
+        // Explanation
+        textLine(T('Zielone kratki = przeciecie (licznik). Cala siatka = mianownik.',
+                    'Green cells = overlap (numerator). Full grid = denominator.'), fY + 50, 'rgba(255,255,255,.35)', 11);
+      }
+    },
+
+    // Stage 5: Division — flip and multiply
+    {
+      title: () => T('Dzielenie — odwracamy i mnozymy', 'Division — flip and multiply'),
+      desc: () => T(
+        'a/b \u00F7 c/d = a/b \u00D7 d/c. Pytamy: ile razy c/d miesci sie w a/b? Odwroc drugi ulamek i pomnoz!',
+        'a/b \u00F7 c/d = a/b \u00D7 d/c. We ask: how many times does c/d fit into a/b? Flip the second and multiply!'
+      ),
+      sliders: [
+        { id: 'sA1', lbl: 'a', color: COL_A, min: 1, max: 6, step: 1, val: 3 },
+        { id: 'sB1', lbl: 'b', color: COL_A, min: 2, max: 6, step: 1, val: 4 },
+        { id: 'sA2', lbl: 'c', color: COL_B, min: 1, max: 5, step: 1, val: 1 },
+        { id: 'sB2', lbl: 'd', color: COL_B, min: 2, max: 6, step: 1, val: 4 },
+      ],
+      draw() {
+        const a1 = sA1, b1 = sB1, a2 = sA2, b2 = sB2;
+        const resN = a1 * b2, resD = b1 * a2;
+        const [sn, sd] = simplify(resN, resD);
+        const val = resN / resD;
+
+        const barW = 400, barH = 24;
+        const barX = (W - barW) / 2;
+
+        // Bar representing a/b
+        textLine(fracStr(a1, b1) + ' \u00F7 ' + fracStr(a2, b2), 24, 'rgba(255,255,255,.6)', 16);
+        textLine(T('Ile razy ' + fracStr(a2, b2) + ' miesci sie w ' + fracStr(a1, b1) + '?',
+                    'How many times does ' + fracStr(a2, b2) + ' fit into ' + fracStr(a1, b1) + '?'), 46, 'rgba(255,255,255,.4)', 12);
+
+        // Draw a/b bar
+        const by1 = 65;
+        cx.save(); cx.font = '12px monospace'; cx.fillStyle = COL_A; cx.textAlign = 'right';
+        cx.fillText(fracStr(a1, b1), barX - 8, by1 + barH / 2 + 4); cx.restore();
+        drawBar(barX, by1, barW, barH, b1, Math.min(a1, b1), COL_A);
+
+        // Draw measuring stick c/d
+        const by2 = by1 + barH + 14;
+        const cdWidth = barW * (a2 / b2);
+
+        // How many fit?
+        const fitsCount = val;
+        const wholeFits = Math.floor(fitsCount);
+        const partialFit = fitsCount - wholeFits;
+
+        // Draw target bar (a/b value) as reference line
+        const targetW = barW * (a1 / b1);
+        cx.save();
+        cx.strokeStyle = COL_A + '40'; cx.lineWidth = 1; cx.setLineDash([4, 3]);
+        cx.beginPath(); cx.moveTo(barX + targetW, by1); cx.lineTo(barX + targetW, by2 + barH + 10); cx.stroke();
+        cx.setLineDash([]);
+        cx.restore();
+
+        // Draw copies of c/d fitting into a/b
+        cx.save(); cx.font = '12px monospace'; cx.fillStyle = COL_B; cx.textAlign = 'right';
+        cx.fillText(fracStr(a2, b2), barX - 8, by2 + barH / 2 + 4); cx.restore();
+
+        const maxCopies = Math.min(wholeFits + 1, 12);
+        for (let i = 0; i < maxCopies; i++) {
+          const sx = barX + i * cdWidth;
+          const drawW = (i < wholeFits) ? cdWidth : cdWidth * partialFit;
+          if (drawW < 1) continue;
+          cx.save();
+          cx.fillStyle = (i % 2 === 0) ? COL_B : COL_B + 'CC';
+          cx.shadowColor = COL_B; cx.shadowBlur = 3;
+          roundRect(cx, sx + 1, by2, drawW - 2, barH, 2);
+          cx.fill();
+          cx.shadowBlur = 0;
+          // Number inside
+          if (drawW > 16) {
+            cx.fillStyle = '#0e0e12';
+            cx.font = '10px monospace'; cx.textAlign = 'center';
+            cx.fillText(i + 1, sx + drawW / 2, by2 + barH / 2 + 3);
+          }
+          cx.restore();
+        }
+
+        // Arrow to formula
+        const arrowY = by2 + barH + 20;
+        cx.save(); cx.strokeStyle = 'rgba(255,255,255,.2)'; cx.lineWidth = 1.5;
+        cx.beginPath(); cx.moveTo(W / 2, arrowY); cx.lineTo(W / 2, arrowY + 20); cx.stroke();
+        cx.beginPath(); cx.moveTo(W / 2 - 4, arrowY + 16); cx.lineTo(W / 2, arrowY + 20); cx.lineTo(W / 2 + 4, arrowY + 16); cx.stroke();
+        cx.restore();
+
+        // Show flip formula
+        const fY = arrowY + 40;
+        textLine(T('Odwracamy i mnozymy:', 'Flip and multiply:'), fY, 'rgba(255,255,255,.4)', 12);
+        textLine(fracStr(a1, b1) + ' \u00F7 ' + fracStr(a2, b2) + '  =  ' + fracStr(a1, b1) + ' \u00D7 ' + fracStr(b2, a2), fY + 22, COL_EQ, 14);
+
+        let resultStr = '= ' + fracStr(resN, resD);
+        if (sn !== resN || sd !== resD) resultStr += ' = ' + fracStr(sn, sd);
+        textLine(resultStr, fY + 46, COL_P, 16);
+
+        const valStr = val.toFixed(4).replace(/0+$/, '').replace(/\.$/, '');
+        textLine('= ' + valStr, fY + 70, 'rgba(255,255,255,.5)', 13);
+
+        textLine(fracStr(a2, b2) + T(' miesci sie ', ' fits ') + valStr + T(' razy w ', ' times in ') + fracStr(a1, b1), fY + 96, 'rgba(255,255,255,.35)', 11);
+      }
+    },
+  ];
+
+  // ── Slider management ────────────────────────────────────────
+  const slWrap = document.getElementById('sliders-wrap');
+
+  function buildSliders(defs) {
+    let html = '<div class="sliders">';
+    defs.forEach(s => {
+      html += `<div class="slider-row">
+        <span class="lbl" style="color:${s.color}">${s.lbl} =</span>
+        <input type="range" id="s_${s.id}" min="${s.min}" max="${s.max}" step="${s.step}" value="${s.val}">
+        <span class="val" id="v_${s.id}" style="color:${s.color}"></span>
+      </div>`;
+    });
+    html += '</div>';
+    slWrap.innerHTML = html;
+
+    defs.forEach(s => {
+      const el = document.getElementById('s_' + s.id);
+      document.getElementById('v_' + s.id).textContent = (+el.value).toFixed(s.step < 1 ? 1 : 0);
+      el.addEventListener('input', function() {
+        const v = +this.value;
+        document.getElementById('v_' + s.id).textContent = v.toFixed(s.step < 1 ? 1 : 0);
+        if (s.id === 'sA') sA = v;
+        if (s.id === 'sB') sB = v;
+        if (s.id === 'sMul') sMul = v;
+        if (s.id === 'sA1') sA1 = v;
+        if (s.id === 'sB1') sB1 = v;
+        if (s.id === 'sA2') sA2 = v;
+        if (s.id === 'sB2') sB2 = v;
+      });
+    });
+  }
+
+  // ── Navigation ───────────────────────────────────────────────
+  const prevBtn = document.getElementById('qprev');
+  const nextBtn = document.getElementById('qnext');
+  const dotsEl  = document.getElementById('qdots');
+  const titleEl = document.getElementById('qf');
+  const descEl  = document.getElementById('qd');
+
+  function goTo(idx) {
+    stage = Math.max(0, Math.min(stages.length - 1, idx));
+    const s = stages[stage];
+    titleEl.textContent = s.title();
+    descEl.textContent = s.desc();
+
+    if (s.sliders) {
+      s.sliders.forEach(sl => {
+        if (sl.id === 'sA') sl.val = sA;
+        if (sl.id === 'sB') sl.val = sB;
+        if (sl.id === 'sMul') sl.val = sMul;
+        if (sl.id === 'sA1') sl.val = sA1;
+        if (sl.id === 'sB1') sl.val = sB1;
+        if (sl.id === 'sA2') sl.val = sA2;
+        if (sl.id === 'sB2') sl.val = sB2;
+      });
+      buildSliders(s.sliders);
+    } else {
+      slWrap.innerHTML = '';
+    }
+
+    prevBtn.disabled = stage === 0;
+    nextBtn.disabled = stage === stages.length - 1;
+    renderDots();
+  }
+
+  function renderDots() {
+    dotsEl.innerHTML = stages.map((_, i) =>
+      `<span class="dot${i === stage ? ' active' : ''}" data-i="${i}"></span>`
+    ).join('');
+    dotsEl.querySelectorAll('.dot').forEach(d =>
+      d.addEventListener('click', () => goTo(+d.dataset.i))
+    );
+  }
+
+  prevBtn.addEventListener('click', () => goTo(stage - 1));
+  nextBtn.addEventListener('click', () => goTo(stage + 1));
+
+  // ── Render loop ──────────────────────────────────────────────
+  function tick() {
+    clear();
+    stages[stage].draw();
+    requestAnimationFrame(tick);
+  }
+
+  goTo(0);
+  tick();
+})();
+</script>
+</body>
+</html>

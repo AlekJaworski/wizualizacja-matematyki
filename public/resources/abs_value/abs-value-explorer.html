@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wartosc bezwzgledna — odleglosc od zera</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+  #qf { margin: 0 0 5px; font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  #qd { margin: 0 0 10px; font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); min-height: 48px; }
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 36px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+  .nav { display: flex; align-items: center; justify-content: space-between; }
+  button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  button:hover { background: rgba(255,255,255,.08); }
+  button:disabled { opacity: .3; cursor: default; }
+  #qdots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.18); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  #sliders-wrap { min-height: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="310"></canvas>
+  <div class="panel">
+    <p id="qf"></p>
+    <p id="qd"></p>
+    <div id="sliders-wrap"></div>
+    <div class="nav">
+      <button id="qprev">&larr;</button>
+      <div id="qdots"></div>
+      <button id="qnext">&rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const cv = document.getElementById('cv');
+  const cx = cv.getContext('2d');
+  const W = 600, H = 310;
+
+  const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
+  const T = (pl, en) => LANG === 'pl' ? pl : en;
+
+  // Colors
+  const COL_A = '#4a9eff';
+  const COL_B = '#FF6B35';
+  const COL_P = '#83C167';
+  const COL_EQ = '#FFD166';
+  const COL_NEG = '#e74c3c';
+
+  // State
+  let sX = -3;       // x value
+  let sA = 3;        // a value for |x| = a
+  let sC = 2;        // center for |x-c|
+  let sMode = 0;     // 0 = less than, 1 = greater than (stage 4)
+
+  let stage = 0;
+
+  // ── Drawing helpers ──────────────────────────────────────────
+  function clear() {
+    cx.fillStyle = '#0e0e12';
+    cx.fillRect(0, 0, W, H);
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+    ctx.closePath();
+  }
+
+  function textLine(text, y, col, size, align) {
+    cx.save();
+    cx.font = (size || 14) + 'px monospace';
+    cx.fillStyle = col || 'rgba(255,255,255,.7)';
+    cx.textAlign = align || 'center';
+    cx.fillText(text, W/2, y);
+    cx.restore();
+  }
+
+  // Draw a number line from min to max at vertical position y
+  function drawNumberLine(y, rangeMin, rangeMax, center) {
+    center = center || 0;
+    const margin = 50;
+    const lineW = W - 2 * margin;
+    const scale = lineW / (rangeMax - rangeMin);
+
+    // Axis
+    cx.save();
+    cx.strokeStyle = 'rgba(255,255,255,.3)';
+    cx.lineWidth = 1.5;
+    cx.beginPath();
+    cx.moveTo(margin, y);
+    cx.lineTo(margin + lineW, y);
+    cx.stroke();
+
+    // Arrowheads
+    cx.beginPath();
+    cx.moveTo(margin + lineW - 6, y - 4);
+    cx.lineTo(margin + lineW, y);
+    cx.lineTo(margin + lineW - 6, y + 4);
+    cx.stroke();
+    cx.beginPath();
+    cx.moveTo(margin + 6, y - 4);
+    cx.lineTo(margin, y);
+    cx.lineTo(margin + 6, y + 4);
+    cx.stroke();
+    cx.restore();
+
+    // Tick marks
+    cx.save();
+    cx.font = '11px monospace';
+    cx.fillStyle = 'rgba(255,255,255,.4)';
+    cx.textAlign = 'center';
+    cx.strokeStyle = 'rgba(255,255,255,.2)';
+    cx.lineWidth = 1;
+    for (let v = Math.ceil(rangeMin); v <= Math.floor(rangeMax); v++) {
+      const px = margin + (v - rangeMin) * scale;
+      cx.beginPath();
+      cx.moveTo(px, y - 5);
+      cx.lineTo(px, y + 5);
+      cx.stroke();
+      const isBold = v === center;
+      cx.fillStyle = isBold ? '#fff' : 'rgba(255,255,255,.4)';
+      cx.font = isBold ? 'bold 12px monospace' : '11px monospace';
+      cx.fillText(v, px, y + 20);
+    }
+    cx.restore();
+
+    return { margin, lineW, scale, rangeMin, toX: (v) => margin + (v - rangeMin) * scale };
+  }
+
+  function drawPoint(px, y, col, label, above) {
+    cx.save();
+    cx.fillStyle = col;
+    cx.shadowColor = col;
+    cx.shadowBlur = 8;
+    cx.beginPath();
+    cx.arc(px, y, 6, 0, Math.PI * 2);
+    cx.fill();
+    cx.shadowBlur = 0;
+    if (label) {
+      cx.font = '12px monospace';
+      cx.textAlign = 'center';
+      cx.fillText(label, px, above ? y - 14 : y + 22);
+    }
+    cx.restore();
+  }
+
+  function drawDistanceBrace(x1, x2, y, braceY, col, label) {
+    cx.save();
+    cx.strokeStyle = col;
+    cx.lineWidth = 1.5;
+    cx.setLineDash([4, 3]);
+    cx.beginPath();
+    cx.moveTo(x1, y);
+    cx.lineTo(x1, braceY);
+    cx.lineTo(x2, braceY);
+    cx.lineTo(x2, y);
+    cx.stroke();
+    cx.setLineDash([]);
+
+    if (label) {
+      cx.fillStyle = col;
+      cx.font = 'bold 14px monospace';
+      cx.textAlign = 'center';
+      cx.fillText(label, (x1 + x2) / 2, braceY - 8);
+    }
+    cx.restore();
+  }
+
+  // ── Stages ───────────────────────────────────────────────────
+  const stages = [
+    // Stage 1: Distance from zero
+    {
+      title: () => T('Odleglosc od zera', 'Distance from zero'),
+      desc: () => {
+        const x = sX;
+        const absX = Math.abs(x);
+        return T(
+          '|' + x + '| = ' + absX + ', bo ' + (x < 0 ? 'jest ' + absX + ' krokow na lewo od zera' : (x > 0 ? 'jest ' + absX + ' krokow na prawo od zera' : 'jestesmy dokladnie w zerze')) + '. Wartosc bezwzgledna = odleglosc, zawsze >= 0!',
+          '|' + x + '| = ' + absX + ', because ' + (x < 0 ? 'it is ' + absX + ' steps left of zero' : (x > 0 ? 'it is ' + absX + ' steps right of zero' : 'we are exactly at zero')) + '. Absolute value = distance, always >= 0!'
+        );
+      },
+      sliders: [
+        { id: 'sX', lbl: 'x', color: COL_A, min: -6, max: 6, step: 1, val: -3 },
+      ],
+      draw() {
+        const x = sX;
+        const absX = Math.abs(x);
+
+        textLine('|x| = ' + T('odleglosc od zera', 'distance from zero'), 28, 'rgba(255,255,255,.45)', 13);
+
+        // Number line
+        const nlY = 100;
+        const nl = drawNumberLine(nlY, -7, 7, 0);
+
+        // Zero point
+        const zeroPx = nl.toX(0);
+        drawPoint(zeroPx, nlY, 'rgba(255,255,255,.6)', '0', true);
+
+        // x point
+        const xPx = nl.toX(x);
+        const col = x >= 0 ? COL_P : COL_NEG;
+        drawPoint(xPx, nlY, col, 'x = ' + x, true);
+
+        // Distance brace
+        if (x !== 0) {
+          drawDistanceBrace(Math.min(zeroPx, xPx), Math.max(zeroPx, xPx), nlY + 8, nlY + 40, COL_EQ, T('odleglosc = ', 'distance = ') + absX);
+        }
+
+        // Big result
+        textLine('|' + x + '| = ' + absX, 200, COL_EQ, 24);
+
+        // Explanation
+        if (x < 0) {
+          textLine(T('x jest ujemne, ale odleglosc jest zawsze dodatnia!', 'x is negative, but distance is always positive!'), 240, 'rgba(255,255,255,.4)', 12);
+        } else if (x > 0) {
+          textLine(T('x jest dodatnie — odleglosc = x', 'x is positive — distance = x'), 240, 'rgba(255,255,255,.4)', 12);
+        } else {
+          textLine(T('x = 0 — odleglosc od zera to 0', 'x = 0 — distance from zero is 0'), 240, 'rgba(255,255,255,.4)', 12);
+        }
+
+        // Piecewise formula
+        textLine(T('Regula: |x| = x gdy x >= 0,  |x| = -x gdy x < 0', 'Rule: |x| = x when x >= 0,  |x| = -x when x < 0'), H - 30, 'rgba(255,255,255,.3)', 11);
+      }
+    },
+
+    // Stage 2: Graph of |x|
+    {
+      title: () => T('Wykres |x|', 'Graph of |x|'),
+      desc: () => T(
+        'Wykres y = |x| to litera V. Dla x >= 0 to prosta y = x. Dla x < 0 to prosta y = -x. Przesun x i sledz punkt na wykresie.',
+        'The graph of y = |x| is a V-shape. For x >= 0 it is y = x. For x < 0 it is y = -x. Move x and follow the point on the graph.'
+      ),
+      sliders: [
+        { id: 'sX', lbl: 'x', color: COL_A, min: -5, max: 5, step: 0.5, val: -3 },
+      ],
+      draw() {
+        const x = sX;
+        const absX = Math.abs(x);
+
+        // Axes
+        const ox = W / 2, oy = H - 50;
+        const scaleX = 40, scaleY = 40;
+        const rangeX = 6, rangeY = 6;
+
+        // Grid
+        cx.save();
+        cx.strokeStyle = 'rgba(255,255,255,.06)';
+        cx.lineWidth = 0.5;
+        for (let i = -rangeX; i <= rangeX; i++) {
+          cx.beginPath(); cx.moveTo(ox + i * scaleX, oy - rangeY * scaleY); cx.lineTo(ox + i * scaleX, oy); cx.stroke();
+        }
+        for (let i = 0; i <= rangeY; i++) {
+          cx.beginPath(); cx.moveTo(ox - rangeX * scaleX, oy - i * scaleY); cx.lineTo(ox + rangeX * scaleX, oy - i * scaleY); cx.stroke();
+        }
+        cx.restore();
+
+        // X axis
+        cx.save();
+        cx.strokeStyle = 'rgba(255,255,255,.3)';
+        cx.lineWidth = 1.5;
+        cx.beginPath(); cx.moveTo(ox - rangeX * scaleX, oy); cx.lineTo(ox + rangeX * scaleX, oy); cx.stroke();
+        // Y axis
+        cx.beginPath(); cx.moveTo(ox, oy); cx.lineTo(ox, oy - rangeY * scaleY); cx.stroke();
+        cx.restore();
+
+        // Tick labels
+        cx.save();
+        cx.font = '10px monospace';
+        cx.fillStyle = 'rgba(255,255,255,.3)';
+        cx.textAlign = 'center';
+        for (let i = -rangeX; i <= rangeX; i++) {
+          if (i !== 0) cx.fillText(i, ox + i * scaleX, oy + 14);
+        }
+        cx.textAlign = 'right';
+        for (let i = 1; i <= rangeY; i++) {
+          cx.fillText(i, ox - 6, oy - i * scaleY + 4);
+        }
+        cx.fillStyle = 'rgba(255,255,255,.5)';
+        cx.textAlign = 'center';
+        cx.fillText('0', ox - 8, oy + 14);
+        cx.restore();
+
+        // Draw y = |x| — V-shape
+        // Left branch (y = -x for x < 0)
+        cx.save();
+        cx.strokeStyle = COL_NEG;
+        cx.lineWidth = 2;
+        cx.globalAlpha = 0.7;
+        cx.beginPath();
+        cx.moveTo(ox - rangeX * scaleX, oy - rangeX * scaleY);
+        cx.lineTo(ox, oy);
+        cx.stroke();
+        cx.restore();
+
+        // Right branch (y = x for x >= 0)
+        cx.save();
+        cx.strokeStyle = COL_P;
+        cx.lineWidth = 2;
+        cx.globalAlpha = 0.7;
+        cx.beginPath();
+        cx.moveTo(ox, oy);
+        cx.lineTo(ox + rangeX * scaleX, oy - rangeX * scaleY);
+        cx.stroke();
+        cx.restore();
+
+        // Labels for branches
+        cx.save();
+        cx.font = '12px monospace';
+        cx.fillStyle = COL_NEG + 'AA';
+        cx.textAlign = 'center';
+        cx.fillText('y = -x', ox - 3.5 * scaleX, oy - 4 * scaleY + 16);
+        cx.fillStyle = COL_P + 'AA';
+        cx.fillText('y = x', ox + 3.5 * scaleX, oy - 4 * scaleY + 16);
+        cx.restore();
+
+        // Current point
+        const ptX = ox + x * scaleX;
+        const ptY = oy - absX * scaleY;
+
+        // Dashed lines from point to axes
+        cx.save();
+        cx.strokeStyle = COL_EQ + '50';
+        cx.lineWidth = 1;
+        cx.setLineDash([4, 3]);
+        cx.beginPath(); cx.moveTo(ptX, ptY); cx.lineTo(ptX, oy); cx.stroke();
+        cx.beginPath(); cx.moveTo(ptX, ptY); cx.lineTo(ox, ptY); cx.stroke();
+        cx.setLineDash([]);
+        cx.restore();
+
+        // Point
+        cx.save();
+        cx.fillStyle = COL_EQ;
+        cx.shadowColor = COL_EQ;
+        cx.shadowBlur = 10;
+        cx.beginPath();
+        cx.arc(ptX, ptY, 6, 0, Math.PI * 2);
+        cx.fill();
+        cx.shadowBlur = 0;
+
+        // Point label
+        cx.font = '11px monospace';
+        cx.textAlign = 'left';
+        cx.fillText('(' + x + ', ' + absX + ')', ptX + 10, ptY - 4);
+        cx.restore();
+
+        // Formula
+        textLine('y = |' + x + '| = ' + absX, 20, COL_EQ, 16);
+      }
+    },
+
+    // Stage 3: Equation |x| = a
+    {
+      title: () => T('Rownanie |x| = a', 'Equation |x| = a'),
+      desc: () => T(
+        '|x| = ' + sA + ' znaczy: x jest w odleglosci ' + sA + ' od zera. Sa DWA rozwiazania: x = ' + sA + ' i x = -' + sA + '.',
+        '|x| = ' + sA + ' means: x is at distance ' + sA + ' from zero. There are TWO solutions: x = ' + sA + ' and x = -' + sA + '.'
+      ),
+      sliders: [
+        { id: 'sA', lbl: 'a', color: COL_EQ, min: 1, max: 6, step: 1, val: 3 },
+      ],
+      draw() {
+        const a = sA;
+
+        textLine('|x| = ' + a, 28, COL_EQ, 22);
+        textLine(T('Pytanie: jakie x sa w odleglosci ' + a + ' od zera?',
+                    'Question: which x are at distance ' + a + ' from zero?'), 52, 'rgba(255,255,255,.4)', 12);
+
+        // Number line
+        const nlY = 120;
+        const nl = drawNumberLine(nlY, -8, 8, 0);
+
+        // Zero
+        drawPoint(nl.toX(0), nlY, 'rgba(255,255,255,.5)', '0', true);
+
+        // Solution 1: x = a
+        drawPoint(nl.toX(a), nlY, COL_P, 'x = ' + a, true);
+
+        // Solution 2: x = -a
+        drawPoint(nl.toX(-a), nlY, COL_NEG, 'x = -' + a, true);
+
+        // Distance braces
+        drawDistanceBrace(nl.toX(0), nl.toX(a), nlY + 8, nlY + 35, COL_P, a.toString());
+        drawDistanceBrace(nl.toX(-a), nl.toX(0), nlY + 8, nlY + 35, COL_NEG, a.toString());
+
+        // Big result
+        textLine(T('Rozwiazania: ', 'Solutions: ') + 'x = ' + a + '  ' + T('lub', 'or') + '  x = -' + a, 210, COL_EQ, 16);
+
+        // Verify
+        textLine('|' + a + '| = ' + a + '  \u2713     |-' + a + '| = ' + a + '  \u2713', 240, 'rgba(255,255,255,.4)', 12);
+
+        // Special note
+        if (a === 0) {
+          textLine(T('Gdy a = 0, jest tylko jedno rozwiazanie: x = 0', 'When a = 0, there is only one solution: x = 0'), 270, COL_EQ, 12);
+        } else {
+          textLine(T('Zawsze dwa rozwiazania (symetryczne wzgledem zera)', 'Always two solutions (symmetric about zero)'), 270, 'rgba(255,255,255,.3)', 11);
+        }
+      }
+    },
+
+    // Stage 4: Inequality |x| < a and |x| > a
+    {
+      title: () => T('Nierownosc |x| < a  i  |x| > a', 'Inequality |x| < a  and  |x| > a'),
+      desc: () => {
+        const a = sA;
+        const lt = sMode === 0;
+        if (lt) {
+          return T(
+            '|x| < ' + a + ' znaczy: x jest blizej niz ' + a + ' od zera. To przedzial (-' + a + ', ' + a + ').',
+            '|x| < ' + a + ' means: x is closer than ' + a + ' to zero. That is the interval (-' + a + ', ' + a + ').'
+          );
+        } else {
+          return T(
+            '|x| > ' + a + ' znaczy: x jest dalej niz ' + a + ' od zera. To (-\u221E, -' + a + ') \u222A (' + a + ', +\u221E).',
+            '|x| > ' + a + ' means: x is farther than ' + a + ' from zero. That is (-\u221E, -' + a + ') \u222A (' + a + ', +\u221E).'
+          );
+        }
+      },
+      sliders: [
+        { id: 'sA', lbl: 'a', color: COL_EQ, min: 1, max: 6, step: 1, val: 3 },
+        { id: 'sMode', lbl: '</>',  color: COL_B, min: 0, max: 1, step: 1, val: 0 },
+      ],
+      draw() {
+        const a = sA;
+        const lt = sMode === 0;
+
+        const modeStr = lt ? '<' : '>';
+        textLine('|x| ' + modeStr + ' ' + a, 28, COL_EQ, 22);
+
+        const nlY = 110;
+        const nl = drawNumberLine(nlY, -8, 8, 0);
+
+        // Zero marker
+        drawPoint(nl.toX(0), nlY, 'rgba(255,255,255,.4)', '', false);
+
+        // Boundary points (open circles)
+        const leftPx = nl.toX(-a);
+        const rightPx = nl.toX(a);
+
+        // Draw open circles at boundaries
+        cx.save();
+        cx.strokeStyle = COL_EQ;
+        cx.lineWidth = 2;
+        cx.beginPath(); cx.arc(leftPx, nlY, 5, 0, Math.PI * 2); cx.stroke();
+        cx.beginPath(); cx.arc(rightPx, nlY, 5, 0, Math.PI * 2); cx.stroke();
+        cx.restore();
+
+        // Labels
+        cx.save();
+        cx.font = '11px monospace'; cx.fillStyle = COL_EQ; cx.textAlign = 'center';
+        cx.fillText('-' + a, leftPx, nlY + 22);
+        cx.fillText(a.toString(), rightPx, nlY + 22);
+        cx.restore();
+
+        if (lt) {
+          // Shade between -a and a
+          cx.save();
+          cx.fillStyle = COL_P + '30';
+          cx.fillRect(leftPx, nlY - 16, rightPx - leftPx, 32);
+          cx.strokeStyle = COL_P + '80';
+          cx.lineWidth = 2;
+          cx.strokeRect(leftPx, nlY - 16, rightPx - leftPx, 32);
+          cx.restore();
+
+          textLine(T('Blizej niz ' + a + ' od zera', 'Closer than ' + a + ' to zero'), 60, COL_P, 14);
+          textLine('(-' + a + ', ' + a + ')', 82, COL_P, 13);
+
+          // Explanation
+          textLine(T('Przedzial otwarty: -' + a + ' < x < ' + a,
+                      'Open interval: -' + a + ' < x < ' + a), nlY + 60, 'rgba(255,255,255,.5)', 13);
+        } else {
+          // Shade outside (-inf, -a) and (a, +inf)
+          const edgeL = nl.toX(-8);
+          const edgeR = nl.toX(8);
+
+          cx.save();
+          cx.fillStyle = COL_B + '30';
+          cx.fillRect(edgeL, nlY - 16, leftPx - edgeL, 32);
+          cx.fillRect(rightPx, nlY - 16, edgeR - rightPx, 32);
+          cx.strokeStyle = COL_B + '80';
+          cx.lineWidth = 2;
+          cx.beginPath();
+          cx.moveTo(edgeL, nlY - 16); cx.lineTo(leftPx, nlY - 16); cx.lineTo(leftPx, nlY + 16); cx.lineTo(edgeL, nlY + 16);
+          cx.stroke();
+          cx.beginPath();
+          cx.moveTo(rightPx, nlY - 16); cx.lineTo(edgeR, nlY - 16); cx.lineTo(edgeR, nlY + 16); cx.lineTo(rightPx, nlY + 16);
+          cx.stroke();
+          cx.restore();
+
+          textLine(T('Dalej niz ' + a + ' od zera', 'Farther than ' + a + ' from zero'), 60, COL_B, 14);
+          textLine('(-\u221E, -' + a + ') \u222A (' + a + ', +\u221E)', 82, COL_B, 13);
+
+          textLine(T('Dwa oddzielne przedzialy: x < -' + a + '  lub  x > ' + a,
+                      'Two separate intervals: x < -' + a + '  or  x > ' + a), nlY + 60, 'rgba(255,255,255,.5)', 13);
+        }
+
+        // Mode toggle hint
+        textLine(T('Suwak </> : 0 = mniejsze (<), 1 = wieksze (>)', 'Slider </> : 0 = less than (<), 1 = greater than (>)'), H - 20, 'rgba(255,255,255,.25)', 10);
+      }
+    },
+
+    // Stage 5: |x - c| = distance from c
+    {
+      title: () => T('|x - c| = odleglosc od c', '|x - c| = distance from c'),
+      desc: () => {
+        const c = sC, a = sA;
+        const lo = c - a, hi = c + a;
+        return T(
+          '|x - ' + c + '| < ' + a + ' znaczy: x jest blizej niz ' + a + ' od ' + c + '. To przedzial (' + lo + ', ' + hi + ').',
+          '|x - ' + c + '| < ' + a + ' means: x is closer than ' + a + ' to ' + c + '. That is the interval (' + lo + ', ' + hi + ').'
+        );
+      },
+      sliders: [
+        { id: 'sC', lbl: 'c', color: COL_A, min: -4, max: 4, step: 1, val: 2 },
+        { id: 'sA', lbl: 'a', color: COL_EQ, min: 1, max: 5, step: 1, val: 3 },
+      ],
+      draw() {
+        const c = sC, a = sA;
+        const lo = c - a, hi = c + a;
+
+        textLine('|x - ' + (c >= 0 ? c : '(' + c + ')') + '| < ' + a, 28, COL_EQ, 22);
+        textLine(T('Odleglosc od ' + c + ' mniejsza niz ' + a, 'Distance from ' + c + ' less than ' + a), 52, 'rgba(255,255,255,.4)', 12);
+
+        // Number line
+        const nlY = 120;
+        const rMin = Math.min(lo - 2, -8);
+        const rMax = Math.max(hi + 2, 8);
+        const nl = drawNumberLine(nlY, rMin, rMax, c);
+
+        // Center point c
+        drawPoint(nl.toX(c), nlY, COL_A, 'c = ' + c, true);
+
+        // Boundary points
+        const loPx = nl.toX(lo);
+        const hiPx = nl.toX(hi);
+
+        // Open circles at boundaries
+        cx.save();
+        cx.strokeStyle = COL_EQ;
+        cx.lineWidth = 2;
+        cx.beginPath(); cx.arc(loPx, nlY, 5, 0, Math.PI * 2); cx.stroke();
+        cx.beginPath(); cx.arc(hiPx, nlY, 5, 0, Math.PI * 2); cx.stroke();
+        cx.restore();
+
+        // Labels at boundaries
+        cx.save();
+        cx.font = '11px monospace'; cx.fillStyle = COL_EQ; cx.textAlign = 'center';
+        cx.fillText(lo.toString(), loPx, nlY + 22);
+        cx.fillText(hi.toString(), hiPx, nlY + 22);
+        cx.restore();
+
+        // Shade interval
+        cx.save();
+        cx.fillStyle = COL_P + '30';
+        cx.fillRect(loPx, nlY - 16, hiPx - loPx, 32);
+        cx.strokeStyle = COL_P + '80';
+        cx.lineWidth = 2;
+        cx.strokeRect(loPx, nlY - 16, hiPx - loPx, 32);
+        cx.restore();
+
+        // Distance braces
+        drawDistanceBrace(nl.toX(c), hiPx, nlY + 8, nlY + 42, COL_EQ, 'a = ' + a);
+        drawDistanceBrace(loPx, nl.toX(c), nlY + 8, nlY + 42, COL_EQ, 'a = ' + a);
+
+        // Interval
+        textLine(T('Przedzial: ', 'Interval: ') + '(' + lo + ', ' + hi + ')', 210, COL_P, 16);
+
+        // Decomposition
+        textLine(c + ' - ' + a + ' < x < ' + c + ' + ' + a, 240, 'rgba(255,255,255,.5)', 13);
+        textLine(lo + ' < x < ' + hi, 260, COL_P, 14);
+
+        // General rule
+        textLine(T('Ogolnie: |x - c| < a  <=>  c - a < x < c + a',
+                    'General: |x - c| < a  <=>  c - a < x < c + a'), H - 20, 'rgba(255,255,255,.3)', 11);
+      }
+    },
+  ];
+
+  // ── Slider management ────────────────────────────────────────
+  const slWrap = document.getElementById('sliders-wrap');
+
+  function buildSliders(defs) {
+    let html = '<div class="sliders">';
+    defs.forEach(s => {
+      html += `<div class="slider-row">
+        <span class="lbl" style="color:${s.color}">${s.lbl} =</span>
+        <input type="range" id="s_${s.id}" min="${s.min}" max="${s.max}" step="${s.step}" value="${s.val}">
+        <span class="val" id="v_${s.id}" style="color:${s.color}"></span>
+      </div>`;
+    });
+    html += '</div>';
+    slWrap.innerHTML = html;
+
+    defs.forEach(s => {
+      const el = document.getElementById('s_' + s.id);
+      document.getElementById('v_' + s.id).textContent = (+el.value).toFixed(s.step < 1 ? 1 : 0);
+      el.addEventListener('input', function() {
+        const v = +this.value;
+        document.getElementById('v_' + s.id).textContent = v.toFixed(s.step < 1 ? 1 : 0);
+        if (s.id === 'sX') sX = v;
+        if (s.id === 'sA') sA = v;
+        if (s.id === 'sC') sC = v;
+        if (s.id === 'sMode') sMode = v;
+      });
+    });
+  }
+
+  // ── Navigation ───────────────────────────────────────────────
+  const prevBtn = document.getElementById('qprev');
+  const nextBtn = document.getElementById('qnext');
+  const dotsEl  = document.getElementById('qdots');
+  const titleEl = document.getElementById('qf');
+  const descEl  = document.getElementById('qd');
+
+  function goTo(idx) {
+    stage = Math.max(0, Math.min(stages.length - 1, idx));
+    const s = stages[stage];
+    titleEl.textContent = s.title();
+    descEl.textContent = s.desc();
+
+    if (s.sliders) {
+      s.sliders.forEach(sl => {
+        if (sl.id === 'sX') sl.val = sX;
+        if (sl.id === 'sA') sl.val = sA;
+        if (sl.id === 'sC') sl.val = sC;
+        if (sl.id === 'sMode') sl.val = sMode;
+      });
+      buildSliders(s.sliders);
+    } else {
+      slWrap.innerHTML = '';
+    }
+
+    prevBtn.disabled = stage === 0;
+    nextBtn.disabled = stage === stages.length - 1;
+    renderDots();
+  }
+
+  function renderDots() {
+    dotsEl.innerHTML = stages.map((_, i) =>
+      `<span class="dot${i === stage ? ' active' : ''}" data-i="${i}"></span>`
+    ).join('');
+    dotsEl.querySelectorAll('.dot').forEach(d =>
+      d.addEventListener('click', () => goTo(+d.dataset.i))
+    );
+  }
+
+  prevBtn.addEventListener('click', () => goTo(stage - 1));
+  nextBtn.addEventListener('click', () => goTo(stage + 1));
+
+  // ── Render loop ──────────────────────────────────────────────
+  function tick() {
+    clear();
+    stages[stage].draw();
+    requestAnimationFrame(tick);
+  }
+
+  goTo(0);
+  tick();
+})();
+</script>
+</body>
+</html>
