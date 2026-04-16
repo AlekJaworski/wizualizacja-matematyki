@@ -190,6 +190,35 @@ export function ResultsScreen({
           >
             {t("resultsSeeMap", lang)}
           </button>
+
+          {/* Share */}
+          <button
+            onClick={() => {
+              const text = lang === "pl"
+                ? `Sprawdziłem swoją wiedzę z matmy na oczochodzi.pl — ${known.length}/${total} tematów znanych! Sprawdź się też:`
+                : `I tested my math knowledge on oczochodzi.pl — ${known.length}/${total} topics known! Try it:`;
+              const url = "https://oczochodzi.pl";
+              if (navigator.share) {
+                navigator.share({ title: "oczochodzi.pl", text, url }).catch(() => {});
+              } else {
+                navigator.clipboard.writeText(`${text} ${url}`).then(() => {
+                  alert(lang === "pl" ? "Skopiowano do schowka!" : "Copied to clipboard!");
+                });
+              }
+            }}
+            style={{
+              width: "100%", padding: "12px 24px",
+              fontSize: 13, fontFamily: FONT,
+              borderRadius: 8,
+              border: `1px solid ${COLORS.border}`,
+              background: "transparent",
+              color: COLORS.textBody,
+              cursor: "pointer",
+            }}
+          >
+            {t("resultsShare", lang)}
+          </button>
+
           <button
             onClick={onRetake}
             style={{
@@ -204,6 +233,34 @@ export function ResultsScreen({
           >
             {t("resultsRetake", lang)}
           </button>
+        </div>
+
+        {/* Buy coffee */}
+        <div style={{
+          marginTop: 24, paddingTop: 20,
+          borderTop: `1px solid ${COLORS.border}`,
+          textAlign: "center",
+        }}>
+          <p style={{ fontSize: 12, color: COLORS.textDim, marginBottom: 8, lineHeight: 1.6 }}>
+            {t("coffeeText", lang)}
+          </p>
+          <a
+            href="https://buycoffee.to/oczochodzi"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "inline-block",
+              padding: "10px 20px", fontSize: 13, fontFamily: FONT,
+              borderRadius: 8,
+              border: "1px solid #FFD16640",
+              background: "#FFD16610",
+              color: "#FFD166",
+              textDecoration: "none",
+              cursor: "pointer",
+            }}
+          >
+            {t("coffeeBtn", lang)}
+          </a>
         </div>
       </div>
     </div>
