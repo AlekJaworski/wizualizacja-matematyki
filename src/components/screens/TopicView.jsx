@@ -102,12 +102,13 @@ export function TopicView({
             width: 12, height: 12, borderRadius: "50%",
             background: color, opacity: 0.8, flexShrink: 0,
           }} />
-          <h1 style={{
-            margin: 0, fontSize: 22, fontWeight: 700,
-            color: COLORS.textPrimary, lineHeight: 1.3,
-          }}>
-            {lbl}
-          </h1>
+          <h1
+            style={{
+              margin: 0, fontSize: 22, fontWeight: 700,
+              color: COLORS.textPrimary, lineHeight: 1.3,
+            }}
+            dangerouslySetInnerHTML={{ __html: renderLatex(lbl ?? "") }}
+          />
         </div>
 
         {/* Meta line */}
@@ -339,11 +340,12 @@ function NodeDescription({ body, lang }) {
 
   return (
     <div style={{ marginBottom: 20 }}>
-      <div style={{
-        fontSize: 13, color: COLORS.textBody, lineHeight: 1.7,
-      }}>
-        {description}
-      </div>
+      <div
+        style={{
+          fontSize: 13, color: COLORS.textBody, lineHeight: 1.7,
+        }}
+        dangerouslySetInnerHTML={{ __html: renderLatex(description) }}
+      />
       {example && (
         <>
           <button
@@ -364,15 +366,16 @@ function NodeDescription({ body, lang }) {
               : (lang === "pl" ? "Nie kumam — pokaż na liczbach" : "Show me a concrete example")}
           </button>
           {showExample && (
-            <div style={{
-              marginTop: 10, padding: "12px 14px",
-              borderRadius: 8, fontSize: 13,
-              background: "#FFD16608",
-              border: "1px solid #FFD16620",
-              color: "#e8d5a0", lineHeight: 1.7,
-            }}>
-              {example}
-            </div>
+            <div
+              style={{
+                marginTop: 10, padding: "12px 14px",
+                borderRadius: 8, fontSize: 13,
+                background: "#FFD16608",
+                border: "1px solid #FFD16620",
+                color: "#e8d5a0", lineHeight: 1.7,
+              }}
+              dangerouslySetInnerHTML={{ __html: renderLatex(example) }}
+            />
           )}
         </>
       )}
@@ -435,7 +438,7 @@ function NodeChip({ label, color, status, onClick }) {
           background: statusDot, flexShrink: 0,
         }} />
       )}
-      {label}
+      <span dangerouslySetInnerHTML={{ __html: renderLatex(label ?? "") }} />
     </button>
   );
 }

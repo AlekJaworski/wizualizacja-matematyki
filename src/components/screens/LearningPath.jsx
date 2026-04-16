@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { FONT, COLORS } from "../../styles/tokens.js";
 import { t } from "../../i18n.js";
+import { renderLatex } from "../../utils/latex.js";
 import { buildAdjacency } from "../../engine/adjacency.js";
 
 /**
@@ -135,12 +136,13 @@ export function LearningPath({
             {t("pathLabel", lang)}
           </span>
         </div>
-        <h1 style={{
-          margin: "0 0 8px", fontSize: 22, fontWeight: 700,
-          color: COLORS.textPrimary, lineHeight: 1.3,
-        }}>
-          {getLabel(goalId)}
-        </h1>
+        <h1
+          style={{
+            margin: "0 0 8px", fontSize: 22, fontWeight: 700,
+            color: COLORS.textPrimary, lineHeight: 1.3,
+          }}
+          dangerouslySetInnerHTML={{ __html: renderLatex(getLabel(goalId) ?? "") }}
+        />
         <p style={{
           margin: "0 0 20px", fontSize: 12, color: COLORS.textDim,
         }}>
@@ -234,13 +236,14 @@ export function LearningPath({
                   <div style={{
                     display: "flex", alignItems: "center", gap: 8,
                   }}>
-                    <span style={{
-                      fontSize: 13, fontWeight: isGoal ? 700 : 500,
-                      color: isGoal ? COLORS.textPrimary : COLORS.textBody,
-                      flex: 1,
-                    }}>
-                      {getLabel(id)}
-                    </span>
+                    <span
+                      style={{
+                        fontSize: 13, fontWeight: isGoal ? 700 : 500,
+                        color: isGoal ? COLORS.textPrimary : COLORS.textBody,
+                        flex: 1,
+                      }}
+                      dangerouslySetInnerHTML={{ __html: renderLatex(getLabel(id) ?? "") }}
+                    />
 
                     {/* Badges */}
                     <div style={{ display: "flex", gap: 4, alignItems: "center", flexShrink: 0 }}>

@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { FONT, COLORS } from "../../styles/tokens.js";
 import { t } from "../../i18n.js";
+import { renderLatex } from "../../utils/latex.js";
 import { buildAdjacency } from "../../engine/adjacency.js";
 import { computeFrontier } from "../../engine/belief.js";
 import { encodeBelief } from "../../utils/shareCode.js";
@@ -137,9 +138,10 @@ export function ResultsScreen({
                       fontWeight: 600,
                     }}>{i + 1}</span>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, color: COLORS.textPrimary, fontWeight: 500 }}>
-                        {getLabel(n.id)}
-                      </div>
+                      <div
+                        style={{ fontSize: 13, color: COLORS.textPrimary, fontWeight: 500 }}
+                        dangerouslySetInnerHTML={{ __html: renderLatex(getLabel(n.id) ?? "") }}
+                      />
                       <div style={{ fontSize: 10, color: COLORS.textFaint, marginTop: 2 }}>
                         {scopeLabel}
                         {hasResource && (
