@@ -67,13 +67,13 @@ const stages=[
     sliders:[
       {id:'pa',lbl:'P(A) =',min:0,max:1,step:0.01,val:0.35,color:CYAN}
     ]},
-  { title:'P(A \\u2229 B) = P(A) \\u00d7 P(B)',
+  { title:T('P(A \u2229 B) = P(A) \u00d7 P(B)','P(A \u2229 B) = P(A) \u00d7 P(B)'),
     desc:T('Dla zdarze\u0144 niezale\u017Cnych prawdopodobie\u0144stwo \u0142\u0105czne r\u00F3wna si\u0119 iloczynowi. Zacieniowany obszar to P(A \u2229 B).','For independent events the joint probability equals the product. The shaded area is P(A \u2229 B).'),
     sliders:[
       {id:'pA',lbl:'P(A) =',min:0,max:1,step:0.01,val:0.6,color:CYAN},
       {id:'pB',lbl:'P(B) =',min:0,max:1,step:0.01,val:0.4,color:YELLOW}
     ]},
-  { title:'P(A \\u222a B) = P(A) + P(B) \\u2212 P(A \\u2229 B)',
+  { title:T('P(A \u222a B) = P(A) + P(B) \u2212 P(A \u2229 B)','P(A \u222a B) = P(A) + P(B) \u2212 P(A \u2229 B)'),
     desc:T('Regu\u0142a dodawania dla dowolnych dw\u00F3ch zdarze\u0144. Ustaw cz\u0119\u015B\u0107 wsp\u00F3ln\u0105, aby zobaczy\u0107, jak korygowane jest podw\u00F3jne liczenie.','Addition rule for any two events. Adjust the overlap to see how double-counting is corrected.'),
     sliders:[
       {id:'vA',lbl:'P(A) =',min:0.05,max:0.7,step:0.01,val:0.4,color:CYAN},

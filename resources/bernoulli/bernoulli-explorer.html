@@ -301,7 +301,27 @@
         const v = +this.value;
         document.getElementById('v_' + s.id).textContent = v.toFixed(s.step < 1 ? 1 : 0);
         if (s.id === 'prob') prob = v;
-        if (s.id === 'nTrials') nTrials = v;
+        if (s.id === 'nTrials') {
+          nTrials = v;
+          const kSEl = document.getElementById('s_kSuccess');
+          if (kSEl) {
+            kSEl.max = nTrials;
+            if (kSuccess > nTrials) {
+              kSuccess = nTrials;
+              kSEl.value = kSuccess;
+              document.getElementById('v_kSuccess').textContent = kSuccess.toFixed(0);
+            }
+          }
+          const kTEl = document.getElementById('s_kThresh');
+          if (kTEl) {
+            kTEl.max = nTrials;
+            if (kThresh > nTrials) {
+              kThresh = nTrials;
+              kTEl.value = kThresh;
+              document.getElementById('v_kThresh').textContent = kThresh.toFixed(0);
+            }
+          }
+        }
         if (s.id === 'kSuccess') kSuccess = v;
         if (s.id === 'kThresh') kThresh = v;
       });

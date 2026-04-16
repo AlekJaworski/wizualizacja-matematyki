@@ -422,7 +422,18 @@
       el.addEventListener('input', function() {
         const v = +this.value;
         document.getElementById('v_' + s.id).textContent = v.toFixed(s.step < 1 ? 1 : 0);
-        if (s.id === 'nPow') nPow = v;
+        if (s.id === 'nPow') {
+          nPow = v;
+          const kEl = document.getElementById('s_kTerm');
+          if (kEl) {
+            kEl.max = nPow;
+            if (kTerm > nPow) {
+              kTerm = nPow;
+              kEl.value = kTerm;
+              document.getElementById('v_kTerm').textContent = kTerm.toFixed(0);
+            }
+          }
+        }
         if (s.id === 'kTerm') kTerm = v;
         if (s.id === 'xVal') xVal = v;
       });
