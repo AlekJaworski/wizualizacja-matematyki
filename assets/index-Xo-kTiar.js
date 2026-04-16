@@ -382,6 +382,8 @@ section: SP8
 level: 2
 x: 190
 y: 200
+resources:
+  - "interactive|equation-explorer.html|Equation Balance Scale|Równanie to waga — eksplorator"
 ---
 Równanie liniowe: ax + b = 0, rozwiązanie x = −b/a (gdy a ≠ 0). Metoda: przenosimy wyrazy z x na jedną stronę, liczby na drugą. Układ równań: dwa równania, dwa niewiadome — metoda podstawiania lub przeciwnych współczynników.
 
@@ -512,6 +514,8 @@ section: SP8
 level: 1
 x: 400
 y: 80
+resources:
+  - "interactive|powers-explorer.html|Powers & Roots Explorer|Potęgi i pierwiastki — eksplorator"
 ---
 Potęga aⁿ = a · a · ... · a (n razy). Kluczowe reguły: aᵐ · aⁿ = aᵐ⁺ⁿ, aᵐ/aⁿ = aᵐ⁻ⁿ, (aᵐ)ⁿ = aᵐⁿ, a⁰ = 1, a⁻ⁿ = 1/aⁿ. Pierwiastek: ⁿ√a = a^(1/n).
 

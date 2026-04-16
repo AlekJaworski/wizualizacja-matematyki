@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rownania liniowe — Waga w rownowadze</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+  #qf { margin: 0 0 5px; font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  #qd { margin: 0 0 10px; font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); min-height: 48px; }
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 36px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+  .nav { display: flex; align-items: center; justify-content: space-between; }
+  button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  button:hover { background: rgba(255,255,255,.08); }
+  button:disabled { opacity: .3; cursor: default; }
+  #qdots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.18); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  #sliders-wrap { min-height: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="310"></canvas>
+  <div class="panel">
+    <p id="qf"></p>
+    <p id="qd"></p>
+    <div id="sliders-wrap"></div>
+    <div class="nav">
+      <button id="qprev">&larr;</button>
+      <div id="qdots"></div>
+      <button id="qnext">&rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const cv = document.getElementById('cv');
+  const cx = cv.getContext('2d');
+  const W = 600, H = 310;
+
+  const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
+  const T = (pl, en) => LANG === 'pl' ? pl : en;
+
+  // Colors
+  const COL_X = '#4a9eff';
+  const COL_NUM = '#FF6B35';
+  const COL_OK = '#83C167';
+  const COL_CANCEL = '#e74c3c';
+  const COL_BEAM = '#58C4DD';
+  const COL_SEQ = '#FFD166';
+
+  // State
+  let paramA = 2, paramB = 3, paramC = 7;
+  let stage = 0;
+
+  // ── Drawing helpers ──────────────────────────────────────────
+  function clear() {
+    cx.fillStyle = '#0e0e12';
+    cx.fillRect(0, 0, W, H);
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+    ctx.closePath();
+  }
+
+  function textLine(text, y, col, size, align) {
+    cx.save();
+    cx.font = (size || 14) + 'px monospace';
+    cx.fillStyle = col || 'rgba(255,255,255,.7)';
+    cx.textAlign = align || 'center';
+    cx.fillText(text, W/2, y);
+    cx.restore();
+  }
+
+  function drawBlock(x, y, w, h, col, text, alpha) {
+    cx.save();
+    cx.globalAlpha = alpha || 1;
+    cx.fillStyle = col;
+    cx.shadowColor = col;
+    cx.shadowBlur = 6;
+    roundRect(cx, x, y, w, h, 4);
+    cx.fill();
+    cx.shadowBlur = 0;
+    if (text) {
+      cx.fillStyle = '#0e0e12';
+      cx.font = 'bold ' + Math.min(14, h * 0.5) + 'px monospace';
+      cx.textAlign = 'center';
+      cx.textBaseline = 'middle';
+      cx.fillText(text, x + w/2, y + h/2);
+    }
+    cx.restore();
+  }
+
+  function infoBox(text, sx, sy, col) {
+    cx.save();
+    cx.font = '12px monospace';
+    const w = cx.measureText(text).width + 14;
+    cx.fillStyle = 'rgba(14,14,18,0.85)';
+    cx.strokeStyle = col + '40';
+    cx.lineWidth = 1;
+    roundRect(cx, sx - w/2, sy - 10, w, 22, 4);
+    cx.fill(); cx.stroke();
+    cx.fillStyle = col;
+    cx.textAlign = 'center';
+    cx.fillText(text, sx, sy + 4);
+    cx.restore();
+  }
+
+  // ── Scale drawing ────────────────────────────────────────────
+  function drawScale(leftWeight, rightWeight, leftBlocks, rightBlocks, tilt) {
+    // tilt: -1 left heavy, 0 balanced, 1 right heavy, or computed from weights
+    if (tilt === undefined) {
+      const diff = leftWeight - rightWeight;
+      tilt = Math.max(-1, Math.min(1, diff * 0.05));
+    }
+
+    const pivotX = W / 2;
+    const pivotY = 195;
+    const beamLen = 200;
+    const angle = tilt * 0.12; // radians
+
+    // Base / triangle
+    cx.save();
+    cx.fillStyle = 'rgba(255,255,255,.12)';
+    cx.beginPath();
+    cx.moveTo(pivotX, pivotY);
+    cx.lineTo(pivotX - 20, pivotY + 35);
+    cx.lineTo(pivotX + 20, pivotY + 35);
+    cx.closePath();
+    cx.fill();
+
+    // Ground line
+    cx.strokeStyle = 'rgba(255,255,255,.08)';
+    cx.lineWidth = 1;
+    cx.beginPath();
+    cx.moveTo(pivotX - 100, pivotY + 35);
+    cx.lineTo(pivotX + 100, pivotY + 35);
+    cx.stroke();
+    cx.restore();
+
+    // Beam
+    const lx = pivotX - beamLen * Math.cos(angle);
+    const ly = pivotY - beamLen * Math.sin(angle);
+    const rx = pivotX + beamLen * Math.cos(angle);
+    const ry = pivotY + beamLen * Math.sin(angle);
+
+    cx.save();
+    cx.strokeStyle = COL_BEAM;
+    cx.lineWidth = 3;
+    cx.globalAlpha = 0.7;
+    cx.beginPath();
+    cx.moveTo(lx, ly);
+    cx.lineTo(rx, ry);
+    cx.stroke();
+    cx.restore();
+
+    // Pivot dot
+    cx.beginPath();
+    cx.arc(pivotX, pivotY, 5, 0, Math.PI * 2);
+    cx.fillStyle = COL_BEAM;
+    cx.fill();
+
+    // Pans (hanging lines + platform)
+    const panW = 90;
+    const panH = 4;
+    const hangLen = 30;
+
+    // Left pan
+    cx.save();
+    cx.strokeStyle = 'rgba(255,255,255,.2)';
+    cx.lineWidth = 1;
+    cx.beginPath(); cx.moveTo(lx, ly); cx.lineTo(lx, ly + hangLen); cx.stroke();
+    cx.fillStyle = 'rgba(255,255,255,.1)';
+    cx.fillRect(lx - panW/2, ly + hangLen, panW, panH);
+    cx.restore();
+
+    // Right pan
+    cx.save();
+    cx.strokeStyle = 'rgba(255,255,255,.2)';
+    cx.lineWidth = 1;
+    cx.beginPath(); cx.moveTo(rx, ry); cx.lineTo(rx, ry + hangLen); cx.stroke();
+    cx.fillStyle = 'rgba(255,255,255,.1)';
+    cx.fillRect(rx - panW/2, ry + hangLen, panW, panH);
+    cx.restore();
+
+    // Draw blocks on left pan
+    const lPanY = ly + hangLen + panH;
+    if (leftBlocks) {
+      const totalBW = leftBlocks.length * 32 + (leftBlocks.length - 1) * 4;
+      let bx = lx - totalBW / 2;
+      for (let i = 0; i < leftBlocks.length; i++) {
+        const b = leftBlocks[i];
+        drawBlock(bx, lPanY - 28 - (b.stack || 0) * 30, 28, 26, b.col, b.text, b.alpha);
+        bx += 36;
+      }
+    }
+
+    // Draw blocks on right pan
+    const rPanY = ry + hangLen + panH;
+    if (rightBlocks) {
+      const totalBW = rightBlocks.length * 32 + (rightBlocks.length - 1) * 4;
+      let bx = rx - totalBW / 2;
+      for (let i = 0; i < rightBlocks.length; i++) {
+        const b = rightBlocks[i];
+        drawBlock(bx, rPanY - 28 - (b.stack || 0) * 30, 28, 26, b.col, b.text, b.alpha);
+        bx += 36;
+      }
+    }
+
+    return { lx, ly, rx, ry, lPanY, rPanY };
+  }
+
+  // ── Stages ───────────────────────────────────────────────────
+  const stages = [
+    // Stage 1: Equation is a balance
+    {
+      title: () => T('Rownanie to waga', 'An equation is a balance'),
+      desc: () => T(
+        'Rownanie mowi: lewa strona wazy tyle samo co prawa. 2x + 3 = 7 znaczy: dwa x-y plus trzy jednostki waza dokladnie siedem.',
+        'An equation says: the left side weighs the same as the right. 2x + 3 = 7 means: two x-blocks plus three units weigh exactly seven.'
+      ),
+      sliders: [],
+      draw() {
+        // Title
+        textLine('2x + 3  =  7', 30, COL_BEAM, 20);
+
+        // Left blocks: 2 x-blocks + 3 unit blocks
+        const leftB = [
+          { col: COL_X, text: 'x' },
+          { col: COL_X, text: 'x' },
+          { col: COL_NUM, text: '1' },
+          { col: COL_NUM, text: '1' },
+          { col: COL_NUM, text: '1' },
+        ];
+        // Right blocks: 7 unit blocks
+        const rightB = [];
+        for (let i = 0; i < 7; i++) rightB.push({ col: COL_NUM, text: '1' });
+
+        drawScale(7, 7, leftB, rightB, 0);
+
+        // Labels
+        infoBox('2x + 3', 100, 155, COL_X);
+        infoBox('7', 500, 155, COL_NUM);
+      }
+    },
+
+    // Stage 2: Subtract from both sides
+    {
+      title: () => T('Odejmij z obu stron', 'Subtract from both sides'),
+      desc: () => T(
+        'Odejmij 3 z obu stron. Waga zostaje w rownowadze! 2x + 3 - 3 = 7 - 3, czyli 2x = 4.',
+        'Subtract 3 from both sides. The balance stays level! 2x + 3 - 3 = 7 - 3, so 2x = 4.'
+      ),
+      sliders: [],
+      draw() {
+        // Step label
+        textLine('2x + 3 - 3  =  7 - 3', 25, 'rgba(255,255,255,.5)', 14);
+        textLine('2x  =  4', 48, COL_BEAM, 18);
+
+        // Left blocks: 2 x-blocks, 3 faded unit blocks
+        const leftB = [
+          { col: COL_X, text: 'x' },
+          { col: COL_X, text: 'x' },
+          { col: COL_CANCEL, text: '1', alpha: 0.2 },
+          { col: COL_CANCEL, text: '1', alpha: 0.2 },
+          { col: COL_CANCEL, text: '1', alpha: 0.2 },
+        ];
+        // Right blocks: 4 units + 3 faded
+        const rightB = [
+          { col: COL_NUM, text: '1' },
+          { col: COL_NUM, text: '1' },
+          { col: COL_NUM, text: '1' },
+          { col: COL_NUM, text: '1' },
+          { col: COL_CANCEL, text: '1', alpha: 0.2 },
+          { col: COL_CANCEL, text: '1', alpha: 0.2 },
+          { col: COL_CANCEL, text: '1', alpha: 0.2 },
+        ];
+
+        drawScale(4, 4, leftB, rightB, 0);
+
+        // "-3" annotations
+        infoBox('-3', 155, 140, COL_CANCEL);
+        infoBox('-3', 445, 140, COL_CANCEL);
+      }
+    },
+
+    // Stage 3: Divide both sides
+    {
+      title: () => T('Podziel obie strony', 'Divide both sides'),
+      desc: () => T(
+        'Podziel obie strony przez 2. 2x/2 = 4/2, czyli x = 2. Sprawdzenie: 2*2 + 3 = 7. Zgadza sie!',
+        'Divide both sides by 2. 2x/2 = 4/2, so x = 2. Check: 2*2 + 3 = 7. Correct!'
+      ),
+      sliders: [],
+      draw() {
+        textLine('2x / 2  =  4 / 2', 25, 'rgba(255,255,255,.5)', 14);
+        textLine('x  =  2', 48, COL_OK, 20);
+
+        const leftB = [
+          { col: COL_X, text: 'x' },
+        ];
+        const rightB = [
+          { col: COL_NUM, text: '1' },
+          { col: COL_NUM, text: '1' },
+        ];
+
+        drawScale(2, 2, leftB, rightB, 0);
+
+        // Division annotations
+        infoBox('/2', 155, 140, COL_SEQ);
+        infoBox('/2', 445, 140, COL_SEQ);
+
+        // Check box
+        cx.save();
+        roundRect(cx, W/2 - 110, H - 50, 220, 32, 6);
+        cx.fillStyle = COL_OK + '15';
+        cx.fill();
+        cx.strokeStyle = COL_OK + '40';
+        cx.lineWidth = 1;
+        cx.stroke();
+        cx.font = '13px monospace';
+        cx.fillStyle = COL_OK;
+        cx.textAlign = 'center';
+        cx.fillText(T('Sprawdzenie: 2*2 + 3 = 7', 'Check: 2*2 + 3 = 7') + ' \u2713', W/2, H - 29);
+        cx.restore();
+      }
+    },
+
+    // Stage 4: Your turn — custom equation
+    {
+      title: () => T('Twoja kolej: ax + b = c', 'Your turn: ax + b = c'),
+      desc: () => T(
+        'Ustaw a, b, c i zobacz rozwiazanie krok po kroku. Kazdy krok to operacja na obu stronach wagi.',
+        'Set a, b, c and see the step-by-step solution. Each step is an operation on both sides of the balance.'
+      ),
+      sliders: [
+        { id: 'paramA', lbl: 'a', color: COL_X, min: 1, max: 8, step: 1, val: 2 },
+        { id: 'paramB', lbl: 'b', color: COL_NUM, min: -9, max: 9, step: 1, val: 3 },
+        { id: 'paramC', lbl: 'c', color: COL_NUM, min: -9, max: 9, step: 1, val: 7 },
+      ],
+      draw() {
+        const a = paramA, b = paramB, c = paramC;
+        const cb = c - b;
+        const xVal = cb / a;
+
+        // Original equation
+        const bSign = b >= 0 ? ' + ' + b : ' - ' + Math.abs(b);
+        const eqStr = a + 'x' + bSign + '  =  ' + c;
+        textLine(eqStr, 28, COL_BEAM, 16);
+
+        // Draw scale for original equation
+        const leftW = a * Math.abs(xVal) + b;
+        const rightW = c;
+
+        // Step-by-step solution
+        const stepY = 70;
+        const stepGap = 42;
+
+        // Step 1: Subtract b
+        cx.save();
+        cx.font = '13px monospace';
+        cx.textAlign = 'left';
+        const x1 = 60;
+
+        // Step 1
+        cx.fillStyle = 'rgba(255,255,255,.5)';
+        cx.fillText(T('Krok 1: odejmij ', 'Step 1: subtract ') + b + T(' z obu stron', ' from both sides'), x1, stepY);
+        cx.fillStyle = COL_SEQ;
+        cx.fillText(a + 'x  =  ' + c + ' - ' + (b >= 0 ? b : '(' + b + ')') + '  =  ' + cb, x1 + 20, stepY + 20);
+
+        // Step 2
+        cx.fillStyle = 'rgba(255,255,255,.5)';
+        cx.fillText(T('Krok 2: podziel przez ', 'Step 2: divide by ') + a, x1, stepY + stepGap + 10);
+        cx.fillStyle = COL_SEQ;
+        const xStr = Number.isInteger(xVal) ? xVal.toString() : (cb + '/' + a);
+        cx.fillText('x  =  ' + cb + ' / ' + a + '  =  ' + xStr, x1 + 20, stepY + stepGap + 30);
+
+        cx.restore();
+
+        // Draw small balanced scale
+        const sPivotX = W / 2;
+        const sPivotY = 230;
+        const sBeamLen = 120;
+
+        // Triangle base
+        cx.save();
+        cx.fillStyle = 'rgba(255,255,255,.1)';
+        cx.beginPath();
+        cx.moveTo(sPivotX, sPivotY);
+        cx.lineTo(sPivotX - 12, sPivotY + 20);
+        cx.lineTo(sPivotX + 12, sPivotY + 20);
+        cx.closePath();
+        cx.fill();
+
+        // Beam
+        cx.strokeStyle = COL_BEAM;
+        cx.lineWidth = 2.5;
+        cx.globalAlpha = 0.6;
+        cx.beginPath();
+        cx.moveTo(sPivotX - sBeamLen, sPivotY);
+        cx.lineTo(sPivotX + sBeamLen, sPivotY);
+        cx.stroke();
+        cx.globalAlpha = 1;
+
+        // Pivot
+        cx.beginPath();
+        cx.arc(sPivotX, sPivotY, 4, 0, Math.PI * 2);
+        cx.fillStyle = COL_BEAM;
+        cx.fill();
+        cx.restore();
+
+        // Pan labels
+        infoBox('x = ' + xStr, sPivotX - sBeamLen, sPivotY - 20, COL_X);
+        infoBox(xStr, sPivotX + sBeamLen, sPivotY - 20, COL_OK);
+
+        // Check
+        const checkVal = a * xVal + b;
+        const checkOk = Math.abs(checkVal - c) < 0.001;
+        if (checkOk) {
+          cx.save();
+          roundRect(cx, W/2 - 130, H - 42, 260, 28, 6);
+          cx.fillStyle = COL_OK + '12';
+          cx.fill();
+          cx.strokeStyle = COL_OK + '40';
+          cx.lineWidth = 1;
+          cx.stroke();
+          cx.font = '12px monospace';
+          cx.fillStyle = COL_OK;
+          cx.textAlign = 'center';
+          const chkStr = a + '*' + xStr + bSign + ' = ' + (Number.isInteger(checkVal) ? checkVal : checkVal.toFixed(2));
+          cx.fillText(chkStr + ' \u2713', W/2, H - 23);
+          cx.restore();
+        }
+      }
+    },
+
+    // Stage 5: Special cases / traps
+    {
+      title: () => T('Pulapki: a = 0', 'Traps: a = 0'),
+      desc: () => T(
+        'Co jesli a = 0? Wtedy 0*x + b = c, czyli b = c. Jesli b = c, kazdy x jest rozwiazaniem (waga zawsze w rownowadze). Jesli b != c, nie ma rozwiazania (waga sie nigdy nie zrownoważy).',
+        'What if a = 0? Then 0*x + b = c, i.e. b = c. If b = c, every x is a solution (scale always balanced). If b != c, no solution (scale can never balance).'
+      ),
+      sliders: [
+        { id: 'paramB', lbl: 'b', color: COL_NUM, min: -5, max: 5, step: 1, val: 3 },
+        { id: 'paramC', lbl: 'c', color: COL_NUM, min: -5, max: 5, step: 1, val: 3 },
+      ],
+      draw() {
+        const b = paramB, c = paramC;
+        const bSign = b >= 0 ? ' + ' + b : ' - ' + Math.abs(b);
+
+        // Equation
+        textLine('0 * x' + bSign + '  =  ' + c, 28, COL_BEAM, 16);
+        textLine(b + '  =  ' + c, 52, 'rgba(255,255,255,.6)', 14);
+
+        if (b === c) {
+          // Identity: every x works
+          // Draw balanced scale
+          const leftB = [{ col: COL_NUM, text: b.toString() }];
+          const rightB = [{ col: COL_NUM, text: c.toString() }];
+          drawScale(b, c, leftB, rightB, 0);
+
+          // Green highlight
+          cx.save();
+          roundRect(cx, W/2 - 140, H - 55, 280, 40, 6);
+          cx.fillStyle = COL_OK + '12';
+          cx.fill();
+          cx.strokeStyle = COL_OK + '50';
+          cx.lineWidth = 1;
+          cx.stroke();
+          cx.font = '14px monospace';
+          cx.fillStyle = COL_OK;
+          cx.textAlign = 'center';
+          cx.fillText(b + ' = ' + c + '  \u2713  ' + T('Kazdy x jest rozwiazaniem!', 'Every x is a solution!'), W/2, H - 30);
+          cx.restore();
+        } else {
+          // Contradiction: no solution
+          const diff = b - c;
+          const tilt = Math.max(-1, Math.min(1, diff * 0.3));
+          const leftB = [{ col: COL_NUM, text: b.toString() }];
+          const rightB = [{ col: COL_NUM, text: c.toString() }];
+          drawScale(b, c, leftB, rightB, tilt);
+
+          // Red highlight
+          cx.save();
+          roundRect(cx, W/2 - 140, H - 55, 280, 40, 6);
+          cx.fillStyle = COL_CANCEL + '12';
+          cx.fill();
+          cx.strokeStyle = COL_CANCEL + '50';
+          cx.lineWidth = 1;
+          cx.stroke();
+          cx.font = '14px monospace';
+          cx.fillStyle = COL_CANCEL;
+          cx.textAlign = 'center';
+          cx.fillText(b + ' \u2260 ' + c + '  \u2717  ' + T('Brak rozwiazania!', 'No solution!'), W/2, H - 30);
+          cx.restore();
+        }
+      }
+    },
+  ];
+
+  // ── Slider management ────────────────────────────────────────
+  const slWrap = document.getElementById('sliders-wrap');
+
+  function buildSliders(defs) {
+    let html = '<div class="sliders">';
+    defs.forEach(s => {
+      html += `<div class="slider-row">
+        <span class="lbl" style="color:${s.color}">${s.lbl} =</span>
+        <input type="range" id="s_${s.id}" min="${s.min}" max="${s.max}" step="${s.step}" value="${s.val}">
+        <span class="val" id="v_${s.id}" style="color:${s.color}"></span>
+      </div>`;
+    });
+    html += '</div>';
+    slWrap.innerHTML = html;
+
+    defs.forEach(s => {
+      const el = document.getElementById('s_' + s.id);
+      document.getElementById('v_' + s.id).textContent = (+el.value).toFixed(s.step < 1 ? 1 : 0);
+      el.addEventListener('input', function() {
+        const v = +this.value;
+        document.getElementById('v_' + s.id).textContent = v.toFixed(s.step < 1 ? 1 : 0);
+        if (s.id === 'paramA') paramA = v;
+        if (s.id === 'paramB') paramB = v;
+        if (s.id === 'paramC') paramC = v;
+      });
+    });
+  }
+
+  // ── Navigation ───────────────────────────────────────────────
+  const prevBtn = document.getElementById('qprev');
+  const nextBtn = document.getElementById('qnext');
+  const dotsEl  = document.getElementById('qdots');
+  const titleEl = document.getElementById('qf');
+  const descEl  = document.getElementById('qd');
+
+  function goTo(idx) {
+    stage = Math.max(0, Math.min(stages.length - 1, idx));
+    const s = stages[stage];
+    titleEl.textContent = s.title();
+    descEl.textContent = s.desc();
+
+    if (s.sliders && s.sliders.length > 0) {
+      s.sliders.forEach(sl => {
+        if (sl.id === 'paramA') sl.val = paramA;
+        if (sl.id === 'paramB') sl.val = paramB;
+        if (sl.id === 'paramC') sl.val = paramC;
+      });
+      buildSliders(s.sliders);
+    } else {
+      slWrap.innerHTML = '';
+    }
+
+    prevBtn.disabled = stage === 0;
+    nextBtn.disabled = stage === stages.length - 1;
+    renderDots();
+  }
+
+  function renderDots() {
+    dotsEl.innerHTML = stages.map((_, i) =>
+      `<span class="dot${i === stage ? ' active' : ''}" data-i="${i}"></span>`
+    ).join('');
+    dotsEl.querySelectorAll('.dot').forEach(d =>
+      d.addEventListener('click', () => goTo(+d.dataset.i))
+    );
+  }
+
+  prevBtn.addEventListener('click', () => goTo(stage - 1));
+  nextBtn.addEventListener('click', () => goTo(stage + 1));
+
+  // ── Render loop ──────────────────────────────────────────────
+  function tick() {
+    clear();
+    stages[stage].draw();
+    requestAnimationFrame(tick);
+  }
+
+  goTo(0);
+  tick();
+})();
+</script>
+</body>
+</html>

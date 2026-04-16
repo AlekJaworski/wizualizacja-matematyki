@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Potegi — Skad biora sie reguly?</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+  #qf { margin: 0 0 5px; font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  #qd { margin: 0 0 10px; font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); min-height: 48px; }
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 36px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+  .nav { display: flex; align-items: center; justify-content: space-between; }
+  button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  button:hover { background: rgba(255,255,255,.08); }
+  button:disabled { opacity: .3; cursor: default; }
+  #qdots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.18); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  #sliders-wrap { min-height: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="310"></canvas>
+  <div class="panel">
+    <p id="qf"></p>
+    <p id="qd"></p>
+    <div id="sliders-wrap"></div>
+    <div class="nav">
+      <button id="qprev">&larr;</button>
+      <div id="qdots"></div>
+      <button id="qnext">&rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const cv = document.getElementById('cv');
+  const cx = cv.getContext('2d');
+  const W = 600, H = 310;
+
+  const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
+  const T = (pl, en) => LANG === 'pl' ? pl : en;
+
+  // Colors
+  const COL_A = '#4a9eff';   // base blocks
+  const COL_B = '#FF6B35';   // second group
+  const COL_P = '#83C167';   // product / result
+  const COL_CANCEL = '#e74c3c'; // cancelled
+  const COL_SEQ = '#FFD166'; // sequence highlight
+
+  // State
+  let base = 2, expN = 3, expM = 3, expK = 2;
+  let stage = 0;
+
+  // ── Drawing helpers ──────────────────────────────────────────
+  function clear() {
+    cx.fillStyle = '#0e0e12';
+    cx.fillRect(0, 0, W, H);
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+    ctx.closePath();
+  }
+
+  function drawBlock(x, y, size, col, text, alpha) {
+    cx.save();
+    cx.globalAlpha = alpha || 1;
+    cx.fillStyle = col;
+    cx.shadowColor = col;
+    cx.shadowBlur = 8;
+    roundRect(cx, x, y, size, size, 4);
+    cx.fill();
+    cx.shadowBlur = 0;
+    if (text) {
+      cx.fillStyle = '#0e0e12';
+      cx.font = 'bold ' + Math.max(10, size * 0.45) + 'px monospace';
+      cx.textAlign = 'center';
+      cx.textBaseline = 'middle';
+      cx.fillText(text, x + size/2, y + size/2);
+    }
+    cx.restore();
+  }
+
+  function drawCrossedBlock(x, y, size, col, text) {
+    drawBlock(x, y, size, col, text, 0.3);
+    cx.save();
+    cx.strokeStyle = COL_CANCEL;
+    cx.lineWidth = 2.5;
+    cx.globalAlpha = 0.8;
+    cx.beginPath();
+    cx.moveTo(x + 2, y + 2);
+    cx.lineTo(x + size - 2, y + size - 2);
+    cx.moveTo(x + size - 2, y + 2);
+    cx.lineTo(x + 2, y + size - 2);
+    cx.stroke();
+    cx.restore();
+  }
+
+  function textLine(text, y, col, size, align) {
+    cx.save();
+    cx.font = (size || 14) + 'px monospace';
+    cx.fillStyle = col || 'rgba(255,255,255,.7)';
+    cx.textAlign = align || 'center';
+    cx.fillText(text, W/2, y);
+    cx.restore();
+  }
+
+  function infoBox(text, sx, sy, col) {
+    cx.save();
+    cx.font = '12px monospace';
+    const w = cx.measureText(text).width + 14;
+    cx.fillStyle = 'rgba(14,14,18,0.85)';
+    cx.strokeStyle = col + '40';
+    cx.lineWidth = 1;
+    roundRect(cx, sx - w/2, sy - 10, w, 22, 4);
+    cx.fill(); cx.stroke();
+    cx.fillStyle = col;
+    cx.textAlign = 'center';
+    cx.fillText(text, sx, sy + 4);
+    cx.restore();
+  }
+
+  function superscript(baseText, supText, x, y, col, size) {
+    cx.save();
+    cx.fillStyle = col || '#fff';
+    cx.font = (size || 18) + 'px monospace';
+    cx.textAlign = 'center';
+    const bw = cx.measureText(baseText).width;
+    cx.fillText(baseText, x - bw * 0.1, y);
+    cx.font = (Math.round((size || 18) * 0.6)) + 'px monospace';
+    cx.fillText(supText, x + bw * 0.5 + 4, y - (size || 18) * 0.35);
+    cx.restore();
+  }
+
+  function pow(b, e) {
+    let r = 1;
+    for (let i = 0; i < e; i++) r *= b;
+    return r;
+  }
+
+  // ── Stages ───────────────────────────────────────────────────
+  const stages = [
+    // Stage 1: What is a power?
+    {
+      title: () => T('Czym jest potega?', 'What is a power?'),
+      desc: () => T(
+        'Potega a^n oznacza: pomnoz a przez siebie n razy. Zmien podstawe (a) i wykladnik (n), zeby zobaczyc jak rosnie wynik.',
+        'Power a^n means: multiply a by itself n times. Change the base (a) and exponent (n) to see how the result grows.'
+      ),
+      sliders: [
+        { id: 'base', lbl: 'a', color: COL_A, min: 1, max: 5, step: 1, val: 2 },
+        { id: 'expN', lbl: 'n', color: COL_P, min: 1, max: 6, step: 1, val: 3 },
+      ],
+      draw() {
+        const a = base, n = expN;
+        const result = pow(a, n);
+
+        // Title formula
+        cx.save();
+        cx.font = '20px monospace';
+        cx.fillStyle = COL_A;
+        cx.textAlign = 'center';
+        const titleStr = a + '^' + n;
+        cx.fillText(a.toString(), W/2 - 18, 35);
+        cx.font = '13px monospace';
+        cx.fillStyle = COL_P;
+        cx.fillText(n.toString(), W/2 - 4, 24);
+        cx.restore();
+
+        // Draw blocks in a row
+        const blockSize = Math.min(40, (W - 80) / Math.max(n, 1) - 8);
+        const totalW = n * (blockSize + 8) - 8;
+        const startX = (W - totalW) / 2;
+        const blockY = 65;
+
+        for (let i = 0; i < n; i++) {
+          drawBlock(startX + i * (blockSize + 8), blockY, blockSize, COL_A, a.toString());
+        }
+
+        // Draw multiplication signs between blocks
+        cx.save();
+        cx.font = '16px monospace';
+        cx.fillStyle = 'rgba(255,255,255,.4)';
+        cx.textAlign = 'center';
+        for (let i = 0; i < n - 1; i++) {
+          const xPos = startX + i * (blockSize + 8) + blockSize + 4;
+          cx.fillText('x', xPos, blockY + blockSize / 2 + 5);
+        }
+        cx.restore();
+
+        // Show expanded multiplication
+        let multStr = '';
+        for (let i = 0; i < n; i++) {
+          multStr += a;
+          if (i < n - 1) multStr += ' x ';
+        }
+        textLine(a + '^' + n + '  =  ' + multStr, blockY + blockSize + 35, 'rgba(255,255,255,.5)', 13);
+
+        // Show result with bar chart visualization
+        const barMaxH = 100;
+        const barW = 50;
+        const barBaseY = H - 25;
+        const maxVal = pow(5, 6);
+        const barH = Math.max(4, (result / maxVal) * barMaxH);
+
+        cx.save();
+        cx.fillStyle = COL_P;
+        cx.globalAlpha = 0.7;
+        roundRect(cx, W/2 - barW/2, barBaseY - barH, barW, barH, 3);
+        cx.fill();
+        cx.globalAlpha = 1;
+        cx.restore();
+
+        // Result text
+        textLine('= ' + result, barBaseY - barH - 12, COL_P, 18);
+      }
+    },
+
+    // Stage 2: Multiplying powers
+    {
+      title: () => T('Mnozenie poteg: a^m * a^n = a^(m+n)', 'Multiplying powers: a^m * a^n = a^(m+n)'),
+      desc: () => T(
+        'Mnozysz dwie potegi o tej samej podstawie? Po prostu zlacz grupy razem. m sztuk a razy n sztuk a = m+n sztuk a.',
+        'Multiplying two powers with the same base? Just join the groups. m copies of a times n copies of a = m+n copies of a.'
+      ),
+      sliders: [
+        { id: 'base', lbl: 'a', color: COL_A, min: 1, max: 5, step: 1, val: 2 },
+        { id: 'expM', lbl: 'm', color: COL_A, min: 1, max: 5, step: 1, val: 3 },
+        { id: 'expK', lbl: 'n', color: COL_B, min: 1, max: 5, step: 1, val: 2 },
+      ],
+      draw() {
+        const a = base, m = expM, n = expK;
+        const total = m + n;
+
+        // Block layout
+        const blockSize = Math.min(36, (W - 100) / Math.max(total + 1, 1) - 6);
+        const gap = 6;
+        const totalW = total * (blockSize + gap) + 20 - gap; // +20 for group spacing
+        const startX = (W - totalW) / 2;
+        const row1Y = 55;
+        const row2Y = 140;
+
+        // Row 1: Two separate groups
+        // Group 1 (m blocks)
+        let x = startX;
+        for (let i = 0; i < m; i++) {
+          drawBlock(x, row1Y, blockSize, COL_A, a.toString());
+          if (i < m - 1) {
+            cx.font = '12px monospace'; cx.fillStyle = 'rgba(255,255,255,.3)'; cx.textAlign = 'center';
+            cx.fillText('x', x + blockSize + gap/2, row1Y + blockSize/2 + 4);
+          }
+          x += blockSize + gap;
+        }
+
+        // Multiplication sign between groups
+        cx.font = '18px monospace'; cx.fillStyle = 'rgba(255,255,255,.5)'; cx.textAlign = 'center';
+        cx.fillText('x', x + 5, row1Y + blockSize/2 + 6);
+        x += 20;
+
+        // Group 2 (n blocks)
+        for (let i = 0; i < n; i++) {
+          drawBlock(x, row1Y, blockSize, COL_B, a.toString());
+          if (i < n - 1) {
+            cx.font = '12px monospace'; cx.fillStyle = 'rgba(255,255,255,.3)'; cx.textAlign = 'center';
+            cx.fillText('x', x + blockSize + gap/2, row1Y + blockSize/2 + 4);
+          }
+          x += blockSize + gap;
+        }
+
+        // Label
+        const lbl1 = a + '^' + m + '  x  ' + a + '^' + n;
+        textLine(lbl1, row1Y - 10, 'rgba(255,255,255,.5)', 13);
+
+        // Arrow
+        cx.save();
+        cx.strokeStyle = 'rgba(255,255,255,.2)';
+        cx.lineWidth = 1.5;
+        cx.beginPath();
+        cx.moveTo(W/2, row1Y + blockSize + 12);
+        cx.lineTo(W/2, row2Y - 12);
+        cx.stroke();
+        cx.beginPath();
+        cx.moveTo(W/2 - 5, row2Y - 17);
+        cx.lineTo(W/2, row2Y - 12);
+        cx.lineTo(W/2 + 5, row2Y - 17);
+        cx.stroke();
+        cx.restore();
+
+        // Row 2: Merged group
+        const totalW2 = total * (blockSize + gap) - gap;
+        const startX2 = (W - totalW2) / 2;
+        for (let i = 0; i < total; i++) {
+          const col = i < m ? COL_A : COL_B;
+          drawBlock(startX2 + i * (blockSize + gap), row2Y, blockSize, col, a.toString());
+          if (i < total - 1) {
+            cx.font = '12px monospace'; cx.fillStyle = 'rgba(255,255,255,.3)'; cx.textAlign = 'center';
+            cx.fillText('x', startX2 + i * (blockSize + gap) + blockSize + gap/2, row2Y + blockSize/2 + 4);
+          }
+        }
+
+        // Result labels
+        textLine(a + '^' + m + ' x ' + a + '^' + n + '  =  ' + a + '^(' + m + '+' + n + ')  =  ' + a + '^' + total, row2Y + blockSize + 25, 'rgba(255,255,255,.6)', 13);
+        textLine('= ' + pow(a, total), row2Y + blockSize + 50, COL_P, 18);
+
+        // Bracket labels
+        infoBox(m + ' ' + T('sztuk', 'copies'), startX + (m * (blockSize + gap) - gap) / 2, row1Y + blockSize + 18, COL_A);
+        const g2startX = startX + m * (blockSize + gap) + 20;
+        infoBox(n + ' ' + T('sztuk', 'copies'), g2startX + (n * (blockSize + gap) - gap) / 2, row1Y + blockSize + 18, COL_B);
+        infoBox(total + ' ' + T('sztuk razem', 'copies total'), W/2, row2Y + blockSize + 4, COL_P);
+      }
+    },
+
+    // Stage 3: Dividing powers
+    {
+      title: () => T('Dzielenie poteg: a^m / a^n = a^(m-n)', 'Dividing powers: a^m / a^n = a^(m-n)'),
+      desc: () => T(
+        'Dzielisz potegi? Skracasz wspolne czynniki. Kazdy czynnik na dole "kasuje" jeden na gorze. Zostaje m-n sztuk.',
+        'Dividing powers? Cancel common factors. Each factor on the bottom cancels one on top. You are left with m-n copies.'
+      ),
+      sliders: [
+        { id: 'base', lbl: 'a', color: COL_A, min: 2, max: 5, step: 1, val: 2 },
+        { id: 'expM', lbl: 'm', color: COL_A, min: 2, max: 6, step: 1, val: 5 },
+        { id: 'expK', lbl: 'n', color: COL_B, min: 1, max: 5, step: 1, val: 2 },
+      ],
+      draw() {
+        const a = base, m = expM;
+        let n = Math.min(expK, m);
+
+        const blockSize = Math.min(34, (W - 80) / Math.max(m, 1) - 6);
+        const gap = 6;
+
+        // Numerator row
+        const numY = 50;
+        const numW = m * (blockSize + gap) - gap;
+        const numStartX = (W - numW) / 2;
+
+        textLine(T('licznik: ', 'numerator: ') + a + '^' + m, numY - 12, 'rgba(255,255,255,.4)', 11);
+
+        for (let i = 0; i < m; i++) {
+          if (i >= m - n) {
+            drawCrossedBlock(numStartX + i * (blockSize + gap), numY, blockSize, COL_A, a.toString());
+          } else {
+            drawBlock(numStartX + i * (blockSize + gap), numY, blockSize, COL_A, a.toString());
+          }
+          if (i < m - 1) {
+            cx.font = '12px monospace'; cx.fillStyle = 'rgba(255,255,255,.25)'; cx.textAlign = 'center';
+            cx.fillText('x', numStartX + i * (blockSize + gap) + blockSize + gap/2, numY + blockSize/2 + 4);
+          }
+        }
+
+        // Fraction line
+        const lineY = numY + blockSize + 20;
+        cx.save();
+        cx.strokeStyle = 'rgba(255,255,255,.35)';
+        cx.lineWidth = 1.5;
+        cx.beginPath();
+        cx.moveTo(W/2 - numW/2 - 10, lineY);
+        cx.lineTo(W/2 + numW/2 + 10, lineY);
+        cx.stroke();
+        cx.restore();
+
+        // Denominator row
+        const denY = lineY + 12;
+        const denW = n * (blockSize + gap) - gap;
+        const denStartX = numStartX + (m - n) * (blockSize + gap);
+
+        textLine(T('mianownik: ', 'denominator: ') + a + '^' + n, denY + blockSize + 16, 'rgba(255,255,255,.4)', 11);
+
+        for (let i = 0; i < n; i++) {
+          drawCrossedBlock(denStartX + i * (blockSize + gap), denY, blockSize, COL_B, a.toString());
+          if (i < n - 1) {
+            cx.font = '12px monospace'; cx.fillStyle = 'rgba(255,255,255,.25)'; cx.textAlign = 'center';
+            cx.fillText('x', denStartX + i * (blockSize + gap) + blockSize + gap/2, denY + blockSize/2 + 4);
+          }
+        }
+
+        // Draw cancellation lines connecting pairs
+        cx.save();
+        cx.strokeStyle = COL_CANCEL + '60';
+        cx.lineWidth = 1;
+        cx.setLineDash([3, 3]);
+        for (let i = 0; i < n; i++) {
+          const topX = numStartX + (m - n + i) * (blockSize + gap) + blockSize / 2;
+          const botX = denStartX + i * (blockSize + gap) + blockSize / 2;
+          cx.beginPath();
+          cx.moveTo(topX, numY + blockSize + 2);
+          cx.lineTo(botX, denY - 2);
+          cx.stroke();
+        }
+        cx.setLineDash([]);
+        cx.restore();
+
+        // Result
+        const remain = m - n;
+        const resultY = H - 40;
+        textLine(a + '^' + m + ' / ' + a + '^' + n + '  =  ' + a + '^(' + m + '-' + n + ')  =  ' + a + '^' + remain, resultY, 'rgba(255,255,255,.6)', 13);
+        textLine('= ' + pow(a, remain), resultY + 25, COL_P, 18);
+      }
+    },
+
+    // Stage 4: Power of a power
+    {
+      title: () => T('Potega potegi: (a^m)^n = a^(mn)', 'Power of a power: (a^m)^n = a^(mn)'),
+      desc: () => T(
+        '(a^m)^n to n grup po m blokow. Razem m*n blokow. Dlatego wykladniki sie mnoza.',
+        '(a^m)^n means n groups of m blocks each. Total: m*n blocks. That is why exponents multiply.'
+      ),
+      sliders: [
+        { id: 'base', lbl: 'a', color: COL_A, min: 2, max: 4, step: 1, val: 2 },
+        { id: 'expM', lbl: 'm', color: COL_A, min: 1, max: 4, step: 1, val: 3 },
+        { id: 'expK', lbl: 'n', color: COL_B, min: 1, max: 4, step: 1, val: 2 },
+      ],
+      draw() {
+        const a = base, m = expM, n = expK;
+        const total = m * n;
+        const groupColors = ['#4a9eff', '#FF6B35', '#83C167', '#FFD166'];
+
+        // Calculate layout
+        const maxBlocks = Math.max(total, 1);
+        const blockSize = Math.min(30, Math.min((W - 80) / maxBlocks - 4, (H - 140) / 3));
+        const gap = 4;
+        const groupGap = 16;
+
+        // Row 1: n groups of m blocks each
+        const row1Y = 50;
+        const totalW1 = n * (m * (blockSize + gap) - gap + groupGap) - groupGap;
+        let x = (W - totalW1) / 2;
+
+        for (let g = 0; g < n; g++) {
+          const gCol = groupColors[g % groupColors.length];
+
+          // Group bracket
+          const gStartX = x;
+          const gEndX = x + m * (blockSize + gap) - gap;
+          cx.save();
+          cx.strokeStyle = gCol + '50';
+          cx.lineWidth = 1;
+          cx.beginPath();
+          cx.moveTo(gStartX, row1Y + blockSize + 6);
+          cx.lineTo(gStartX, row1Y + blockSize + 10);
+          cx.lineTo(gEndX + blockSize, row1Y + blockSize + 10);
+          cx.lineTo(gEndX + blockSize, row1Y + blockSize + 6);
+          cx.stroke();
+          cx.restore();
+
+          // Group label
+          cx.save();
+          cx.font = '10px monospace';
+          cx.fillStyle = gCol + '90';
+          cx.textAlign = 'center';
+          cx.fillText(a + '^' + m, (gStartX + gEndX + blockSize) / 2, row1Y + blockSize + 22);
+          cx.restore();
+
+          for (let i = 0; i < m; i++) {
+            drawBlock(x, row1Y, blockSize, gCol, a.toString());
+            if (i < m - 1) {
+              cx.font = '10px monospace'; cx.fillStyle = 'rgba(255,255,255,.25)'; cx.textAlign = 'center';
+              cx.fillText('x', x + blockSize + gap/2, row1Y + blockSize/2 + 3);
+            }
+            x += blockSize + gap;
+          }
+
+          // Multiplication sign between groups
+          if (g < n - 1) {
+            cx.font = '14px monospace'; cx.fillStyle = 'rgba(255,255,255,.4)'; cx.textAlign = 'center';
+            cx.fillText('x', x + groupGap/2 - gap/2, row1Y + blockSize/2 + 5);
+          }
+          x += groupGap;
+        }
+
+        // Title formula
+        textLine('(' + a + '^' + m + ')^' + n, row1Y - 15, 'rgba(255,255,255,.6)', 14);
+
+        // Arrow
+        const arrowY1 = row1Y + blockSize + 35;
+        const arrowY2 = arrowY1 + 30;
+        cx.save();
+        cx.strokeStyle = 'rgba(255,255,255,.2)';
+        cx.lineWidth = 1.5;
+        cx.beginPath(); cx.moveTo(W/2, arrowY1); cx.lineTo(W/2, arrowY2); cx.stroke();
+        cx.beginPath(); cx.moveTo(W/2 - 5, arrowY2 - 5); cx.lineTo(W/2, arrowY2); cx.lineTo(W/2 + 5, arrowY2 - 5); cx.stroke();
+        cx.restore();
+
+        // Row 2: All blocks in one line
+        const row2Y = arrowY2 + 10;
+        const totalW2 = total * (blockSize + gap) - gap;
+        const startX2 = (W - totalW2) / 2;
+
+        for (let i = 0; i < total; i++) {
+          const gIdx = Math.floor(i / m);
+          const gCol = groupColors[gIdx % groupColors.length];
+          drawBlock(startX2 + i * (blockSize + gap), row2Y, blockSize, gCol, a.toString());
+          if (i < total - 1) {
+            cx.font = '10px monospace'; cx.fillStyle = 'rgba(255,255,255,.2)'; cx.textAlign = 'center';
+            cx.fillText('x', startX2 + i * (blockSize + gap) + blockSize + gap/2, row2Y + blockSize/2 + 3);
+          }
+        }
+
+        // Result
+        const resY = Math.min(row2Y + blockSize + 30, H - 20);
+        textLine('(' + a + '^' + m + ')^' + n + '  =  ' + a + '^(' + m + 'x' + n + ')  =  ' + a + '^' + total, resY, 'rgba(255,255,255,.6)', 13);
+        textLine('= ' + pow(a, total), resY + 25, COL_P, 18);
+      }
+    },
+
+    // Stage 5: Zero and negative exponents
+    {
+      title: () => T('Potega zerowa i ujemna', 'Zero and negative exponents'),
+      desc: () => T(
+        'Kazde dzielenie przez a zmniejsza wykladnik o 1. Kontynuuj pattern: a^1, a^0 = 1, a^(-1) = 1/a... Widzisz, skad sie bierze a^0 = 1?',
+        'Each division by a decreases the exponent by 1. Continue the pattern: a^1, a^0 = 1, a^(-1) = 1/a... See where a^0 = 1 comes from?'
+      ),
+      sliders: [
+        { id: 'base', lbl: 'a', color: COL_A, min: 2, max: 5, step: 1, val: 2 },
+      ],
+      draw() {
+        const a = base;
+
+        // Draw the number line / sequence
+        const entries = [];
+        for (let e = 4; e >= -3; e--) {
+          const val = e >= 0 ? pow(a, e) : 1 / pow(a, -e);
+          entries.push({ exp: e, val: val });
+        }
+
+        // Layout: sequence going down
+        const startY = 30;
+        const rowH = 33;
+        const colExp = 80;
+        const colEq = 170;
+        const colVal = 310;
+        const colArrow = 400;
+        const colDiv = 480;
+
+        // Header
+        cx.save();
+        cx.font = '11px monospace';
+        cx.fillStyle = 'rgba(255,255,255,.35)';
+        cx.textAlign = 'center';
+        cx.fillText(T('potega', 'power'), colExp, startY);
+        cx.fillText('=', (colExp + colVal) / 2, startY);
+        cx.fillText(T('wartosc', 'value'), colVal, startY);
+        cx.restore();
+
+        for (let i = 0; i < entries.length; i++) {
+          const e = entries[i];
+          const y = startY + (i + 1) * rowH;
+          const isZero = e.exp === 0;
+          const isNeg = e.exp < 0;
+
+          // Highlight zero exponent row
+          if (isZero) {
+            cx.save();
+            cx.fillStyle = COL_SEQ + '15';
+            roundRect(cx, 30, y - rowH/2 - 3, W - 60, rowH - 2, 4);
+            cx.fill();
+            cx.strokeStyle = COL_SEQ + '40';
+            cx.lineWidth = 1;
+            cx.stroke();
+            cx.restore();
+          }
+
+          // Power expression
+          cx.save();
+          cx.font = '14px monospace';
+          cx.textAlign = 'center';
+          cx.fillStyle = isZero ? COL_SEQ : (isNeg ? COL_CANCEL : COL_A);
+          cx.fillText(a + '^' + (e.exp < 0 ? '(' + e.exp + ')' : e.exp), colExp, y + 5);
+          cx.restore();
+
+          // Equals
+          cx.save();
+          cx.font = '14px monospace';
+          cx.fillStyle = 'rgba(255,255,255,.3)';
+          cx.textAlign = 'center';
+          cx.fillText('=', (colExp + colVal) / 2 + 30, y + 5);
+          cx.restore();
+
+          // Value
+          cx.save();
+          cx.font = '14px monospace';
+          cx.textAlign = 'center';
+          cx.fillStyle = isZero ? COL_SEQ : (isNeg ? COL_CANCEL : COL_P);
+          let valStr;
+          if (e.exp >= 0) {
+            valStr = e.val.toString();
+          } else {
+            valStr = '1/' + pow(a, -e.exp);
+          }
+          cx.fillText(valStr, colVal, y + 5);
+          cx.restore();
+
+          // Division arrow between rows
+          if (i < entries.length - 1) {
+            cx.save();
+            cx.font = '11px monospace';
+            cx.fillStyle = 'rgba(255,255,255,.25)';
+            cx.textAlign = 'center';
+            cx.fillText('/' + a, colArrow + 60, y + rowH / 2 + 4);
+
+            // Small arrow
+            cx.strokeStyle = 'rgba(255,255,255,.15)';
+            cx.lineWidth = 1;
+            cx.beginPath();
+            cx.moveTo(colArrow + 30, y + 10);
+            cx.lineTo(colArrow + 30, y + rowH - 6);
+            cx.stroke();
+            cx.beginPath();
+            cx.moveTo(colArrow + 27, y + rowH - 10);
+            cx.lineTo(colArrow + 30, y + rowH - 6);
+            cx.lineTo(colArrow + 33, y + rowH - 10);
+            cx.stroke();
+            cx.restore();
+          }
+        }
+
+        // Explanation at bottom
+        textLine(a + '^0 = ' + a + '^n / ' + a + '^n = 1', H - 20, COL_SEQ, 12);
+      }
+    },
+  ];
+
+  // ── Slider management ────────────────────────────────────────
+  const slWrap = document.getElementById('sliders-wrap');
+
+  function buildSliders(defs) {
+    let html = '<div class="sliders">';
+    defs.forEach(s => {
+      html += `<div class="slider-row">
+        <span class="lbl" style="color:${s.color}">${s.lbl} =</span>
+        <input type="range" id="s_${s.id}" min="${s.min}" max="${s.max}" step="${s.step}" value="${s.val}">
+        <span class="val" id="v_${s.id}" style="color:${s.color}"></span>
+      </div>`;
+    });
+    html += '</div>';
+    slWrap.innerHTML = html;
+
+    defs.forEach(s => {
+      const el = document.getElementById('s_' + s.id);
+      document.getElementById('v_' + s.id).textContent = (+el.value).toFixed(s.step < 1 ? 1 : 0);
+      el.addEventListener('input', function() {
+        const v = +this.value;
+        document.getElementById('v_' + s.id).textContent = v.toFixed(s.step < 1 ? 1 : 0);
+        if (s.id === 'base') base = v;
+        if (s.id === 'expN') expN = v;
+        if (s.id === 'expM') expM = v;
+        if (s.id === 'expK') expK = v;
+      });
+    });
+  }
+
+  // ── Navigation ───────────────────────────────────────────────
+  const prevBtn = document.getElementById('qprev');
+  const nextBtn = document.getElementById('qnext');
+  const dotsEl  = document.getElementById('qdots');
+  const titleEl = document.getElementById('qf');
+  const descEl  = document.getElementById('qd');
+
+  function goTo(idx) {
+    stage = Math.max(0, Math.min(stages.length - 1, idx));
+    const s = stages[stage];
+    titleEl.textContent = s.title();
+    descEl.textContent = s.desc();
+
+    if (s.sliders) {
+      s.sliders.forEach(sl => {
+        if (sl.id === 'base') sl.val = base;
+        if (sl.id === 'expN') sl.val = expN;
+        if (sl.id === 'expM') sl.val = expM;
+        if (sl.id === 'expK') sl.val = expK;
+      });
+      buildSliders(s.sliders);
+    } else {
+      slWrap.innerHTML = '';
+    }
+
+    prevBtn.disabled = stage === 0;
+    nextBtn.disabled = stage === stages.length - 1;
+    renderDots();
+  }
+
+  function renderDots() {
+    dotsEl.innerHTML = stages.map((_, i) =>
+      `<span class="dot${i === stage ? ' active' : ''}" data-i="${i}"></span>`
+    ).join('');
+    dotsEl.querySelectorAll('.dot').forEach(d =>
+      d.addEventListener('click', () => goTo(+d.dataset.i))
+    );
+  }
+
+  prevBtn.addEventListener('click', () => goTo(stage - 1));
+  nextBtn.addEventListener('click', () => goTo(stage + 1));
+
+  // ── Render loop ──────────────────────────────────────────────
+  function tick() {
+    clear();
+    stages[stage].draw();
+    requestAnimationFrame(tick);
+  }
+
+  goTo(0);
+  tick();
+})();
+</script>
+</body>
+</html>
