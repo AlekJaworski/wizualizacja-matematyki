@@ -6,6 +6,8 @@ section: LP
 level: 2
 x: 490
 y: 310
+resources:
+  - "interactive|resources/quadratic_ineq/sign-chart-explorer.html|Sign Chart Method|Metoda tabelki znaków"
 ---
 Wyrażenie wymierne to iloraz dwóch wielomianów, np. (x²−1)/(x+3). Kluczowe umiejętności: skracanie (rozkład na czynniki!), dodawanie/odejmowanie (wspólny mianownik), mnożenie/dzielenie, oraz rozwiązywanie nierówności wymiernych metodą przedziałów.
 

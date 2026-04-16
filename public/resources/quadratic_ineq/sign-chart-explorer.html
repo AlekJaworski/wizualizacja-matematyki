@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nierówności kwadratowe — Tabelka znaków</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+  #qf { margin: 0 0 5px; font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  #qd { margin: 0 0 10px; font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); min-height: 48px; }
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 36px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+  .nav { display: flex; align-items: center; justify-content: space-between; }
+  button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  button:hover { background: rgba(255,255,255,.08); }
+  button:disabled { opacity: .3; cursor: default; }
+  #qdots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.18); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  #sliders-wrap { min-height: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="310"></canvas>
+  <div class="panel">
+    <p id="qf"></p>
+    <p id="qd"></p>
+    <div id="sliders-wrap"></div>
+    <div class="nav">
+      <button id="qprev">&larr;</button>
+      <div id="qdots"></div>
+      <button id="qnext">&rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const cv = document.getElementById('cv');
+  const cx = cv.getContext('2d');
+  const W = 600, H = 310;
+
+  const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
+  const T = (pl, en) => LANG === 'pl' ? pl : en;
+
+  const COL_PARA = '#58C4DD';
+  const COL_POS = '#27ae60';
+  const COL_NEG = '#e74c3c';
+  const COL_ROOT = '#FFD166';
+  const COL_CURSOR = '#ffffff';
+  const COL_SOLUTION = '#83C167';
+
+  // Coordinate system
+  const OX = W / 2, OY = H * 0.55, SC = 50;
+  function px(x) { return OX + x * SC; }
+  function py(y) { return OY - y * SC; }
+
+  // State
+  let r1 = -2, r2 = 3, a = 1, x0 = 0;
+  let ineqType = 0; // 0: >0, 1: >=0, 2: <0, 3: <=0
+  let stage = 0;
+
+  function f(x) { return a * (x - r1) * (x - r2); }
+
+  // ── Drawing helpers ──────────────────────────────────────────
+  function clear() { cx.fillStyle = '#0e0e12'; cx.fillRect(0, 0, W, H); }
+
+  function drawGrid() {
+    cx.strokeStyle = 'rgba(255,255,255,0.04)';
+    cx.lineWidth = 0.7;
+    for (let x = -7; x <= 7; x++) { cx.beginPath(); cx.moveTo(px(x), 0); cx.lineTo(px(x), H); cx.stroke(); }
+    for (let y = -4; y <= 6; y++) { cx.beginPath(); cx.moveTo(0, py(y)); cx.lineTo(W, py(y)); cx.stroke(); }
+  }
+
+  function drawAxes() {
+    cx.strokeStyle = 'rgba(255,255,255,0.2)';
+    cx.lineWidth = 1;
+    cx.beginPath(); cx.moveTo(0, py(0)); cx.lineTo(W, py(0)); cx.stroke();
+    cx.beginPath(); cx.moveTo(px(0), 0); cx.lineTo(px(0), H); cx.stroke();
+    cx.fillStyle = 'rgba(255,255,255,0.25)';
+    cx.font = '9px monospace';
+    cx.textAlign = 'center';
+    for (let x = -5; x <= 5; x++) {
+      if (x === 0) continue;
+      cx.fillText(x, px(x), py(0) + 13);
+    }
+  }
+
+  function plotParabola(alpha) {
+    cx.save();
+    cx.strokeStyle = COL_PARA;
+    cx.globalAlpha = alpha;
+    cx.lineWidth = 2;
+    cx.beginPath();
+    for (let sx = 0; sx <= W; sx += 2) {
+      const x = (sx - OX) / SC;
+      const y = f(x);
+      const sy = py(y);
+      if (sy < -100 || sy > H + 100) { cx.moveTo(sx, sy); continue; }
+      if (sx === 0) cx.moveTo(sx, sy); else cx.lineTo(sx, sy);
+    }
+    cx.stroke();
+    cx.restore();
+  }
+
+  function shadeSolution(ineq) {
+    // Determine solution intervals
+    const minR = Math.min(r1, r2);
+    const maxR = Math.max(r1, r2);
+    const wantAbove = (ineq === 0 || ineq === 1); // > 0 or >= 0
+
+    // For a > 0: positive outside roots, negative between
+    // For a < 0: negative outside roots, positive between
+    const posOutside = a > 0;
+
+    cx.save();
+    cx.globalAlpha = 0.12;
+
+    function shadeInterval(xLo, xHi, color) {
+      cx.fillStyle = color;
+      cx.beginPath();
+      const sxLo = Math.max(0, px(xLo));
+      const sxHi = Math.min(W, px(xHi));
+      cx.rect(sxLo, 0, sxHi - sxLo, H);
+      cx.fill();
+    }
+
+    if (wantAbove) {
+      if (posOutside) {
+        // Solution: x < minR or x > maxR
+        shadeInterval(-8, minR, COL_SOLUTION);
+        shadeInterval(maxR, 8, COL_SOLUTION);
+      } else {
+        // Solution: minR < x < maxR
+        shadeInterval(minR, maxR, COL_SOLUTION);
+      }
+    } else {
+      if (posOutside) {
+        // Solution: minR < x < maxR
+        shadeInterval(minR, maxR, COL_SOLUTION);
+      } else {
+        // Solution: x < minR or x > maxR
+        shadeInterval(-8, minR, COL_SOLUTION);
+        shadeInterval(maxR, 8, COL_SOLUTION);
+      }
+    }
+    cx.restore();
+  }
+
+  function gdot(x, y, r, col) {
+    cx.beginPath();
+    cx.arc(px(x), py(y), r, 0, Math.PI * 2);
+    cx.fillStyle = col;
+    cx.shadowColor = col;
+    cx.shadowBlur = 10;
+    cx.fill();
+    cx.shadowBlur = 0;
+  }
+
+  function drawSignChart() {
+    const chartY = H - 35;
+    const minR = Math.min(r1, r2);
+    const maxR = Math.max(r1, r2);
+
+    // Number line
+    cx.strokeStyle = 'rgba(255,255,255,0.3)';
+    cx.lineWidth = 1.5;
+    cx.beginPath(); cx.moveTo(px(-5.5), chartY); cx.lineTo(px(5.5), chartY); cx.stroke();
+
+    // Root markers
+    [minR, maxR].forEach(r => {
+      cx.beginPath();
+      cx.arc(px(r), chartY, 5, 0, Math.PI * 2);
+      cx.fillStyle = COL_ROOT;
+      cx.fill();
+      cx.font = '10px monospace';
+      cx.fillStyle = COL_ROOT;
+      cx.textAlign = 'center';
+      cx.fillText(r, px(r), chartY + 16);
+    });
+
+    // Signs in intervals
+    const posOutside = a > 0;
+    cx.font = '16px monospace';
+    cx.textAlign = 'center';
+
+    const intervals = [
+      { x: (minR - 5.5) / 2 + minR / 2 - 1.5, positive: posOutside },
+      { x: (minR + maxR) / 2, positive: !posOutside },
+      { x: (maxR + 5.5) / 2 + maxR / 2 - 1, positive: posOutside },
+    ];
+
+    intervals.forEach(({ x, positive }) => {
+      const safeX = Math.max(-5, Math.min(5, x));
+      cx.fillStyle = positive ? COL_POS : COL_NEG;
+      cx.fillText(positive ? '+' : '−', px(safeX), chartY - 10);
+    });
+  }
+
+  // ── Stages ───────────────────────────────────────────────────
+  const ineqLabels = ['> 0', '≥ 0', '< 0', '≤ 0'];
+
+  const stages = [
+    {
+      title: () => T('Parabola i miejsca zerowe', 'Parabola and roots'),
+      desc: () => T(
+        'Każda nierówność kwadratowa zaczyna się od paraboli. Miejsca zerowe to punkty, gdzie parabola przecina oś X. Przesuń r₁ i r₂ — to pierwiastki równania.',
+        'Every quadratic inequality starts with a parabola. Roots are where it crosses the x-axis. Move r₁ and r₂ — these are the equation\'s roots.'
+      ),
+      sliders: [
+        { id: 'r1', lbl: 'r₁', color: COL_ROOT, min: -4, max: 4, step: 0.5, val: -2 },
+        { id: 'r2', lbl: 'r₂', color: COL_ROOT, min: -4, max: 4, step: 0.5, val: 3 },
+      ],
+      draw() {
+        drawGrid(); drawAxes();
+        plotParabola(0.8);
+        gdot(r1, 0, 6, COL_ROOT);
+        gdot(r2, 0, 6, COL_ROOT);
+        cx.font = '11px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = COL_ROOT;
+        cx.fillText('r₁=' + r1, px(r1), py(0) + 20);
+        cx.fillText('r₂=' + r2, px(r2), py(0) + 20);
+      }
+    },
+    {
+      title: () => T('Znak w każdym przedziale', 'Sign in each interval'),
+      desc: () => T(
+        'Parabola dzieli oś X na 3 przedziały. W każdym z nich funkcja ma stały znak: + (nad osią) lub − (pod osią). Zmień a, żeby odwrócić parabolę.',
+        'The parabola splits the x-axis into 3 intervals. In each, the function has constant sign: + (above axis) or − (below). Change a to flip the parabola.'
+      ),
+      sliders: [
+        { id: 'r1', lbl: 'r₁', color: COL_ROOT, min: -4, max: 4, step: 0.5, val: r1 },
+        { id: 'r2', lbl: 'r₂', color: COL_ROOT, min: -4, max: 4, step: 0.5, val: r2 },
+        { id: 'a', lbl: 'a', color: COL_PARA, min: -2, max: 2, step: 0.5, val: 1 },
+      ],
+      draw() {
+        drawGrid(); drawAxes();
+        plotParabola(0.5);
+        drawSignChart();
+        gdot(r1, 0, 5, COL_ROOT);
+        gdot(r2, 0, 5, COL_ROOT);
+      }
+    },
+    {
+      title: () => T('Sprawdź punkt', 'Test a point'),
+      desc: () => T(
+        'Przesuń x₀ i patrz, czy punkt jest nad czy pod osią. Nad osią → f(x₀) > 0 (zielony). Pod osią → f(x₀) < 0 (czerwony). Tabelka znaków na dole potwierdza.',
+        'Move x₀ and see if the point is above or below the axis. Above → f(x₀) > 0 (green). Below → f(x₀) < 0 (red). The sign chart at the bottom confirms.'
+      ),
+      sliders: [
+        { id: 'r1', lbl: 'r₁', color: COL_ROOT, min: -4, max: 4, step: 0.5, val: r1 },
+        { id: 'r2', lbl: 'r₂', color: COL_ROOT, min: -4, max: 4, step: 0.5, val: r2 },
+        { id: 'a', lbl: 'a', color: COL_PARA, min: -2, max: 2, step: 0.5, val: a },
+        { id: 'x0', lbl: 'x₀', color: '#fff', min: -5, max: 5, step: 0.1, val: 0 },
+      ],
+      draw() {
+        drawGrid(); drawAxes();
+        plotParabola(0.4);
+        drawSignChart();
+
+        // Cursor
+        cx.strokeStyle = 'rgba(255,255,255,0.15)';
+        cx.lineWidth = 1; cx.setLineDash([4,4]);
+        cx.beginPath(); cx.moveTo(px(x0), 0); cx.lineTo(px(x0), H - 45); cx.stroke();
+        cx.setLineDash([]);
+
+        // Point on parabola
+        const y = f(x0);
+        const col = y > 0 ? COL_POS : y < 0 ? COL_NEG : COL_ROOT;
+        gdot(x0, y, 6, col);
+
+        // Value label
+        cx.font = '12px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = col;
+        const labelY = py(y) + (y >= 0 ? -14 : 18);
+        cx.fillText('f(' + x0.toFixed(1) + ') = ' + y.toFixed(1), px(x0), labelY);
+
+        gdot(r1, 0, 4, COL_ROOT);
+        gdot(r2, 0, 4, COL_ROOT);
+      }
+    },
+    {
+      title: () => T('Rozwiąż nierówność', 'Solve the inequality'),
+      desc: () => T(
+        'Wybierz typ nierówności i zobacz, które przedziały spełniają warunek (podświetlone na zielono). Kluczowa zasada: > 0 → szukaj gdzie parabola jest NAD osią.',
+        'Pick the inequality type and see which intervals satisfy it (highlighted green). Key rule: > 0 → look where the parabola is ABOVE the axis.'
+      ),
+      sliders: [
+        { id: 'r1', lbl: 'r₁', color: COL_ROOT, min: -4, max: 4, step: 0.5, val: r1 },
+        { id: 'r2', lbl: 'r₂', color: COL_ROOT, min: -4, max: 4, step: 0.5, val: r2 },
+        { id: 'a', lbl: 'a', color: COL_PARA, min: -2, max: 2, step: 0.5, val: a },
+        { id: 'ineq', lbl: T('nierówn.','ineq'), color: COL_SOLUTION, min: 0, max: 3, step: 1, val: 0 },
+      ],
+      draw() {
+        drawGrid(); drawAxes();
+        shadeSolution(ineqType);
+        plotParabola(0.7);
+        drawSignChart();
+        gdot(r1, 0, 5, COL_ROOT);
+        gdot(r2, 0, 5, COL_ROOT);
+
+        // Show inequality and answer
+        const minR = Math.min(r1, r2);
+        const maxR = Math.max(r1, r2);
+        const posOutside = a > 0;
+        const wantAbove = ineqType === 0 || ineqType === 1;
+        const inclusive = ineqType === 1 || ineqType === 3;
+        const lb = inclusive ? '[' : '(';
+        const rb = inclusive ? ']' : ')';
+
+        let answer;
+        if ((wantAbove && posOutside) || (!wantAbove && !posOutside)) {
+          answer = `(-∞, ${minR}${rb} ∪ ${lb}${maxR}, +∞)`;
+        } else {
+          answer = `${lb}${minR}, ${maxR}${rb}`;
+        }
+
+        cx.font = '13px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = COL_PARA;
+        cx.fillText(`f(x) ${ineqLabels[ineqType]}`, W / 2, 20);
+        cx.fillStyle = COL_SOLUTION;
+        cx.fillText(T('Odpowiedź: ', 'Answer: ') + answer, W / 2, 38);
+      }
+    },
+    {
+      title: () => T('Metoda — krok po kroku', 'Method — step by step'),
+      desc: () => T(
+        '① Znajdź miejsca zerowe (Δ, wzór kwadratowy)\n② Narysuj parabolę (a>0 → ramiona w górę)\n③ Tabelka znaków: +/− w każdym przedziale\n④ Odczytaj przedziały spełniające nierówność\n⑤ Pamiętaj o nawiasach: < → okrągłe, ≤ → kwadratowe przy pierwiastkach',
+        '① Find roots (Δ, quadratic formula)\n② Draw parabola (a>0 → opens up)\n③ Sign chart: +/− in each interval\n④ Read off intervals satisfying the inequality\n⑤ Remember brackets: < → round, ≤ → square at roots'
+      ),
+      sliders: [
+        { id: 'r1', lbl: 'r₁', color: COL_ROOT, min: -4, max: 4, step: 0.5, val: r1 },
+        { id: 'r2', lbl: 'r₂', color: COL_ROOT, min: -4, max: 4, step: 0.5, val: r2 },
+        { id: 'ineq', lbl: T('nierówn.','ineq'), color: COL_SOLUTION, min: 0, max: 3, step: 1, val: ineqType },
+      ],
+      draw() {
+        drawGrid(); drawAxes();
+        shadeSolution(ineqType);
+        plotParabola(0.6);
+        drawSignChart();
+        gdot(r1, 0, 5, COL_ROOT);
+        gdot(r2, 0, 5, COL_ROOT);
+
+        // Root markers with bracket style
+        const minR = Math.min(r1, r2);
+        const maxR = Math.max(r1, r2);
+        const inclusive = ineqType === 1 || ineqType === 3;
+
+        [minR, maxR].forEach(r => {
+          cx.beginPath();
+          cx.arc(px(r), py(0), 7, 0, Math.PI * 2);
+          if (inclusive) {
+            cx.fillStyle = COL_ROOT + '60';
+            cx.fill();
+          }
+          cx.strokeStyle = COL_ROOT;
+          cx.lineWidth = 2;
+          cx.stroke();
+        });
+
+        cx.font = '10px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = 'rgba(255,255,255,0.5)';
+        cx.fillText(inclusive ? T('● = włączone', '● = included') : T('○ = wyłączone', '○ = excluded'), W / 2, py(0) + 28);
+      }
+    },
+  ];
+
+  // ── Slider management ────────────────────────────────────────
+  const slWrap = document.getElementById('sliders-wrap');
+
+  function buildSliders(defs) {
+    let html = '<div class="sliders">';
+    defs.forEach(s => {
+      html += `<div class="slider-row">
+        <span class="lbl" style="color:${s.color}">${s.lbl} =</span>
+        <input type="range" id="s_${s.id}" min="${s.min}" max="${s.max}" step="${s.step}" value="${s.val}">
+        <span class="val" id="v_${s.id}" style="color:${s.color}"></span>
+      </div>`;
+    });
+    html += '</div>';
+    slWrap.innerHTML = html;
+
+    defs.forEach(s => {
+      const el = document.getElementById('s_' + s.id);
+      const display = s.id === 'ineq' ? ineqLabels[+el.value] : (+el.value).toFixed(s.step < 1 ? 1 : 0);
+      document.getElementById('v_' + s.id).textContent = display;
+      el.addEventListener('input', function() {
+        const v = +this.value;
+        if (s.id === 'r1') r1 = v;
+        if (s.id === 'r2') r2 = v;
+        if (s.id === 'a') a = v || 0.5; // don't allow 0
+        if (s.id === 'x0') x0 = v;
+        if (s.id === 'ineq') ineqType = v;
+        document.getElementById('v_' + s.id).textContent =
+          s.id === 'ineq' ? ineqLabels[v] : v.toFixed(s.step < 1 ? 1 : 0);
+      });
+    });
+  }
+
+  // ── Navigation ───────────────────────────────────────────────
+  const prevBtn = document.getElementById('qprev');
+  const nextBtn = document.getElementById('qnext');
+  const dotsEl = document.getElementById('qdots');
+  const titleEl = document.getElementById('qf');
+  const descEl = document.getElementById('qd');
+
+  function goTo(idx) {
+    stage = Math.max(0, Math.min(stages.length - 1, idx));
+    const s = stages[stage];
+    titleEl.textContent = s.title();
+    descEl.textContent = s.desc();
+    if (s.sliders) {
+      s.sliders.forEach(sl => {
+        if (sl.id === 'r1') sl.val = r1;
+        if (sl.id === 'r2') sl.val = r2;
+        if (sl.id === 'a') sl.val = a;
+        if (sl.id === 'x0') sl.val = x0;
+        if (sl.id === 'ineq') sl.val = ineqType;
+      });
+      buildSliders(s.sliders);
+    } else {
+      slWrap.innerHTML = '';
+    }
+    prevBtn.disabled = stage === 0;
+    nextBtn.disabled = stage === stages.length - 1;
+    renderDots();
+  }
+
+  function renderDots() {
+    dotsEl.innerHTML = stages.map((_, i) =>
+      `<span class="dot${i === stage ? ' active' : ''}" data-i="${i}"></span>`
+    ).join('');
+    dotsEl.querySelectorAll('.dot').forEach(d =>
+      d.addEventListener('click', () => goTo(+d.dataset.i))
+    );
+  }
+
+  prevBtn.addEventListener('click', () => goTo(stage - 1));
+  nextBtn.addEventListener('click', () => goTo(stage + 1));
+
+  function tick() { clear(); stages[stage].draw(); requestAnimationFrame(tick); }
+  goTo(0);
+  tick();
+})();
+</script>
+</body>
+</html>

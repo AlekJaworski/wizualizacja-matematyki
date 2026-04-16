@@ -157,9 +157,9 @@ const STRINGS = {
                          en: "You can switch language in the filter bar (PL / EN)." },
 
   // ── Hero screen ──────────────────────────────────────────────────
-  heroTitle:     { pl: "Znajdź swoje luki w matematyce",
+  heroTitle:     { pl: "Matura coraz bliżej — co jeszcze powtórzyć?",
                    en: "Find your gaps in mathematics" },
-  heroSub:       { pl: "Odpowiedz na kilkanaście pytań. Pokażemy Ci, od czego zacząć, żeby Twoja wiedza stała na solidnych fundamentach.",
+  heroSub:       { pl: "Odpowiedz na kilkanaście pytań. Pokażemy, od czego zacząć, żeby Twoja wiedza stała na solidnych fundamentach.",
                    en: "Answer a handful of questions. We'll show you exactly where to start so your knowledge stands on solid foundations." },
   heroStart:     { pl: "Sprawdź się",        en: "Start assessment" },
   heroBrowse:    { pl: "Przeglądaj mapę →",  en: "Browse the map →" },
