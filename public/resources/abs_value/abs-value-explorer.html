@@ -398,34 +398,34 @@
         drawDistanceBrace(nl.toX(-a), nl.toX(0), nlY + 8, nlY + 35, COL_NEG, a.toString());
 
         // Big result
-        textLine(T('Rozwiazania: ', 'Solutions: ') + 'x = ' + a + '  ' + T('lub', 'or') + '  x = -' + a, 210, COL_EQ, 16);
+        textLine(T('Rozwiązania: ', 'Solutions: ') + 'x = ' + a + '  ' + T('lub', 'or') + '  x = -' + a, 210, COL_EQ, 16);
 
         // Verify
         textLine('|' + a + '| = ' + a + '  \u2713     |-' + a + '| = ' + a + '  \u2713', 240, 'rgba(255,255,255,.4)', 12);
 
         // Special note
         if (a === 0) {
-          textLine(T('Gdy a = 0, jest tylko jedno rozwiazanie: x = 0', 'When a = 0, there is only one solution: x = 0'), 270, COL_EQ, 12);
+          textLine(T('Gdy a = 0, jest tylko jedno rozwiązanie: x = 0', 'When a = 0, there is only one solution: x = 0'), 270, COL_EQ, 12);
         } else {
-          textLine(T('Zawsze dwa rozwiazania (symetryczne wzgledem zera)', 'Always two solutions (symmetric about zero)'), 270, 'rgba(255,255,255,.3)', 11);
+          textLine(T('Zawsze dwa rozwiązania (symetryczne względem zera)', 'Always two solutions (symmetric about zero)'), 270, 'rgba(255,255,255,.3)', 11);
         }
       }
     },
 
     // Stage 4: Inequality |x| < a and |x| > a
     {
-      title: () => T('Nierownosc |x| < a  i  |x| > a', 'Inequality |x| < a  and  |x| > a'),
+      title: () => T('Nierówność |x| < a  i  |x| > a', 'Inequality |x| < a  and  |x| > a'),
       desc: () => {
         const a = sA;
         const lt = sMode === 0;
         if (lt) {
           return T(
-            '|x| < ' + a + ' znaczy: x jest blizej niz ' + a + ' od zera. To przedzial (-' + a + ', ' + a + ').',
+            '|x| < ' + a + ' znaczy: x jest bliżej niż ' + a + ' od zera. To przedział (-' + a + ', ' + a + ').',
             '|x| < ' + a + ' means: x is closer than ' + a + ' to zero. That is the interval (-' + a + ', ' + a + ').'
           );
         } else {
           return T(
-            '|x| > ' + a + ' znaczy: x jest dalej niz ' + a + ' od zera. To (-\u221E, -' + a + ') \u222A (' + a + ', +\u221E).',
+            '|x| > ' + a + ' znaczy: x jest dalej niż ' + a + ' od zera. To (-\u221E, -' + a + ') \u222A (' + a + ', +\u221E).',
             '|x| > ' + a + ' means: x is farther than ' + a + ' from zero. That is (-\u221E, -' + a + ') \u222A (' + a + ', +\u221E).'
           );
         }
@@ -476,11 +476,11 @@
           cx.strokeRect(leftPx, nlY - 16, rightPx - leftPx, 32);
           cx.restore();
 
-          textLine(T('Blizej niz ' + a + ' od zera', 'Closer than ' + a + ' to zero'), 60, COL_P, 14);
+          textLine(T('Bliżej niż ' + a + ' od zera', 'Closer than ' + a + ' to zero'), 60, COL_P, 14);
           textLine('(-' + a + ', ' + a + ')', 82, COL_P, 13);
 
           // Explanation
-          textLine(T('Przedzial otwarty: -' + a + ' < x < ' + a,
+          textLine(T('Przedział otwarty: -' + a + ' < x < ' + a,
                       'Open interval: -' + a + ' < x < ' + a), nlY + 60, 'rgba(255,255,255,.5)', 13);
         } else {
           // Shade outside (-inf, -a) and (a, +inf)
@@ -501,26 +501,26 @@
           cx.stroke();
           cx.restore();
 
-          textLine(T('Dalej niz ' + a + ' od zera', 'Farther than ' + a + ' from zero'), 60, COL_B, 14);
+          textLine(T('Dalej niż ' + a + ' od zera', 'Farther than ' + a + ' from zero'), 60, COL_B, 14);
           textLine('(-\u221E, -' + a + ') \u222A (' + a + ', +\u221E)', 82, COL_B, 13);
 
-          textLine(T('Dwa oddzielne przedzialy: x < -' + a + '  lub  x > ' + a,
+          textLine(T('Dwa oddzielne przedziały: x < -' + a + '  lub  x > ' + a,
                       'Two separate intervals: x < -' + a + '  or  x > ' + a), nlY + 60, 'rgba(255,255,255,.5)', 13);
         }
 
         // Mode toggle hint
-        textLine(T('Suwak </> : 0 = mniejsze (<), 1 = wieksze (>)', 'Slider </> : 0 = less than (<), 1 = greater than (>)'), H - 20, 'rgba(255,255,255,.25)', 10);
+        textLine(T('Suwak </> : 0 = mniejsze (<), 1 = większe (>)', 'Slider </> : 0 = less than (<), 1 = greater than (>)'), H - 20, 'rgba(255,255,255,.25)', 10);
       }
     },
 
     // Stage 5: |x - c| = distance from c
     {
-      title: () => T('|x - c| = odleglosc od c', '|x - c| = distance from c'),
+      title: () => T('|x - c| = odległość od c', '|x - c| = distance from c'),
       desc: () => {
         const c = sC, a = sA;
         const lo = c - a, hi = c + a;
         return T(
-          '|x - ' + c + '| < ' + a + ' znaczy: x jest blizej niz ' + a + ' od ' + c + '. To przedzial (' + lo + ', ' + hi + ').',
+          '|x - ' + c + '| < ' + a + ' znaczy: x jest bliżej niż ' + a + ' od ' + c + '. To przedział (' + lo + ', ' + hi + ').',
           '|x - ' + c + '| < ' + a + ' means: x is closer than ' + a + ' to ' + c + '. That is the interval (' + lo + ', ' + hi + ').'
         );
       },
@@ -533,7 +533,7 @@
         const lo = c - a, hi = c + a;
 
         textLine('|x - ' + (c >= 0 ? c : '(' + c + ')') + '| < ' + a, 28, COL_EQ, 22);
-        textLine(T('Odleglosc od ' + c + ' mniejsza niz ' + a, 'Distance from ' + c + ' less than ' + a), 52, 'rgba(255,255,255,.4)', 12);
+        textLine(T('Odległość od ' + c + ' mniejsza niż ' + a, 'Distance from ' + c + ' less than ' + a), 52, 'rgba(255,255,255,.4)', 12);
 
         // Number line
         const nlY = 120;
@@ -577,14 +577,14 @@
         drawDistanceBrace(loPx, nl.toX(c), nlY + 8, nlY + 42, COL_EQ, 'a = ' + a);
 
         // Interval
-        textLine(T('Przedzial: ', 'Interval: ') + '(' + lo + ', ' + hi + ')', 210, COL_P, 16);
+        textLine(T('Przedział: ', 'Interval: ') + '(' + lo + ', ' + hi + ')', 210, COL_P, 16);
 
         // Decomposition
         textLine(c + ' - ' + a + ' < x < ' + c + ' + ' + a, 240, 'rgba(255,255,255,.5)', 13);
         textLine(lo + ' < x < ' + hi, 260, COL_P, 14);
 
         // General rule
-        textLine(T('Ogolnie: |x - c| < a  <=>  c - a < x < c + a',
+        textLine(T('Ogólnie: |x - c| < a  <=>  c - a < x < c + a',
                     'General: |x - c| < a  <=>  c - a < x < c + a'), H - 20, 'rgba(255,255,255,.3)', 11);
       }
     },

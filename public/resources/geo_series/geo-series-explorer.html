@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Szeregi geometryczne — Eksplorator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+  #qf { margin: 0 0 5px; font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  #qd { margin: 0 0 10px; font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); min-height: 48px; }
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 36px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+  .nav { display: flex; align-items: center; justify-content: space-between; }
+  button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  button:hover { background: rgba(255,255,255,.08); }
+  button:disabled { opacity: .3; cursor: default; }
+  #qdots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.18); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  #sliders-wrap { min-height: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="310"></canvas>
+  <div class="panel">
+    <p id="qf"></p>
+    <p id="qd"></p>
+    <div id="sliders-wrap"></div>
+    <div class="nav">
+      <button id="qprev">&larr;</button>
+      <div id="qdots"></div>
+      <button id="qnext">&rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var cv = document.getElementById('cv');
+  var cx = cv.getContext('2d');
+  var W = 600, H = 310;
+
+  var LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
+  function T(pl, en) { return LANG === 'pl' ? pl : en; }
+
+  // Colors
+  var COL_CYA = '#58C4DD';
+  var COL_BLU = '#4a9eff';
+  var COL_ORG = '#FF6B35';
+  var COL_GRN = '#83C167';
+  var COL_YEL = '#FFD166';
+  var COL_PNK = '#E07090';
+  var COL_PUR = '#C080FF';
+
+  // State
+  var stage = 0;
+  var animTime = 0;
+  var nTerms = 6;
+  var qVal = 0.5;
+  var qDiv = 1.5;
+  var nPartial = 8;
+  var a1 = 1;
+
+  // ── Drawing helpers ──────────────────────────────────
+  function clear() { cx.fillStyle = '#0e0e12'; cx.fillRect(0, 0, W, H); }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+    ctx.closePath();
+  }
+
+  function infoBox(text, sx, sy, col, alpha) {
+    cx.save();
+    cx.font = '12px monospace';
+    if (alpha !== undefined) cx.globalAlpha = alpha;
+    var w = cx.measureText(text).width + 16;
+    cx.fillStyle = 'rgba(14,14,18,0.9)';
+    cx.strokeStyle = (col || COL_CYA) + '50';
+    cx.lineWidth = 1;
+    roundRect(cx, sx - w/2, sy - 12, w, 24, 5);
+    cx.fill(); cx.stroke();
+    cx.fillStyle = col || COL_CYA;
+    cx.textAlign = 'center';
+    cx.textBaseline = 'middle';
+    cx.fillText(text, sx, sy);
+    cx.restore();
+  }
+
+  function multiBox(lines, sx, sy, col, lineH) {
+    cx.save();
+    var lh = lineH || 20;
+    cx.font = '12px monospace';
+    var maxW = 0;
+    lines.forEach(function(l) { maxW = Math.max(maxW, cx.measureText(l.text).width); });
+    var bw = maxW + 20;
+    var bh = lines.length * lh + 12;
+    cx.fillStyle = 'rgba(14,14,18,0.92)';
+    cx.strokeStyle = (col || COL_CYA) + '40';
+    cx.lineWidth = 1;
+    roundRect(cx, sx - bw/2, sy - 6, bw, bh, 6);
+    cx.fill(); cx.stroke();
+    cx.textAlign = 'center';
+    cx.textBaseline = 'middle';
+    lines.forEach(function(l, i) {
+      cx.fillStyle = l.color || col || COL_CYA;
+      cx.fillText(l.text, sx, sy + 6 + i * lh);
+    });
+    cx.restore();
+  }
+
+  function fmt(v) {
+    if (Math.abs(v) > 99999) return v > 0 ? '+\u221E' : '-\u221E';
+    if (Math.abs(v - Math.round(v)) < 0.005) return Math.round(v).toString();
+    return v.toFixed(2);
+  }
+
+  function fmtFrac(v) {
+    if (Math.abs(v - Math.round(v)) < 0.005) return Math.round(v).toString();
+    return v.toFixed(4).replace(/0+$/, '').replace(/\.$/, '');
+  }
+
+  // Color interpolation for the square shading
+  function shadeColor(i, total) {
+    // Gradient from bright cyan to deep blue-purple
+    var t = i / Math.max(total, 1);
+    var r = Math.round(88 + (74 - 88) * t);
+    var g = Math.round(196 + (158 - 196) * t);
+    var b = Math.round(221 + (255 - 221) * t);
+    return 'rgb(' + r + ',' + g + ',' + b + ')';
+  }
+
+  // ── Stages ──────────────────────────────────────────
+  var stages = [
+    // Stage 1: Halves of a square
+    {
+      title: function() { return T('Polowki kwadratu', 'Halves of a square'); },
+      desc: function() { return T(
+        '1/2 + 1/4 + 1/8 + 1/16 + ... = 1. Zacieniaj polowe tego, co zostalo. Kawalekami wypelniasz caly kwadrat! Nigdy nie wyjdziesz poza 1.',
+        '1/2 + 1/4 + 1/8 + 1/16 + ... = 1. Shade half of what remains. The pieces fill the entire square! You never exceed 1.'
+      ); },
+      sliders: [
+        { id: 'nterms', lbl: 'n', color: COL_CYA, min: 1, max: 15, step: 1, get: function() { return nTerms; }, set: function(v) { nTerms = v; } },
+      ],
+      draw: function() {
+        var n = Math.round(nTerms);
+        var sqSize = 240;
+        var sqX = (W - sqSize) / 2;
+        var sqY = (H - sqSize) / 2 - 5;
+
+        // Draw outline square (the whole = 1)
+        cx.save();
+        cx.strokeStyle = 'rgba(255,255,255,0.25)';
+        cx.lineWidth = 1.5;
+        cx.strokeRect(sqX, sqY, sqSize, sqSize);
+        cx.restore();
+
+        // Fill pieces using halving rectangles
+        // Each piece is half of the remaining area
+        // We alternate splitting horizontally and vertically
+        var rects = [];
+        var rx = sqX, ry = sqY, rw = sqSize, rh = sqSize;
+        for (var i = 0; i < n; i++) {
+          if (i % 2 === 0) {
+            // Split horizontally: take right half
+            var hw = rw / 2;
+            rects.push({ x: rx + hw, y: ry, w: hw, h: rh });
+            rw = hw;
+          } else {
+            // Split vertically: take bottom half
+            var hh = rh / 2;
+            rects.push({ x: rx, y: ry + hh, w: rw, h: hh });
+            rh = hh;
+          }
+        }
+
+        // Draw filled pieces with different shades
+        rects.forEach(function(r, i) {
+          var col = shadeColor(i, n);
+          cx.save();
+          cx.fillStyle = col;
+          cx.globalAlpha = 0.55 + 0.3 * (1 - i / Math.max(n, 1));
+          cx.fillRect(r.x, r.y, r.w, r.h);
+          cx.restore();
+
+          // Border
+          cx.save();
+          cx.strokeStyle = col;
+          cx.globalAlpha = 0.8;
+          cx.lineWidth = 1;
+          cx.strokeRect(r.x, r.y, r.w, r.h);
+          cx.restore();
+
+          // Label fraction inside if piece is large enough
+          if (r.w > 30 && r.h > 14) {
+            cx.save();
+            cx.font = (r.w > 50 ? 11 : 9) + 'px monospace';
+            cx.fillStyle = '#0e0e12';
+            cx.textAlign = 'center';
+            cx.textBaseline = 'middle';
+            cx.fillText('1/' + Math.pow(2, i + 1), r.x + r.w/2, r.y + r.h/2);
+            cx.restore();
+          }
+        });
+
+        // Compute partial sum
+        var sum = 0;
+        for (var j = 0; j < n; j++) sum += 1 / Math.pow(2, j + 1);
+
+        // Sum equation at top
+        var eqParts = [];
+        for (var k = 0; k < Math.min(n, 5); k++) eqParts.push('1/' + Math.pow(2, k + 1));
+        var eqStr = eqParts.join(' + ');
+        if (n > 5) eqStr += ' + ...';
+        eqStr += ' = ' + fmt(sum);
+
+        infoBox(eqStr, W/2, 14, COL_CYA);
+
+        // Remaining area
+        var remaining = 1 - sum;
+        infoBox(T('Wypelniono: ', 'Filled: ') + (sum * 100).toFixed(1) + '%    ' + T('Zostalo: ', 'Remaining: ') + fmtFrac(remaining), W/2, H - 12, COL_GRN);
+
+        // Highlight remaining area outline
+        if (remaining > 0.001) {
+          cx.save();
+          cx.strokeStyle = COL_PNK;
+          cx.globalAlpha = 0.4 + 0.3 * Math.sin(animTime * 3);
+          cx.lineWidth = 2;
+          cx.setLineDash([4, 3]);
+          cx.strokeRect(rx, ry, rw, rh);
+          cx.setLineDash([]);
+          cx.restore();
+        }
+      }
+    },
+
+    // Stage 2: When convergent?
+    {
+      title: function() { return T('Kiedy zbiezny?', 'When convergent?'); },
+      desc: function() { return T(
+        'Szereg geometryczny zbiera sie do S = a\u2081/(1-q) gdy |q| < 1. Im blizej q do 0, tym szybciej. Im blizej do \u00B11, tym wolniej. Przesuwaj q i obserwuj sumy czesciowe.',
+        'A geometric series converges to S = a\u2081/(1-q) when |q| < 1. Closer to 0 means faster. Closer to \u00B11 means slower. Move q and watch the partial sums.'
+      ); },
+      sliders: [
+        { id: 'qconv', lbl: 'q', color: COL_ORG, min: -0.95, max: 0.95, step: 0.05, get: function() { return qVal; }, set: function(v) { qVal = v; } },
+      ],
+      draw: function() {
+        var q = qVal;
+        var a = 1;
+        var Sinf = Math.abs(q) < 0.999 ? a / (1 - q) : null;
+
+        // Draw partial sums as a curve
+        var maxN = 25;
+        var partials = [];
+        var cumSum = 0;
+        for (var i = 0; i < maxN; i++) {
+          cumSum += a * Math.pow(q, i);
+          partials.push(cumSum);
+        }
+
+        // Determine y-scale
+        var yMax = Sinf !== null ? Math.abs(Sinf) * 1.4 : Math.abs(partials[maxN - 1]) * 1.2;
+        var yMin = Sinf !== null && Sinf < 0 ? Sinf * 1.4 : (q < 0 ? -yMax : 0);
+        if (yMax < 2) yMax = 2;
+        var yRange = yMax - yMin;
+
+        // Mapping
+        var margin = 50;
+        function mapX(i) { return margin + (W - 2 * margin) * i / (maxN - 1); }
+        function mapY(v) { return H - margin - (H - 2 * margin) * (v - yMin) / yRange; }
+
+        // Draw limit line
+        if (Sinf !== null) {
+          cx.save();
+          cx.strokeStyle = COL_GRN;
+          cx.globalAlpha = 0.4 + 0.2 * Math.sin(animTime * 2);
+          cx.lineWidth = 1.5;
+          cx.setLineDash([6, 4]);
+          var ly = mapY(Sinf);
+          cx.beginPath(); cx.moveTo(margin, ly); cx.lineTo(W - margin, ly); cx.stroke();
+          cx.setLineDash([]);
+          cx.restore();
+
+          cx.save();
+          cx.font = '11px monospace';
+          cx.fillStyle = COL_GRN;
+          cx.textAlign = 'left';
+          cx.textBaseline = 'bottom';
+          cx.fillText('S\u221E = ' + fmt(Sinf), W - margin + 5, ly + 4);
+          cx.restore();
+        }
+
+        // Draw zero line
+        if (yMin < 0 && yMax > 0) {
+          cx.save();
+          cx.strokeStyle = 'rgba(255,255,255,0.1)';
+          cx.lineWidth = 0.5;
+          cx.beginPath(); cx.moveTo(margin, mapY(0)); cx.lineTo(W - margin, mapY(0)); cx.stroke();
+          cx.restore();
+        }
+
+        // Draw partial sums as connected dots
+        cx.save();
+        cx.strokeStyle = COL_BLU;
+        cx.globalAlpha = 0.6;
+        cx.lineWidth = 2;
+        cx.beginPath();
+        partials.forEach(function(s, i) {
+          var sx = mapX(i), sy = mapY(s);
+          if (sy < -50) sy = -50;
+          if (sy > H + 50) sy = H + 50;
+          if (i === 0) cx.moveTo(sx, sy); else cx.lineTo(sx, sy);
+        });
+        cx.stroke();
+        cx.restore();
+
+        // Dots
+        partials.forEach(function(s, i) {
+          var sx = mapX(i), sy = mapY(s);
+          if (sy < 5 || sy > H - 5) return;
+          cx.beginPath();
+          cx.arc(sx, sy, 3, 0, Math.PI * 2);
+          cx.fillStyle = COL_BLU;
+          cx.shadowColor = COL_BLU;
+          cx.shadowBlur = 6;
+          cx.fill();
+          cx.shadowBlur = 0;
+        });
+
+        // n-axis labels
+        cx.save();
+        cx.font = '9px monospace';
+        cx.fillStyle = 'rgba(255,255,255,0.3)';
+        cx.textAlign = 'center';
+        for (var k = 0; k < maxN; k += 5) {
+          cx.fillText(k + 1, mapX(k), H - margin + 15);
+        }
+        cx.fillText('n', W - margin + 10, H - margin + 15);
+        cx.restore();
+
+        // Info
+        infoBox('S = a\u2081/(1-q) = 1/(1-' + fmt(q) + ') = ' + (Sinf !== null ? fmt(Sinf) : '\u221E'), W/2, 14, COL_CYA);
+        infoBox('q = ' + fmt(q) + '    |q| = ' + fmt(Math.abs(q)) + (Math.abs(q) < 1 ? '  < 1 \u2713' : '  \u2265 1 \u2717'), W/2, H - 12, Math.abs(q) < 1 ? COL_GRN : COL_PNK);
+      }
+    },
+
+    // Stage 3: When divergent?
+    {
+      title: function() { return T('Kiedy rozbiezny?', 'When divergent?'); },
+      desc: function() { return T(
+        'Gdy |q| \u2265 1, kolejne wyrazy nie maleja — rosna albo oscyluja. Sumy czesciowe uciekaja w nieskonczonosc. Nie ma granicy — szereg rozbiezny!',
+        'When |q| \u2265 1, terms don\'t shrink — they grow or oscillate. Partial sums escape to infinity. No limit — the series diverges!'
+      ); },
+      sliders: [
+        { id: 'qdiv', lbl: 'q', color: COL_PNK, min: 1.0, max: 2.5, step: 0.1, get: function() { return qDiv; }, set: function(v) { qDiv = v; } },
+      ],
+      draw: function() {
+        var q = qDiv;
+        var a = 1;
+        var maxN = 12;
+
+        // Draw bars for individual terms
+        var terms = [];
+        for (var i = 0; i < maxN; i++) terms.push(a * Math.pow(q, i));
+
+        var maxTerm = terms[terms.length - 1];
+        var barMaxH = H - 70;
+        var barW = (W - 80) / maxN - 4;
+        var baseY = H - 35;
+
+        // Bars for individual terms
+        terms.forEach(function(t, i) {
+          var barH = Math.min((t / maxTerm) * barMaxH, barMaxH);
+          var bx = 40 + i * ((W - 80) / maxN);
+
+          // Bar
+          var grad = cx.createLinearGradient(bx, baseY - barH, bx, baseY);
+          grad.addColorStop(0, COL_ORG);
+          grad.addColorStop(1, COL_PNK + '80');
+          cx.fillStyle = grad;
+          cx.globalAlpha = 0.7;
+          cx.fillRect(bx, baseY - barH, barW, barH);
+          cx.globalAlpha = 1;
+
+          // Value label
+          if (barW > 20) {
+            cx.save();
+            cx.font = '8px monospace';
+            cx.fillStyle = 'rgba(255,255,255,0.5)';
+            cx.textAlign = 'center';
+            cx.fillText(fmt(t), bx + barW/2, baseY - barH - 5);
+            cx.restore();
+          }
+
+          // Index label
+          cx.save();
+          cx.font = '8px monospace';
+          cx.fillStyle = 'rgba(255,255,255,0.3)';
+          cx.textAlign = 'center';
+          cx.fillText('a' + (i+1), bx + barW/2, baseY + 10);
+          cx.restore();
+        });
+
+        // Arrow indicating explosion
+        var arrowPulse = 0.5 + 0.5 * Math.sin(animTime * 4);
+        cx.save();
+        cx.font = '22px monospace';
+        cx.fillStyle = COL_PNK;
+        cx.globalAlpha = 0.4 + 0.4 * arrowPulse;
+        cx.textAlign = 'right';
+        cx.fillText('\u2191\u221E', W - 15, 30);
+        cx.restore();
+
+        // Partial sum
+        var cumSum = 0;
+        for (var j = 0; j < maxN; j++) cumSum += terms[j];
+
+        infoBox('|q| = ' + fmt(q) + ' \u2265 1    ' + T('Szereg ROZBIEZNY', 'Series DIVERGENT'), W/2, 14, COL_PNK);
+        infoBox('S_' + maxN + ' = ' + fmt(cumSum) + '    ' + T('i wciaz rosnie...', 'and still growing...'), W/2, H - 12, COL_ORG);
+      }
+    },
+
+    // Stage 4: Partial sum
+    {
+      title: function() { return T('Suma czesciowa', 'Partial sum'); },
+      desc: function() { return T(
+        'S_n = a\u2081(1-q\u207F)/(1-q). Im wiecej wyrazow, tym blizej do S\u221E. Blad = |S\u221E - S_n| = |a\u2081\u00B7q\u207F/(1-q)| maleje wykladniczo. Obserwuj, jak szybko!',
+        'S_n = a\u2081(1-q\u207F)/(1-q). More terms means closer to S\u221E. Error = |S\u221E - S_n| = |a\u2081\u00B7q\u207F/(1-q)| shrinks exponentially. Watch how fast!'
+      ); },
+      sliders: [
+        { id: 'qpart', lbl: 'q', color: COL_ORG, min: 0.1, max: 0.95, step: 0.05, get: function() { return qVal; }, set: function(v) { qVal = v; } },
+        { id: 'npart', lbl: 'n', color: COL_BLU, min: 1, max: 30, step: 1, get: function() { return nPartial; }, set: function(v) { nPartial = v; } },
+      ],
+      draw: function() {
+        var q = qVal;
+        var n = Math.round(nPartial);
+        var a = 1;
+        var Sinf = a / (1 - q);
+        var Sn = a * (1 - Math.pow(q, n)) / (1 - q);
+        var err = Math.abs(Sinf - Sn);
+
+        // Draw convergence curve
+        var maxN = 30;
+        var margin = 50;
+        var yMax = Sinf * 1.15;
+        var yMin = 0;
+        var yRange = yMax - yMin;
+
+        function mapX(i) { return margin + (W - 2 * margin) * i / maxN; }
+        function mapY(v) { return H - margin - (H - 2 * margin) * (v - yMin) / yRange; }
+
+        // Limit line
+        cx.save();
+        cx.strokeStyle = COL_GRN;
+        cx.globalAlpha = 0.5;
+        cx.lineWidth = 1.5;
+        cx.setLineDash([6, 4]);
+        cx.beginPath(); cx.moveTo(margin, mapY(Sinf)); cx.lineTo(W - margin, mapY(Sinf)); cx.stroke();
+        cx.setLineDash([]);
+        cx.restore();
+
+        cx.save();
+        cx.font = '10px monospace';
+        cx.fillStyle = COL_GRN;
+        cx.textAlign = 'left';
+        cx.fillText('S\u221E = ' + fmt(Sinf), W - margin + 4, mapY(Sinf) + 4);
+        cx.restore();
+
+        // Draw all partial sums
+        cx.save();
+        cx.strokeStyle = COL_BLU;
+        cx.globalAlpha = 0.4;
+        cx.lineWidth = 1.5;
+        cx.beginPath();
+        var cumS = 0;
+        for (var i = 0; i < maxN; i++) {
+          cumS += a * Math.pow(q, i);
+          var sx2 = mapX(i + 1), sy2 = mapY(cumS);
+          if (i === 0) cx.moveTo(sx2, sy2); else cx.lineTo(sx2, sy2);
+        }
+        cx.stroke();
+        cx.restore();
+
+        // Highlight the selected partial sum
+        var snX = mapX(n);
+        var snY = mapY(Sn);
+        var sinfY = mapY(Sinf);
+
+        // Error bracket
+        cx.save();
+        cx.strokeStyle = COL_PNK;
+        cx.globalAlpha = 0.6;
+        cx.lineWidth = 2;
+        cx.beginPath();
+        cx.moveTo(snX + 8, snY);
+        cx.lineTo(snX + 14, snY);
+        cx.lineTo(snX + 14, sinfY);
+        cx.lineTo(snX + 8, sinfY);
+        cx.stroke();
+        cx.restore();
+
+        if (Math.abs(snY - sinfY) > 12) {
+          cx.save();
+          cx.font = '9px monospace';
+          cx.fillStyle = COL_PNK;
+          cx.textAlign = 'left';
+          cx.fillText(T('blad', 'err') + ' = ' + err.toExponential(2), snX + 18, (snY + sinfY) / 2 + 3);
+          cx.restore();
+        }
+
+        // Selected dot
+        cx.beginPath();
+        cx.arc(snX, snY, 6, 0, Math.PI * 2);
+        cx.fillStyle = COL_YEL;
+        cx.shadowColor = COL_YEL;
+        cx.shadowBlur = 12;
+        cx.fill();
+        cx.shadowBlur = 0;
+
+        // n-axis labels
+        cx.save();
+        cx.font = '9px monospace';
+        cx.fillStyle = 'rgba(255,255,255,0.3)';
+        cx.textAlign = 'center';
+        for (var k = 5; k <= maxN; k += 5) {
+          cx.fillText(k, mapX(k), H - margin + 15);
+        }
+        cx.fillText('n', W - margin + 10, H - margin + 15);
+        cx.restore();
+
+        infoBox('S_' + n + ' = ' + fmt(Sn) + '    S\u221E = ' + fmt(Sinf), W/2, 14, COL_CYA);
+        infoBox(T('Blad', 'Error') + ': |S\u221E - S_' + n + '| = ' + err.toExponential(2), W/2, H - 12, COL_PNK);
+      }
+    },
+
+    // Stage 5: Applications — recurring decimals
+    {
+      title: function() { return T('Zastosowania', 'Applications'); },
+      desc: function() { return T(
+        '0.333... = 3/10 + 3/100 + 3/1000 + ... Szereg geometryczny z a\u2081 = 3/10 i q = 1/10. Suma = (3/10)/(1 - 1/10) = 1/3. Kazdy ulamek dziesietny okresowy to szereg geometryczny!',
+        '0.333... = 3/10 + 3/100 + 3/1000 + ... A geometric series with a\u2081 = 3/10 and q = 1/10. Sum = (3/10)/(1 - 1/10) = 1/3. Every repeating decimal is a geometric series!'
+      ); },
+      sliders: [],
+      draw: function() {
+        // Show multiple examples with animation
+        var examples = [
+          {
+            decimal: '0.333...',
+            terms: ['3/10', '3/100', '3/1000', '3/10000'],
+            a1: '3/10', q: '1/10', result: '1/3',
+            a1v: 0.3, qv: 0.1, resv: 1/3
+          },
+          {
+            decimal: '0.666...',
+            terms: ['6/10', '6/100', '6/1000', '6/10000'],
+            a1: '6/10', q: '1/10', result: '2/3',
+            a1v: 0.6, qv: 0.1, resv: 2/3
+          },
+          {
+            decimal: '0.999...',
+            terms: ['9/10', '9/100', '9/1000', '9/10000'],
+            a1: '9/10', q: '1/10', result: '1',
+            a1v: 0.9, qv: 0.1, resv: 1
+          }
+        ];
+
+        var blockH = 72;
+        var startY = 15;
+
+        examples.forEach(function(ex, idx) {
+          var by = startY + idx * (blockH + 12);
+
+          // Background block
+          cx.save();
+          cx.fillStyle = 'rgba(22,22,26,0.9)';
+          cx.strokeStyle = 'rgba(255,255,255,0.06)';
+          cx.lineWidth = 1;
+          roundRect(cx, 20, by, W - 40, blockH, 8);
+          cx.fill(); cx.stroke();
+          cx.restore();
+
+          var colors = [COL_CYA, COL_BLU, COL_PUR];
+          var col = colors[idx];
+
+          // Decimal
+          cx.save();
+          cx.font = 'bold 14px monospace';
+          cx.fillStyle = col;
+          cx.textAlign = 'left';
+          cx.textBaseline = 'top';
+          cx.fillText(ex.decimal, 35, by + 8);
+          cx.restore();
+
+          // Expansion
+          cx.save();
+          cx.font = '11px monospace';
+          cx.fillStyle = 'rgba(255,255,255,0.6)';
+          cx.textAlign = 'left';
+          cx.textBaseline = 'top';
+          cx.fillText('= ' + ex.terms.join(' + ') + ' + ...', 35, by + 28);
+          cx.restore();
+
+          // Series info
+          cx.save();
+          cx.font = '11px monospace';
+          cx.fillStyle = COL_GRN;
+          cx.textAlign = 'left';
+          cx.textBaseline = 'top';
+          cx.fillText('a\u2081 = ' + ex.a1 + ',  q = ' + ex.q + '  \u2192  S = ' + ex.result, 35, by + 48);
+          cx.restore();
+
+          // Animated progress bar showing convergence
+          var nShow = Math.min(Math.floor(animTime * 2 + idx * 3) % 20 + 1, 15);
+          var cumVal = 0;
+          for (var k = 0; k < nShow; k++) cumVal += ex.a1v * Math.pow(ex.qv, k);
+          var barW2 = W - 120;
+          var barH = 6;
+          var barX = W - barW2 - 30;
+          var barY = by + 8;
+
+          // Progress background
+          cx.save();
+          cx.fillStyle = 'rgba(255,255,255,0.05)';
+          roundRect(cx, barX, barY, barW2, barH, 3);
+          cx.fill();
+          cx.restore();
+
+          // Progress fill
+          var fillW = barW2 * Math.min(cumVal / ex.resv, 1);
+          cx.save();
+          cx.fillStyle = col;
+          cx.globalAlpha = 0.5;
+          roundRect(cx, barX, barY, fillW, barH, 3);
+          cx.fill();
+          cx.restore();
+
+          // Target mark
+          cx.save();
+          cx.strokeStyle = COL_GRN;
+          cx.globalAlpha = 0.8;
+          cx.lineWidth = 2;
+          cx.beginPath();
+          cx.moveTo(barX + barW2, barY - 2);
+          cx.lineTo(barX + barW2, barY + barH + 2);
+          cx.stroke();
+          cx.restore();
+        });
+
+        // Bottom message
+        infoBox(T('Ulamek dziesietny okresowy to szereg geometryczny!', 'Every repeating decimal is a geometric series!'), W/2, H - 12, COL_YEL);
+      }
+    }
+  ];
+
+  // ── Slider management ─────────────────────────────────
+  var slWrap = document.getElementById('sliders-wrap');
+
+  function buildSliders(defs) {
+    var html = '<div class="sliders">';
+    defs.forEach(function(s) {
+      var v = s.get();
+      html += '<div class="slider-row">' +
+        '<span class="lbl" style="color:' + s.color + '">' + s.lbl + ' =</span>' +
+        '<input type="range" id="s_' + s.id + '" min="' + s.min + '" max="' + s.max + '" step="' + s.step + '" value="' + v + '">' +
+        '<span class="val" id="v_' + s.id + '" style="color:' + s.color + '"></span>' +
+      '</div>';
+    });
+    html += '</div>';
+    slWrap.innerHTML = html;
+
+    defs.forEach(function(s) {
+      var el = document.getElementById('s_' + s.id);
+      var valEl = document.getElementById('v_' + s.id);
+      valEl.textContent = fmtSlider(+el.value, s.step);
+      el.addEventListener('input', function() {
+        var v = +this.value;
+        valEl.textContent = fmtSlider(v, s.step);
+        s.set(v);
+      });
+    });
+  }
+
+  function fmtSlider(v, step) {
+    return step < 1 ? v.toFixed(step < 0.1 ? 2 : 1) : v.toFixed(0);
+  }
+
+  // ── Navigation ────────────────────────────────────────
+  var prevBtn = document.getElementById('qprev');
+  var nextBtn = document.getElementById('qnext');
+  var dotsEl  = document.getElementById('qdots');
+  var titleEl = document.getElementById('qf');
+  var descEl  = document.getElementById('qd');
+
+  function goTo(idx) {
+    stage = Math.max(0, Math.min(stages.length - 1, idx));
+    var s = stages[stage];
+    titleEl.textContent = s.title();
+    descEl.textContent = s.desc();
+
+    if (s.sliders && s.sliders.length > 0) {
+      buildSliders(s.sliders);
+    } else {
+      slWrap.innerHTML = '';
+    }
+
+    prevBtn.disabled = stage === 0;
+    nextBtn.disabled = stage === stages.length - 1;
+    renderDots();
+  }
+
+  function renderDots() {
+    dotsEl.innerHTML = stages.map(function(_, i) {
+      return '<span class="dot' + (i === stage ? ' active' : '') + '" data-i="' + i + '"></span>';
+    }).join('');
+    dotsEl.querySelectorAll('.dot').forEach(function(d) {
+      d.addEventListener('click', function() { goTo(+d.dataset.i); });
+    });
+  }
+
+  prevBtn.addEventListener('click', function() { goTo(stage - 1); });
+  nextBtn.addEventListener('click', function() { goTo(stage + 1); });
+
+  // ── Render loop ───────────────────────────────────────
+  function tick() {
+    animTime += 0.016;
+    clear();
+    stages[stage].draw();
+    requestAnimationFrame(tick);
+  }
+
+  goTo(0);
+  tick();
+})();
+</script>
+</body>
+</html>

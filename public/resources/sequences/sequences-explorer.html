@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ciągi — Eksplorator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+  #qf { margin: 0 0 5px; font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  #qd { margin: 0 0 10px; font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); min-height: 48px; }
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 36px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+  .nav { display: flex; align-items: center; justify-content: space-between; }
+  button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  button:hover { background: rgba(255,255,255,.08); }
+  button:disabled { opacity: .3; cursor: default; }
+  #qdots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.18); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  #sliders-wrap { min-height: 0; }
+  .link-btn { display: inline-block; margin-top: 8px; padding: 6px 14px; border-radius: 6px; background: rgba(88,196,221,.12); border: 1px solid rgba(88,196,221,.3); color: #58C4DD; font-size: 12px; text-decoration: none; font-family: monospace; transition: background .15s; }
+  .link-btn:hover { background: rgba(88,196,221,.22); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="310"></canvas>
+  <div class="panel">
+    <p id="qf"></p>
+    <p id="qd"></p>
+    <div id="sliders-wrap"></div>
+    <div class="nav">
+      <button id="qprev">&larr;</button>
+      <div id="qdots"></div>
+      <button id="qnext">&rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const cv = document.getElementById('cv');
+  const cx = cv.getContext('2d');
+  const W = 600, H = 310;
+
+  const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
+  const T = (pl, en) => LANG === 'pl' ? pl : en;
+
+  // Colors
+  const COL_CYAN  = '#58C4DD';
+  const COL_BLUE  = '#4a9eff';
+  const COL_ORANGE= '#FF6B35';
+  const COL_GREEN = '#83C167';
+  const COL_YELLOW= '#FFD166';
+  const COL_PINK  = '#E07090';
+  const COL_PURP  = '#C080FF';
+
+  // Coordinate system
+  let OX, OY, SC;
+  function setCoords(ox, oy, sc) { OX = ox; OY = oy; SC = sc; }
+  function px(x) { return OX + x * SC; }
+  function py(y) { return OY - y * SC; }
+
+  // State
+  let stage = 0;
+  let formulaType = 0; // 0: 2n+1, 1: n², 2: 3n-2, 3: 10-n
+  let a1_arith = 2, d_arith = 3;
+  let a1_geo = 2, q_geo = 1.5;
+  let nCompare = 8;
+  let nSum = 8;
+  let animT = 0;
+
+  // Formula definitions
+  const formulas = [
+    { label: 'aₙ = 2n + 1', fn: n => 2*n + 1 },
+    { label: 'aₙ = n²',     fn: n => n*n },
+    { label: 'aₙ = 3n - 2', fn: n => 3*n - 2 },
+    { label: 'aₙ = 10 - n', fn: n => 10 - n },
+  ];
+
+  // ── Drawing helpers ──────────────────────────────────────────
+  function clear() {
+    cx.fillStyle = '#0e0e12';
+    cx.fillRect(0, 0, W, H);
+  }
+
+  function drawGrid(xMin, xMax, yMin, yMax) {
+    cx.strokeStyle = 'rgba(255,255,255,0.04)';
+    cx.lineWidth = 0.7;
+    for (let x = Math.ceil(xMin); x <= Math.floor(xMax); x++) {
+      cx.beginPath(); cx.moveTo(px(x), 0); cx.lineTo(px(x), H); cx.stroke();
+    }
+    for (let y = Math.ceil(yMin); y <= Math.floor(yMax); y++) {
+      cx.beginPath(); cx.moveTo(0, py(y)); cx.lineTo(W, py(y)); cx.stroke();
+    }
+  }
+
+  function drawAxes(xMin, xMax, yMin, yMax) {
+    cx.strokeStyle = 'rgba(255,255,255,0.2)';
+    cx.lineWidth = 1;
+    cx.beginPath(); cx.moveTo(0, py(0)); cx.lineTo(W, py(0)); cx.stroke();
+    cx.beginPath(); cx.moveTo(px(0), 0); cx.lineTo(px(0), H); cx.stroke();
+
+    cx.fillStyle = 'rgba(255,255,255,0.25)';
+    cx.font = '9px monospace';
+    cx.textAlign = 'center';
+    for (let x = Math.ceil(xMin); x <= Math.floor(xMax); x++) {
+      if (x === 0) continue;
+      cx.fillText(x, px(x), py(0) + 13);
+    }
+    cx.textAlign = 'right';
+    for (let y = Math.ceil(yMin); y <= Math.floor(yMax); y++) {
+      if (y === 0) continue;
+      cx.fillText(y, px(0) - 6, py(y) + 3);
+    }
+  }
+
+  function gdot(sx, sy, r, col) {
+    cx.beginPath(); cx.arc(sx, sy, r, 0, Math.PI * 2);
+    cx.fillStyle = col; cx.shadowColor = col; cx.shadowBlur = 12;
+    cx.fill(); cx.shadowBlur = 0;
+  }
+
+  function infoBox(text, sx, sy, col, alpha) {
+    cx.save();
+    cx.font = '12px monospace';
+    if (alpha !== undefined) cx.globalAlpha = alpha;
+    const w = cx.measureText(text).width + 16;
+    cx.fillStyle = 'rgba(14,14,18,0.88)';
+    cx.strokeStyle = col + '50';
+    cx.lineWidth = 1;
+    roundRect(cx, sx - w/2, sy - 12, w, 24, 5);
+    cx.fill(); cx.stroke();
+    cx.fillStyle = col;
+    cx.textAlign = 'center';
+    cx.fillText(text, sx, sy + 4);
+    cx.restore();
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+    ctx.closePath();
+  }
+
+  function fmt(v) {
+    if (Math.abs(v - Math.round(v)) < 0.01) return Math.round(v).toString();
+    return v.toFixed(2);
+  }
+
+  function fmtSlider(v, step) {
+    if (step < 0.1) return v.toFixed(2);
+    if (step < 1) return v.toFixed(1);
+    return v.toFixed(0);
+  }
+
+  // ── Stages ───────────────────────────────────────────────────
+  const stages = [
+    // Stage 1: A sequence is a formula for the n-th element
+    {
+      title: () => T('Ciąg to wzór na n-ty element', 'A sequence is a formula for the n-th element'),
+      desc: () => {
+        const f = formulas[formulaType];
+        const vals = [];
+        for (let n = 1; n <= 5; n++) vals.push(f.fn(n));
+        return T(
+          f.label + ': elementy to ' + vals.join(', ') + '... Każdy wyraz zależy od pozycji n. Przesuń suwak, by zmienić wzór.',
+          f.label + ': elements are ' + vals.join(', ') + '... Each term depends on position n. Move the slider to change the formula.'
+        );
+      },
+      sliders: [
+        { id: 'formula', lbl: T('wzór','form'), color: COL_CYAN, min: 0, max: 3, step: 1, get: () => formulaType, set: v => formulaType = v },
+      ],
+      draw() {
+        const f = formulas[formulaType];
+        const maxN = 10;
+
+        // Find y-range
+        let yMin = Infinity, yMax = -Infinity;
+        for (let n = 1; n <= maxN; n++) {
+          const v = f.fn(n);
+          if (v < yMin) yMin = v;
+          if (v > yMax) yMax = v;
+        }
+        const yRange = Math.max(yMax - yMin, 1);
+        const yPad = yRange * 0.15;
+        yMin -= yPad; yMax += yPad;
+
+        const scY = (H - 60) / (yMax - yMin);
+        const scX = (W - 100) / (maxN + 1);
+        const baseX = 60;
+        const baseY = H - 30;
+
+        // Light connecting line
+        cx.save();
+        cx.strokeStyle = COL_CYAN;
+        cx.globalAlpha = 0.2;
+        cx.lineWidth = 1.5;
+        cx.beginPath();
+        for (let n = 1; n <= maxN; n++) {
+          const xp = baseX + n * scX;
+          const yp = baseY - (f.fn(n) - yMin) * scY;
+          if (n === 1) cx.moveTo(xp, yp);
+          else cx.lineTo(xp, yp);
+        }
+        cx.stroke();
+        cx.restore();
+
+        // Draw dots with labels
+        for (let n = 1; n <= maxN; n++) {
+          const val = f.fn(n);
+          const xp = baseX + n * scX;
+          const yp = baseY - (val - yMin) * scY;
+
+          // Animated appearance
+          const delay = n * 8;
+          const appear = Math.min(1, Math.max(0, (animT - delay) / 20));
+          if (appear <= 0) continue;
+
+          const r = 5 * appear;
+          gdot(xp, yp, r, COL_CYAN);
+
+          // Value label above dot
+          cx.save();
+          cx.font = '11px monospace';
+          cx.fillStyle = COL_CYAN;
+          cx.globalAlpha = appear;
+          cx.textAlign = 'center';
+          cx.fillText(fmt(val), xp, yp - 12);
+          cx.restore();
+
+          // n label below
+          cx.save();
+          cx.font = '9px monospace';
+          cx.fillStyle = 'rgba(255,255,255,0.35)';
+          cx.globalAlpha = appear;
+          cx.textAlign = 'center';
+          cx.fillText('n=' + n, xp, baseY + 14);
+          cx.restore();
+        }
+
+        // Formula label
+        infoBox(f.label, W/2, 18, COL_CYAN);
+      }
+    },
+
+    // Stage 2: Arithmetic sequence — constant step
+    {
+      title: () => T('Ciąg arytmetyczny — stały krok', 'Arithmetic sequence — constant step'),
+      desc: () => T(
+        'aₙ = a₁ + (n-1)·d. Każdy wyraz różni się o d = ' + fmt(d_arith) + '. Start a₁ = ' + fmt(a1_arith) + '. To jak schody: każdy stopień ma tę samą wysokość.',
+        'aₙ = a₁ + (n-1)·d. Each term differs by d = ' + fmt(d_arith) + '. Start a₁ = ' + fmt(a1_arith) + '. Like stairs: each step has the same height.'
+      ),
+      sliders: [
+        { id: 'a1a', lbl: 'a₁', color: COL_BLUE, min: -5, max: 10, step: 1, get: () => a1_arith, set: v => a1_arith = v },
+        { id: 'da', lbl: 'd', color: COL_GREEN, min: -4, max: 6, step: 0.5, get: () => d_arith, set: v => d_arith = v },
+      ],
+      draw() {
+        const maxN = 8;
+        const terms = [];
+        for (let n = 1; n <= maxN; n++) {
+          terms.push(a1_arith + (n - 1) * d_arith);
+        }
+
+        let yMin = Math.min(...terms, 0);
+        let yMax = Math.max(...terms, 1);
+        const yRange = yMax - yMin || 1;
+        yMin -= yRange * 0.1;
+        yMax += yRange * 0.2;
+
+        const scY = (H - 70) / (yMax - yMin);
+        const scX = (W - 80) / (maxN + 1);
+        const baseX = 55;
+        const baseY = H - 35;
+        const zeroY = baseY - (0 - yMin) * scY;
+
+        // Zero line
+        cx.save();
+        cx.strokeStyle = 'rgba(255,255,255,0.1)';
+        cx.lineWidth = 0.7;
+        cx.beginPath();
+        cx.moveTo(baseX, zeroY);
+        cx.lineTo(W - 20, zeroY);
+        cx.stroke();
+        cx.restore();
+
+        // Draw staircase
+        for (let n = 1; n <= maxN; n++) {
+          const val = terms[n - 1];
+          const xp = baseX + n * scX;
+          const yp = baseY - (val - yMin) * scY;
+
+          // Bar from zero to value
+          const barW = scX * 0.5;
+          cx.fillStyle = COL_BLUE + '20';
+          cx.strokeStyle = COL_BLUE + '50';
+          cx.lineWidth = 1;
+          const barTop = Math.min(yp, zeroY);
+          const barH = Math.abs(yp - zeroY);
+          roundRect(cx, xp - barW/2, barTop, barW, barH, 3);
+          cx.fill(); cx.stroke();
+
+          // Dot on top
+          gdot(xp, yp, 5, COL_BLUE);
+
+          // Value label
+          cx.font = '10px monospace';
+          cx.fillStyle = COL_BLUE;
+          cx.textAlign = 'center';
+          cx.fillText(fmt(val), xp, yp - 10);
+
+          // n label
+          cx.font = '9px monospace';
+          cx.fillStyle = 'rgba(255,255,255,0.3)';
+          cx.fillText(n, xp, baseY + 12);
+
+          // Step arrow showing d
+          if (n > 1 && Math.abs(d_arith) > 0.01) {
+            const prevYp = baseY - (terms[n-2] - yMin) * scY;
+            const prevXp = baseX + (n-1) * scX;
+
+            cx.save();
+            cx.strokeStyle = COL_GREEN;
+            cx.globalAlpha = 0.5;
+            cx.lineWidth = 1.5;
+            cx.setLineDash([3, 2]);
+
+            // Horizontal line at previous level
+            cx.beginPath();
+            cx.moveTo(prevXp + 4, prevYp);
+            cx.lineTo(xp - 4, prevYp);
+            cx.stroke();
+
+            // Vertical line showing d
+            cx.beginPath();
+            cx.moveTo(xp, prevYp);
+            cx.lineTo(xp, yp);
+            cx.stroke();
+            cx.setLineDash([]);
+
+            // d label
+            if (n === 2) {
+              cx.font = '10px monospace';
+              cx.fillStyle = COL_GREEN;
+              cx.globalAlpha = 0.8;
+              cx.textAlign = 'left';
+              cx.fillText('d = ' + fmt(d_arith), xp + 8, (prevYp + yp) / 2 + 4);
+            }
+            cx.restore();
+          }
+        }
+
+        // Sum formula
+        const sn = maxN * (terms[0] + terms[maxN - 1]) / 2;
+        infoBox('aₙ = ' + fmt(a1_arith) + ' + (n-1)·' + fmt(d_arith), W * 0.35, 18, COL_BLUE);
+        infoBox('S₈ = 8·(' + fmt(terms[0]) + '+' + fmt(terms[7]) + ')/2 = ' + fmt(sn), W * 0.75, 18, COL_GREEN, 0.8);
+      }
+    },
+
+    // Stage 3: Geometric sequence — constant multiplier
+    {
+      title: () => T('Ciąg geometryczny — stały mnożnik', 'Geometric sequence — constant multiplier'),
+      desc: () => T(
+        'aₙ = a₁ · q^(n-1). Każdy wyraz to q = ' + fmt(q_geo) + ' razy poprzedni. |q| < 1: maleje. |q| > 1: eksploduje. q < 0: znaki się zmieniają!',
+        'aₙ = a₁ · q^(n-1). Each term is q = ' + fmt(q_geo) + ' times the previous. |q| < 1: shrinks. |q| > 1: explodes. q < 0: signs alternate!'
+      ),
+      sliders: [
+        { id: 'a1g', lbl: 'a₁', color: COL_ORANGE, min: 0.5, max: 5, step: 0.5, get: () => a1_geo, set: v => a1_geo = v },
+        { id: 'qg', lbl: 'q', color: COL_PINK, min: -2, max: 3, step: 0.1, get: () => q_geo, set: v => q_geo = v },
+      ],
+      draw() {
+        const maxN = 8;
+        const terms = [];
+        for (let n = 1; n <= maxN; n++) {
+          terms.push(a1_geo * Math.pow(q_geo, n - 1));
+        }
+
+        // Clamp display to reasonable range
+        const clampedTerms = terms.map(t => Math.max(-200, Math.min(200, t)));
+        let yMin = Math.min(...clampedTerms, 0);
+        let yMax = Math.max(...clampedTerms, 1);
+        const yRange = yMax - yMin || 1;
+        yMin -= yRange * 0.1;
+        yMax += yRange * 0.2;
+
+        const scY = (H - 70) / (yMax - yMin);
+        const scX = (W - 80) / (maxN + 1);
+        const baseX = 55;
+        const baseY = H - 35;
+        const zeroY = baseY - (0 - yMin) * scY;
+
+        // Zero line
+        cx.save();
+        cx.strokeStyle = 'rgba(255,255,255,0.1)';
+        cx.lineWidth = 0.7;
+        cx.beginPath();
+        cx.moveTo(baseX, zeroY);
+        cx.lineTo(W - 20, zeroY);
+        cx.stroke();
+        cx.restore();
+
+        // Draw towers
+        for (let n = 1; n <= maxN; n++) {
+          const rawVal = terms[n - 1];
+          const val = clampedTerms[n - 1];
+          const xp = baseX + n * scX;
+          const yp = baseY - (val - yMin) * scY;
+          const clampedYp = Math.max(25, Math.min(H - 25, yp));
+
+          // Tower block
+          const barW = scX * 0.5;
+          const isPositive = val >= 0;
+          const col = isPositive ? COL_ORANGE : COL_PINK;
+
+          cx.fillStyle = col + '20';
+          cx.strokeStyle = col + '50';
+          cx.lineWidth = 1;
+          const barTop = Math.min(clampedYp, zeroY);
+          const barH = Math.abs(clampedYp - zeroY);
+          if (barH > 1) {
+            roundRect(cx, xp - barW/2, barTop, barW, barH, 3);
+            cx.fill(); cx.stroke();
+          }
+
+          // Dot
+          gdot(xp, clampedYp, 5, col);
+
+          // Value label
+          cx.font = '10px monospace';
+          cx.fillStyle = col;
+          cx.textAlign = 'center';
+          const labelYOff = val >= 0 ? -10 : 14;
+          cx.fillText(fmt(rawVal), xp, clampedYp + labelYOff);
+
+          // n label
+          cx.font = '9px monospace';
+          cx.fillStyle = 'rgba(255,255,255,0.3)';
+          cx.fillText(n, xp, baseY + 12);
+
+          // Multiplier arrow
+          if (n > 1 && Math.abs(q_geo) > 0.01) {
+            const prevXp = baseX + (n-1) * scX;
+            const prevVal = clampedTerms[n-2];
+            const prevYp = Math.max(25, Math.min(H - 25, baseY - (prevVal - yMin) * scY));
+
+            cx.save();
+            cx.strokeStyle = COL_PINK;
+            cx.globalAlpha = 0.35;
+            cx.lineWidth = 1;
+            cx.setLineDash([2, 2]);
+            cx.beginPath();
+            cx.moveTo(prevXp + 4, prevYp);
+            cx.lineTo(xp - 4, clampedYp);
+            cx.stroke();
+            cx.setLineDash([]);
+            cx.restore();
+
+            // q label on first arrow
+            if (n === 2) {
+              cx.save();
+              cx.font = '10px monospace';
+              cx.fillStyle = COL_PINK;
+              cx.globalAlpha = 0.8;
+              cx.textAlign = 'center';
+              cx.fillText('×q', (prevXp + xp) / 2, Math.min(prevYp, clampedYp) - 6);
+              cx.restore();
+            }
+          }
+        }
+
+        // Behavior note
+        let note = '';
+        if (Math.abs(q_geo) < 0.01) note = T('q ≈ 0: ciąg gaśnie', 'q ≈ 0: sequence dies');
+        else if (Math.abs(q_geo) < 1) note = T('|q| < 1: ciąg maleje → 0', '|q| < 1: sequence shrinks → 0');
+        else if (Math.abs(q_geo) === 1 && q_geo > 0) note = T('q = 1: ciąg stały', 'q = 1: constant sequence');
+        else if (q_geo === -1) note = T('q = -1: oscylacja ±a₁', 'q = -1: oscillation ±a₁');
+        else if (Math.abs(q_geo) > 1) note = T('|q| > 1: ciąg eksploduje!', '|q| > 1: sequence explodes!');
+
+        infoBox('aₙ = ' + fmt(a1_geo) + ' · ' + fmt(q_geo) + '^(n-1)', W * 0.35, 18, COL_ORANGE);
+        if (note) infoBox(note, W * 0.75, 18, COL_PINK, 0.8);
+      }
+    },
+
+    // Stage 4: Arithmetic vs geometric
+    {
+      title: () => T('Arytmetyczny vs geometryczny', 'Arithmetic vs geometric'),
+      desc: () => T(
+        'Oba startują z a₁ = ' + fmt(a1_arith) + '. Arytmetyczny (d = ' + fmt(d_arith) + ') rośnie liniowo. Geometryczny (q = ' + fmt(q_geo) + ') rośnie wykładniczo. Przy n = ' + nCompare + ' — zobacz różnicę!',
+        'Both start at a₁ = ' + fmt(a1_arith) + '. Arithmetic (d = ' + fmt(d_arith) + ') grows linearly. Geometric (q = ' + fmt(q_geo) + ') grows exponentially. At n = ' + nCompare + ' — see the difference!'
+      ),
+      sliders: [
+        { id: 'ncomp', lbl: 'n', color: COL_YELLOW, min: 2, max: 15, step: 1, get: () => nCompare, set: v => nCompare = v },
+        { id: 'da2', lbl: 'd', color: COL_BLUE, min: 1, max: 6, step: 0.5, get: () => d_arith, set: v => d_arith = v },
+        { id: 'qg2', lbl: 'q', color: COL_ORANGE, min: 0.5, max: 2.5, step: 0.1, get: () => q_geo, set: v => q_geo = v },
+      ],
+      draw() {
+        const a1 = a1_arith;
+        const maxN = nCompare;
+
+        // Compute terms
+        const arithTerms = [], geoTerms = [];
+        for (let n = 1; n <= maxN; n++) {
+          arithTerms.push(a1 + (n - 1) * d_arith);
+          geoTerms.push(a1 * Math.pow(q_geo, n - 1));
+        }
+
+        // Clamp geo terms
+        const allVals = [...arithTerms, ...geoTerms.map(v => Math.min(v, 1e6))];
+        let yMin = Math.min(...allVals, 0);
+        let yMax = Math.max(...allVals, 1);
+        const yRange = yMax - yMin || 1;
+        yMin -= yRange * 0.05;
+        yMax += yRange * 0.15;
+
+        const scY = (H - 65) / (yMax - yMin);
+        const scX = (W - 80) / (maxN + 1);
+        const baseX = 50;
+        const baseY = H - 35;
+
+        // Connect lines
+        cx.save();
+        cx.lineWidth = 2;
+        // Arithmetic line
+        cx.strokeStyle = COL_BLUE;
+        cx.globalAlpha = 0.4;
+        cx.beginPath();
+        for (let n = 1; n <= maxN; n++) {
+          const xp = baseX + n * scX;
+          const yp = baseY - (arithTerms[n-1] - yMin) * scY;
+          const clYp = Math.max(10, Math.min(H - 10, yp));
+          if (n === 1) cx.moveTo(xp, clYp);
+          else cx.lineTo(xp, clYp);
+        }
+        cx.stroke();
+
+        // Geometric line
+        cx.strokeStyle = COL_ORANGE;
+        cx.beginPath();
+        for (let n = 1; n <= maxN; n++) {
+          const xp = baseX + n * scX;
+          const gVal = Math.min(geoTerms[n-1], yMax + yRange);
+          const yp = baseY - (gVal - yMin) * scY;
+          const clYp = Math.max(10, Math.min(H - 10, yp));
+          if (n === 1) cx.moveTo(xp, clYp);
+          else cx.lineTo(xp, clYp);
+        }
+        cx.stroke();
+        cx.restore();
+
+        // Dots
+        for (let n = 1; n <= maxN; n++) {
+          const xp = baseX + n * scX;
+
+          // Arithmetic dot
+          const aYp = Math.max(10, Math.min(H - 10, baseY - (arithTerms[n-1] - yMin) * scY));
+          gdot(xp - 3, aYp, 4, COL_BLUE);
+
+          // Geometric dot
+          const gVal = Math.min(geoTerms[n-1], yMax + yRange);
+          const gYp = Math.max(10, Math.min(H - 10, baseY - (gVal - yMin) * scY));
+          gdot(xp + 3, gYp, 4, COL_ORANGE);
+
+          // n label
+          if (n <= 15) {
+            cx.font = '8px monospace';
+            cx.fillStyle = 'rgba(255,255,255,0.3)';
+            cx.textAlign = 'center';
+            cx.fillText(n, xp, baseY + 10);
+          }
+        }
+
+        // Final values
+        const finalA = arithTerms[maxN - 1];
+        const finalG = geoTerms[maxN - 1];
+
+        infoBox(T('arytm.', 'arith.') + ' a_' + maxN + ' = ' + fmt(finalA), W * 0.3, 18, COL_BLUE);
+        infoBox(T('geom.', 'geom.') + ' a_' + maxN + ' = ' + fmt(Math.min(finalG, 1e9)), W * 0.72, 18, COL_ORANGE);
+
+        // Crossover indicator
+        if (q_geo > 1 && d_arith > 0) {
+          let crossN = -1;
+          for (let n = 1; n <= 100; n++) {
+            if (a1 * Math.pow(q_geo, n-1) > a1 + (n-1) * d_arith) { crossN = n; break; }
+          }
+          if (crossN > 0 && crossN <= 20) {
+            infoBox(T('przecięcie przy n = ' + crossN, 'crossover at n = ' + crossN), W/2, H - 18, COL_YELLOW, 0.7);
+          }
+        }
+      }
+    },
+
+    // Stage 5: Sum of a sequence
+    {
+      title: () => T('Suma ciągu', 'Sum of a sequence'),
+      desc: () => T(
+        'Arytm.: Sₙ = n·(a₁+aₙ)/2 — prostokąt o n kolumnach. Geom.: Sₙ = a₁·(1-qⁿ)/(1-q). Gdy |q| < 1, S → a₁/(1-q) = ' + fmt(a1_geo / (1 - q_geo)) + '.',
+        'Arith.: Sₙ = n·(a₁+aₙ)/2 — rectangle of n columns. Geom.: Sₙ = a₁·(1-qⁿ)/(1-q). When |q| < 1, S → a₁/(1-q) = ' + fmt(a1_geo / (1 - q_geo)) + '.'
+      ),
+      sliders: [
+        { id: 'nsum', lbl: 'n', color: COL_YELLOW, min: 2, max: 20, step: 1, get: () => nSum, set: v => nSum = v },
+        { id: 'qsum', lbl: 'q', color: COL_PINK, min: 0.1, max: 2, step: 0.1, get: () => q_geo, set: v => q_geo = v },
+      ],
+      draw() {
+        const halfW = W / 2;
+
+        // LEFT: Arithmetic sum visualization
+        const aN = a1_arith + (nSum - 1) * d_arith;
+        const sArith = nSum * (a1_arith + aN) / 2;
+
+        // Draw stacking bars for arithmetic
+        const barW_a = Math.min(20, (halfW - 40) / nSum);
+        const maxTerm_a = Math.max(Math.abs(a1_arith), Math.abs(aN), 1);
+        const scaleA = (H - 80) / (maxTerm_a * 1.3);
+        const baseYa = H - 30;
+
+        cx.save();
+        cx.font = '10px monospace';
+        cx.fillStyle = COL_BLUE;
+        cx.textAlign = 'center';
+        cx.fillText(T('Arytmetyczny', 'Arithmetic'), halfW * 0.5, 40);
+        cx.restore();
+
+        let runSumA = 0;
+        for (let n = 1; n <= nSum; n++) {
+          const val = a1_arith + (n - 1) * d_arith;
+          runSumA += val;
+          const xp = 20 + (n - 0.5) * barW_a;
+          const barH = Math.abs(val) * scaleA;
+          const barTop = baseYa - barH;
+
+          cx.fillStyle = COL_BLUE + '25';
+          cx.strokeStyle = COL_BLUE + '60';
+          cx.lineWidth = 0.8;
+          if (barH > 1) {
+            roundRect(cx, xp - barW_a * 0.4, barTop, barW_a * 0.8, barH, 2);
+            cx.fill(); cx.stroke();
+          }
+
+          if (nSum <= 10) {
+            cx.font = '8px monospace';
+            cx.fillStyle = COL_BLUE;
+            cx.globalAlpha = 0.7;
+            cx.textAlign = 'center';
+            cx.fillText(fmt(val), xp, barTop - 3);
+            cx.globalAlpha = 1;
+          }
+        }
+
+        // Average height line
+        const avgH = (a1_arith + aN) / 2;
+        const avgYp = baseYa - Math.abs(avgH) * scaleA;
+        cx.save();
+        cx.strokeStyle = COL_YELLOW;
+        cx.globalAlpha = 0.5;
+        cx.lineWidth = 1;
+        cx.setLineDash([4, 3]);
+        cx.beginPath();
+        cx.moveTo(15, avgYp);
+        cx.lineTo(halfW - 10, avgYp);
+        cx.stroke();
+        cx.restore();
+
+        cx.font = '9px monospace';
+        cx.fillStyle = COL_YELLOW;
+        cx.globalAlpha = 0.7;
+        cx.textAlign = 'left';
+        cx.fillText(T('śr. = ', 'avg = ') + fmt(avgH), halfW - 65, avgYp - 4);
+        cx.globalAlpha = 1;
+
+        infoBox('S_' + nSum + ' = ' + fmt(sArith), halfW * 0.5, 56, COL_BLUE, 0.9);
+
+        // RIGHT: Geometric sum visualization
+        cx.save();
+        cx.font = '10px monospace';
+        cx.fillStyle = COL_ORANGE;
+        cx.textAlign = 'center';
+        cx.fillText(T('Geometryczny', 'Geometric'), halfW + halfW * 0.5, 40);
+        cx.restore();
+
+        const geoTerms = [];
+        for (let n = 1; n <= nSum; n++) {
+          geoTerms.push(a1_geo * Math.pow(q_geo, n - 1));
+        }
+        const sGeo = Math.abs(q_geo - 1) < 0.001 ? a1_geo * nSum : a1_geo * (1 - Math.pow(q_geo, nSum)) / (1 - q_geo);
+
+        // Stacking bars for geometric (stack them on top of each other)
+        const barW_g = Math.min(22, (halfW - 50) / nSum);
+        const maxGeo = Math.max(...geoTerms.map(Math.abs), 0.1);
+        const scaleG = (H - 90) / (Math.max(Math.abs(sGeo), maxGeo) * 1.1);
+        const baseYg = H - 30;
+
+        // Draw individual term bars side by side
+        for (let n = 1; n <= nSum; n++) {
+          const val = geoTerms[n - 1];
+          const xp = halfW + 20 + (n - 0.5) * barW_g;
+          const barH = Math.min(Math.abs(val) * scaleG, H - 80);
+          const barTop = baseYg - barH;
+
+          const alpha = Math.max(0.15, 1 - (n - 1) * 0.08);
+          cx.fillStyle = COL_ORANGE + Math.round(alpha * 40).toString(16).padStart(2, '0');
+          cx.strokeStyle = COL_ORANGE + '60';
+          cx.lineWidth = 0.8;
+          if (barH > 1) {
+            roundRect(cx, xp - barW_g * 0.4, barTop, barW_g * 0.8, barH, 2);
+            cx.fill(); cx.stroke();
+          }
+
+          if (nSum <= 10 && barH > 8) {
+            cx.font = '7px monospace';
+            cx.fillStyle = COL_ORANGE;
+            cx.globalAlpha = 0.7;
+            cx.textAlign = 'center';
+            cx.fillText(fmt(val), xp, barTop - 3);
+            cx.globalAlpha = 1;
+          }
+        }
+
+        infoBox('S_' + nSum + ' = ' + fmt(sGeo), halfW + halfW * 0.5, 56, COL_ORANGE, 0.9);
+
+        // Convergence note for |q| < 1
+        if (Math.abs(q_geo) < 1) {
+          const sInf = a1_geo / (1 - q_geo);
+          const limitYp = baseYg - Math.abs(sInf) * scaleG;
+          if (limitYp > 20 && limitYp < H - 20) {
+            cx.save();
+            cx.strokeStyle = COL_YELLOW;
+            cx.globalAlpha = 0.5;
+            cx.lineWidth = 1;
+            cx.setLineDash([4, 3]);
+            cx.beginPath();
+            cx.moveTo(halfW + 10, limitYp);
+            cx.lineTo(W - 10, limitYp);
+            cx.stroke();
+            cx.restore();
+          }
+          infoBox('S_∞ = a₁/(1-q) = ' + fmt(sInf), halfW + halfW * 0.5, H - 18, COL_YELLOW, 0.7);
+        }
+
+        // Dividing line
+        cx.save();
+        cx.strokeStyle = 'rgba(255,255,255,0.08)';
+        cx.lineWidth = 1;
+        cx.beginPath();
+        cx.moveTo(halfW, 30);
+        cx.lineTo(halfW, H - 10);
+        cx.stroke();
+        cx.restore();
+      }
+    },
+  ];
+
+  // ── Slider management ────────────────────────────────────────
+  const slWrap = document.getElementById('sliders-wrap');
+
+  function buildSliders(defs) {
+    let html = '<div class="sliders">';
+    defs.forEach(function(s) {
+      const v = s.get();
+      html += '<div class="slider-row">' +
+        '<span class="lbl" style="color:' + s.color + '">' + s.lbl + ' =</span>' +
+        '<input type="range" id="s_' + s.id + '" min="' + s.min + '" max="' + s.max + '" step="' + s.step + '" value="' + v + '">' +
+        '<span class="val" id="v_' + s.id + '" style="color:' + s.color + '"></span>' +
+      '</div>';
+    });
+    html += '</div>';
+    slWrap.innerHTML = html;
+
+    defs.forEach(function(s) {
+      const el = document.getElementById('s_' + s.id);
+      const valEl = document.getElementById('v_' + s.id);
+      valEl.textContent = fmtSlider(+el.value, s.step);
+      el.addEventListener('input', function() {
+        const v = +this.value;
+        valEl.textContent = fmtSlider(v, s.step);
+        s.set(v);
+      });
+    });
+  }
+
+  // ── Navigation ───────────────────────────────────────────────
+  const prevBtn = document.getElementById('qprev');
+  const nextBtn = document.getElementById('qnext');
+  const dotsEl  = document.getElementById('qdots');
+  const titleEl = document.getElementById('qf');
+  const descEl  = document.getElementById('qd');
+
+  function goTo(idx) {
+    stage = Math.max(0, Math.min(stages.length - 1, idx));
+    animT = 0;
+    const s = stages[stage];
+    titleEl.textContent = s.title();
+    descEl.textContent = s.desc();
+
+    if (s.sliders) {
+      buildSliders(s.sliders);
+    } else {
+      slWrap.innerHTML = '';
+    }
+
+    prevBtn.disabled = stage === 0;
+    nextBtn.disabled = stage === stages.length - 1;
+    renderDots();
+  }
+
+  function renderDots() {
+    dotsEl.innerHTML = stages.map(function(_, i) {
+      return '<span class="dot' + (i === stage ? ' active' : '') + '" data-i="' + i + '"></span>';
+    }).join('');
+    dotsEl.querySelectorAll('.dot').forEach(function(d) {
+      d.addEventListener('click', function() { goTo(+d.dataset.i); });
+    });
+  }
+
+  prevBtn.addEventListener('click', function() { goTo(stage - 1); });
+  nextBtn.addEventListener('click', function() { goTo(stage + 1); });
+
+  // ── Render loop ──────────────────────────────────────────────
+  function tick() {
+    animT++;
+    clear();
+    stages[stage].draw();
+    requestAnimationFrame(tick);
+  }
+
+  goTo(0);
+  tick();
+})();
+</script>
+</body>
+</html>
