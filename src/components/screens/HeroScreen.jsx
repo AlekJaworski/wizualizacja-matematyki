@@ -324,9 +324,6 @@ export function HeroScreen({ lang, setLang, themeId, onThemeChange, onStartQuiz,
         >
           ☕ {lang === "pl" ? "Postaw kawę — wspieraj projekt" : "Buy me a coffee — support this project"}
         </a>
-        <div style={{ fontSize: 11, color: COLORS.textFaint }}>
-          {lang === "pl" ? "darmowe narzędzie — zawsze" : "free tool — always"}
-        </div>
       </div>
     </div>
   );
