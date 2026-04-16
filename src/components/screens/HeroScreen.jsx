@@ -8,7 +8,7 @@ import { QUIZ_PRESETS } from "../../engine/belief.js";
  * One clear purpose: start the diagnostic quiz.
  * Secondary: browse the map directly.
  */
-export function HeroScreen({ lang, setLang, themeId, onThemeChange, onStartQuiz, onStartGoalQuiz, onBrowseViz, onBrowseMap }) {
+export function HeroScreen({ lang, setLang, themeId, onThemeChange, onStartQuiz, onStartGoalQuiz, onBrowseViz, onBrowseMap, onProfile, onFromScratch, hasSavedCourse }) {
   const [preset, setPreset] = useState("standard");
   const [showMore, setShowMore] = useState(false);
   return (
@@ -118,6 +118,36 @@ export function HeroScreen({ lang, setLang, themeId, onThemeChange, onStartQuiz,
           {t("heroSub", lang)}
         </p>
 
+        {/* Continue learning — shown when saved course exists */}
+        {hasSavedCourse && onProfile && (
+          <button
+            onClick={onProfile}
+            style={{
+              width: "100%", maxWidth: 320,
+              padding: "16px 24px",
+              fontSize: 15, fontWeight: 600,
+              fontFamily: FONT,
+              borderRadius: 10,
+              border: "1px solid #f39c1250",
+              background: "#f39c1218",
+              color: "#f39c12",
+              cursor: "pointer",
+              marginBottom: 10,
+              transition: "background 0.15s, border-color 0.15s",
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = "#f39c1228";
+              e.currentTarget.style.borderColor = "#f39c1280";
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = "#f39c1218";
+              e.currentTarget.style.borderColor = "#f39c1250";
+            }}
+          >
+            {t("heroContinue", lang)}
+          </button>
+        )}
+
         {/* Primary CTA */}
         <button
           onClick={() => onStartQuiz(preset)}
@@ -186,12 +216,35 @@ export function HeroScreen({ lang, setLang, themeId, onThemeChange, onStartQuiz,
               </select>
             </div>
 
+            {/* From scratch — full course path */}
+            {onFromScratch && (
+              <button onClick={onFromScratch} style={{
+                width: "100%", padding: "10px 16px", fontSize: 12, fontFamily: FONT,
+                borderRadius: 6, border: `1px solid #27ae6040`,
+                background: "#27ae6010", color: "#27ae60", cursor: "pointer",
+              }}>
+                {t("profileFromScratch", lang)}
+                <span style={{ display: "block", fontSize: 10, color: COLORS.textFaint, marginTop: 2 }}>
+                  {t("profileFromScratchSub", lang)}
+                </span>
+              </button>
+            )}
+
             {/* Goal quiz */}
             <button onClick={onStartGoalQuiz} style={{
               width: "100%", padding: "10px 16px", fontSize: 12, fontFamily: FONT,
               borderRadius: 6, border: `1px solid ${COLORS.border}`,
               background: "transparent", color: COLORS.textBody, cursor: "pointer",
             }}>{t("heroGoal", lang)}</button>
+
+            {/* My profile */}
+            {hasSavedCourse && onProfile && (
+              <button onClick={onProfile} style={{
+                width: "100%", padding: "10px 16px", fontSize: 12, fontFamily: FONT,
+                borderRadius: 6, border: `1px solid ${COLORS.border}`,
+                background: "transparent", color: COLORS.textDim, cursor: "pointer",
+              }}>{t("heroProfile", lang)}</button>
+            )}
 
             {/* Browse vizzes */}
             <button onClick={onBrowseViz} style={{

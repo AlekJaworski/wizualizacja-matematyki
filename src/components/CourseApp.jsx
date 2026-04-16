@@ -11,6 +11,7 @@ import { ResultsScreen } from "./screens/ResultsScreen.jsx";
 import { LearningPath } from "./screens/LearningPath.jsx";
 import { GoalSelectionModal } from "./ui/GoalSelectionModal.jsx";
 import { VizGallery } from "./screens/VizGallery.jsx";
+import { ProfileScreen } from "./screens/ProfileScreen.jsx";
 
 /**
  * CourseApp — top-level flow controller.
@@ -23,6 +24,7 @@ import { VizGallery } from "./screens/VizGallery.jsx";
  *   "goalPath"  → Learning path after goal quiz
  *   "results"   → Summary + "see your map"
  *   "map"       → CurriculumGraph
+ *   "profile"   → Saved learning path / progress
  */
 
 function parseHash() {
@@ -54,6 +56,9 @@ export default function CourseApp() {
   const [quizEvidence, setQuizEvidence] = useState(null);
   const [quizPreset, setQuizPreset] = useState("standard");
   const [goalId, setGoalId] = useState(null);
+
+  // ── Persisted learning course ──────────────────────────────────
+  const [savedCourse, setSavedCourse] = useLocalStorage("savedCourse", null);
 
   const handleThemeChange = useCallback((id) => {
     applyTheme(id);
@@ -88,8 +93,9 @@ export default function CourseApp() {
     setQuizBelief(belief);
     setQuizStats(stats);
     setQuizEvidence(evidence ?? {});
+    setSavedCourse({ goalId: null, belief, evidence: evidence ?? {}, createdAt: new Date().toISOString() });
     setPhase("results");
-  }, []);
+  }, [setSavedCourse]);
 
   const handleStartGoalQuiz = useCallback(() => {
     setPhase("goalPick");
@@ -108,8 +114,9 @@ export default function CourseApp() {
     setQuizBelief(belief);
     setQuizStats(stats);
     setQuizEvidence(evidence ?? {});
+    setSavedCourse({ goalId: gId, belief, evidence: evidence ?? {}, createdAt: new Date().toISOString() });
     setPhase("goalPath");
-  }, []);
+  }, [setSavedCourse]);
 
   const handleSeeMap = useCallback((selectedNodeId) => {
     setInitialSelectedNode(selectedNodeId ?? null);
@@ -131,6 +138,27 @@ export default function CourseApp() {
     setPhase("hero");
   }, []);
 
+  const handleProfile = useCallback(() => {
+    setPhase("profile");
+  }, []);
+
+  const handleFromScratch = useCallback(() => {
+    const emptyCourse = { goalId: null, belief: {}, evidence: {}, createdAt: new Date().toISOString() };
+    setSavedCourse(emptyCourse);
+    setQuizBelief({});
+    setQuizEvidence({});
+    setPhase("profile");
+  }, [setSavedCourse]);
+
+  const handleResumePath = useCallback((nodeId) => {
+    if (savedCourse) {
+      setQuizBelief(savedCourse.belief ?? {});
+      setQuizEvidence(savedCourse.evidence ?? {});
+    }
+    setInitialSelectedNode(nodeId ?? null);
+    setPhase("map");
+  }, [savedCourse]);
+
   if (!course) return null;
 
   switch (phase) {
@@ -145,6 +173,9 @@ export default function CourseApp() {
           onStartGoalQuiz={handleStartGoalQuiz}
           onBrowseViz={handleBrowseViz}
           onBrowseMap={handleBrowseMap}
+          onProfile={handleProfile}
+          onFromScratch={handleFromScratch}
+          hasSavedCourse={!!savedCourse}
         />
       );
 
@@ -229,7 +260,40 @@ export default function CourseApp() {
           onSeeMap={handleSeeMap}
           onRetake={() => handleStartQuiz(quizPreset)}
           onSelectTopic={(id) => handleSeeMap(id)}
-          onStartPath={(goalId) => { setGoalId(goalId); setPhase("goalPath"); }}
+          onStartPath={(gId) => {
+            setGoalId(gId);
+            setSavedCourse(prev => ({ ...(prev ?? {}), goalId: gId, belief: quizBelief ?? {}, evidence: quizEvidence ?? {}, createdAt: prev?.createdAt ?? new Date().toISOString() }));
+            setPhase("goalPath");
+          }}
+        />
+      );
+
+    case "profile":
+      return (
+        <ProfileScreen
+          savedCourse={savedCourse}
+          RAW_NODES={course.RAW_NODES}
+          RAW_EDGES={course.RAW_EDGES}
+          SCOPE_COLORS={course.SCOPE_COLORS}
+          SCOPE_LABELS={course.SCOPE_LABELS}
+          SECTIONS={course.SECTIONS}
+          lang={lang}
+          onResumePath={handleResumePath}
+          onStartNew={() => {
+            setSavedCourse(null);
+            setQuizBelief(null);
+            setQuizStats(null);
+            setQuizEvidence(null);
+            setPhase("hero");
+          }}
+          onSeeMap={() => {
+            if (savedCourse) {
+              setQuizBelief(savedCourse.belief ?? {});
+              setQuizEvidence(savedCourse.evidence ?? {});
+            }
+            setPhase("map");
+          }}
+          onClose={handleBackToHero}
         />
       );
 

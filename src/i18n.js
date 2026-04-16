@@ -253,6 +253,27 @@ const STRINGS = {
   goalQuizSeeMap:    { pl: "Zobacz na mapie",            en: "See on map" },
   goalQuizRetake:    { pl: "Powtórz analizę",            en: "Retake analysis" },
   goalQuizBackHero:  { pl: "Wróć na start",              en: "Back to start" },
+
+  // ── Profile / saved course ───────────────────────────────────────
+  profileTitle:      { pl: "Twój profil",                 en: "Your profile" },
+  profileFullCourse: { pl: "Pełny kurs",                  en: "Full course" },
+  profileGoal:       { pl: "Cel",                         en: "Goal" },
+  profileStarted:    { pl: "Rozpoczęto",                  en: "Started" },
+  profileProgress:   { pl: "Postęp",                      en: "Progress" },
+  profileContinue:   { pl: "Kontynuuj naukę",             en: "Continue learning" },
+  profileSeeMap:     { pl: "Zobacz mapę",                 en: "See map" },
+  profileStartNew:   { pl: "Zacznij od nowa",             en: "Start fresh" },
+  profileStartNewConfirm: { pl: "Na pewno? Obecny postęp zostanie utracony.",
+                            en: "Are you sure? Current progress will be lost." },
+  profileTimeline:   { pl: "Ścieżka nauki",                en: "Learning timeline" },
+  profileEmpty:      { pl: "Nie masz jeszcze zapisanego kursu.",
+                       en: "You don't have a saved course yet." },
+  profileStartQuiz:  { pl: "Rozwiąż test, żeby rozpocząć", en: "Take a quiz to get started" },
+  profileFromScratch:{ pl: "Zacznij od zera",             en: "Start from scratch" },
+  profileFromScratchSub: { pl: "Pełna ścieżka przez wszystkie tematy",
+                           en: "Full path through all topics" },
+  heroContinue:      { pl: "Kontynuuj naukę →",           en: "Continue learning →" },
+  heroProfile:       { pl: "Mój profil",                  en: "My profile" },
 };
 
 /**
