@@ -236,7 +236,7 @@ export default function CourseApp() {
     case "map":
       return (
         <CurriculumGraph
-          key={courseId}
+          key={`${courseId}-${initialSelectedNode ?? ''}`}
           courseId={courseId}
           RAW_NODES={course.RAW_NODES}
           RAW_EDGES={course.RAW_EDGES}
