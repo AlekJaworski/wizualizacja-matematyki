@@ -6,4 +6,6 @@ section: SP8
 level: 1
 x: 200
 y: 760
+resources:
+  - "interactive|thales-explorer.html|Thales' Theorem Explorer|Twierdzenie Talesa"
 ---

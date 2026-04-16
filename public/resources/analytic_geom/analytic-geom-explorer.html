@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Geometria analityczna</title>
+</head>
+<body>
+<script type="module">
+import { VizCore, T, COLORS } from '../lib/viz-core.js';
+
+const OX = 300, OY = 190, SC = 45;
+const px = x => OX + x * SC;
+const py = y => OY - y * SC;
+const ux = sx => (sx - OX) / SC;
+const uy = sy => (OY - sy) / SC;
+
+function drawGrid(cx, W, H) {
+  cx.strokeStyle = 'rgba(255,255,255,0.06)'; cx.lineWidth = 1;
+  for (let x = OX % SC; x < W; x += SC) { cx.beginPath(); cx.moveTo(x, 0); cx.lineTo(x, H); cx.stroke(); }
+  for (let y = OY % SC; y < H; y += SC) { cx.beginPath(); cx.moveTo(0, y); cx.lineTo(W, y); cx.stroke(); }
+}
+function drawAxes(cx, W, H) {
+  cx.strokeStyle = 'rgba(255,255,255,0.3)'; cx.lineWidth = 1.5;
+  cx.beginPath(); cx.moveTo(0, OY); cx.lineTo(W, OY); cx.stroke();
+  cx.beginPath(); cx.moveTo(OX, 0); cx.lineTo(OX, H); cx.stroke();
+  cx.font = '10px monospace'; cx.fillStyle = 'rgba(255,255,255,0.2)'; cx.textAlign = 'center';
+  for (let i = -6; i <= 6; i++) {
+    if (i === 0) continue;
+    const x = OX + i * SC, y = OY - i * SC;
+    if (x > 8 && x < W - 8) cx.fillText(i, x, OY + 13);
+    if (y > 8 && y < H - 8) { cx.textAlign = 'right'; cx.fillText(i, OX - 5, y + 4); cx.textAlign = 'center'; }
+  }
+}
+function dot(cx, x, y, r, col, label) {
+  cx.beginPath(); cx.arc(px(x), py(y), r, 0, Math.PI * 2);
+  cx.fillStyle = col; cx.shadowColor = col; cx.shadowBlur = 8; cx.fill(); cx.shadowBlur = 0;
+  if (label) {
+    cx.font = '12px monospace'; cx.textAlign = 'left';
+    cx.fillStyle = col; cx.fillText(label + '(' + x + ',' + y + ')', px(x) + 8, py(y) - 6);
+  }
+}
+
+let pts = [
+  { x: -2, y: 1 },
+  { x:  3, y: -2 },
+];
+
+const { cv, cx, W, H, getCanvasPos } = VizCore.init({
+  title: T('Geometria analityczna', 'Analytic Geometry'),
+  H: 340,
+  stages: [
+    // ── Stage 0: Distance formula ────────────────────────────────
+    {
+      title: () => T('Odległość między punktami', 'Distance between points'),
+      desc:  () => T(
+        'd = √((x₂−x₁)²+(y₂−y₁)²). To jest twierdzenie Pitagorasa na układzie współrzędnych. Przeciągnij punkty!',
+        'd = √((x₂−x₁)²+(y₂−y₁)²). This is the Pythagorean theorem on a coordinate system. Drag the points!'
+      ),
+      sliders: [],
+      draw(cx, W, H) {
+        drawGrid(cx, W, H); drawAxes(cx, W, H);
+        const [A, B] = pts;
+        const dx = B.x - A.x, dy = B.y - A.y;
+        const d = Math.hypot(dx, dy);
+
+        // Right-angle triangle
+        cx.beginPath(); cx.moveTo(px(A.x), py(A.y)); cx.lineTo(px(B.x), py(A.y)); cx.lineTo(px(B.x), py(B.y));
+        cx.strokeStyle = 'rgba(255,255,255,0.2)'; cx.lineWidth = 1; cx.setLineDash([3,3]); cx.stroke(); cx.setLineDash([]);
+        // Right-angle box
+        const sq = 8;
+        cx.beginPath(); cx.moveTo(px(B.x) - sq, py(A.y)); cx.lineTo(px(B.x) - sq, py(A.y) + sq); cx.lineTo(px(B.x), py(A.y) + sq);
+        cx.strokeStyle = COLORS.GREEN; cx.lineWidth = 1.2; cx.stroke();
+
+        // Distance line
+        cx.beginPath(); cx.moveTo(px(A.x), py(A.y)); cx.lineTo(px(B.x), py(B.y));
+        cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 2.5;
+        cx.shadowColor = COLORS.CYAN; cx.shadowBlur = 5; cx.stroke(); cx.shadowBlur = 0;
+
+        // Leg labels
+        cx.font = '11px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = COLORS.ORANGE;
+        cx.fillText('|Δx| = ' + Math.abs(dx).toFixed(1), (px(A.x) + px(B.x)) / 2, py(A.y) + 16);
+        cx.fillStyle = COLORS.YELLOW;
+        cx.fillText('|Δy| = ' + Math.abs(dy).toFixed(1), px(B.x) + 28, (py(A.y) + py(B.y)) / 2);
+
+        dot(cx, A.x, A.y, 7, COLORS.GREEN,  'A');
+        dot(cx, B.x, B.y, 7, COLORS.ORANGE, 'B');
+
+        cx.font = '13px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('d = √(' + Math.abs(dx).toFixed(1) + '² + ' + Math.abs(dy).toFixed(1) + '²) = ' + d.toFixed(2), 12, 22);
+        cx.fillStyle = 'rgba(255,255,255,0.35)'; cx.fillText('Przeciągnij punkty!', 12, 40);
+      },
+    },
+
+    // ── Stage 1: Midpoint ─────────────────────────────────────────
+    {
+      title: () => T('Środek odcinka', 'Midpoint of a segment'),
+      desc:  () => T(
+        'Środek odcinka AB = ((x₁+x₂)/2, (y₁+y₂)/2). To jest po prostu średnia współrzędnych.',
+        'Midpoint of AB = ((x₁+x₂)/2, (y₁+y₂)/2). It\'s simply the average of the coordinates.'
+      ),
+      sliders: [],
+      draw(cx, W, H) {
+        drawGrid(cx, W, H); drawAxes(cx, W, H);
+        const [A, B] = pts;
+        const mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2;
+
+        cx.beginPath(); cx.moveTo(px(A.x), py(A.y)); cx.lineTo(px(B.x), py(B.y));
+        cx.strokeStyle = 'rgba(255,255,255,0.4)'; cx.lineWidth = 2; cx.stroke();
+
+        // Projection lines to midpoint
+        cx.beginPath(); cx.moveTo(px(mx), OY); cx.lineTo(px(mx), py(my));
+        cx.moveTo(OX, py(my)); cx.lineTo(px(mx), py(my));
+        cx.strokeStyle = 'rgba(255,209,102,0.4)'; cx.lineWidth = 1; cx.setLineDash([3,3]); cx.stroke(); cx.setLineDash([]);
+
+        dot(cx, A.x, A.y, 6, COLORS.GREEN,  'A');
+        dot(cx, B.x, B.y, 6, COLORS.ORANGE, 'B');
+        dot(cx, mx, my, 8, COLORS.YELLOW,   'M');
+
+        cx.font = '13px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.YELLOW;
+        cx.fillText('M = ((' + A.x + '+' + B.x + ')/2, (' + A.y + '+' + B.y + ')/2)', 12, 22);
+        cx.fillText('  = (' + mx.toFixed(1) + ', ' + my.toFixed(1) + ')', 12, 40);
+      },
+    },
+
+    // ── Stage 2: Line through two points ─────────────────────────
+    {
+      title: () => T('Prosta przez dwa punkty', 'Line through two points'),
+      desc:  () => T(
+        'Prosta przez A(x₁,y₁) i B(x₂,y₂): nachylenie m = (y₂−y₁)/(x₂−x₁), równanie y = mx + b.',
+        'Line through A(x₁,y₁) and B(x₂,y₂): slope m = (y₂−y₁)/(x₂−x₁), equation y = mx + b.'
+      ),
+      sliders: [],
+      draw(cx, W, H) {
+        drawGrid(cx, W, H); drawAxes(cx, W, H);
+        const [A, B] = pts;
+        const dx = B.x - A.x, dy = B.y - A.y;
+
+        if (Math.abs(dx) < 0.01) {
+          // Vertical line
+          cx.beginPath(); cx.moveTo(px(A.x), 0); cx.lineTo(px(A.x), H);
+          cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 2; cx.stroke();
+        } else {
+          const m = dy / dx;
+          const b = A.y - m * A.x;
+          // Plot line
+          cx.beginPath(); let first = true;
+          for (let sx = 0; sx < W; sx += 3) {
+            const xi = ux(sx), yi = m * xi + b;
+            if (!isFinite(yi) || yi > 10 || yi < -10) { first = true; continue; }
+            if (first) { cx.moveTo(sx, py(yi)); first = false; } else cx.lineTo(sx, py(yi));
+          }
+          cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 2;
+          cx.shadowColor = COLORS.CYAN; cx.shadowBlur = 4; cx.stroke(); cx.shadowBlur = 0;
+
+          cx.font = '13px monospace'; cx.textAlign = 'left';
+          cx.fillStyle = COLORS.CYAN;
+          cx.fillText('m = ' + m.toFixed(2), 12, 22);
+          cx.fillText('y = ' + m.toFixed(2) + 'x + (' + b.toFixed(2) + ')', 12, 40);
+        }
+
+        dot(cx, A.x, A.y, 6, COLORS.GREEN,  'A');
+        dot(cx, B.x, B.y, 6, COLORS.ORANGE, 'B');
+        cx.fillStyle = 'rgba(255,255,255,0.35)'; cx.font = '11px monospace';
+        cx.fillText('Przeciągnij punkty!', 12, 58);
+      },
+    },
+
+    // ── Stage 3: Locus — equidistant from two points ──────────────
+    {
+      title: () => T('Miejsce geometryczne punktów', 'Locus of points'),
+      desc:  () => T(
+        'Zbiór punktów jednakowo odległych od A i B to prostopadła dwusieczna odcinka AB. To jest podstawa budowania okręgów i innych krzywych.',
+        'The set of points equidistant from A and B is the perpendicular bisector of AB. This is the basis of circles and other curves.'
+      ),
+      sliders: [],
+      draw(cx, W, H) {
+        drawGrid(cx, W, H); drawAxes(cx, W, H);
+        const [A, B] = pts;
+        const mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2;
+        const dx = B.x - A.x, dy = B.y - A.y;
+
+        // Segment AB
+        cx.beginPath(); cx.moveTo(px(A.x), py(A.y)); cx.lineTo(px(B.x), py(B.y));
+        cx.strokeStyle = 'rgba(255,255,255,0.3)'; cx.lineWidth = 1.5; cx.stroke();
+
+        // Perpendicular bisector
+        if (Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01) {
+          const pdx = -dy, pdy = dx;  // perpendicular direction
+          const len = Math.hypot(pdx, pdy);
+          const sx = px(mx) - (pdx / len) * 200, sy = py(my) - (pdy / len) * 200;
+          const ex = px(mx) + (pdx / len) * 200, ey = py(my) + (pdy / len) * 200;
+          cx.beginPath(); cx.moveTo(sx, sy); cx.lineTo(ex, ey);
+          cx.strokeStyle = COLORS.GREEN; cx.lineWidth = 2.5;
+          cx.shadowColor = COLORS.GREEN; cx.shadowBlur = 5; cx.stroke(); cx.shadowBlur = 0;
+        }
+
+        // Highlight a point on bisector showing equal distances
+        const pdx = -dy, pdy = dx, plen = Math.hypot(pdx, pdy);
+        const Px = mx + (pdx / plen) * 1.5, Py = my + (pdy / plen) * 1.5;
+        const dPA = Math.hypot(Px - A.x, Py - A.y), dPB = Math.hypot(Px - B.x, Py - B.y);
+        dot(cx, Px, Py, 5, COLORS.YELLOW, '');
+        cx.beginPath(); cx.moveTo(px(Px), py(Py)); cx.lineTo(px(A.x), py(A.y));
+        cx.moveTo(px(Px), py(Py)); cx.lineTo(px(B.x), py(B.y));
+        cx.strokeStyle = 'rgba(255,209,102,0.4)'; cx.lineWidth = 1; cx.setLineDash([3,3]); cx.stroke(); cx.setLineDash([]);
+
+        dot(cx, A.x, A.y, 6, COLORS.GREEN,  'A');
+        dot(cx, B.x, B.y, 6, COLORS.ORANGE, 'B');
+        dot(cx, mx, my, 5, COLORS.CYAN, '');
+
+        cx.font = '12px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.GREEN;
+        cx.fillText('Prostopadła dwusieczna AB', 12, 22);
+        cx.fillStyle = COLORS.YELLOW;
+        cx.fillText('PA = ' + dPA.toFixed(2) + '  PB = ' + dPB.toFixed(2) + '  ← równe', 12, 40);
+      },
+    },
+  ],
+});
+
+// ── Drag interaction ──────────────────────────────────────────────
+let dragging = null;
+cv.classList.add('draggable');
+
+function onDown(e) {
+  const pos = getCanvasPos(e);
+  dragging = pts.find(p => Math.hypot(px(p.x) - pos.x, py(p.y) - pos.y) < 22) || null;
+  if (dragging && e.preventDefault) e.preventDefault();
+}
+function onMove(e) {
+  if (!dragging) return;
+  if (e.preventDefault) e.preventDefault();
+  const pos = getCanvasPos(e);
+  dragging.x = Math.round((ux(pos.x)) * 2) / 2;
+  dragging.y = Math.round((uy(pos.y)) * 2) / 2;
+}
+function onUp() { dragging = null; }
+
+cv.addEventListener('mousedown', onDown);
+cv.addEventListener('mousemove', onMove);
+cv.addEventListener('mouseup', onUp);
+cv.addEventListener('mouseleave', onUp);
+cv.addEventListener('touchstart', onDown, { passive: false });
+cv.addEventListener('touchmove', onMove, { passive: false });
+cv.addEventListener('touchend', onUp);
+</script>
+</body>
+</html>

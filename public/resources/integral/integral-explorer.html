@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Całki — Eksplorator</title>
+</head>
+<body>
+<script type="module">
+import { VizCore, T, COLORS } from '../lib/viz-core.js';
+
+const { cx, W, H } = VizCore.init({
+  title: T('Całki — Eksplorator', 'Integrals — Explorer'),
+  H: 360,
+  stages: [
+    // ── Stage 0: Area under a curve ──────────────────────────────
+    {
+      title: () => T('Pole pod wykresem', 'Area under the curve'),
+      desc:  () => T(
+        'Całka oznaczona ∫[a,b] f(x)dx to pole między wykresem f(x) a osią X na przedziale [a, b]. Zmień funkcję i granice suwakami.',
+        'The definite integral ∫[a,b] f(x)dx is the area between the graph f(x) and the x-axis on interval [a, b]. Change the function and bounds with sliders.'
+      ),
+      sliders: [
+        { id: 'a', lbl: 'a', color: COLORS.ORANGE, min: -3, max: 1,  step: 0.25, val: 0 },
+        { id: 'b', lbl: 'b', color: COLORS.GREEN,  min: -1, max: 3,  step: 0.25, val: 2 },
+      ],
+      draw(cx, W, H, vals) {
+        const OX = W / 2, OY = H * 0.65, SC = 60;
+        const { a, b } = vals;
+        const fn = x => x * x;  // f(x) = x²
+
+        drawGrid(cx, OX, OY, SC, W, H);
+        drawAxes(cx, OX, OY, W, H, SC);
+
+        if (a < b) {
+          // Shaded area
+          cx.beginPath();
+          cx.moveTo(OX + a * SC, OY);
+          for (let xi = a; xi <= b; xi += 0.01) {
+            cx.lineTo(OX + xi * SC, OY - fn(xi) * SC);
+          }
+          cx.lineTo(OX + b * SC, OY);
+          cx.closePath();
+          cx.fillStyle = 'rgba(88,196,221,0.2)'; cx.fill();
+          cx.strokeStyle = 'rgba(88,196,221,0.5)'; cx.lineWidth = 1; cx.stroke();
+        }
+
+        // Curve f(x) = x²
+        plotFn(cx, OX, OY, SC, W, H, fn, COLORS.CYAN, 2.5);
+
+        // Boundary lines
+        [[a, COLORS.ORANGE], [b, COLORS.GREEN]].forEach(([xi, col]) => {
+          const px = OX + xi * SC, py = OY - fn(xi) * SC;
+          cx.beginPath(); cx.moveTo(px, OY); cx.lineTo(px, py);
+          cx.strokeStyle = col; cx.lineWidth = 2;
+          cx.setLineDash([4, 3]); cx.stroke(); cx.setLineDash([]);
+          cx.beginPath(); cx.arc(px, py, 4, 0, Math.PI * 2);
+          cx.fillStyle = col; cx.shadowColor = col; cx.shadowBlur = 8; cx.fill(); cx.shadowBlur = 0;
+        });
+
+        // Compute area numerically
+        let area = 0;
+        const n = 1000;
+        const dx = (b - a) / n;
+        for (let i = 0; i < n; i++) area += fn(a + (i + 0.5) * dx) * dx;
+
+        cx.font = '13px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('∫[' + a + ', ' + b + '] x² dx ≈ ' + Math.round(area * 100) / 100, 12, 22);
+        cx.fillStyle = 'rgba(255,255,255,0.4)';
+        cx.fillText('= [x³/3]' + a + 'ᵇ = b³/3 − a³/3', 12, 40);
+        const exact = (b*b*b - a*a*a) / 3;
+        cx.fillStyle = COLORS.GREEN;
+        cx.fillText('= ' + (Math.round(exact*100)/100), 12, 58);
+      },
+    },
+
+    // ── Stage 1: Riemann sum approximation ───────────────────────
+    {
+      title: () => T('Sumy Riemanna — prostokąty wypełniają pole', 'Riemann sums — rectangles fill the area'),
+      desc:  () => T(
+        'Dzielimy przedział na n równych kawałków i sumujemy pola prostokątów. Im więcej prostokątów (większe n), tym lepsza aproksymacja.',
+        'We divide the interval into n equal pieces and sum the rectangle areas. The more rectangles (larger n), the better the approximation.'
+      ),
+      sliders: [
+        { id: 'n', lbl: 'n', color: COLORS.CYAN,   min: 1, max: 30, step: 1,    val: 5 },
+        { id: 'a', lbl: 'a', color: COLORS.ORANGE, min: 0, max: 1,  step: 0.25, val: 0 },
+        { id: 'b', lbl: 'b', color: COLORS.GREEN,  min: 1, max: 3,  step: 0.25, val: 2 },
+      ],
+      draw(cx, W, H, vals) {
+        const OX = W / 2, OY = H * 0.65, SC = 60;
+        const n = Math.round(vals.n);
+        const { a, b } = vals;
+        const fn = x => x * x;
+
+        drawGrid(cx, OX, OY, SC, W, H);
+        drawAxes(cx, OX, OY, W, H, SC);
+
+        // Riemann rectangles (midpoint rule)
+        const dx = (b - a) / n;
+        let riemannSum = 0;
+        for (let i = 0; i < n; i++) {
+          const xi = a + (i + 0.5) * dx;
+          const yi = fn(xi);
+          riemannSum += yi * dx;
+          const rx = OX + (a + i * dx) * SC;
+          const rw = dx * SC;
+          const rh = yi * SC;
+          cx.fillStyle = 'rgba(88,196,221,0.2)';
+          cx.fillRect(rx, OY - rh, rw, rh);
+          cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 0.5;
+          cx.strokeRect(rx, OY - rh, rw, rh);
+        }
+
+        // Exact area
+        const exact = (b*b*b - a*a*a) / 3;
+        const err = Math.abs(riemannSum - exact);
+
+        plotFn(cx, OX, OY, SC, W, H, fn, COLORS.YELLOW, 2.5);
+
+        cx.font = '13px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('n = ' + n + '  →  suma ≈ ' + Math.round(riemannSum * 100) / 100, 12, 22);
+        cx.fillStyle = COLORS.YELLOW;
+        cx.fillText('dokładna wartość = ' + Math.round(exact * 100) / 100, 12, 40);
+        cx.fillStyle = err < 0.01 ? COLORS.GREEN : COLORS.PINK;
+        cx.fillText('błąd = ' + Math.round(err * 1000) / 1000, 12, 58);
+      },
+    },
+
+    // ── Stage 2: Antiderivative connection ───────────────────────
+    {
+      title: () => T('Całka a pochodna — twierdzenie Newtona-Leibniza', 'Integral and derivative — Newton-Leibniz theorem'),
+      desc:  () => T(
+        '∫[a,b] f(x)dx = F(b) − F(a), gdzie F jest funkcją pierwotną (F\'=f). Całkowanie to operacja odwrotna do różniczkowania. Zmień b, żeby zobaczyć zmieniające się pole.',
+        '∫[a,b] f(x)dx = F(b) − F(a), where F is the antiderivative (F\'=f). Integration is the inverse of differentiation. Change b to see the area update.'
+      ),
+      sliders: [
+        { id: 'b', lbl: 'b', color: COLORS.GREEN, min: 0, max: 3, step: 0.1, val: 1.5 },
+      ],
+      draw(cx, W, H, vals) {
+        const OX = W / 2, OY = H * 0.65, SC = 60;
+        const a = 0, b = vals.b;
+        const fn = x => x * x;
+        const F  = x => x * x * x / 3;  // antiderivative of x²
+
+        drawGrid(cx, OX, OY, SC, W, H);
+        drawAxes(cx, OX, OY, W, H, SC);
+
+        // Shaded area
+        cx.beginPath(); cx.moveTo(OX + a * SC, OY);
+        for (let xi = a; xi <= b; xi += 0.01) cx.lineTo(OX + xi * SC, OY - fn(xi) * SC);
+        cx.lineTo(OX + b * SC, OY); cx.closePath();
+        cx.fillStyle = 'rgba(131,193,103,0.2)'; cx.fill();
+
+        plotFn(cx, OX, OY, SC, W, H, fn, COLORS.CYAN, 2.5);
+        plotFn(cx, OX, OY, SC, W, H, F,  COLORS.YELLOW, 2, [6, 4]);
+
+        // Mark F(b) on antiderivative curve
+        const Fbx = OX + b * SC, Fby = OY - F(b) * SC;
+        cx.beginPath(); cx.arc(Fbx, Fby, 5, 0, Math.PI * 2);
+        cx.fillStyle = COLORS.YELLOW; cx.shadowColor = COLORS.YELLOW;
+        cx.shadowBlur = 8; cx.fill(); cx.shadowBlur = 0;
+
+        // Mark b on axis
+        cx.beginPath(); cx.moveTo(Fbx, OY); cx.lineTo(Fbx, Fby);
+        cx.strokeStyle = 'rgba(131,193,103,0.5)'; cx.lineWidth = 1.5;
+        cx.setLineDash([3, 3]); cx.stroke(); cx.setLineDash([]);
+
+        const area = F(b) - F(a);
+        cx.font = '13px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('f(x) = x²  →  F(x) = x³/3', 12, 22);
+        cx.fillStyle = COLORS.GREEN;
+        cx.fillText('∫[0,' + b.toFixed(1) + '] x²dx = F(' + b.toFixed(1) + ')−F(0)', 12, 40);
+        cx.fillStyle = COLORS.YELLOW;
+        cx.fillText('= ' + (Math.round(F(b)*100)/100) + ' − 0 = ' + (Math.round(area*100)/100), 12, 58);
+      },
+    },
+
+    // ── Stage 3: Different functions ─────────────────────────────
+    {
+      title: () => T('Różne funkcje — to samo narzędzie', 'Different functions — same tool'),
+      desc:  () => T(
+        'Całkowanie działa dla każdej funkcji. Wybierz funkcję i granice. Prostokąty Riemanna zawsze dążą do dokładnej wartości gdy n → ∞.',
+        'Integration works for any function. Choose a function and bounds. Riemann rectangles always approach the exact value as n → ∞.'
+      ),
+      sliders: [
+        { id: 'fn',  lbl: 'f', color: COLORS.PURPLE, min: 0, max: 3, step: 1,    val: 0 },
+        { id: 'n',   lbl: 'n', color: COLORS.CYAN,   min: 2, max: 25, step: 1,   val: 8 },
+        { id: 'b',   lbl: 'b', color: COLORS.GREEN,  min: 0.5, max: 3, step: 0.25, val: 2 },
+      ],
+      draw(cx, W, H, vals) {
+        const OX = W / 2, OY = H * 0.65, SC = 60;
+        const n = Math.round(vals.n), fnIdx = Math.round(vals.fn);
+        const a = 0, b = vals.b;
+        const fns = [
+          { f: x => x * x,          name: 'x²' },
+          { f: x => Math.sin(x),     name: 'sin(x)' },
+          { f: x => Math.sqrt(x),    name: '√x' },
+          { f: x => 1 / (1 + x * x), name: '1/(1+x²)' },
+        ];
+        const { f: fn, name } = fns[fnIdx];
+
+        drawGrid(cx, OX, OY, SC, W, H);
+        drawAxes(cx, OX, OY, W, H, SC);
+
+        const dx = (b - a) / n;
+        let sum = 0;
+        for (let i = 0; i < n; i++) {
+          const xi = a + (i + 0.5) * dx, yi = Math.max(0, fn(xi));
+          sum += fn(xi) * dx;
+          cx.fillStyle = 'rgba(88,196,221,0.2)';
+          cx.fillRect(OX + (a + i * dx) * SC, OY - yi * SC, dx * SC, yi * SC);
+          cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 0.5;
+          cx.strokeRect(OX + (a + i * dx) * SC, OY - yi * SC, dx * SC, yi * SC);
+        }
+
+        plotFn(cx, OX, OY, SC, W, H, fn, COLORS.YELLOW, 2.5);
+
+        cx.font = '13px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.YELLOW;
+        cx.fillText('f(x) = ' + name, 12, 22);
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('∫[0,' + b.toFixed(2) + '] ≈ ' + Math.round(sum * 1000) / 1000 + '  (n=' + n + ')', 12, 40);
+      },
+    },
+  ],
+});
+
+// ── Shared drawing helpers ────────────────────────────────────────
+function drawGrid(cx, OX, OY, SC, W, H) {
+  cx.strokeStyle = 'rgba(255,255,255,0.06)'; cx.lineWidth = 1;
+  for (let x = OX % SC; x < W; x += SC) { cx.beginPath(); cx.moveTo(x, 0); cx.lineTo(x, H); cx.stroke(); }
+  for (let y = OY % SC; y < H; y += SC) { cx.beginPath(); cx.moveTo(0, y); cx.lineTo(W, y); cx.stroke(); }
+}
+function drawAxes(cx, OX, OY, W, H, SC) {
+  cx.strokeStyle = 'rgba(255,255,255,0.3)'; cx.lineWidth = 1.5;
+  cx.beginPath(); cx.moveTo(0, OY); cx.lineTo(W, OY); cx.stroke();
+  cx.beginPath(); cx.moveTo(OX, 0); cx.lineTo(OX, H); cx.stroke();
+  cx.font = '10px monospace'; cx.fillStyle = 'rgba(255,255,255,0.25)'; cx.textAlign = 'center';
+  for (let i = -6; i <= 6; i++) {
+    if (i === 0) continue;
+    const x = OX + i * SC, y = OY - i * SC;
+    if (x > 5 && x < W - 5) cx.fillText(i, x, OY + 12);
+    if (y > 5 && y < H - 5) { cx.textAlign = 'right'; cx.fillText(i, OX - 4, y + 3); cx.textAlign = 'center'; }
+  }
+}
+function plotFn(cx, OX, OY, SC, W, H, fn, col, lw, dash = []) {
+  cx.beginPath();
+  let first = true;
+  for (let px = 0; px < W; px += 2) {
+    const x = (px - OX) / SC;
+    try {
+      const y = fn(x);
+      if (!isFinite(y) || Math.abs(y) > 20) { first = true; continue; }
+      const py = OY - y * SC;
+      if (first) { cx.moveTo(px, py); first = false; } else cx.lineTo(px, py);
+    } catch { first = true; }
+  }
+  cx.strokeStyle = col; cx.lineWidth = lw;
+  cx.setLineDash(dash);
+  cx.shadowColor = col; cx.shadowBlur = 4; cx.stroke(); cx.shadowBlur = 0;
+  cx.setLineDash([]);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Równania trygonometryczne</title>
+</head>
+<body>
+<script type="module">
+import { VizCore, T, COLORS } from '../lib/viz-core.js';
+
+const { cx, W, H } = VizCore.init({
+  title: T('Równania trygonometryczne', 'Trigonometric Equations'),
+  H: 360,
+  stages: [
+    // ── Stage 0: sin(x) = k — two solutions per period ───────────
+    {
+      title: () => T('sin(x) = k — dwa rozwiązania na okres', 'sin(x) = k — two solutions per period'),
+      desc:  () => T(
+        'Równanie sin(x) = k ma dwa rozwiązania w każdym okresie 2π (gdy |k| < 1): x = arcsin(k) i x = π − arcsin(k). Zmień k suwakiem.',
+        'Equation sin(x) = k has two solutions per 2π period (when |k| < 1): x = arcsin(k) and x = π − arcsin(k). Change k with the slider.'
+      ),
+      sliders: [
+        { id: 'k', lbl: 'k', color: COLORS.YELLOW, min: -1, max: 1, step: 0.05, val: 0.6 },
+      ],
+      draw(cx, W, H, vals) {
+        const k = vals.k;
+        const OX = 80, OY = H / 2 + 20, SC_X = 55, SC_Y = 90;
+        const px = x => OX + x * SC_X, py = y => OY - y * SC_Y;
+
+        drawAxes(cx, OX, OY, SC_X, W, H);
+
+        // Horizontal line y = k
+        cx.beginPath(); cx.moveTo(0, py(k)); cx.lineTo(W, py(k));
+        cx.strokeStyle = COLORS.YELLOW; cx.lineWidth = 1.5;
+        cx.setLineDash([5,4]); cx.stroke(); cx.setLineDash([]);
+
+        // sin curve
+        cx.beginPath(); let first = true;
+        for (let sx = 0; sx < W; sx += 2) {
+          const x = (sx - OX) / SC_X;
+          const y = Math.sin(x);
+          if (first) { cx.moveTo(sx, py(y)); first = false; } else cx.lineTo(sx, py(y));
+        }
+        cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 2.5;
+        cx.shadowColor = COLORS.CYAN; cx.shadowBlur = 4; cx.stroke(); cx.shadowBlur = 0;
+
+        if (Math.abs(k) <= 1) {
+          const x1 = Math.asin(k), x2 = Math.PI - x1;
+          [x1, x2].forEach(xi => {
+            cx.beginPath(); cx.moveTo(px(xi), OY); cx.lineTo(px(xi), py(k));
+            cx.strokeStyle = 'rgba(255,209,102,0.5)'; cx.lineWidth = 1.5; cx.setLineDash([3,3]); cx.stroke(); cx.setLineDash([]);
+            cx.beginPath(); cx.arc(px(xi), py(k), 6, 0, Math.PI * 2);
+            cx.fillStyle = COLORS.YELLOW; cx.shadowColor = COLORS.YELLOW;
+            cx.shadowBlur = 8; cx.fill(); cx.shadowBlur = 0;
+          });
+
+          cx.font = '13px monospace'; cx.textAlign = 'left';
+          cx.fillStyle = COLORS.CYAN;   cx.fillText('sin(x) = ' + k.toFixed(2), 12, 22);
+          cx.fillStyle = COLORS.YELLOW; cx.fillText('x₁ = arcsin(' + k.toFixed(2) + ') ≈ ' + (x1 * 180 / Math.PI).toFixed(1) + '°', 12, 40);
+          cx.fillText('x₂ = π − x₁ ≈ ' + (x2 * 180 / Math.PI).toFixed(1) + '°', 12, 58);
+          cx.fillStyle = 'rgba(255,255,255,0.35)';
+          cx.fillText('+ k·360° dla każdej liczby całkowitej k', 12, 76);
+        } else {
+          cx.font = '13px monospace'; cx.textAlign = 'center';
+          cx.fillStyle = COLORS.PINK; cx.fillText('|k| > 1 — brak rozwiązań', W / 2, 28);
+        }
+      },
+    },
+
+    // ── Stage 1: cos(x) = k ──────────────────────────────────────
+    {
+      title: () => T('cos(x) = k — symetryczne rozwiązania', 'cos(x) = k — symmetric solutions'),
+      desc:  () => T(
+        'cos(x) = k ma rozwiązania x = ±arccos(k) + k·2π. Dwa rozwiązania symetryczne względem osi X.',
+        'cos(x) = k has solutions x = ±arccos(k) + k·2π. Two solutions symmetric about the x-axis.'
+      ),
+      sliders: [
+        { id: 'k', lbl: 'k', color: COLORS.YELLOW, min: -1, max: 1, step: 0.05, val: 0.5 },
+      ],
+      draw(cx, W, H, vals) {
+        const k = vals.k;
+        const OX = 80, OY = H / 2 + 20, SC_X = 55, SC_Y = 90;
+        const px = x => OX + x * SC_X, py = y => OY - y * SC_Y;
+
+        drawAxes(cx, OX, OY, SC_X, W, H);
+
+        cx.beginPath(); cx.moveTo(0, py(k)); cx.lineTo(W, py(k));
+        cx.strokeStyle = COLORS.YELLOW; cx.lineWidth = 1.5; cx.setLineDash([5,4]); cx.stroke(); cx.setLineDash([]);
+
+        cx.beginPath(); let first = true;
+        for (let sx = 0; sx < W; sx += 2) {
+          const x = (sx - OX) / SC_X, y = Math.cos(x);
+          if (first) { cx.moveTo(sx, py(y)); first = false; } else cx.lineTo(sx, py(y));
+        }
+        cx.strokeStyle = COLORS.ORANGE; cx.lineWidth = 2.5;
+        cx.shadowColor = COLORS.ORANGE; cx.shadowBlur = 4; cx.stroke(); cx.shadowBlur = 0;
+
+        if (Math.abs(k) <= 1) {
+          const x1 = Math.acos(k), x2 = -x1;
+          [x1, x2].forEach(xi => {
+            cx.beginPath(); cx.moveTo(px(xi), OY); cx.lineTo(px(xi), py(k));
+            cx.strokeStyle = 'rgba(255,209,102,0.5)'; cx.lineWidth = 1.5; cx.setLineDash([3,3]); cx.stroke(); cx.setLineDash([]);
+            cx.beginPath(); cx.arc(px(xi), py(k), 6, 0, Math.PI * 2);
+            cx.fillStyle = COLORS.YELLOW; cx.shadowColor = COLORS.YELLOW;
+            cx.shadowBlur = 8; cx.fill(); cx.shadowBlur = 0;
+          });
+
+          cx.font = '13px monospace'; cx.textAlign = 'left';
+          cx.fillStyle = COLORS.ORANGE; cx.fillText('cos(x) = ' + k.toFixed(2), 12, 22);
+          cx.fillStyle = COLORS.YELLOW;
+          cx.fillText('x = ±arccos(' + k.toFixed(2) + ') ≈ ±' + (x1 * 180 / Math.PI).toFixed(1) + '°', 12, 40);
+          cx.fillStyle = 'rgba(255,255,255,0.35)';
+          cx.fillText('+ k·360° dla k ∈ ℤ', 12, 58);
+        }
+      },
+    },
+
+    // ── Stage 2: sin(x) = k on unit circle ───────────────────────
+    {
+      title: () => T('Rozwiązania na kole jednostkowym', 'Solutions on the unit circle'),
+      desc:  () => T(
+        'Równanie sin(x) = k to przecięcia poziomej linii y=k z okręgiem jednostkowym. Dwa punkty → dwa kąty → nieskończenie wiele rozwiązań (±2π).',
+        'Equation sin(x) = k means intersections of horizontal line y=k with the unit circle. Two points → two angles → infinitely many solutions (±2π).'
+      ),
+      sliders: [
+        { id: 'k', lbl: 'k', color: COLORS.YELLOW, min: -1, max: 1, step: 0.05, val: 0.5 },
+      ],
+      draw(cx, W, H, vals) {
+        const k = vals.k;
+        const CX = W / 2, CY = H / 2 + 10, R = 120;
+
+        cx.beginPath(); cx.arc(CX, CY, R, 0, Math.PI * 2);
+        cx.strokeStyle = 'rgba(255,255,255,0.2)'; cx.lineWidth = 1.5; cx.stroke();
+        cx.beginPath(); cx.moveTo(CX - R - 15, CY); cx.lineTo(CX + R + 15, CY);
+        cx.moveTo(CX, CY - R - 15); cx.lineTo(CX, CY + R + 15);
+        cx.strokeStyle = 'rgba(255,255,255,0.3)'; cx.lineWidth = 1.5; cx.stroke();
+
+        // y = k horizontal line on circle
+        const ky = CY - k * R;
+        cx.beginPath(); cx.moveTo(CX - R - 20, ky); cx.lineTo(CX + R + 20, ky);
+        cx.strokeStyle = COLORS.YELLOW; cx.lineWidth = 1.5;
+        cx.setLineDash([5,4]); cx.stroke(); cx.setLineDash([]);
+
+        if (Math.abs(k) <= 1) {
+          const x1 = Math.asin(k), x2 = Math.PI - x1;
+          [[x1, COLORS.CYAN], [x2, COLORS.GREEN]].forEach(([angle, col]) => {
+            const Px = CX + R * Math.cos(angle), Py = CY - R * Math.sin(angle);
+            cx.beginPath(); cx.moveTo(CX, CY); cx.lineTo(Px, Py);
+            cx.strokeStyle = col; cx.lineWidth = 2; cx.stroke();
+            cx.beginPath(); cx.arc(Px, Py, 7, 0, Math.PI * 2);
+            cx.fillStyle = col; cx.shadowColor = col; cx.shadowBlur = 10; cx.fill(); cx.shadowBlur = 0;
+            cx.font = '11px monospace'; cx.textAlign = 'center';
+            cx.fillStyle = col;
+            cx.fillText((angle * 180 / Math.PI).toFixed(1) + '°', Px + (Px > CX ? 20 : -20), Py + (Py < CY ? -10 : 16));
+          });
+        }
+
+        cx.font = '13px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.YELLOW; cx.fillText('sin(x) = ' + k.toFixed(2), 12, 22);
+        if (Math.abs(k) <= 1) {
+          const x1 = Math.asin(k) * 180 / Math.PI, x2 = 180 - x1;
+          cx.fillStyle = COLORS.CYAN;  cx.fillText('x₁ ≈ ' + x1.toFixed(1) + '°', 12, 40);
+          cx.fillStyle = COLORS.GREEN; cx.fillText('x₂ ≈ ' + x2.toFixed(1) + '°', 12, 58);
+        }
+      },
+    },
+
+    // ── Stage 3: Solve 2sin(x) + 1 = 0 ──────────────────────────
+    {
+      title: () => T('Rozwiązywanie krok po kroku', 'Solving step by step'),
+      desc:  () => T(
+        '2sin(x) + 1 = 0  →  sin(x) = −½  →  x = −π/6 + 2kπ lub x = π + π/6 + 2kπ. Krok po kroku.',
+        '2sin(x) + 1 = 0  →  sin(x) = −½  →  x = −π/6 + 2kπ or x = π + π/6 + 2kπ. Step by step.'
+      ),
+      sliders: [
+        { id: 'step', lbl: 'krok', color: COLORS.CYAN, min: 0, max: 4, step: 1, val: 0 },
+      ],
+      draw(cx, W, H, vals) {
+        const step = Math.round(vals.step);
+        const steps = [
+          { main: '2sin(x) + 1 = 0',              note: 'równanie' },
+          { main: 'sin(x) = −1/2',                 note: 'dzielimy przez 2, przenosimy 1' },
+          { main: 'x = arcsin(−½) = −π/6',         note: '(−30°)' },
+          { main: 'x₁ = −π/6 + 2kπ',              note: 'pierwsze rozwiązanie + okresy' },
+          { main: 'x₂ = π − (−π/6) + 2kπ = 7π/6 + 2kπ', note: 'drugie rozwiązanie' },
+        ];
+        const lineH = 52, startY = 40;
+        steps.forEach((s, i) => {
+          const y = startY + i * lineH;
+          const active = i === step, future = i > step;
+          cx.globalAlpha = future ? 0.2 : 1;
+          if (active) {
+            cx.fillStyle = 'rgba(88,196,221,0.1)';
+            cx.beginPath(); cx.roundRect(10, y - 24, W - 20, 38, 6); cx.fill();
+          }
+          cx.font = active ? 'bold 14px monospace' : '13px monospace';
+          cx.textAlign = 'left';
+          cx.fillStyle = active ? 'white' : 'rgba(255,255,255,0.5)';
+          cx.fillText(s.main, 20, y);
+          if (s.note) {
+            cx.font = '11px monospace'; cx.textAlign = 'right';
+            cx.fillStyle = active ? COLORS.YELLOW : 'rgba(255,209,102,0.3)';
+            cx.fillText(s.note, W - 14, y);
+          }
+          cx.globalAlpha = 1;
+        });
+      },
+    },
+  ],
+});
+
+function drawAxes(cx, OX, OY, SC_X, W, H) {
+  cx.strokeStyle = 'rgba(255,255,255,0.3)'; cx.lineWidth = 1.5;
+  cx.beginPath(); cx.moveTo(0, OY); cx.lineTo(W, OY); cx.stroke();
+  cx.beginPath(); cx.moveTo(OX, 0); cx.lineTo(OX, H); cx.stroke();
+  cx.font = '10px monospace'; cx.fillStyle = 'rgba(255,255,255,0.22)'; cx.textAlign = 'center';
+  [[-1,'−π'],[0,'0'],[1,'π'],[2,'2π']].forEach(([k, lbl]) => {
+    const x = OX + k * Math.PI * SC_X;
+    if (x > 10 && x < W - 10) cx.fillText(lbl, x, OY + 14);
+  });
+}
+</script>
+</body>
+</html>

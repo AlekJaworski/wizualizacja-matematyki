@@ -121,7 +121,7 @@ const stages=[
    show:''},
   {a:1,h:2,k:-3,
    f:'y = ax² + bx + c',
-   d:T('Rozwiń a(x−h)²+k i porównaj z ax²+bx+c. Przesuwaj a, b, c — obserwuj, jak zmieniają się h i k.','Expand a(x−h)²+k and match terms with ax²+bx+c. Drag a, b, c — watch h and k update.'),
+   d:T('Rozwiń a(x−h)²+k i porównaj z ax²+bx+c. Trzy metody pierwiastków: ① forma kanoniczna x=h±√(−k/a) ② wyróżnik Δ=b²−4ac ③ rozkład na czynniki.','Expand a(x−h)²+k and match ax²+bx+c. Three root methods: ① canonical x=h±√(−k/a) ② discriminant Δ=b²−4ac ③ factorization.'),
    show:'abc'},
 ];
 
@@ -373,9 +373,10 @@ function drawQuadraticFormula(x,y,a,b,c,col,sz){
 function drawABCOverlay(a,h,k){
   const b=-2*a*h,c=a*h*h+k;
   const disc=b*b-4*a*c;
+  const hasRoots=disc>-0.01,hasTwoRoots=disc>0.001;
   cx.fillStyle='rgba(22,22,26,.90)';
   cx.strokeStyle='rgba(255,255,255,.10)';cx.lineWidth=.8;
-  const bx=6,by=6,bw=285,bh=130;
+  const bx=6,by=6,bw=290,bh=175;
   cx.beginPath();cx.roundRect(bx,by,bw,bh,6);cx.fill();cx.stroke();
 
   const lx=bx+10;let ly=by+18;
@@ -383,52 +384,112 @@ function drawABCOverlay(a,h,k){
 
   // vertex form
   cx.fillStyle='rgba(255,255,255,.40)';cx.fillText(T('wierzchołek:','vertex:'),lx,ly);
-  cx.fillStyle='rgba(255,255,255,.85)';cx.fillText('a(x − h)² + k',lx+52,ly);
+  cx.fillStyle='rgba(255,255,255,.85)';cx.fillText('a(x − h)² + k',lx+62,ly);
 
   // expand
-  ly+=17;
+  ly+=16;
   cx.fillStyle='rgba(255,255,255,.40)';cx.fillText(T('rozwinięcie:','expand:'),lx,ly);
-  cx.fillStyle='rgba(255,255,255,.70)';cx.fillText('ax² − 2ah·x + ah²+k',lx+52,ly);
+  cx.fillStyle='rgba(255,255,255,.70)';cx.fillText('ax² − 2ah·x + ah²+k',lx+62,ly);
 
   // coefficients
-  ly+=17;
+  ly+=16;
   cx.fillStyle='rgba(255,255,255,.40)';cx.fillText(T('czyli:','so:'),lx,ly);
   cx.fillStyle='#FF6B35';cx.fillText('a='+a.toFixed(2),lx+28,ly);
   cx.fillStyle='#58C4DD';cx.fillText('b='+b.toFixed(2),lx+98,ly);
   cx.fillStyle='#83C167';cx.fillText('c='+c.toFixed(2),lx+168,ly);
 
-  // invert — h as fraction
-  ly+=19;
+  // h = -b/2a
+  ly+=18;
   cx.fillStyle='rgba(255,255,255,.40)';cx.fillText('h =',lx,ly);
   drawFraction(lx+52,ly-3,'−b','2a','#FFD166',11);
   cx.fillStyle='#FFD166';cx.font='11px monospace';cx.textAlign='left';
   cx.fillText('= '+h.toFixed(3),lx+82,ly);
 
-  // invert — k as fraction
-  ly+=19;
+  // k = (4ac-b²)/4a
+  ly+=18;
   cx.fillStyle='rgba(255,255,255,.40)';cx.fillText('k =',lx,ly);
   drawFraction(lx+56,ly-3,'4ac − b²','4a','#FFD166',11);
   cx.fillStyle='#FFD166';cx.font='11px monospace';cx.textAlign='left';
   cx.fillText('= '+k.toFixed(3),lx+112,ly);
 
-  // ── Bottom formula bar ──
+  // separator
+  ly+=13;
+  cx.strokeStyle='rgba(255,255,255,.12)';cx.lineWidth=.8;
+  cx.beginPath();cx.moveTo(lx,ly);cx.lineTo(bx+bw-10,ly);cx.stroke();
+  ly+=12;
+
+  // three root methods header
+  cx.font='bold 10px monospace';
+  cx.fillStyle='rgba(255,255,255,.45)';
+  cx.fillText(T('3 metody wyznaczania pierwiastków:','3 root methods:'),lx,ly);
+  ly+=14;
+
+  const sqKA=hasRoots?Math.sqrt(Math.max(0,-k/a)):0;
+
+  // ① canonical readout — what this viz proves
+  cx.font='11px monospace';
+  cx.fillStyle='#FFD166';
+  cx.fillText('① x = h ± √(−k/a)',lx,ly);
+  if(hasTwoRoots){
+    cx.fillStyle='rgba(255,209,102,.55)';
+    cx.fillText('→ '+(h-sqKA).toFixed(2)+', '+(h+sqKA).toFixed(2),lx+150,ly);
+  }else if(hasRoots){
+    cx.fillStyle='rgba(255,209,102,.55)';cx.fillText('→ '+h.toFixed(2)+'  (×2)',lx+150,ly);
+  }else{
+    cx.fillStyle='rgba(220,80,80,.5)';cx.fillText('→ '+T('brak','none'),lx+150,ly);
+  }
+  ly+=14;
+
+  // ② discriminant
+  cx.font='11px monospace';
+  if(!hasRoots){
+    cx.fillStyle='rgba(220,80,80,.6)';
+    cx.fillText('② Δ=b²−4ac='+disc.toFixed(1)+' < 0 → Ø',lx,ly);
+  }else{
+    cx.fillStyle='rgba(255,255,255,.45)';
+    cx.fillText('② Δ='+disc.toFixed(1)+',  x=(−b±√Δ)/2a',lx,ly);
+  }
+  ly+=14;
+
+  // ③ factorization
+  cx.font='11px monospace';
+  if(hasTwoRoots){
+    const x1=h-sqKA,x2=h+sqKA;
+    const x1r=Math.round(x1*2)/2,x2r=Math.round(x2*2)/2;
+    if(Math.abs(x1-x1r)<0.06&&Math.abs(x2-x2r)<0.06){
+      const fmtR=v=>Math.abs(v%1)<0.01?Math.round(v).toString():v.toFixed(1);
+      const aD=Math.abs(a-1)<0.06?'':(a.toFixed(1)+'·');
+      const t1=x1r===0?'(x)':(x1r>0?'(x−'+fmtR(x1r)+')':'(x+'+fmtR(Math.abs(x1r))+')');
+      const t2=x2r===0?'(x)':(x2r>0?'(x−'+fmtR(x2r)+')':'(x+'+fmtR(Math.abs(x2r))+')');
+      cx.fillStyle='rgba(131,193,103,.75)';cx.fillText('③ '+aD+t1+t2,lx,ly);
+    }else{
+      cx.fillStyle='rgba(255,255,255,.25)';
+      cx.fillText('③ '+T('rozkład: pierwiastki niewymierne','factoring: irrational roots'),lx,ly);
+    }
+  }else if(hasRoots){
+    cx.fillStyle='rgba(255,255,255,.35)';
+    const fmtR=v=>Math.abs(v%1)<0.01?Math.round(v).toString():v.toFixed(1);
+    const aD=Math.abs(a-1)<0.06?'':(a.toFixed(1)+'·');
+    cx.fillText('③ '+aD+'(x−'+fmtR(h)+')²',lx,ly);
+  }else{
+    cx.fillStyle='rgba(255,255,255,.20)';
+    cx.fillText('③ '+T('rozkład niemożliwy (Δ<0)','factoring impossible (Δ<0)'),lx,ly);
+  }
+
+  // ── Bottom bar: canonical formula as the main result ──
   const fy=H-14;
-  if(disc>0.001){
-    const sqD=Math.sqrt(disc);
-    drawQuadraticFormula(10,fy,a,b,c,'rgba(255,209,102,.85)',13);
-    // computed roots on right
+  cx.font='bold 12px monospace';cx.textAlign='left';
+  if(hasTwoRoots){
+    cx.fillStyle='rgba(255,209,102,.85)';
+    cx.fillText('x = h ± √(−k/a)',10,fy);
     cx.font='12px monospace';cx.fillStyle='rgba(255,209,102,.65)';cx.textAlign='right';
-    cx.fillText('= '+(h-sqD/(2*a)).toFixed(3)+',  '+(h+sqD/(2*a)).toFixed(3),W-8,fy);
-  } else if(disc>=-0.01){
-    drawQuadraticFormula(10,fy,a,b,c,'rgba(255,209,102,.85)',13);
-    cx.font='12px monospace';cx.fillStyle='rgba(255,209,102,.65)';cx.textAlign='right';
-    cx.fillText('= '+h.toFixed(3)+'  '+T('(podwójny)','(repeated)'),W-8,fy);
-  } else {
-    cx.font='bold 12px monospace';cx.fillStyle='rgba(220,80,80,.8)';cx.textAlign='left';
-    cx.fillText('b²−4ac = '+disc.toFixed(3)+' < 0',10,fy);
-    // draw crossed-out sqrt
-    cx.fillStyle='rgba(220,80,80,.5)';
-    cx.fillText('  →  '+T('brak pierwiastków rzeczywistych','no real roots'),180,fy);
+    cx.fillText('= '+(h-sqKA).toFixed(3)+',  '+(h+sqKA).toFixed(3),W-8,fy);
+  }else if(hasRoots){
+    cx.fillStyle='rgba(255,209,102,.85)';
+    cx.fillText('x = h = '+h.toFixed(3)+'  '+T('(podwójny pierwiastek)','(repeated root)'),10,fy);
+  }else{
+    cx.fillStyle='rgba(220,80,80,.8)';
+    cx.fillText('Δ = '+disc.toFixed(2)+' < 0  →  '+T('brak pierwiastków','no real roots'),10,fy);
   }
 }
 

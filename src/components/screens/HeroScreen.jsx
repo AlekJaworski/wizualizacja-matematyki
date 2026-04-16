@@ -238,6 +238,43 @@ export function HeroScreen({ lang, setLang, themeId, onThemeChange, onStartQuiz,
           ))}
         </div>
       </div>
+
+      {/* Footer */}
+      <div style={{
+        position: "absolute", bottom: 20,
+        display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+      }}>
+        <a
+          href="https://buycoffee.to/oczochodzi"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: "flex", alignItems: "center", gap: 7,
+            padding: "8px 18px", borderRadius: 8,
+            border: `1px solid ${COLORS.border}`,
+            background: "transparent",
+            color: COLORS.textDim,
+            fontSize: 13, fontFamily: FONT,
+            textDecoration: "none",
+            transition: "background 0.15s, color 0.15s, border-color 0.15s",
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = "rgba(255,209,102,0.08)";
+            e.currentTarget.style.borderColor = "rgba(255,209,102,0.4)";
+            e.currentTarget.style.color = "#FFD166";
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = "transparent";
+            e.currentTarget.style.borderColor = COLORS.border;
+            e.currentTarget.style.color = COLORS.textDim;
+          }}
+        >
+          ☕ {lang === "pl" ? "Postaw kawę — wspieraj projekt" : "Buy me a coffee — support this project"}
+        </a>
+        <div style={{ fontSize: 11, color: COLORS.textFaint }}>
+          {lang === "pl" ? "darmowe narzędzie — zawsze" : "free tool — always"}
+        </div>
+      </div>
     </div>
   );
 }

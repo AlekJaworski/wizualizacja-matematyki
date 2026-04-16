@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Funkcja logarytmiczna</title>
+</head>
+<body>
+<script type="module">
+import { VizCore, T, COLORS } from '../lib/viz-core.js';
+
+const OX = 150, OY = 220, SC = 60;
+const px = x => OX + x * SC;
+const py = y => OY - y * SC;
+
+function drawGrid(cx, W, H) {
+  cx.strokeStyle = 'rgba(255,255,255,0.06)'; cx.lineWidth = 1;
+  for (let x = OX % SC; x < W; x += SC) { cx.beginPath(); cx.moveTo(x, 0); cx.lineTo(x, H); cx.stroke(); }
+  for (let y = OY % SC; y < H; y += SC) { cx.beginPath(); cx.moveTo(0, y); cx.lineTo(W, y); cx.stroke(); }
+}
+function drawAxes(cx, W, H) {
+  cx.strokeStyle = 'rgba(255,255,255,0.3)'; cx.lineWidth = 1.5;
+  cx.beginPath(); cx.moveTo(0, OY); cx.lineTo(W, OY); cx.stroke();
+  cx.beginPath(); cx.moveTo(OX, 0); cx.lineTo(OX, H); cx.stroke();
+  cx.font = '10px monospace'; cx.fillStyle = 'rgba(255,255,255,0.25)'; cx.textAlign = 'center';
+  for (let i = -2; i <= 6; i++) {
+    if (i === 0) continue;
+    const x = OX + i * SC;
+    if (x > 10 && x < W - 10) cx.fillText(i, x, OY + 13);
+  }
+  for (let i = -3; i <= 3; i++) {
+    if (i === 0) continue;
+    const y = OY - i * SC;
+    if (y > 10 && y < H - 10) { cx.textAlign = 'right'; cx.fillText(i, OX - 5, y + 4); cx.textAlign = 'center'; }
+  }
+}
+function plotFn(cx, W, fn, col, lw = 2, dash = []) {
+  cx.beginPath(); let first = true;
+  for (let sx = 0; sx < W; sx += 2) {
+    const x = (sx - OX) / SC;
+    if (x <= 0) { first = true; continue; }
+    const y = fn(x);
+    if (!isFinite(y) || y > 5 || y < -5) { first = true; continue; }
+    if (first) { cx.moveTo(sx, py(y)); first = false; } else cx.lineTo(sx, py(y));
+  }
+  cx.strokeStyle = col; cx.lineWidth = lw; cx.setLineDash(dash);
+  cx.shadowColor = col; cx.shadowBlur = 4; cx.stroke(); cx.shadowBlur = 0; cx.setLineDash([]);
+}
+function gdot(cx, x, y, r, col) {
+  cx.beginPath(); cx.arc(px(x), py(y), r, 0, Math.PI * 2);
+  cx.fillStyle = col; cx.shadowColor = col; cx.shadowBlur = 10; cx.fill(); cx.shadowBlur = 0;
+}
+
+const { cx, W, H } = VizCore.init({
+  title: T('Funkcja logarytmiczna', 'Logarithmic Function'),
+  H: 360,
+  stages: [
+    // ── Stage 0: Log is the inverse question ─────────────────────
+    {
+      title: () => T('Logarytm to pytanie odwrotne', 'Logarithm is the inverse question'),
+      desc:  () => T(
+        '2³ = 8  to odpowiedź. log₂(8) = 3  to pytanie: "do jakiej potęgi podnieść 2, żeby dostać 8?". Logarytm jest ODWROTNOŚCIĄ potęgowania.',
+        '2³ = 8 is the answer. log₂(8) = 3 is the question: "to what power must I raise 2 to get 8?". Logarithm is the INVERSE of exponentiation.'
+      ),
+      sliders: [
+        { id: 'a', lbl: 'a', color: COLORS.CYAN,   min: 1.1, max: 4, step: 0.1, val: 2 },
+        { id: 'x', lbl: 'x', color: COLORS.YELLOW, min: 0.1, max: 6, step: 0.1, val: 4 },
+      ],
+      draw(cx, W, H, vals) {
+        const a = vals.a, x = vals.x;
+        const logval = Math.log(x) / Math.log(a);
+
+        drawGrid(cx, W, H); drawAxes(cx, W, H);
+        plotFn(cx, W, t => Math.log(t) / Math.log(a), COLORS.CYAN, 2.5);
+
+        // Vertical asymptote
+        cx.beginPath(); cx.moveTo(OX, 0); cx.lineTo(OX, H);
+        cx.strokeStyle = 'rgba(255,107,53,0.3)'; cx.lineWidth = 1; cx.setLineDash([5,4]); cx.stroke(); cx.setLineDash([]);
+
+        // Highlight point
+        cx.beginPath(); cx.moveTo(px(x), OY); cx.lineTo(px(x), py(logval));
+        cx.strokeStyle = 'rgba(255,209,102,0.4)'; cx.lineWidth = 1.5; cx.setLineDash([3,3]); cx.stroke(); cx.setLineDash([]);
+        cx.beginPath(); cx.moveTo(OX, py(logval)); cx.lineTo(px(x), py(logval));
+        cx.strokeStyle = 'rgba(255,209,102,0.4)'; cx.lineWidth = 1.5; cx.setLineDash([3,3]); cx.stroke(); cx.setLineDash([]);
+        gdot(cx, x, logval, 6, COLORS.YELLOW);
+
+        cx.font = '13px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('log' + a.toFixed(1) + '(' + x.toFixed(1) + ') = ' + (Math.round(logval * 100) / 100), 14, 22);
+        cx.fillStyle = 'rgba(255,255,255,0.5)';
+        cx.fillText('bo ' + a.toFixed(1) + '^' + (Math.round(logval * 100) / 100) + ' = ' + x.toFixed(1), 14, 40);
+        cx.fillStyle = COLORS.ORANGE; cx.fillText('x = 0 (asymptota pionowa)', 14, 58);
+      },
+    },
+
+    // ── Stage 1: Mirror of exponential ───────────────────────────
+    {
+      title: () => T('Odbicie funkcji wykładniczej', 'Mirror of the exponential function'),
+      desc:  () => T(
+        'log_a(x) jest odbiciem aˣ względem prostej y = x. Dla każdego punktu (p, q) na aˣ, punkt (q, p) leży na log_a(x). Zmień podstawę.',
+        'log_a(x) is the reflection of aˣ in the line y = x. For every point (p, q) on aˣ, the point (q, p) lies on log_a(x). Change the base.'
+      ),
+      sliders: [
+        { id: 'a', lbl: 'a', color: COLORS.CYAN, min: 1.2, max: 3, step: 0.1, val: 2 },
+      ],
+      draw(cx, W, H, vals) {
+        const a = vals.a;
+        drawGrid(cx, W, H); drawAxes(cx, W, H);
+
+        // y = x mirror line
+        cx.beginPath(); cx.moveTo(0, OY + OX); cx.lineTo(W, OY - (W - OX));
+        cx.strokeStyle = 'rgba(255,255,255,0.15)'; cx.lineWidth = 1; cx.setLineDash([4,4]); cx.stroke(); cx.setLineDash([]);
+        cx.font = '11px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = 'rgba(255,255,255,0.25)'; cx.fillText('y = x', W - 70, 20);
+
+        // aˣ (orange)
+        plotFn(cx, W, x => Math.pow(a, x), COLORS.ORANGE, 2);
+        // log_a(x) (cyan)
+        plotFn(cx, W, x => x > 0 ? Math.log(x) / Math.log(a) : null, COLORS.CYAN, 2.5);
+
+        // Special points
+        gdot(cx, 0, 1, 5, COLORS.ORANGE);   // (0,1) on exp
+        gdot(cx, 1, 0, 5, COLORS.CYAN);     // (1,0) on log
+
+        cx.font = '12px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.ORANGE; cx.fillText(a.toFixed(1) + 'ˣ', W - 55, py(3) - 8);
+        cx.fillStyle = COLORS.CYAN;   cx.fillText('log' + a.toFixed(1) + '(x)', px(4) + 5, py(1.2));
+      },
+    },
+
+    // ── Stage 2: Log rules — derived from exp addition ───────────
+    {
+      title: () => T('Sk\u0105d bior\u0105 si\u0119 regu\u0142y logarytm\u00F3w?', 'Why do logarithm rules work?'),
+      desc:  () => T(
+        'log(A\u00B7B) = log(A)+log(B) wynika wprost z a\u207F\u00B7a\u1D50=a\u207F\u207A\u1D50. Je\u015Bli a\u1D56=A i a\u1A9E=B, to A\u00B7B = a\u1D56\u207A\u1A9E, wi\u0119c log(A\u00B7B) = p+q = log(A)+log(B).',
+        'log(A\u00B7B) = log(A)+log(B) follows from a\u207F\u00B7a\u1D50=a\u207F\u207A\u1D50. If a\u1D56=A and a\u1A9E=B, then A\u00B7B = a\u1D56\u207A\u1A9E, so log(A\u00B7B) = p+q = log(A)+log(B).'
+      ),
+      sliders: [
+        { id: 'A', lbl: 'A', color: COLORS.CYAN,   min: 0.5, max: 8, step: 0.5, val: 4 },
+        { id: 'B', lbl: 'B', color: COLORS.ORANGE, min: 0.5, max: 8, step: 0.5, val: 2 },
+      ],
+      draw(cx, W, H, vals) {
+        const A = vals.A, B = vals.B;
+        const log2 = x => Math.log2(x);
+        const lA = log2(A), lB = log2(B);
+        const lAB = log2(A * B), lAdB = log2(A / B), lA2 = log2(A * A);
+
+        const barH = 26, barY = 55, gap = 44;
+        function bar(label, val, y, col) {
+          const barLen = Math.max(0, val) * 38;
+          const clipped = Math.min(Math.abs(barLen), W - 160);
+          const dir = val < 0 ? -1 : 1;
+          cx.fillStyle = col + '28'; cx.fillRect(120, y, dir * clipped, barH);
+          cx.strokeStyle = col; cx.lineWidth = 1.2; cx.strokeRect(120, y, dir * clipped, barH);
+          cx.font = '11px monospace'; cx.textAlign = 'right';
+          cx.fillStyle = col; cx.fillText(label, 115, y + 17);
+          cx.textAlign = 'left'; cx.fillStyle = 'rgba(255,255,255,0.6)';
+          cx.fillText('= ' + val.toFixed(3), 120 + dir * clipped + 6 * dir, y + 17);
+        }
+
+        bar('log\u2082(A)', lA, barY, COLORS.CYAN);
+        bar('log\u2082(B)', lB, barY + gap, COLORS.ORANGE);
+        bar('log\u2082(A\u00B7B)', lAB, barY + gap * 2, COLORS.GREEN);
+        bar('log\u2082(A/B)', lAdB, barY + gap * 3, COLORS.YELLOW);
+        bar('log\u2082(A\u00B2)', lA2, barY + gap * 4, COLORS.PINK);
+
+        // Derivation proof column
+        const px2 = W - 200;
+        cx.font = 'bold 11px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = 'rgba(255,255,255,0.5)';
+        cx.fillText(T('Dow\u00F3d (z a^p\u00B7a^q=a^(p+q)):',
+                      'Proof (from a^p\u00B7a^q=a^(p+q)):'), px2, barY + 4);
+
+        cx.font = '11px monospace'; cx.fillStyle = COLORS.GREEN;
+        cx.fillText('p=log(A), q=log(B)', px2, barY + 20);
+        cx.fillStyle = 'rgba(255,255,255,0.65)';
+        cx.fillText('A\u00B7B = a\u1D56\u00B7a\u1A9E = a\u1D56\u207A\u1A9E', px2, barY + 36);
+        cx.fillStyle = COLORS.GREEN;
+        cx.fillText('log(A\u00B7B) = p+q \u2713', px2, barY + 52);
+
+        cx.fillStyle = COLORS.YELLOW;
+        cx.fillText('log(A/B) = p\u2212q \u2713', px2, barY + 72);
+        cx.fillStyle = COLORS.PINK;
+        cx.fillText('log(A\u00B2) = 2p \u2713', px2, barY + 88);
+
+        // Verification
+        cx.fillStyle = 'rgba(255,255,255,0.35)'; cx.font = '10px monospace';
+        cx.fillText(lA.toFixed(2) + ' + ' + lB.toFixed(2) + ' = ' + (lA+lB).toFixed(2)
+                  + '  = ' + lAB.toFixed(2) + ' \u2713', px2, barY + gap * 2 + barH + 10);
+      },
+    },
+
+    // ── Stage 3: Change of base — derived algebraically ─────────
+    {
+      title: () => T('Zmiana podstawy logarytmu', 'Change of logarithm base'),
+      desc:  () => T(
+        'log\u2090(x) = log\u1D66(x) / log\u1D66(a). Dow\u00F3d: je\u015Bli a\u1D38=x, to a = b^(log\u1D66(a)), wi\u0119c b^(L\u00B7log\u1D66(a)) = x. St\u0105d L = log\u1D66(x) / log\u1D66(a).',
+        'log\u2090(x) = log\u1D66(x) / log\u1D66(a). Proof: if a\u1D38=x, write a=b^(log\u1D66(a)), so b^(L\u00B7log\u1D66(a))=x. Hence L = log\u1D66(x) / log\u1D66(a).'
+      ),
+      sliders: [
+        { id: 'a', lbl: 'a', color: COLORS.CYAN,   min: 1.1, max: 4,  step: 0.1, val: 2 },
+        { id: 'x', lbl: 'x', color: COLORS.YELLOW, min: 0.5, max: 10, step: 0.5, val: 8 },
+      ],
+      draw(cx, W, H, vals) {
+        const a = vals.a, x = vals.x;
+        const lnA = Math.log(a), lnX = Math.log(x);
+        const logAx = lnX / lnA; // log_a(x)
+        const log2x = Math.log2(x), log2a = Math.log2(a);
+        const log10x = Math.log10(x), log10a = Math.log10(a);
+        const lnx = Math.log(x), lna2 = Math.log(a);
+
+        // Proof display
+        const px2 = 30, py2 = 40;
+        cx.font = 'bold 13px monospace'; cx.textAlign = 'left'; cx.fillStyle = COLORS.CYAN;
+        cx.fillText(T('Dow\u00F3d zmiany podstawy:', 'Proof of change of base:'), px2, py2);
+
+        const step = (y, col, txt) => { cx.fillStyle = col; cx.font = '12px monospace'; cx.fillText(txt, px2 + 16, py2 + y); };
+        step(20, 'rgba(255,255,255,0.75)', 'Niech L = log\u2090(x), wi\u0119c a\u1D38 = x');
+        step(36, 'rgba(255,255,255,0.75)', 'Piszemy a = b^(log\u1D66(a))');
+        step(52, 'rgba(255,255,255,0.75)', 'x = a\u1D38 = (b^(log\u1D66(a)))\u1D38 = b^(L \u00B7 log\u1D66(a))');
+        step(68, COLORS.GREEN,              'log\u1D66(x) = L \u00B7 log\u1D66(a)');
+        step(84, COLORS.GREEN,              'L = log\u1D66(x) / log\u1D66(a)  \u2713');
+
+        // Separator
+        cx.strokeStyle = 'rgba(255,255,255,0.1)'; cx.lineWidth = 0.8;
+        cx.beginPath(); cx.moveTo(30, py2 + 100); cx.lineTo(W-30, py2 + 100); cx.stroke();
+
+        // Three bases side by side
+        const colX = [W*0.18, W*0.50, W*0.82];
+        const bases = [2, 10, Math.E];
+        const baseNames = ['2', '10', 'e'];
+        const colCols = [COLORS.CYAN, COLORS.YELLOW, COLORS.GREEN];
+
+        const boxY = py2 + 115;
+        colX.forEach((bx, i) => {
+          const b = bases[i], bn = baseNames[i], bc = colCols[i];
+          const lbx = Math.log(x) / Math.log(b), lba = Math.log(a) / Math.log(b);
+          const ratio = lbx / lba;
+
+          cx.fillStyle = bc; cx.font = 'bold 12px monospace'; cx.textAlign = 'center';
+          cx.fillText('log\u1D66=' + bn, bx, boxY);
+          cx.fillStyle = 'rgba(255,255,255,0.5)'; cx.font = '11px monospace';
+          cx.fillText('log\u1D66\u208A(x)=' + lbx.toFixed(3), bx, boxY + 16);
+          cx.fillText('log\u1D66\u208A(a)=' + lba.toFixed(3), bx, boxY + 30);
+          cx.strokeStyle = bc + '60'; cx.lineWidth = 0.8;
+          cx.beginPath(); cx.moveTo(bx-50, boxY+34); cx.lineTo(bx+50, boxY+34); cx.stroke();
+          cx.fillStyle = bc; cx.font = 'bold 11px monospace';
+          cx.fillText('ratio = ' + ratio.toFixed(4), bx, boxY + 48);
+        });
+
+        cx.fillStyle = COLORS.GREEN; cx.font = 'bold 13px monospace'; cx.textAlign = 'center';
+        cx.fillText(T('Wszystkie trzy daj\u0105 to samo: log\u2090(x) = ',
+                      'All three give the same: log\u2090(x) = ') + logAx.toFixed(4), W/2, boxY + 76);
+
+        // Bar showing log_a(x)
+        const barX = 60, barY2 = boxY + 100;
+        const bLen = Math.abs(logAx) * 40;
+        cx.fillStyle = 'rgba(88,196,221,0.15)';
+        cx.fillRect(barX, barY2, Math.min(bLen, W-120), 22);
+        cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 1.2;
+        cx.strokeRect(barX, barY2, Math.min(bLen, W-120), 22);
+        cx.font = '11px monospace'; cx.textAlign = 'left'; cx.fillStyle = COLORS.CYAN;
+        cx.fillText('log\u2090(' + x.toFixed(1) + ') = ' + logAx.toFixed(4)
+                  + T('   (a=' + a.toFixed(1) + ', x=' + x.toFixed(1) + ')',
+                      '   (a=' + a.toFixed(1) + ', x=' + x.toFixed(1) + ')'), barX + 6, barY2 + 15);
+      },
+    },
+
+    // ── Stage 4: Natural log & e ──────────────────────────────────
+    {
+      title: () => T('Logarytm naturalny ln(x)', 'Natural logarithm ln(x)'),
+      desc:  () => T(
+        'ln(x) = log_e(x) gdzie e ≈ 2.718. To najważniejsza podstawa w matematyce. ln(e) = 1, ln(1) = 0. Pochodna ln(x) = 1/x.',
+        'ln(x) = log_e(x) where e ≈ 2.718. The most important base in mathematics. ln(e) = 1, ln(1) = 0. Derivative of ln(x) = 1/x.'
+      ),
+      sliders: [
+        { id: 'x', lbl: 'x', color: COLORS.YELLOW, min: 0.1, max: 6, step: 0.1, val: Math.E },
+      ],
+      draw(cx, W, H, vals) {
+        const x = vals.x;
+        drawGrid(cx, W, H); drawAxes(cx, W, H);
+
+        // ln curve
+        plotFn(cx, W, t => t > 0 ? Math.log(t) : null, COLORS.CYAN, 2.5);
+        // Tangent at x: slope = 1/x
+        const slope = 1 / x, yAtX = Math.log(x);
+        const x1 = x - 1.5, x2 = x + 1.5;
+        cx.beginPath();
+        cx.moveTo(px(x1), py(yAtX + slope * (x1 - x)));
+        cx.lineTo(px(x2), py(yAtX + slope * (x2 - x)));
+        cx.strokeStyle = COLORS.ORANGE; cx.lineWidth = 1.5; cx.setLineDash([4,3]); cx.stroke(); cx.setLineDash([]);
+
+        gdot(cx, x, yAtX, 6, COLORS.YELLOW);
+        // Mark e on axis
+        cx.beginPath(); cx.moveTo(px(Math.E), OY - 5); cx.lineTo(px(Math.E), OY + 5);
+        cx.strokeStyle = COLORS.GREEN; cx.lineWidth = 1.5; cx.stroke();
+        cx.font = '11px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = COLORS.GREEN; cx.fillText('e', px(Math.E), OY + 16);
+
+        cx.font = '13px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN; cx.fillText('ln(x) = log_e(x)', 14, 22);
+        cx.fillStyle = COLORS.YELLOW;
+        cx.fillText('ln(' + x.toFixed(2) + ') = ' + (Math.round(Math.log(x) * 1000) / 1000), 14, 40);
+        cx.fillStyle = COLORS.ORANGE;
+        cx.fillText('d/dx ln(x) = 1/x = ' + (Math.round(100 / x) / 100), 14, 58);
+      },
+    },
+  ],
+});
+</script>
+</body>
+</html>

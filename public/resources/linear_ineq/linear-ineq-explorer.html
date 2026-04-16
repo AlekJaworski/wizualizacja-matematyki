@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nierówności liniowe</title>
+</head>
+<body>
+<script type="module">
+import { VizCore, T, COLORS } from '../lib/viz-core.js';
+
+const { cx, W, H } = VizCore.init({
+  title: T('Nierówności liniowe', 'Linear Inequalities'),
+  H: 340,
+  stages: [
+    // ── Stage 0: What is an inequality ───────────────────────────
+    {
+      title: () => T('Nierówność — co to znaczy?', 'Inequality — what does it mean?'),
+      desc:  () => T(
+        'Równanie ax+b=0 ma jedno rozwiązanie. Nierówność ax+b>0 ma zbiór rozwiązań — cały przedział. Na osi liczbowej to odcinek lub półprosta.',
+        'Equation ax+b=0 has one solution. Inequality ax+b>0 has a set of solutions — an interval. On the number line, that\'s a ray or segment.'
+      ),
+      sliders: [
+        { id: 'a', lbl: 'a', color: COLORS.CYAN,   min: -4, max: 4, step: 0.5, val: 2 },
+        { id: 'b', lbl: 'b', color: COLORS.ORANGE, min: -8, max: 8, step: 0.5, val: -4 },
+      ],
+      draw(cx, W, H, vals) {
+        const { a, b } = vals;
+        const OX = W / 2, OY = H / 2, SC = 40;
+
+        drawNumberLine(cx, OX, OY, SC, W);
+
+        if (Math.abs(a) < 0.01) {
+          cx.font = '14px monospace'; cx.textAlign = 'center';
+          cx.fillStyle = COLORS.PINK;
+          cx.fillText(b > 0 ? 'Zawsze prawda (0 + ' + b + ' > 0)' : b < 0 ? 'Nigdy prawda (0 + ' + b + ' > 0)' : 'Brak rozwiązań', OX, OY - 30);
+          return;
+        }
+
+        const root = -b / a; // ax + b = 0 → x = -b/a
+        const rx = OX + root * SC;
+
+        // Shade solution region
+        const rightSide = a > 0; // ax+b > 0 → x > -b/a when a>0
+        cx.fillStyle = 'rgba(88,196,221,0.2)';
+        if (rightSide) {
+          cx.fillRect(rx, OY - 16, W - rx, 32);
+        } else {
+          cx.fillRect(0, OY - 16, rx, 32);
+        }
+
+        // Open circle at root
+        cx.beginPath(); cx.arc(rx, OY, 8, 0, Math.PI * 2);
+        cx.fillStyle = '#0e0e12';
+        cx.fill();
+        cx.strokeStyle = COLORS.YELLOW; cx.lineWidth = 2.5;
+        cx.shadowColor = COLORS.YELLOW; cx.shadowBlur = 6; cx.stroke(); cx.shadowBlur = 0;
+
+        // Arrow in solution direction
+        const arrowDir = rightSide ? 1 : -1;
+        cx.beginPath();
+        cx.moveTo(rx + arrowDir * 15, OY);
+        cx.lineTo(rx + arrowDir * 80, OY);
+        const ax2 = rx + arrowDir * 80, ay = OY;
+        cx.moveTo(ax2, ay); cx.lineTo(ax2 - arrowDir * 12, ay - 7);
+        cx.moveTo(ax2, ay); cx.lineTo(ax2 - arrowDir * 12, ay + 7);
+        cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 2.5;
+        cx.shadowColor = COLORS.CYAN; cx.shadowBlur = 6; cx.stroke(); cx.shadowBlur = 0;
+
+        const rootStr = Math.round(root * 100) / 100;
+        cx.font = '12px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = COLORS.YELLOW; cx.fillText('x = ' + rootStr, rx, OY + 28);
+
+        cx.font = '14px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN;
+        const ineqStr = a > 0 ? 'x > ' + rootStr : 'x < ' + rootStr;
+        cx.fillText(a + 'x + (' + b + ') > 0  →  ' + ineqStr, 12, 24);
+      },
+    },
+
+    // ── Stage 1: All four inequality signs ───────────────────────
+    {
+      title: () => T('Cztery rodzaje nierówności', 'Four types of inequalities'),
+      desc:  () => T(
+        '>, <, ≥, ≤ — różnica to czy granica należy do rozwiązania. Otwarte kółko (○) = nie należy, zamknięte kółko (●) = należy.',
+        '>, <, ≥, ≤ — the difference is whether the boundary point belongs to the solution. Open circle (○) = not included, closed circle (●) = included.'
+      ),
+      sliders: [
+        { id: 'a', lbl: 'a', color: COLORS.CYAN,   min: 1, max: 4, step: 0.5, val: 2 },
+        { id: 'b', lbl: 'b', color: COLORS.ORANGE, min: -6, max: 6, step: 0.5, val: -4 },
+        { id: 'sign', lbl: '≤/>', color: COLORS.YELLOW, min: 0, max: 3, step: 1, val: 0 },
+      ],
+      draw(cx, W, H, vals) {
+        const { a, b, sign } = vals;
+        const signs = ['>', '<', '≥', '≤'];
+        const s = signs[Math.round(sign)];
+        const OX = W / 2, OY = H / 2 + 10, SC = 40;
+
+        drawNumberLine(cx, OX, OY, SC, W);
+
+        const root = -b / a;
+        const rx = OX + root * SC;
+        const strict = s === '>' || s === '<';
+        const rightSide = (s === '>' || s === '≥') ? (a > 0) : (a < 0);
+
+        cx.fillStyle = 'rgba(88,196,221,0.2)';
+        if (rightSide) cx.fillRect(rx, OY - 16, W - rx, 32);
+        else cx.fillRect(0, OY - 16, rx, 32);
+
+        // Open or closed circle
+        cx.beginPath(); cx.arc(rx, OY, 8, 0, Math.PI * 2);
+        if (strict) { cx.fillStyle = '#0e0e12'; cx.fill(); }
+        else { cx.fillStyle = COLORS.YELLOW; cx.fill(); }
+        cx.strokeStyle = COLORS.YELLOW; cx.lineWidth = 2.5;
+        cx.shadowColor = COLORS.YELLOW; cx.shadowBlur = 6; cx.stroke(); cx.shadowBlur = 0;
+
+        const arrowDir = rightSide ? 1 : -1;
+        cx.beginPath();
+        cx.moveTo(rx + arrowDir * 15, OY);
+        cx.lineTo(rx + arrowDir * 100, OY);
+        const ax2 = rx + arrowDir * 100;
+        cx.moveTo(ax2, OY); cx.lineTo(ax2 - arrowDir * 12, OY - 7);
+        cx.moveTo(ax2, OY); cx.lineTo(ax2 - arrowDir * 12, OY + 7);
+        cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 2.5;
+        cx.shadowColor = COLORS.CYAN; cx.shadowBlur = 5; cx.stroke(); cx.shadowBlur = 0;
+
+        const rootStr = Math.round(root * 100) / 100;
+        cx.font = '13px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText(a + 'x + (' + b + ') ' + s + ' 0  →  x ' + ((s === '>' || s === '≥') === (a > 0) ? s.replace('>', '>').replace('<', '<') : s.replace('>', '<').replace('<', '>')) + ' ' + rootStr, 12, 24);
+        cx.fillStyle = 'rgba(255,255,255,0.4)';
+        cx.fillText(strict ? '○ = granica nie należy' : '● = granica należy', 12, 44);
+      },
+    },
+
+    // ── Stage 2: Compound inequality ─────────────────────────────
+    {
+      title: () => T('Podwójna nierówność (przedział)', 'Compound inequality (interval)'),
+      desc:  () => T(
+        'a < x < b oznacza, że x leży między a i b. To jest przecięcie dwóch nierówności. Na osi liczbowej to odcinek.',
+        'a < x < b means x lies between a and b. This is the intersection of two inequalities. On the number line, it\'s a segment.'
+      ),
+      sliders: [
+        { id: 'lo', lbl: 'a', color: COLORS.ORANGE, min: -6, max: 0, step: 0.5, val: -3 },
+        { id: 'hi', lbl: 'b', color: COLORS.GREEN,  min: 0, max: 6,  step: 0.5, val: 2 },
+      ],
+      draw(cx, W, H, vals) {
+        const { lo, hi } = vals;
+        const OX = W / 2, OY = H / 2 + 10, SC = 40;
+        drawNumberLine(cx, OX, OY, SC, W);
+
+        const lx = OX + lo * SC, hx = OX + hi * SC;
+
+        // Shaded segment
+        cx.fillStyle = 'rgba(88,196,221,0.25)';
+        cx.fillRect(lx, OY - 16, hx - lx, 32);
+
+        [lx, hx].forEach((x, i) => {
+          cx.beginPath(); cx.arc(x, OY, 8, 0, Math.PI * 2);
+          cx.fillStyle = '#0e0e12'; cx.fill();
+          cx.strokeStyle = i === 0 ? COLORS.ORANGE : COLORS.GREEN;
+          cx.lineWidth = 2.5;
+          cx.shadowColor = i === 0 ? COLORS.ORANGE : COLORS.GREEN;
+          cx.shadowBlur = 6; cx.stroke(); cx.shadowBlur = 0;
+        });
+
+        cx.font = '12px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = COLORS.ORANGE; cx.fillText(lo, lx, OY + 28);
+        cx.fillStyle = COLORS.GREEN; cx.fillText(hi, hx, OY + 28);
+
+        cx.font = '14px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText(lo + ' < x < ' + hi + '  →  x ∈ (' + lo + '; ' + hi + ')', OX, 24);
+        cx.fillStyle = 'rgba(255,255,255,0.4)';
+        cx.fillText('długość przedziału = ' + Math.round((hi - lo) * 10) / 10, OX, 44);
+      },
+    },
+
+    // ── Stage 3: Solve step by step ──────────────────────────────
+    {
+      title: () => T('Rozwiązywanie — uwaga na zmianę znaku!', 'Solving — watch out for sign flip!'),
+      desc:  () => T(
+        'Mnożenie lub dzielenie obu stron przez ujemną liczbę ODWRACA znak nierówności. To częsty błąd! −2x > 4 → x < −2 (nie x > −2).',
+        'Multiplying or dividing both sides by a negative number FLIPS the inequality sign. Common mistake! −2x > 4 → x < −2 (not x > −2).'
+      ),
+      sliders: [
+        { id: 'a', lbl: 'a', color: COLORS.CYAN,   min: -4, max: 4, step: 1, val: -2 },
+        { id: 'b', lbl: 'b', color: COLORS.ORANGE, min: -8, max: 8, step: 1, val: 4 },
+      ],
+      draw(cx, W, H, vals) {
+        const { a, b } = vals;
+        const OX = W / 2, OY = H - 50, SC = 40;
+
+        if (Math.abs(a) < 0.5) {
+          cx.font = '14px monospace'; cx.textAlign = 'center';
+          cx.fillStyle = COLORS.PINK; cx.fillText('Zmień a ≠ 0', OX, H / 2);
+          return;
+        }
+
+        const root = -b / a;
+        const flip = a < 0;
+
+        // Steps
+        const steps = [
+          { text: a + 'x + (' + b + ') > 0', color: 'rgba(255,255,255,0.7)' },
+          { text: a + 'x > ' + (-b), color: 'rgba(255,255,255,0.7)' },
+          { text: flip
+              ? 'x < ' + Math.round(root * 100) / 100 + '  ← знак się odwrócił! (÷' + a + ')'
+              : 'x > ' + Math.round(root * 100) / 100 + '  (÷' + a + ')',
+            color: flip ? COLORS.PINK : COLORS.GREEN },
+        ];
+
+        steps.forEach((s, i) => {
+          cx.font = '14px monospace'; cx.textAlign = 'left';
+          cx.fillStyle = s.color;
+          cx.fillText((i + 1) + '. ' + s.text, 24, 40 + i * 36);
+        });
+
+        drawNumberLine(cx, OX, OY, SC, W);
+
+        const rx = OX + root * SC;
+        const rightSide = (a > 0);  // x > root when a>0
+
+        cx.fillStyle = 'rgba(88,196,221,0.2)';
+        if (rightSide) cx.fillRect(rx, OY - 16, W - rx, 32);
+        else cx.fillRect(0, OY - 16, rx, 32);
+
+        cx.beginPath(); cx.arc(rx, OY, 8, 0, Math.PI * 2);
+        cx.fillStyle = '#0e0e12'; cx.fill();
+        cx.strokeStyle = flip ? COLORS.PINK : COLORS.GREEN;
+        cx.lineWidth = 2.5;
+        cx.shadowColor = flip ? COLORS.PINK : COLORS.GREEN;
+        cx.shadowBlur = 6; cx.stroke(); cx.shadowBlur = 0;
+
+        cx.font = '11px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = 'rgba(255,255,255,0.5)';
+        cx.fillText(Math.round(root * 100) / 100, rx, OY + 24);
+      },
+    },
+  ],
+});
+
+function drawNumberLine(cx, OX, OY, SC, W) {
+  cx.strokeStyle = 'rgba(255,255,255,0.4)'; cx.lineWidth = 2;
+  cx.beginPath(); cx.moveTo(20, OY); cx.lineTo(W - 20, OY); cx.stroke();
+  // Arrow heads
+  cx.beginPath(); cx.moveTo(W - 20, OY); cx.lineTo(W - 32, OY - 6); cx.moveTo(W - 20, OY); cx.lineTo(W - 32, OY + 6);
+  cx.strokeStyle = 'rgba(255,255,255,0.4)'; cx.lineWidth = 1.5; cx.stroke();
+
+  cx.font = '11px monospace'; cx.textAlign = 'center';
+  for (let i = -10; i <= 10; i++) {
+    const x = OX + i * SC;
+    if (x < 25 || x > W - 25) continue;
+    cx.beginPath(); cx.moveTo(x, OY - 4); cx.lineTo(x, OY + 4);
+    cx.strokeStyle = 'rgba(255,255,255,0.25)'; cx.lineWidth = 1; cx.stroke();
+    if (i !== 0) { cx.fillStyle = 'rgba(255,255,255,0.25)'; cx.fillText(i, x, OY + 16); }
+  }
+}
+</script>
+</body>
+</html>

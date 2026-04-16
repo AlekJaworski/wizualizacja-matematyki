@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Złożenia funkcji</title>
+</head>
+<body>
+<script type="module">
+import { VizCore, T, COLORS } from '../lib/viz-core.js';
+
+const OX = 300, OY = 220, SC = 55;
+const px = x => OX + x * SC;
+const py = y => OY - y * SC;
+
+function drawGrid(cx, W, H) {
+  cx.strokeStyle = 'rgba(255,255,255,0.06)'; cx.lineWidth = 1;
+  for (let x = OX % SC; x < W; x += SC) { cx.beginPath(); cx.moveTo(x, 0); cx.lineTo(x, H); cx.stroke(); }
+  for (let y = OY % SC; y < H; y += SC) { cx.beginPath(); cx.moveTo(0, y); cx.lineTo(W, y); cx.stroke(); }
+}
+function drawAxes(cx, W, H) {
+  cx.strokeStyle = 'rgba(255,255,255,0.3)'; cx.lineWidth = 1.5;
+  cx.beginPath(); cx.moveTo(0, OY); cx.lineTo(W, OY); cx.stroke();
+  cx.beginPath(); cx.moveTo(OX, 0); cx.lineTo(OX, H); cx.stroke();
+  cx.font = '10px monospace'; cx.fillStyle = 'rgba(255,255,255,0.2)'; cx.textAlign = 'center';
+  for (let i = -4; i <= 4; i++) {
+    if (i === 0) continue;
+    const x = OX + i * SC;
+    if (x > 10 && x < W - 10) cx.fillText(i, x, OY + 13);
+  }
+}
+function plotFn(cx, W, fn, col, lw = 2, dash = []) {
+  cx.beginPath(); let first = true;
+  for (let sx = 0; sx < W; sx += 2) {
+    const x = (sx - OX) / SC;
+    try {
+      const y = fn(x);
+      if (!isFinite(y) || y > 6 || y < -4) { first = true; continue; }
+      if (first) { cx.moveTo(sx, py(y)); first = false; } else cx.lineTo(sx, py(y));
+    } catch { first = true; }
+  }
+  cx.strokeStyle = col; cx.lineWidth = lw; cx.setLineDash(dash);
+  cx.shadowColor = col; cx.shadowBlur = 4; cx.stroke(); cx.shadowBlur = 0; cx.setLineDash([]);
+}
+function gdot(cx, x, y, r, col) {
+  cx.beginPath(); cx.arc(px(x), py(y), r, 0, Math.PI * 2);
+  cx.fillStyle = col; cx.shadowColor = col; cx.shadowBlur = 10; cx.fill(); cx.shadowBlur = 0;
+}
+
+const { cx, W, H } = VizCore.init({
+  title: T('Złożenia funkcji', 'Function Compositions'),
+  H: 360,
+  stages: [
+    // ── Stage 0: What is f(g(x)) ─────────────────────────────────
+    {
+      title: () => T('f(g(x)) — maszyna w maszynie', 'f(g(x)) — a machine inside a machine'),
+      desc:  () => T(
+        'Złożenie funkcji: najpierw stosujemy g, potem f do wyniku. Wejście x → g → g(x) → f → f(g(x)). Suwak x pokazuje krok po kroku.',
+        'Function composition: apply g first, then f to the result. Input x → g → g(x) → f → f(g(x)). Slider x shows step by step.'
+      ),
+      sliders: [
+        { id: 'x', lbl: 'x', color: COLORS.YELLOW, min: -2.5, max: 2.5, step: 0.1, val: 1 },
+      ],
+      draw(cx, W, H, vals) {
+        const x = vals.x;
+        const g = t => 2 * t + 1;      // g(x) = 2x+1
+        const f = t => t * t;           // f(x) = x²
+        const fg = t => f(g(t));        // f(g(x)) = (2x+1)²
+
+        drawGrid(cx, W, H); drawAxes(cx, W, H);
+        plotFn(cx, W, g,  COLORS.ORANGE, 1.5, [4,3]);
+        plotFn(cx, W, fg, COLORS.CYAN,   2.5);
+
+        const gx = g(x), fgx = fg(x);
+
+        // Show pipeline on canvas
+        // x → vertical → g(x) on orange line → horizontal → point on fg
+        cx.beginPath(); cx.moveTo(px(x), OY); cx.lineTo(px(x), py(gx));
+        cx.strokeStyle = COLORS.ORANGE; cx.lineWidth = 1.5; cx.setLineDash([3,3]); cx.stroke(); cx.setLineDash([]);
+        if (fgx <= 6 && fgx >= -4) {
+          cx.beginPath(); cx.moveTo(px(x), py(gx)); cx.lineTo(px(x), py(fgx));
+          cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 1.5; cx.setLineDash([3,3]); cx.stroke(); cx.setLineDash([]);
+        }
+        gdot(cx, x, gx, 5, COLORS.ORANGE);
+        if (fgx <= 6 && fgx >= -4) gdot(cx, x, fgx, 6, COLORS.CYAN);
+
+        const CX2 = W - 120, CY2 = 40;
+        cx.font = '12px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.YELLOW;  cx.fillText('x = ' + x.toFixed(1), CX2, CY2);
+        cx.fillStyle = COLORS.ORANGE;  cx.fillText('g(x) = 2x+1 = ' + gx.toFixed(1), CX2, CY2 + 18);
+        cx.fillStyle = COLORS.CYAN;    cx.fillText('f(g(x)) = ' + (Math.round(fgx*100)/100), CX2, CY2 + 36);
+        cx.fillStyle = 'rgba(255,255,255,0.3)';
+        cx.fillText('g: ---  f∘g: ───', 14, 22);
+      },
+    },
+
+    // ── Stage 1: Build the formula step by step ───────────────────
+    {
+      title: () => T('Budowanie wzoru f(g(x))', 'Building the formula f(g(x))'),
+      desc:  () => T(
+        'f(x) = x²,  g(x) = 2x+1. Aby obliczyć f(g(x)): wstawiamy g(x) w miejsce x w f. Czyli f(g(x)) = (g(x))² = (2x+1)².',
+        'f(x) = x²,  g(x) = 2x+1. To compute f(g(x)): substitute g(x) in place of x in f. So f(g(x)) = (g(x))² = (2x+1)².'
+      ),
+      sliders: [
+        { id: 'step', lbl: 'krok', color: COLORS.CYAN, min: 0, max: 4, step: 1, val: 0 },
+      ],
+      draw(cx, W, H, vals) {
+        const step = Math.round(vals.step);
+        const steps = [
+          { label: 'f(x) = x²',          col: COLORS.CYAN },
+          { label: 'g(x) = 2x + 1',       col: COLORS.ORANGE },
+          { label: 'f(g(x)) = f(2x+1)',   col: COLORS.GREEN },
+          { label: '= (2x+1)²',           col: COLORS.YELLOW },
+          { label: '= 4x² + 4x + 1',      col: COLORS.PURPLE },
+        ];
+        const lineH = 52, startY = 50;
+        steps.forEach((s, i) => {
+          const y = startY + i * lineH;
+          const active = i === step;
+          const future = i > step;
+          cx.globalAlpha = future ? 0.2 : 1;
+          if (active) {
+            cx.fillStyle = 'rgba(88,196,221,0.1)';
+            cx.beginPath(); cx.roundRect(20, y - 26, W - 40, 40, 6); cx.fill();
+          }
+          cx.font = active ? 'bold 16px monospace' : '15px monospace';
+          cx.textAlign = 'center';
+          cx.fillStyle = active ? s.col : 'rgba(255,255,255,0.45)';
+          cx.fillText(s.label, W / 2, y);
+          if (active && i === 2) {
+            // arrow showing substitution
+            cx.font = '12px monospace'; cx.fillStyle = COLORS.ORANGE;
+            cx.fillText('← wstawiamy g(x)', W / 2 + 90, y + 16);
+          }
+          cx.globalAlpha = 1;
+        });
+      },
+    },
+
+    // ── Stage 2: g(f(x)) vs f(g(x)) — order matters ──────────────
+    {
+      title: () => T('Kolejność ma znaczenie: f∘g ≠ g∘f', 'Order matters: f∘g ≠ g∘f'),
+      desc:  () => T(
+        'f(g(x)) i g(f(x)) to zazwyczaj różne funkcje. f(x)=x², g(x)=2x+1: f(g(x))=(2x+1)², g(f(x))=2x²+1.',
+        'f(g(x)) and g(f(x)) are usually different functions. f(x)=x², g(x)=2x+1: f(g(x))=(2x+1)², g(f(x))=2x²+1.'
+      ),
+      sliders: [
+        { id: 'x', lbl: 'x', color: COLORS.YELLOW, min: -2.5, max: 2.5, step: 0.1, val: 1 },
+      ],
+      draw(cx, W, H, vals) {
+        const x = vals.x;
+        const g = t => 2 * t + 1;
+        const f = t => t * t;
+        const fg = t => f(g(t));   // (2x+1)²
+        const gf = t => g(f(t));   // 2x²+1
+
+        drawGrid(cx, W, H); drawAxes(cx, W, H);
+        plotFn(cx, W, fg, COLORS.CYAN, 2.5);
+        plotFn(cx, W, gf, COLORS.PINK, 2.5);
+
+        const fgx = fg(x), gfx = gf(x);
+        if (fgx <= 6 && fgx >= -4) gdot(cx, x, fgx, 6, COLORS.CYAN);
+        if (gfx <= 6 && gfx >= -4) gdot(cx, x, gfx, 6, COLORS.PINK);
+
+        cx.font = '12px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('f∘g: (2x+1)²', 14, 22);
+        cx.fillText('f(g(' + x.toFixed(1) + ')) = ' + Math.round(fgx * 100) / 100, 14, 40);
+        cx.fillStyle = COLORS.PINK;
+        cx.fillText('g∘f: 2x²+1', 14, 62);
+        cx.fillText('g(f(' + x.toFixed(1) + ')) = ' + Math.round(gfx * 100) / 100, 14, 80);
+        cx.fillStyle = COLORS.YELLOW;
+        cx.fillText('≠  (różne!)', 14, 100);
+      },
+    },
+
+    // ── Stage 3: Inverse functions ───────────────────────────────
+    {
+      title: () => T('Funkcja odwrotna — złożenie z powrotem do x', 'Inverse function — composition back to x'),
+      desc:  () => T(
+        'Jeśli g = f⁻¹, to f(g(x)) = x i g(f(x)) = x. Przykład: f(x)=2x, f⁻¹(x)=x/2. Złożenie daje identyczność.',
+        'If g = f⁻¹, then f(g(x)) = x and g(f(x)) = x. Example: f(x)=2x, f⁻¹(x)=x/2. Composition gives identity.'
+      ),
+      sliders: [
+        { id: 'x', lbl: 'x', color: COLORS.YELLOW, min: -3, max: 3, step: 0.25, val: 1.5 },
+      ],
+      draw(cx, W, H, vals) {
+        const x = vals.x;
+        const f   = t => 2 * t;
+        const fi  = t => t / 2;
+        const ffi = t => f(fi(t));  // = t
+
+        drawGrid(cx, W, H); drawAxes(cx, W, H);
+        // y = x (identity)
+        cx.beginPath(); cx.moveTo(0, OY + OX); cx.lineTo(W, OY - (W - OX));
+        cx.strokeStyle = 'rgba(255,255,255,0.15)'; cx.lineWidth = 1; cx.setLineDash([4,4]); cx.stroke(); cx.setLineDash([]);
+
+        plotFn(cx, W, f,   COLORS.ORANGE, 2);
+        plotFn(cx, W, fi,  COLORS.GREEN,  2);
+        plotFn(cx, W, ffi, COLORS.CYAN,   2.5, [5,3]);
+
+        // Trace: x → f → f⁻¹ → x
+        const fx = f(x), ffx = fi(fx);
+        gdot(cx, x, 0, 5, COLORS.YELLOW);
+        gdot(cx, x, fx, 5, COLORS.ORANGE);
+        gdot(cx, x, ffx, 6, COLORS.CYAN);
+
+        cx.beginPath(); cx.moveTo(px(x), OY); cx.lineTo(px(x), py(fx));
+        cx.strokeStyle = COLORS.ORANGE; cx.lineWidth = 1.5; cx.setLineDash([3,3]); cx.stroke(); cx.setLineDash([]);
+        cx.beginPath(); cx.moveTo(px(x), py(fx)); cx.lineTo(px(x), py(ffx));
+        cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 1.5; cx.setLineDash([3,3]); cx.stroke(); cx.setLineDash([]);
+
+        cx.font = '12px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.ORANGE; cx.fillText('f(x) = 2x', 14, 22);
+        cx.fillStyle = COLORS.GREEN;  cx.fillText('f⁻¹(x) = x/2', 14, 40);
+        cx.fillStyle = COLORS.CYAN;   cx.fillText('f(f⁻¹(x)) = x  ✓', 14, 58);
+        cx.fillStyle = COLORS.YELLOW;
+        cx.fillText('x = ' + x + ' → 2x = ' + fx + ' → ÷2 = ' + ffx, 14, 80);
+      },
+    },
+  ],
+});
+</script>
+</body>
+</html>

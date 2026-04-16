@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Równania logarytmiczne i wykładnicze</title>
+</head>
+<body>
+<script type="module">
+import { VizCore, T, COLORS } from '../lib/viz-core.js';
+
+// ── Step-by-step animation engine ────────────────────────────────
+// Each stage draws a sequence of formula steps, highlighted one at a time.
+// `step` slider controls which step is the "active" (highlighted) one.
+
+function drawSteps(cx, W, H, steps, activeStep) {
+  const lineH = 48, startY = 40;
+  steps.forEach((s, i) => {
+    const y = startY + i * lineH;
+    const isActive = i === activeStep;
+    const isFuture = i > activeStep;
+
+    cx.globalAlpha = isFuture ? 0.25 : 1;
+
+    // Active step background
+    if (isActive) {
+      cx.fillStyle = 'rgba(88,196,221,0.1)';
+      cx.beginPath();
+      cx.roundRect(10, y - 22, W - 20, 36, 6);
+      cx.fill();
+    }
+
+    // Step number
+    cx.font = '11px monospace'; cx.textAlign = 'right';
+    cx.fillStyle = isActive ? COLORS.CYAN : 'rgba(255,255,255,0.3)';
+    cx.fillText(i + 1 + '.', 36, y);
+
+    // Formula/text
+    cx.font = isActive ? 'bold 14px monospace' : '14px monospace';
+    cx.textAlign = 'left';
+    cx.fillStyle = isActive ? 'white' : 'rgba(255,255,255,0.55)';
+    cx.fillText(s.main, 44, y);
+
+    // Annotation (right side)
+    if (s.note) {
+      cx.font = '11px monospace'; cx.textAlign = 'right';
+      cx.fillStyle = isActive ? COLORS.YELLOW : 'rgba(255,209,102,0.35)';
+      cx.fillText(s.note, W - 14, y);
+    }
+
+    // Active step: underline the "key part"
+    if (isActive && s.highlight) {
+      const tw = cx.measureText(s.main.substring(0, s.highlight)).width;
+      const hw = cx.measureText(s.main.substring(s.highlight[0], s.highlight[1] || s.main.length)).width;
+      cx.fillStyle = COLORS.CYAN;
+      cx.fillRect(44 + tw, y + 4, hw, 2);
+    }
+
+    cx.globalAlpha = 1;
+  });
+}
+
+const { cx, W, H } = VizCore.init({
+  title: T('Równania log. i wykł.', 'Log & Exp Equations'),
+  H: 360,
+  stages: [
+    // ── Stage 0: Solve log₂(x) = 3 ──────────────────────────────
+    {
+      title: () => T('log₂(x) = 3', 'log₂(x) = 3'),
+      desc:  () => T(
+        'Pytanie: 2 do jakiej potęgi daje x? Odpowiedź: log₂(x) = 3 oznacza 2³ = x. Krok po kroku.',
+        'Question: 2 to what power gives x? Answer: log₂(x) = 3 means 2³ = x. Step by step.'
+      ),
+      sliders: [
+        { id: 'step', lbl: 'krok', color: COLORS.CYAN, min: 0, max: 3, step: 1, val: 0 },
+      ],
+      draw(cx, W, H, vals) {
+        const step = Math.round(vals.step);
+        drawSteps(cx, W, H, [
+          { main: 'log₂(x) = 3',         note: 'równanie' },
+          { main: '2³ = x',               note: 'def. logarytmu: loga(b)=c ⟺ aᶜ=b' },
+          { main: 'x = 8',                note: '2³ = 8' },
+          { main: 'Sprawdzenie: log₂(8) = 3 ✓', note: '2·2·2 = 8' },
+        ], step);
+      },
+    },
+
+    // ── Stage 1: Solve log₃(x) + log₃(x−2) = 1 ─────────────────
+    {
+      title: () => T('log₃(x) + log₃(x−2) = 1', 'log₃(x) + log₃(x−2) = 1'),
+      desc:  () => T(
+        'Używamy reguły log(A)+log(B)=log(A·B), żeby połączyć logarytmy, potem zamieniamy na potęgę.',
+        'Use the rule log(A)+log(B)=log(A·B) to merge the logarithms, then convert to exponential form.'
+      ),
+      sliders: [
+        { id: 'step', lbl: 'krok', color: COLORS.CYAN, min: 0, max: 5, step: 1, val: 0 },
+      ],
+      draw(cx, W, H, vals) {
+        const step = Math.round(vals.step);
+        drawSteps(cx, W, H, [
+          { main: 'log₃(x) + log₃(x−2) = 1',        note: 'równanie' },
+          { main: 'log₃(x·(x−2)) = 1',               note: 'log(A)+log(B) = log(A·B)' },
+          { main: 'x·(x−2) = 3¹',                    note: 'def. logarytmu' },
+          { main: 'x² − 2x = 3',                      note: 'rozwinięcie' },
+          { main: 'x² − 2x − 3 = 0',                  note: 'przenosimy 3' },
+          { main: '(x−3)(x+1) = 0  →  x = 3',        note: 'x=−1 odpada (log wymaga x>0)' },
+        ], step);
+      },
+    },
+
+    // ── Stage 2: Solve 2ˣ = 32 ───────────────────────────────────
+    {
+      title: () => T('2ˣ = 32', '2ˣ = 32'),
+      desc:  () => T(
+        'Równanie wykładnicze: sprowadzamy obie strony do tej samej podstawy. Jeśli aˣ = aⁿ, to x = n.',
+        'Exponential equation: bring both sides to the same base. If aˣ = aⁿ, then x = n.'
+      ),
+      sliders: [
+        { id: 'step', lbl: 'krok', color: COLORS.CYAN, min: 0, max: 3, step: 1, val: 0 },
+      ],
+      draw(cx, W, H, vals) {
+        const step = Math.round(vals.step);
+        drawSteps(cx, W, H, [
+          { main: '2ˣ = 32',       note: 'równanie wykładnicze' },
+          { main: '2ˣ = 2⁵',       note: '32 = 2⁵' },
+          { main: 'x = 5',          note: 'podstawy równe → wykładniki równe' },
+          { main: 'Sprawdź: 2⁵ = 32 ✓', note: '2·2·2·2·2 = 32' },
+        ], step);
+      },
+    },
+
+    // ── Stage 3: Solve 3²ˣ⁺¹ = 27 ───────────────────────────────
+    {
+      title: () => T('3²ˣ⁺¹ = 27', '3²ˣ⁺¹ = 27'),
+      desc:  () => T(
+        'Trudniejsze: wykładnik zawiera zmienną. Sprowadzamy do tej samej podstawy, potem rozwiązujemy równanie liniowe dla wykładnika.',
+        'Harder: the exponent contains the variable. Bring to the same base, then solve the linear equation for the exponent.'
+      ),
+      sliders: [
+        { id: 'step', lbl: 'krok', color: COLORS.CYAN, min: 0, max: 4, step: 1, val: 0 },
+      ],
+      draw(cx, W, H, vals) {
+        const step = Math.round(vals.step);
+        drawSteps(cx, W, H, [
+          { main: '3²ˣ⁺¹ = 27',         note: 'równanie' },
+          { main: '3²ˣ⁺¹ = 3³',          note: '27 = 3³' },
+          { main: '2x + 1 = 3',           note: 'podstawy równe → wykładniki równe' },
+          { main: '2x = 2',               note: 'odejmujemy 1' },
+          { main: 'x = 1',                note: 'dzielimy przez 2' },
+        ], step);
+      },
+    },
+
+    // ── Stage 4: Substitution trick ───────────────────────────────
+    {
+      title: () => T('Podstawienie — 4ˣ − 5·2ˣ + 4 = 0', 'Substitution — 4ˣ − 5·2ˣ + 4 = 0'),
+      desc:  () => T(
+        'Klucz: 4ˣ = (2²)ˣ = (2ˣ)². Podstawiamy t = 2ˣ i dostajemy równanie kwadratowe!',
+        'Key: 4ˣ = (2²)ˣ = (2ˣ)². Substitute t = 2ˣ and get a quadratic equation!'
+      ),
+      sliders: [
+        { id: 'step', lbl: 'krok', color: COLORS.CYAN, min: 0, max: 6, step: 1, val: 0 },
+      ],
+      draw(cx, W, H, vals) {
+        const step = Math.round(vals.step);
+        drawSteps(cx, W, H, [
+          { main: '4ˣ − 5·2ˣ + 4 = 0',           note: 'równanie' },
+          { main: '(2ˣ)² − 5·2ˣ + 4 = 0',         note: '4ˣ = (2²)ˣ = (2ˣ)²' },
+          { main: 'niech t = 2ˣ',                  note: 'podstawienie' },
+          { main: 't² − 5t + 4 = 0',               note: 'równanie kwadratowe' },
+          { main: '(t−1)(t−4) = 0',                note: 'faktoryzacja' },
+          { main: 't = 1 lub t = 4',               note: 'rozwiązania' },
+          { main: '2ˣ = 1 → x = 0;  2ˣ = 4 → x = 2', note: 'log₂(1)=0, log₂(4)=2' },
+        ], step);
+      },
+    },
+  ],
+});
+</script>
+</body>
+</html>

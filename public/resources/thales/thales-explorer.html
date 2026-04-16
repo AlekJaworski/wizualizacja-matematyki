@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Twierdzenie Talesa</title>
+</head>
+<body>
+<script type="module">
+import { VizCore, T, COLORS } from '../lib/viz-core.js';
+
+const { cv, cx, W, H, getCanvasPos } = VizCore.init({
+  title: T('Twierdzenie Talesa', 'Thales\' Theorem'),
+  H: 360,
+  stages: [
+    // ── Stage 0: Parallel line cuts segments ─────────────────────
+    {
+      title: () => T('Linia równoległa przecina odcinki proporcjonalnie', 'Parallel line cuts segments proportionally'),
+      desc:  () => T(
+        'Gdy linia równoległa do podstawy trójkąta przecina jego boki, dzieli je w tym samym stosunku. Przesuń suwak, aby zobaczyć, jak stosunek pozostaje stały.',
+        'When a line parallel to the base cuts the sides of a triangle, it divides them in the same ratio. Move the slider to see how the ratio stays constant.'
+      ),
+      sliders: [
+        { id: 't', lbl: 't', color: COLORS.CYAN, min: 0.1, max: 0.9, step: 0.01, val: 0.5 },
+      ],
+      draw(cx, W, H, vals) {
+        const t = vals.t;
+        const Ax = W / 2,       Ay = 30;
+        const Bx = W / 2 - 160, By = H - 40;
+        const Cx2 = W / 2 + 160, Cy2 = H - 40;
+
+        // Full triangle
+        cx.beginPath(); cx.moveTo(Ax, Ay); cx.lineTo(Bx, By); cx.lineTo(Cx2, Cy2); cx.closePath();
+        cx.strokeStyle = 'rgba(255,255,255,0.25)'; cx.lineWidth = 1.5; cx.stroke();
+
+        // Points on AB and AC at parameter t
+        const Dx = Ax + t * (Bx - Ax), Dy = Ay + t * (By - Ay);
+        const Ex = Ax + t * (Cx2 - Ax), Ey = Ay + t * (Cy2 - Ay);
+
+        // Parallel line DE
+        cx.beginPath(); cx.moveTo(Dx, Dy); cx.lineTo(Ex, Ey);
+        cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 2.5;
+        cx.shadowColor = COLORS.CYAN; cx.shadowBlur = 6; cx.stroke(); cx.shadowBlur = 0;
+
+        // Segment labels
+        const AD = Math.hypot(Ax - Dx, Ay - Dy);
+        const DB = Math.hypot(Dx - Bx, Dy - By);
+        const AE = Math.hypot(Ax - Ex, Ay - Ey);
+        const EC = Math.hypot(Ex - Cx2, Ey - Cy2);
+        const ratio = AD / DB;
+
+        cx.font = 'bold 12px monospace'; cx.textAlign = 'center';
+
+        // Label AD
+        cx.fillStyle = COLORS.YELLOW;
+        cx.fillText('AD', (Ax + Dx) / 2 - 18, (Ay + Dy) / 2);
+        // Label DB
+        cx.fillStyle = COLORS.ORANGE;
+        cx.fillText('DB', (Dx + Bx) / 2 - 18, (Dy + By) / 2);
+        // Label AE
+        cx.fillStyle = COLORS.YELLOW;
+        cx.fillText('AE', (Ax + Ex) / 2 + 18, (Ay + Ey) / 2);
+        // Label EC
+        cx.fillStyle = COLORS.ORANGE;
+        cx.fillText('EC', (Ex + Cx2) / 2 + 18, (Ey + Cy2) / 2);
+
+        // Dots
+        [[Ax, Ay, COLORS.GREEN], [Bx, By, COLORS.GREEN], [Cx2, Cy2, COLORS.GREEN],
+         [Dx, Dy, COLORS.YELLOW], [Ex, Ey, COLORS.YELLOW]].forEach(([x, y, c]) => {
+          cx.beginPath(); cx.arc(x, y, 5, 0, Math.PI * 2);
+          cx.fillStyle = c; cx.shadowColor = c; cx.shadowBlur = 8; cx.fill(); cx.shadowBlur = 0;
+        });
+
+        cx.font = '13px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('AD/DB = AE/EC = ' + ratio.toFixed(2), 16, 22);
+        cx.fillStyle = 'rgba(255,255,255,0.4)';
+        cx.fillText('Stosunek jest stały!', 16, 40);
+      },
+    },
+
+    // ── Stage 1: Two parallel lines ──────────────────────────────
+    {
+      title: () => T('Dwie równoległe proste', 'Two parallel lines'),
+      desc:  () => T(
+        'Twierdzenie Talesa ogólne: dwie równoległe linie przecinają dowolne dwie proste w proporcjonalnych odcinkach. Przesuń linie suwakami.',
+        'General Thales: two parallel lines intersect any two transversals in proportional segments. Move the lines with the sliders.'
+      ),
+      sliders: [
+        { id: 't1', lbl: 't₁', color: COLORS.CYAN,   min: 0.15, max: 0.55, step: 0.01, val: 0.3 },
+        { id: 't2', lbl: 't₂', color: COLORS.ORANGE, min: 0.55, max: 0.95, step: 0.01, val: 0.7 },
+      ],
+      draw(cx, W, H, vals) {
+        const t1 = vals.t1, t2 = vals.t2;
+        // Two transversals
+        const L1 = { x1: 80,  y1: 20,  x2: 120,  y2: H - 20 };
+        const L2 = { x1: 480, y1: 20,  x2: 440,  y2: H - 20 };
+
+        function ptOnLine(L, t) {
+          return { x: L.x1 + t * (L.x2 - L.x1), y: L.y1 + t * (L.y2 - L.y1) };
+        }
+
+        const A = ptOnLine(L1, 0), B = ptOnLine(L1, 1);
+        const C = ptOnLine(L2, 0), D = ptOnLine(L2, 1);
+        const P = ptOnLine(L1, t1), Q = ptOnLine(L2, t1);
+        const R = ptOnLine(L1, t2), S = ptOnLine(L2, t2);
+
+        // Draw transversals
+        [L1, L2].forEach(L => {
+          cx.beginPath(); cx.moveTo(L.x1, L.y1); cx.lineTo(L.x2, L.y2);
+          cx.strokeStyle = 'rgba(255,255,255,0.3)'; cx.lineWidth = 1.5; cx.stroke();
+        });
+
+        // Parallel lines
+        cx.beginPath(); cx.moveTo(P.x - 30, P.y); cx.lineTo(Q.x + 30, Q.y);
+        cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 2;
+        cx.shadowColor = COLORS.CYAN; cx.shadowBlur = 5; cx.stroke(); cx.shadowBlur = 0;
+
+        cx.beginPath(); cx.moveTo(R.x - 30, R.y); cx.lineTo(S.x + 30, S.y);
+        cx.strokeStyle = COLORS.ORANGE; cx.lineWidth = 2;
+        cx.shadowColor = COLORS.ORANGE; cx.shadowBlur = 5; cx.stroke(); cx.shadowBlur = 0;
+
+        // Mark intersection points
+        [[P, COLORS.CYAN], [Q, COLORS.CYAN], [R, COLORS.ORANGE], [S, COLORS.ORANGE]].forEach(([p, c]) => {
+          cx.beginPath(); cx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+          cx.fillStyle = c; cx.shadowColor = c; cx.shadowBlur = 8; cx.fill(); cx.shadowBlur = 0;
+        });
+
+        const AP = Math.hypot(A.x - P.x, A.y - P.y);
+        const PR = Math.hypot(P.x - R.x, P.y - R.y);
+        const CQ = Math.hypot(C.x - Q.x, C.y - Q.y);
+        const QS = Math.hypot(Q.x - S.x, Q.y - S.y);
+
+        cx.font = '13px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('AP/PR = ' + (AP / PR).toFixed(2), 200, 28);
+        cx.fillStyle = COLORS.ORANGE;
+        cx.fillText('CQ/QS = ' + (CQ / QS).toFixed(2), 200, 48);
+        cx.fillStyle = 'rgba(255,255,255,0.5)';
+        cx.fillText('Równe!', 200, 68);
+      },
+    },
+
+    // ── Stage 2: Use it to divide a segment ──────────────────────
+    {
+      title: () => T('Zastosowanie: dzielenie odcinka', 'Application: dividing a segment'),
+      desc:  () => T(
+        'Twierdzenie Talesa pozwala podzielić odcinek na dowolną liczbę równych części bez mierzenia. Przykład: podział na 3 równe części.',
+        'Thales\' theorem lets you divide a segment into any number of equal parts without measuring. Example: dividing into 3 equal parts.'
+      ),
+      sliders: [
+        { id: 'n', lbl: 'n', color: COLORS.CYAN, min: 2, max: 7, step: 1, val: 3 },
+      ],
+      draw(cx, W, H, vals) {
+        const n = Math.round(vals.n);
+        const Ax = 80,  Ay = H / 2;
+        const Bx = 520, By = H / 2;
+
+        // Segment AB
+        cx.beginPath(); cx.moveTo(Ax, Ay); cx.lineTo(Bx, By);
+        cx.strokeStyle = 'rgba(255,255,255,0.5)'; cx.lineWidth = 2.5; cx.stroke();
+
+        // Auxiliary ray at angle
+        const angle = -Math.PI / 5;
+        const rayLen = 200;
+        const rayX = Ax + rayLen * Math.cos(angle);
+        const rayY = Ay + rayLen * Math.sin(angle);
+        cx.beginPath(); cx.moveTo(Ax, Ay); cx.lineTo(rayX, rayY);
+        cx.strokeStyle = 'rgba(255,209,102,0.4)'; cx.lineWidth = 1.5;
+        cx.setLineDash([4, 3]); cx.stroke(); cx.setLineDash([]);
+
+        // Equally spaced points on ray
+        const pts = [];
+        for (let i = 1; i <= n; i++) {
+          pts.push({
+            x: Ax + (rayLen / n) * i * Math.cos(angle),
+            y: Ay + (rayLen / n) * i * Math.sin(angle),
+          });
+        }
+
+        // Parallel lines from ray pts to AB
+        const dx = Bx - Ax, segLen = Bx - Ax;
+        pts.forEach((p, i) => {
+          const tx = Ax + (i + 1) * (segLen / n);
+          // Draw parallel line from p to (tx, Ay)
+          cx.beginPath(); cx.moveTo(p.x, p.y); cx.lineTo(tx, Ay);
+          cx.strokeStyle = i < n - 1 ? COLORS.CYAN : COLORS.ORANGE;
+          cx.lineWidth = 1.5; cx.setLineDash([4, 3]); cx.stroke(); cx.setLineDash([]);
+          // Division mark on AB
+          if (i < n - 1) {
+            cx.beginPath(); cx.moveTo(tx, Ay - 8); cx.lineTo(tx, Ay + 8);
+            cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 2; cx.stroke();
+          }
+          // Dot on ray
+          cx.beginPath(); cx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+          cx.fillStyle = COLORS.YELLOW; cx.fill();
+        });
+
+        // Endpoints
+        [[Ax, Ay, COLORS.GREEN], [Bx, By, COLORS.GREEN]].forEach(([x, y, c]) => {
+          cx.beginPath(); cx.arc(x, y, 5, 0, Math.PI * 2);
+          cx.fillStyle = c; cx.shadowColor = c; cx.shadowBlur = 8; cx.fill(); cx.shadowBlur = 0;
+        });
+
+        cx.font = '13px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('Podział odcinka AB na ' + n + ' równe części', 16, 22);
+        cx.fillStyle = 'rgba(255,255,255,0.4)';
+        cx.fillText('Twierdzenie Talesa gwarantuje równość', 16, 40);
+      },
+    },
+
+    // ── Stage 3: Similar triangles ───────────────────────────────
+    {
+      title: () => T('Trójkąty podobne', 'Similar triangles'),
+      desc:  () => T(
+        'Linia równoległa do podstawy tworzy mały trójkąt podobny do dużego. Stosunek odpowiednich boków jest równy — to podstawa podobieństwa trójkątów.',
+        'A line parallel to the base creates a small triangle similar to the large one. The ratio of corresponding sides is equal — this is the basis of triangle similarity.'
+      ),
+      sliders: [
+        { id: 'k', lbl: 'k', color: COLORS.CYAN, min: 0.2, max: 0.85, step: 0.01, val: 0.5 },
+      ],
+      draw(cx, W, H, vals) {
+        const k = vals.k;
+        const Ax = W / 2,       Ay = 25;
+        const Bx = W / 2 - 170, By = H - 30;
+        const Cx2 = W / 2 + 170, Cy2 = H - 30;
+
+        // Big triangle
+        cx.beginPath(); cx.moveTo(Ax, Ay); cx.lineTo(Bx, By); cx.lineTo(Cx2, Cy2); cx.closePath();
+        cx.fillStyle = 'rgba(255,107,53,0.07)'; cx.fill();
+        cx.strokeStyle = COLORS.ORANGE; cx.lineWidth = 2; cx.stroke();
+
+        // Small triangle (similar)
+        const Dx = Ax + k * (Bx - Ax), Dy = Ay + k * (By - Ay);
+        const Ex = Ax + k * (Cx2 - Ax), Ey = Ay + k * (Cy2 - Ay);
+        cx.beginPath(); cx.moveTo(Ax, Ay); cx.lineTo(Dx, Dy); cx.lineTo(Ex, Ey); cx.closePath();
+        cx.fillStyle = 'rgba(88,196,221,0.15)'; cx.fill();
+        cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 2.5; cx.stroke();
+
+        // Parallel line DE
+        cx.beginPath(); cx.moveTo(Dx, Dy); cx.lineTo(Ex, Ey);
+        cx.strokeStyle = COLORS.GREEN; cx.lineWidth = 2;
+        cx.shadowColor = COLORS.GREEN; cx.shadowBlur = 5; cx.stroke(); cx.shadowBlur = 0;
+
+        [[Ax, Ay, COLORS.GREEN], [Bx, By, COLORS.ORANGE], [Cx2, Cy2, COLORS.ORANGE],
+         [Dx, Dy, COLORS.CYAN], [Ex, Ey, COLORS.CYAN]].forEach(([x, y, c]) => {
+          cx.beginPath(); cx.arc(x, y, 5, 0, Math.PI * 2);
+          cx.fillStyle = c; cx.shadowColor = c; cx.shadowBlur = 8; cx.fill(); cx.shadowBlur = 0;
+        });
+
+        const DE = Math.hypot(Dx - Ex, Dy - Ey);
+        const BC = Math.hypot(Bx - Cx2, By - Cy2);
+
+        cx.font = '13px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('△ADE ~ △ABC', 16, 22);
+        cx.fillStyle = 'rgba(255,255,255,0.5)';
+        cx.fillText('DE/BC = ' + (DE / BC).toFixed(2) + ' = k = ' + k.toFixed(2), 16, 40);
+        cx.fillStyle = 'rgba(255,255,255,0.35)';
+        cx.fillText('AD/AB = AE/AC = k', 16, 58);
+      },
+    },
+  ],
+});
+</script>
+</body>
+</html>

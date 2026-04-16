@@ -193,6 +193,34 @@
         const yStep = 65;
         const yStart = 25;
 
+        // Determine branch color by level-1 ancestor (A/B/C)
+        // Level-2 node i → level-1 parent = Math.floor(i/2)
+        // Level-3 node i → level-1 ancestor = Math.floor(i/2)
+        function branchCol(lv, nodeIdx) {
+          if (lv === 0) return 'rgba(255,255,255,0.5)';
+          if (lv === 1) return ITEM_COLORS[nodeIdx] + 'cc';
+          return ITEM_COLORS[Math.floor(nodeIdx / 2)] + '99';
+        }
+
+        // Draw lines first (behind nodes)
+        for (let lv = 0; lv < levels.length - 1; lv++) {
+          const nodes = levels[lv];
+          const n = nodes.length;
+          const y = yStart + lv * yStep;
+          nodes.forEach((node, i) => {
+            if (!node.children) return;
+            const x = W * (i + 0.5) / n;
+            const nextN = levels[lv+1].length;
+            const ny = yStart + (lv+1) * yStep;
+            node.children.forEach(ci2 => {
+              const nx = W * (ci2 + 0.5) / nextN;
+              cx.strokeStyle = branchCol(lv + 1, ci2); cx.lineWidth = 1.5;
+              cx.beginPath(); cx.moveTo(x, y + 13); cx.lineTo(nx, ny - 13); cx.stroke();
+            });
+          });
+        }
+
+        // Draw nodes on top of lines
         for (let lv = 0; lv < levels.length; lv++) {
           const nodes = levels[lv];
           const n = nodes.length;
@@ -201,33 +229,22 @@
             const x = W * (i + 0.5) / n;
             const ci = items.indexOf(node.lbl);
             const col = ci >= 0 ? ITEM_COLORS[ci] : 'rgba(255,255,255,0.4)';
-            if (ci >= 0) drawItemBox(node.lbl, x, y, col, 20);
-            else { cx.fillStyle = col; cx.font = '14px monospace'; cx.textAlign = 'center'; cx.fillText(node.lbl, x, y + 5); }
-
-            // lines to children
-            if (node.children) {
-              const nextN = levels[lv+1].length;
-              const ny = yStart + (lv+1) * yStep;
-              node.children.forEach(ci2 => {
-                const nx = W * (ci2 + 0.5) / nextN;
-                cx.strokeStyle = 'rgba(255,255,255,0.12)'; cx.lineWidth = 1;
-                cx.beginPath(); cx.moveTo(x, y + 12); cx.lineTo(nx, ny - 12); cx.stroke();
-              });
-            }
+            if (ci >= 0) drawItemBox(node.lbl, x, y, col, 24);
+            else { cx.fillStyle = col; cx.font = '16px monospace'; cx.textAlign = 'center'; cx.fillText(node.lbl, x, y + 6); }
 
             // leaf labels
             if (lv === 3) {
-              cx.fillStyle = COL_HL; cx.font = '9px monospace'; cx.textAlign = 'center';
-              cx.fillText(results[i], x, y + 18);
+              cx.fillStyle = COL_HL; cx.font = '10px monospace'; cx.textAlign = 'center';
+              cx.fillText(results[i], x, y + 20);
             }
           });
         }
 
-        // labels for branching factor
-        cx.fillStyle = 'rgba(255,255,255,0.3)'; cx.font = '10px monospace'; cx.textAlign = 'right';
-        cx.fillText('3 ' + T('wybory','choices'), 35, yStart + 0.5 * yStep);
-        cx.fillText('2 ' + T('wybory','choices'), 35, yStart + 1.5 * yStep);
-        cx.fillText('1 ' + T('wyb\u00F3r','choice'), 35, yStart + 2.5 * yStep);
+        // Labels for branching factor (right side, more visible)
+        cx.fillStyle = 'rgba(255,255,255,0.6)'; cx.font = '11px monospace'; cx.textAlign = 'left';
+        cx.fillText('× 3', W - 30, yStart + 0.5 * yStep);
+        cx.fillText('× 2', W - 30, yStart + 1.5 * yStep);
+        cx.fillText('× 1', W - 30, yStart + 2.5 * yStep);
       }
     },
     {
@@ -329,7 +346,7 @@
 
         // explanation
         cx.fillStyle = 'rgba(255,255,255,0.35)'; cx.font = '10px monospace'; cx.textAlign = 'center';
-        cx.fillText(T('Bez powtorze\u0144: 4!=24. Z powtorzeniami: 24/4=6','Without repetition: 4!=24. With repetition: 24/4=6'), W/2, H - 16);
+        cx.fillText(T('Bez powt\u00F3rze\u0144: 4!=24. Z powt\u00F3rzeniami: 24/4=6','Without repetition: 4!=24. With repetition: 24/4=6'), W/2, H - 16);
       }
     },
     {

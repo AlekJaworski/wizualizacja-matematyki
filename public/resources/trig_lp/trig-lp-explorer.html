@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trygonometria LP — eksplorator</title>
+</head>
+<body>
+<script type="module">
+import { VizCore, T, COLORS } from '../lib/viz-core.js';
+
+const { cx, W, H } = VizCore.init({
+  title: T('Trygonometria (0°–180°)', 'Trigonometry (0°–180°)'),
+  H: 360,
+  stages: [
+    // ── Stage 0: Obtuse angle sin/cos ─────────────────────────────
+    {
+      title: () => T('Kąt rozwarty — sin i cos', 'Obtuse angle — sin and cos'),
+      desc:  () => T(
+        'Dla kątów 0°–180° (trójkąty!) sin jest zawsze ≥ 0. cos < 0 dla kątów > 90°. Na okręgu jednostkowym: sin = rzut na oś Y, cos = rzut na oś X.',
+        'For angles 0°–180° (triangles!) sin is always ≥ 0. cos < 0 for angles > 90°. On the unit circle: sin = projection on Y-axis, cos = projection on X-axis.'
+      ),
+      sliders: [
+        { id: 'deg', lbl: 'α', color: COLORS.CYAN, min: 0, max: 180, step: 1, val: 120 },
+      ],
+      draw(cx, W, H, vals) {
+        const deg = vals.deg, rad = deg * Math.PI / 180;
+        const CX = W / 2 - 60, CY = H / 2 + 20, R = 120;
+
+        // Unit circle
+        cx.beginPath(); cx.arc(CX, CY, R, 0, Math.PI * 2);
+        cx.strokeStyle = 'rgba(255,255,255,0.2)'; cx.lineWidth = 1.5; cx.stroke();
+
+        // Axes
+        cx.beginPath(); cx.moveTo(CX - R - 15, CY); cx.lineTo(CX + R + 15, CY);
+        cx.moveTo(CX, CY - R - 15); cx.lineTo(CX, CY + R + 15);
+        cx.strokeStyle = 'rgba(255,255,255,0.3)'; cx.lineWidth = 1.5; cx.stroke();
+
+        const Px = CX + R * Math.cos(rad), Py = CY - R * Math.sin(rad);
+
+        // cos projection (x-axis)
+        cx.beginPath(); cx.moveTo(CX, CY); cx.lineTo(Px, CY);
+        cx.strokeStyle = COLORS.ORANGE; cx.lineWidth = 3;
+        cx.shadowColor = COLORS.ORANGE; cx.shadowBlur = 6; cx.stroke(); cx.shadowBlur = 0;
+
+        // sin projection (y-axis)
+        cx.beginPath(); cx.moveTo(Px, Py); cx.lineTo(Px, CY);
+        cx.strokeStyle = COLORS.GREEN; cx.lineWidth = 3;
+        cx.shadowColor = COLORS.GREEN; cx.shadowBlur = 6; cx.stroke(); cx.shadowBlur = 0;
+
+        // Radius
+        cx.beginPath(); cx.moveTo(CX, CY); cx.lineTo(Px, Py);
+        cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 2.5; cx.stroke();
+
+        // Angle arc
+        cx.beginPath(); cx.arc(CX, CY, 30, 0, -rad, true);
+        cx.strokeStyle = COLORS.YELLOW; cx.lineWidth = 1.5; cx.stroke();
+        cx.font = 'bold 13px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = COLORS.YELLOW; cx.fillText(deg + '°', CX + 45, CY - 10);
+
+        // Point P
+        cx.beginPath(); cx.arc(Px, Py, 6, 0, Math.PI * 2);
+        cx.fillStyle = COLORS.CYAN; cx.shadowColor = COLORS.CYAN;
+        cx.shadowBlur = 10; cx.fill(); cx.shadowBlur = 0;
+
+        const sinV = Math.sin(rad), cosV = Math.cos(rad);
+        // Right panel values
+        const rx = CX + R + 30;
+        cx.font = '13px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.GREEN;
+        cx.fillText('sin(' + deg + '°) = ' + sinV.toFixed(3), rx, H / 2 - 20);
+        cx.fillStyle = COLORS.ORANGE;
+        cx.fillText('cos(' + deg + '°) = ' + cosV.toFixed(3), rx, H / 2);
+        cx.fillStyle = sinV > 0.001 ? COLORS.YELLOW : COLORS.PINK;
+        cx.fillText('tan(' + deg + '°) = ' + (deg === 90 ? '∞' : (Math.tan(rad).toFixed(3))), rx, H / 2 + 20);
+        cx.fillStyle = 'rgba(255,255,255,0.35)';
+        cx.fillText('sin² + cos² = 1', rx, H / 2 + 48);
+        cx.fillText(sinV.toFixed(2) + '² + ' + cosV.toFixed(2) + '²', rx, H / 2 + 64);
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('= ' + (Math.round((sinV * sinV + cosV * cosV) * 100) / 100), rx, H / 2 + 80);
+      },
+    },
+
+    // ── Stage 1: Supplementary angle identities ───────────────────
+    {
+      title: () => T('sin(180°−α) = sin(α)', 'sin(180°−α) = sin(α)'),
+      desc:  () => T(
+        'Kąty suplementarne (sumujące się do 180°) mają ten sam sinus. cos(180°−α) = −cos(α). To dlatego trójkąt może mieć kąt rozwarty — sin wciąż jest dodatni.',
+        'Supplementary angles (adding to 180°) have the same sine. cos(180°−α) = −cos(α). That\'s why a triangle can have an obtuse angle — sin is still positive.'
+      ),
+      sliders: [
+        { id: 'deg', lbl: 'α', color: COLORS.CYAN, min: 1, max: 89, step: 1, val: 40 },
+      ],
+      draw(cx, W, H, vals) {
+        const deg = vals.deg, rad = deg * Math.PI / 180;
+        const supDeg = 180 - deg, supRad = supDeg * Math.PI / 180;
+        const CX = W / 2, CY = H / 2 + 30, R = 110;
+
+        cx.beginPath(); cx.arc(CX, CY, R, 0, Math.PI * 2);
+        cx.strokeStyle = 'rgba(255,255,255,0.2)'; cx.lineWidth = 1.5; cx.stroke();
+        cx.beginPath(); cx.moveTo(CX - R - 15, CY); cx.lineTo(CX + R + 15, CY);
+        cx.moveTo(CX, CY - R - 15); cx.lineTo(CX, CY + R + 15);
+        cx.strokeStyle = 'rgba(255,255,255,0.3)'; cx.lineWidth = 1.5; cx.stroke();
+
+        // Two symmetric points
+        const P1x = CX + R * Math.cos(rad),     P1y = CY - R * Math.sin(rad);
+        const P2x = CX + R * Math.cos(supRad),  P2y = CY - R * Math.sin(supRad);
+
+        // sin projections (equal!)
+        [P1x, P2x].forEach((px, i) => {
+          cx.beginPath(); cx.moveTo(px, P1y); cx.lineTo(px, CY);
+          cx.strokeStyle = COLORS.GREEN; cx.lineWidth = i === 0 ? 3 : 2;
+          cx.setLineDash(i === 1 ? [4,3] : []); cx.stroke(); cx.setLineDash([]);
+        });
+
+        // Radii
+        cx.beginPath(); cx.moveTo(CX, CY); cx.lineTo(P1x, P1y);
+        cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 2.5; cx.stroke();
+        cx.beginPath(); cx.moveTo(CX, CY); cx.lineTo(P2x, P2y);
+        cx.strokeStyle = COLORS.YELLOW; cx.lineWidth = 2.5; cx.stroke();
+
+        [[P1x, P1y, COLORS.CYAN], [P2x, P2y, COLORS.YELLOW]].forEach(([x, y, c]) => {
+          cx.beginPath(); cx.arc(x, y, 6, 0, Math.PI * 2);
+          cx.fillStyle = c; cx.shadowColor = c; cx.shadowBlur = 10; cx.fill(); cx.shadowBlur = 0;
+        });
+
+        // Horizontal symmetry line through both pts
+        cx.beginPath(); cx.moveTo(P1x - 10, P1y); cx.lineTo(P2x + 10, P2y);
+        cx.strokeStyle = 'rgba(131,193,103,0.4)'; cx.lineWidth = 1; cx.setLineDash([3,3]); cx.stroke(); cx.setLineDash([]);
+
+        cx.font = '13px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('sin(' + deg + '°) = ' + Math.sin(rad).toFixed(3), 14, 22);
+        cx.fillStyle = COLORS.YELLOW;
+        cx.fillText('sin(' + supDeg + '°) = ' + Math.sin(supRad).toFixed(3) + '  ← równe!', 14, 40);
+        cx.fillStyle = COLORS.ORANGE;
+        cx.fillText('cos(' + deg + '°) = ' + Math.cos(rad).toFixed(3), 14, 58);
+        cx.fillText('cos(' + supDeg + '°) = ' + Math.cos(supRad).toFixed(3) + '  ← odwrotny!', 14, 76);
+      },
+    },
+
+    // ── Stage 2: Sine rule ────────────────────────────────────────
+    {
+      title: () => T('Twierdzenie sinusów', 'Sine rule'),
+      desc:  () => T(
+        'a/sin(A) = b/sin(B) = c/sin(C) = 2R. Stosunek boku do sinusa naprzeciwległego kąta jest stały. Pozwala wyznaczyć bok lub kąt trójkąta.',
+        'a/sin(A) = b/sin(B) = c/sin(C) = 2R. The ratio of side to sine of opposite angle is constant. Lets you find any side or angle in a triangle.'
+      ),
+      sliders: [
+        { id: 'A', lbl: 'A', color: COLORS.CYAN,   min: 10, max: 160, step: 1, val: 50 },
+        { id: 'B', lbl: 'B', color: COLORS.ORANGE, min: 10, max: 160, step: 1, val: 70 },
+      ],
+      draw(cx, W, H, vals) {
+        let A = vals.A, B = vals.B;
+        const C = 180 - A - B;
+        if (C <= 0) {
+          cx.font = '14px monospace'; cx.textAlign = 'center';
+          cx.fillStyle = COLORS.PINK; cx.fillText('A + B musi być < 180°', W / 2, H / 2);
+          return;
+        }
+        const Ar = A * Math.PI / 180, Br = B * Math.PI / 180, Cr = C * Math.PI / 180;
+
+        // Build triangle with side c = 200px opposite C
+        const c = 200;
+        const a = c * Math.sin(Ar) / Math.sin(Cr);
+        const b = c * Math.sin(Br) / Math.sin(Cr);
+
+        const Vx = W / 2 - c / 2, Vy = H / 2 + 50;
+        const Wx = W / 2 + c / 2, Wy = Vy;
+        const Ux = Vx + b * Math.cos(Ar), Uy = Vy - b * Math.sin(Ar);
+
+        cx.beginPath(); cx.moveTo(Vx, Vy); cx.lineTo(Wx, Wy); cx.lineTo(Ux, Uy); cx.closePath();
+        cx.fillStyle = 'rgba(88,196,221,0.06)'; cx.fill();
+        cx.strokeStyle = 'rgba(255,255,255,0.4)'; cx.lineWidth = 2; cx.stroke();
+
+        cx.font = '12px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = COLORS.CYAN;   cx.fillText('A=' + A + '°', Vx - 18, Vy + 16);
+        cx.fillStyle = COLORS.ORANGE; cx.fillText('B=' + B + '°', Wx + 18, Wy + 16);
+        cx.fillStyle = COLORS.GREEN;  cx.fillText('C=' + C + '°', Ux, Uy - 12);
+        cx.fillStyle = COLORS.PINK;   cx.fillText('a=' + Math.round(a), (Wx + Ux) / 2 + 18, (Wy + Uy) / 2);
+        cx.fillStyle = COLORS.YELLOW; cx.fillText('b=' + Math.round(b), (Vx + Ux) / 2 - 18, (Vy + Uy) / 2);
+        cx.fillStyle = 'rgba(255,255,255,0.4)'; cx.fillText('c=' + Math.round(c), (Vx + Wx) / 2, Vy + 16);
+
+        const ratio = a / Math.sin(Ar);
+        cx.font = '12px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = 'rgba(255,255,255,0.6)';
+        cx.fillText('a/sin(A) = b/sin(B) = c/sin(C) = ' + Math.round(ratio), 12, 22);
+      },
+    },
+
+    // ── Stage 3: Cosine rule ─────────────────────────────────────
+    {
+      title: () => T('Twierdzenie cosinusów', 'Cosine rule'),
+      desc:  () => T(
+        'c² = a² + b² − 2ab·cos(C). To uogólnienie Pitagorasa. Gdy C = 90°: cos(90°) = 0, więc c² = a² + b². Zmień kąt C i obserwuj.',
+        'c² = a² + b² − 2ab·cos(C). This is the generalization of Pythagoras. When C = 90°: cos(90°) = 0, so c² = a² + b². Change angle C and observe.'
+      ),
+      sliders: [
+        { id: 'a',   lbl: 'a',  color: COLORS.CYAN,   min: 40, max: 120, step: 1, val: 80 },
+        { id: 'b',   lbl: 'b',  color: COLORS.ORANGE, min: 40, max: 120, step: 1, val: 70 },
+        { id: 'C',   lbl: 'C',  color: COLORS.YELLOW, min: 10, max: 170, step: 1, val: 60 },
+      ],
+      draw(cx, W, H, vals) {
+        const a = vals.a, b = vals.b, C = vals.C;
+        const Cr = C * Math.PI / 180;
+        const cSq = a * a + b * b - 2 * a * b * Math.cos(Cr);
+        const c = Math.sqrt(Math.max(0, cSq));
+
+        const sc = 130 / Math.max(a, b, c);
+        const Ox = W / 2 - 20, Oy = H / 2 + 50;
+        const Ax = Ox + b * sc, Ay = Oy;
+        const Bx = Ox + a * sc * Math.cos(Cr), By = Oy - a * sc * Math.sin(Cr);
+
+        cx.beginPath(); cx.moveTo(Ox, Oy); cx.lineTo(Ax, Ay); cx.lineTo(Bx, By); cx.closePath();
+        cx.fillStyle = 'rgba(88,196,221,0.07)'; cx.fill();
+        cx.strokeStyle = 'rgba(255,255,255,0.35)'; cx.lineWidth = 2; cx.stroke();
+
+        // Right angle box when C ≈ 90
+        if (Math.abs(C - 90) < 3) {
+          const sq = 12;
+          cx.beginPath();
+          cx.moveTo(Ox + sq, Oy); cx.lineTo(Ox + sq, Oy - sq); cx.lineTo(Ox, Oy - sq);
+          cx.strokeStyle = COLORS.GREEN; cx.lineWidth = 1.5; cx.stroke();
+        }
+
+        // Angle arc at origin
+        cx.beginPath(); cx.arc(Ox, Oy, 22, -Cr, 0);
+        cx.strokeStyle = COLORS.YELLOW; cx.lineWidth = 1.5; cx.stroke();
+        cx.font = '11px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.YELLOW; cx.fillText(C + '°', Ox + 24, Oy - 8);
+
+        // Side labels
+        cx.font = '12px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = COLORS.ORANGE; cx.fillText('b=' + b, (Ox + Ax) / 2, Oy + 16);
+        cx.fillStyle = COLORS.CYAN;   cx.fillText('a=' + a, (Ox + Bx) / 2 - 14, (Oy + By) / 2);
+        cx.fillStyle = COLORS.GREEN;  cx.fillText('c=' + Math.round(c), (Ax + Bx) / 2 + 16, (Ay + By) / 2);
+
+        cx.font = '13px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = 'rgba(255,255,255,0.6)';
+        cx.fillText('c² = a²+b²−2ab·cos(C)', 12, 22);
+        cx.fillStyle = COLORS.GREEN;
+        cx.fillText('= ' + Math.round(cSq) + '  →  c = ' + Math.round(c), 12, 40);
+        if (Math.abs(C - 90) < 3) {
+          cx.fillStyle = COLORS.YELLOW;
+          cx.fillText('≈ Pitagoras! (cos 90°=0)', 12, 58);
+        }
+      },
+    },
+  ],
+});
+</script>
+</body>
+</html>

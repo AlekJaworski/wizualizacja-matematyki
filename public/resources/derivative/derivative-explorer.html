@@ -490,7 +490,9 @@ function drawStage4(){
 
   // f'(x)=0 label
   cx.fillStyle='rgba(255,255,255,.4)';cx.font='11px monospace';cx.textAlign='right';
-  cx.fillText('f\u2032(x) = 0  at  x = \u00B11',W-10,20);
+  cx.fillText(T('f\u2032(x) = 0 dla x = \u00B11','f\u2032(x) = 0 at x = \u00B11'),W-10,20);
+  cx.fillStyle='rgba(255,255,255,.28)';cx.font='10px monospace';
+  cx.fillText(T('zmiana znaku f\u2032 \u2192 ekstremum','sign change of f\u2032 \u2192 extremum'),W-10,34);
 }
 
 // ── Main loop ──
