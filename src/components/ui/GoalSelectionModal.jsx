@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
+import { COLORS } from "../../styles/tokens.js";
 
 /**
  * Modal for selecting a deep-dive goal node.

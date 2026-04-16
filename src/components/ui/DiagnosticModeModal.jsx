@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { t } from "../../i18n.js";
+import { COLORS } from "../../styles/tokens.js";
 
 export function DiagnosticModeModal({ isOpen, onSelect, onClose, lang = "pl" }) {
   const MODES = [

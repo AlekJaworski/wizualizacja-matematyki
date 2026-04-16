@@ -123,7 +123,7 @@
       desc: () => {
         const a = sA, b = sB;
         return T(
-          fracStr(a,b) + ' znaczy: podziel na ' + b + ' rownych czesci, wez ' + a + '. Ulamek to po prostu dzielenie!',
+          fracStr(a,b) + ' znaczy: podziel na ' + b + ' równych części, weź ' + a + '. Ułamek to po prostu dzielenie!',
           fracStr(a,b) + ' means: split into ' + b + ' equal parts, take ' + a + '. A fraction is just division!'
         );
       },
@@ -160,7 +160,7 @@
         if (overflow > 0) {
           const bar2Y = barY + barH + 35;
           drawBar(barX, bar2Y, barW, barH, b, overflow, COL_A, COL_DIM);
-          textLine(T('Ulamek > 1 — wiecej niz calosc!', 'Fraction > 1 — more than the whole!'), bar2Y + barH + 20, COL_EQ, 12);
+          textLine(T('Ułamek > 1 — więcej niż całość!', 'Fraction > 1 — more than the whole!'), bar2Y + barH + 20, COL_EQ, 12);
         }
 
         // Fraction value
@@ -194,9 +194,9 @@
 
     // Stage 2: Equivalent fractions
     {
-      title: () => T('Ulamki rownowazne', 'Equivalent fractions'),
+      title: () => T('Ułamki równoważne', 'Equivalent fractions'),
       desc: () => T(
-        'Pomnoz licznik i mianownik przez te sama liczbe — dostajesz tyle samo! 1/2 = 2/4 = 3/6. Wiecej kawalkow, ale ta sama ilosc.',
+        'Pomnóż licznik i mianownik przez tę samą liczbę — dostajesz tyle samo! 1/2 = 2/4 = 3/6. Więcej kawałków, ale ta sama ilość.',
         'Multiply numerator and denominator by the same number — you get the same amount! 1/2 = 2/4 = 3/6. More pieces, same amount.'
       ),
       sliders: [
@@ -209,7 +209,7 @@
         const barW = 440, barH = 28;
         const barX = (W - barW) / 2;
 
-        textLine(T('Pomnoz licznik i mianownik przez ', 'Multiply top and bottom by ') + m, 28, 'rgba(255,255,255,.45)', 12);
+        textLine(T('Pomnóż licznik i mianownik przez ', 'Multiply top and bottom by ') + m, 28, 'rgba(255,255,255,.45)', 12);
 
         // Draw bars for each multiplier from 1 to m
         for (let k = 1; k <= Math.max(m, 3); k++) {
@@ -245,18 +245,18 @@
         const ey = H - 30;
         if (m > 1) {
           const [sa, sb] = simplify(a * m, b * m);
-          textLine(fracStr(a, b) + ' = ' + fracStr(a * m, b * m) + T('  (ta sama wartosc!)', '  (same value!)'), ey, COL_P, 14);
+          textLine(fracStr(a, b) + ' = ' + fracStr(a * m, b * m) + T('  (ta sama wartość!)', '  (same value!)'), ey, COL_P, 14);
         } else {
-          textLine(T('Przesun suwak \u00D7 w prawo!', 'Move the \u00D7 slider to the right!'), ey, 'rgba(255,255,255,.35)', 13);
+          textLine(T('Przesuń suwak \u00D7 w prawo!', 'Move the \u00D7 slider to the right!'), ey, 'rgba(255,255,255,.35)', 13);
         }
       }
     },
 
     // Stage 3: Addition — common denominator
     {
-      title: () => T('Dodawanie — wspolny mianownik', 'Addition — common denominator'),
+      title: () => T('Dodawanie — wspólny mianownik', 'Addition — common denominator'),
       desc: () => T(
-        'Zeby dodac ulamki, potrzebujesz takich samych kawalkow. Sprowadz do wspolnego mianownika, potem policz kawalki.',
+        'Żeby dodać ułamki, potrzebujesz takich samych kawałków. Sprowadź do wspólnego mianownika, potem policz kawałki.',
         'To add fractions you need same-sized pieces. Convert to a common denominator, then count pieces.'
       ),
       sliders: [
@@ -276,7 +276,7 @@
         const barX = (W - barW) / 2;
 
         // Original fractions
-        textLine(T('Rozne kawalki:', 'Different pieces:'), 22, 'rgba(255,255,255,.4)', 11);
+        textLine(T('Różne kawałki:', 'Different pieces:'), 22, 'rgba(255,255,255,.4)', 11);
 
         // Bar 1 (original)
         const b1Y = 38;
@@ -298,7 +298,7 @@
         cx.beginPath(); cx.moveTo(W / 2 - 4, arrowY + 14); cx.lineTo(W / 2, arrowY + 18); cx.lineTo(W / 2 + 4, arrowY + 14); cx.stroke();
         cx.restore();
 
-        textLine(T('Wspolny mianownik: ', 'Common denominator: ') + L, arrowY + 8, 'rgba(255,255,255,.35)', 11);
+        textLine(T('Wspólny mianownik: ', 'Common denominator: ') + L, arrowY + 8, 'rgba(255,255,255,.35)', 11);
 
         // Converted fractions
         const c1Y = arrowY + 28;
@@ -340,9 +340,9 @@
 
     // Stage 4: Multiplication — grid
     {
-      title: () => T('Mnozenie ulamkow', 'Multiplying fractions'),
+      title: () => T('Mnożenie ułamków', 'Multiplying fractions'),
       desc: () => T(
-        'a/b \u00D7 c/d = (a\u00D7c)/(b\u00D7d). Wizualnie: zamaluj a/b wierszy i c/d kolumn siatki. Przeciecie = wynik.',
+        'a/b \u00D7 c/d = (a\u00D7c)/(b\u00D7d). Wizualnie: zamaluj a/b wierszy i c/d kolumn siatki. Przecięcie = wynik.',
         'a/b \u00D7 c/d = (a\u00D7c)/(b\u00D7d). Visually: shade a/b of rows and c/d of columns of a grid. The overlap = result.'
       ),
       sliders: [
@@ -428,16 +428,16 @@
         textLine('= ' + val, fY + 24, COL_EQ, 14);
 
         // Explanation
-        textLine(T('Zielone kratki = przeciecie (licznik). Cala siatka = mianownik.',
+        textLine(T('Zielone kratki = przecięcie (licznik). Cała siatka = mianownik.',
                     'Green cells = overlap (numerator). Full grid = denominator.'), fY + 50, 'rgba(255,255,255,.35)', 11);
       }
     },
 
     // Stage 5: Division — flip and multiply
     {
-      title: () => T('Dzielenie — odwracamy i mnozymy', 'Division — flip and multiply'),
+      title: () => T('Dzielenie — odwracamy i mnożymy', 'Division — flip and multiply'),
       desc: () => T(
-        'a/b \u00F7 c/d = a/b \u00D7 d/c. Pytamy: ile razy c/d miesci sie w a/b? Odwroc drugi ulamek i pomnoz!',
+        'a/b \u00F7 c/d = a/b \u00D7 d/c. Pytamy: ile razy c/d mieści się w a/b? Odwróć drugi ułamek i pomnóż!',
         'a/b \u00F7 c/d = a/b \u00D7 d/c. We ask: how many times does c/d fit into a/b? Flip the second and multiply!'
       ),
       sliders: [
@@ -457,7 +457,7 @@
 
         // Bar representing a/b
         textLine(fracStr(a1, b1) + ' \u00F7 ' + fracStr(a2, b2), 24, 'rgba(255,255,255,.6)', 16);
-        textLine(T('Ile razy ' + fracStr(a2, b2) + ' miesci sie w ' + fracStr(a1, b1) + '?',
+        textLine(T('Ile razy ' + fracStr(a2, b2) + ' mieści się w ' + fracStr(a1, b1) + '?',
                     'How many times does ' + fracStr(a2, b2) + ' fit into ' + fracStr(a1, b1) + '?'), 46, 'rgba(255,255,255,.4)', 12);
 
         // Draw a/b bar
@@ -516,7 +516,7 @@
 
         // Show flip formula
         const fY = arrowY + 40;
-        textLine(T('Odwracamy i mnozymy:', 'Flip and multiply:'), fY, 'rgba(255,255,255,.4)', 12);
+        textLine(T('Odwracamy i mnożymy:', 'Flip and multiply:'), fY, 'rgba(255,255,255,.4)', 12);
         textLine(fracStr(a1, b1) + ' \u00F7 ' + fracStr(a2, b2) + '  =  ' + fracStr(a1, b1) + ' \u00D7 ' + fracStr(b2, a2), fY + 22, COL_EQ, 14);
 
         let resultStr = '= ' + fracStr(resN, resD);
@@ -526,7 +526,7 @@
         const valStr = val.toFixed(4).replace(/0+$/, '').replace(/\.$/, '');
         textLine('= ' + valStr, fY + 70, 'rgba(255,255,255,.5)', 13);
 
-        textLine(fracStr(a2, b2) + T(' miesci sie ', ' fits ') + valStr + T(' razy w ', ' times in ') + fracStr(a1, b1), fY + 96, 'rgba(255,255,255,.35)', 11);
+        textLine(fracStr(a2, b2) + T(' mieści się ', ' fits ') + valStr + T(' razy w ', ' times in ') + fracStr(a1, b1), fY + 96, 'rgba(255,255,255,.35)', 11);
       }
     },
   ];

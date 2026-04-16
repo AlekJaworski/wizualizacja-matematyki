@@ -445,7 +445,7 @@
     const result = C(n, k);
 
     // Title
-    drawTextCenter(T('Wzor na kombinacje', 'Combination formula'), 30, COL_ACC, 15);
+    drawTextCenter(T('Wzór na kombinacje', 'Combination formula'), 30, COL_ACC, 15);
 
     // Big formula with colored parts
     const formulaY = 70;
@@ -515,7 +515,7 @@
     cx.fillStyle = COL_RED;
     cx.fillText('\u25cf ' + n + '! = ' + nFact, 60, legY);
     cx.fillStyle = 'rgba(255,255,255,.5)';
-    cx.fillText(T('wszystkie ustawienia ' + n + ' elementow', 'all arrangements of ' + n + ' elements'), 60 + cx.measureText('\u25cf ' + n + '! = ' + nFact + '  ').width, legY);
+    cx.fillText(T('wszystkie ustawienia ' + n + ' elementów', 'all arrangements of ' + n + ' elements'), 60 + cx.measureText('\u25cf ' + n + '! = ' + nFact + '  ').width, legY);
 
     cx.fillStyle = COL_BLUE;
     cx.fillText('\u25cf ' + k + '! = ' + kFact, 60, legY + 22);
@@ -525,7 +525,7 @@
     cx.fillStyle = COL_GREEN;
     cx.fillText('\u25cf ' + (n-k) + '! = ' + nkFact, 60, legY + 44);
     cx.fillStyle = 'rgba(255,255,255,.5)';
-    cx.fillText(T('ustawienia pozostalych ' + (n-k), 'orderings of remaining ' + (n-k)), 60 + cx.measureText('\u25cf ' + (n-k) + '! = ' + nkFact + '  ').width, legY + 44);
+    cx.fillText(T('ustawienia pozostałych ' + (n-k), 'orderings of remaining ' + (n-k)), 60 + cx.measureText('\u25cf ' + (n-k) + '! = ' + nkFact + '  ').width, legY + 44);
 
     // Visual: draw people as chosen/unchosen
     const radius = 16;
@@ -571,7 +571,7 @@
       cx.restore();
 
       cx.fillStyle = COL_GREEN;
-      cx.fillText(T('pozostale n-k=' + (n-k), 'remaining n-k=' + (n-k)), (uncLeft + uncRight) / 2, groupY - radius - 16);
+      cx.fillText(T('pozostałe n-k=' + (n-k), 'remaining n-k=' + (n-k)), (uncLeft + uncRight) / 2, groupY - radius - 16);
     }
 
     for (let i = 0; i < n; i++) {
@@ -590,7 +590,7 @@
     const n = sN, k = Math.min(sK, sN);
     const maxRow = 7;
 
-    drawTextCenter(T('Trojkat Pascala', "Pascal's Triangle"), 22, COL_ACC, 14);
+    drawTextCenter(T('Trójkąt Pascala', "Pascal's Triangle"), 22, COL_ACC, 14);
 
     // Build triangle
     const tri = [];
@@ -710,7 +710,7 @@
 
     // Binomial theorem teaser
     drawTextCenter(
-      T('Wspolczynniki rozwinieicia (a+b)^n', 'Coefficients of (a+b)^n'),
+      T('Współczynniki rozwinięcia (a+b)^n', 'Coefficients of (a+b)^n'),
       H - 16, 'rgba(255,255,255,.35)', 11
     );
   }
@@ -718,9 +718,9 @@
   // ── Stages definition ──────────────────────────────────────
   const stages = [
     {
-      title: () => T('Permutacje \u2014 kolejnosc ma znaczenie', 'Permutations \u2014 order matters'),
+      title: () => T('Permutacje \u2014 kolejność ma znaczenie', 'Permutations \u2014 order matters'),
       desc: () => T(
-        'Wybieramy k osob z n. W permutacjach kolejnosc ma znaczenie: AB \u2260 BA. Przesuwaj n i k, by zobaczyc wszystkie uporzadkowane wybory.',
+        'Wybieramy k osób z n. W permutacjach kolejność ma znaczenie: AB \u2260 BA. Przesuwaj n i k, by zobaczyć wszystkie uporządkowane wybory.',
         'Choose k people from n. In permutations, order matters: AB \u2260 BA. Move n and k to see all ordered selections.'
       ),
       sliders: [
@@ -730,9 +730,9 @@
       draw: drawStage1
     },
     {
-      title: () => T('Kombinacje \u2014 kolejnosc NIE ma znaczenia', 'Combinations \u2014 order does NOT matter'),
+      title: () => T('Kombinacje \u2014 kolejność NIE ma znaczenia', 'Combinations \u2014 order does NOT matter'),
       desc: () => T(
-        'Teraz kolejnosc nie gra roli: druzyna {A,B} = {B,A}. Duplikaty zostaja skresllone. Permutacje / duplikaty = kombinacje.',
+        'Teraz kolejność nie gra roli: drużyna {A,B} = {B,A}. Duplikaty zostają skreślone. Permutacje / duplikaty = kombinacje.',
         'Now order doesn\u2019t matter: team {A,B} = {B,A}. Duplicates get crossed out. Permutations / duplicates = combinations.'
       ),
       sliders: [
@@ -744,7 +744,7 @@
     {
       title: () => T('Dlaczego dzielimy przez k!?', 'Why divide by k!?'),
       desc: () => T(
-        'Kazda kombinacja generuje dokladnie k! permutacji (wszystkie ustawienia wybranych elementow). Dlatego P(n,k) / k! = C(n,k).',
+        'Każda kombinacja generuje dokładnie k! permutacji (wszystkie ustawienia wybranych elementów). Dlatego P(n,k) / k! = C(n,k).',
         'Each combination generates exactly k! permutations (all orderings of chosen items). So P(n,k) / k! = C(n,k).'
       ),
       sliders: [
@@ -754,9 +754,9 @@
       draw: drawStage3
     },
     {
-      title: () => T('Wzor: C(n,k) = n! / (k!(n\u2212k)!)', 'Formula: C(n,k) = n! / (k!(n\u2212k)!)'),
+      title: () => T('Wzór: C(n,k) = n! / (k!(n\u2212k)!)', 'Formula: C(n,k) = n! / (k!(n\u2212k)!)'),
       desc: () => T(
-        'Kazda czesc wzoru ma znaczenie. n! = wszystkie ustawienia. k! = ustawienia wybranych (dzielimy). (n\u2212k)! = ustawienia pozostalych (dzielimy).',
+        'Każda część wzoru ma znaczenie. n! = wszystkie ustawienia. k! = ustawienia wybranych (dzielimy). (n\u2212k)! = ustawienia pozostałych (dzielimy).',
         'Every part of the formula matters. n! = all arrangements. k! = orderings of chosen (divide). (n\u2212k)! = orderings of remaining (divide).'
       ),
       sliders: [
@@ -766,9 +766,9 @@
       draw: drawStage4
     },
     {
-      title: () => T('Trojkat Pascala', "Pascal's Triangle"),
+      title: () => T('Trójkąt Pascala', "Pascal's Triangle"),
       desc: () => T(
-        'C(n,k) = C(n\u22121,k\u22121) + C(n\u22121,k). Kazda liczba to suma dwoch nad nia. To wspolczynniki rozwinieicia dwumianu (a+b)^n.',
+        'C(n,k) = C(n\u22121,k\u22121) + C(n\u22121,k). Każda liczba to suma dwóch nad nią. To współczynniki rozwinięcia dwumianu (a+b)^n.',
         'C(n,k) = C(n\u22121,k\u22121) + C(n\u22121,k). Each number is the sum of the two above it. These are the coefficients of (a+b)^n.'
       ),
       sliders: [
