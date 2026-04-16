@@ -236,6 +236,27 @@ export function TopicView({
           </div>
         )}
 
+        {/* Coffee — subtle, at the very bottom */}
+        <div style={{
+          marginTop: 32, paddingTop: 16,
+          borderTop: `1px solid ${COLORS.border}`,
+          textAlign: "center",
+        }}>
+          <a
+            href="https://buycoffee.to/oczochodzi"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              fontSize: 11, color: COLORS.textFaint, textDecoration: "none",
+              transition: "color 0.15s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.color = "#FFD166"; }}
+            onMouseLeave={e => { e.currentTarget.style.color = COLORS.textFaint; }}
+          >
+            {t("coffeeBtn", lang)}
+          </a>
+        </div>
+
       </div>
 
       {/* Resource viewer modal */}
