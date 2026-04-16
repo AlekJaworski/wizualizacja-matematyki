@@ -108,13 +108,13 @@ export function GoalSelectionModal({ nodes, lang, onSelect, onClose, SECTIONS, S
       <div style={{
         width: Math.min(440, window.innerWidth - 40),
         maxHeight: "80vh",
-        background: "#161c28", border: "1px solid #263248",
+        background: COLORS.surface, border: `1px solid ${COLORS.border}`,
         borderRadius: 10, display: "flex", flexDirection: "column",
         overflow: "hidden",
       }}>
         {/* Header */}
         <div style={{
-          padding: "14px 16px 10px", borderBottom: "1px solid #263248",
+          padding: "14px 16px 10px", borderBottom: `1px solid ${COLORS.border}`,
           display: "flex", alignItems: "center", justifyContent: "space-between",
         }}>
           <div>
@@ -137,7 +137,7 @@ export function GoalSelectionModal({ nodes, lang, onSelect, onClose, SECTIONS, S
             style={{
               width: "100%", boxSizing: "border-box",
               padding: "7px 10px", borderRadius: 5, fontSize: 11,
-              background: "#10141c", border: "1px solid #263248",
+              background: COLORS.bg, border: `1px solid ${COLORS.border}`,
               color: "#c8d6e5", outline: "none",
             }}
           />
@@ -214,7 +214,7 @@ export function GoalSelectionModal({ nodes, lang, onSelect, onClose, SECTIONS, S
           <div style={{ fontSize: 9, color: "#3a4d63" }}>{labels.footer}</div>
           <button onClick={onClose} style={{
             padding: "5px 12px", borderRadius: 5, fontSize: 10, cursor: "pointer",
-            background: "transparent", border: "1px solid #263248", color: "#6b7d9a",
+            background: "transparent", border: `1px solid ${COLORS.border}`, color: "#6b7d9a",
           }}>
             {labels.cancel}
           </button>

@@ -43,11 +43,11 @@ export function DiagnosticModeModal({ isOpen, onSelect, onClose, lang = "pl" }) 
     >
       <div style={{
         width: 420, maxWidth: "90vw",
-        background: "#161c28", border: "1px solid #263248",
+        background: COLORS.surface, border: `1px solid ${COLORS.border}`,
         borderRadius: 10, display: "flex", flexDirection: "column",
         overflow: "hidden",
       }}>
-        <div style={{ padding: "16px 18px 12px", borderBottom: "1px solid #263248" }}>
+        <div style={{ padding: "16px 18px 12px", borderBottom: `1px solid ${COLORS.border}` }}>
           <div style={{ fontWeight: 700, fontSize: 14, color: "#f5f6fa", marginBottom: 4 }}>
             {t("modePickerTitle", lang)}
           </div>
@@ -66,8 +66,8 @@ export function DiagnosticModeModal({ isOpen, onSelect, onClose, lang = "pl" }) 
               style={{
                 textAlign: "left", padding: "12px 14px", borderRadius: 6, fontSize: 12,
                 cursor: "pointer",
-                background: selected === mode.id ? `${mode.color}18` : "#10141c",
-                border: `1px solid ${selected === mode.id ? mode.color : "#263248"}`,
+                background: selected === mode.id ? `${mode.color}18` : COLORS.bg,
+                border: `1px solid ${selected === mode.id ? mode.color : COLORS.border}`,
                 color: "#c8d6e5", transition: "all 0.15s",
               }}
               onMouseEnter={(e) => {
@@ -76,8 +76,8 @@ export function DiagnosticModeModal({ isOpen, onSelect, onClose, lang = "pl" }) 
               }}
               onMouseLeave={(e) => {
                 if (selected !== mode.id) {
-                  e.currentTarget.style.background = "#10141c";
-                  e.currentTarget.style.borderColor = "#263248";
+                  e.currentTarget.style.background = COLORS.bg;
+                  e.currentTarget.style.borderColor = COLORS.border;
                 }
               }}
             >
@@ -102,7 +102,7 @@ export function DiagnosticModeModal({ isOpen, onSelect, onClose, lang = "pl" }) 
             onClick={onClose}
             style={{
               padding: "6px 14px", borderRadius: 5, fontSize: 11, cursor: "pointer",
-              background: "transparent", border: "1px solid #263248", color: "#6b7d9a",
+              background: "transparent", border: `1px solid ${COLORS.border}`, color: "#6b7d9a",
             }}
           >
             {t("cancel", lang)}
@@ -113,7 +113,7 @@ export function DiagnosticModeModal({ isOpen, onSelect, onClose, lang = "pl" }) 
             style={{
               padding: "6px 18px", borderRadius: 5, fontSize: 11,
               cursor: selected ? "pointer" : "not-allowed",
-              background: selected ? "#4a9eff" : "#263248",
+              background: selected ? "#4a9eff" : COLORS.border,
               border: "none", color: selected ? "#fff" : "#3a4d63",
               opacity: selected ? 1 : 0.5,
             }}

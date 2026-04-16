@@ -163,7 +163,7 @@ export function InfoPanel({ nodeId, nodes, adjacency, lang, SCOPE_COLORS, SCOPE_
       {isMobile ? (
         <div style={{
           position: "fixed", left: 0, right: 0, bottom: 0,
-          background: "#161c28f5", backdropFilter: "blur(8px)",
+          background: `${COLORS.surface}f5`, backdropFilter: "blur(8px)",
           borderTop: `1px solid ${color}40`, borderRadius: "14px 14px 0 0",
           padding: "16px 16px 32px",
           zIndex: 30, maxHeight: "60vh", overflowY: "auto",
@@ -173,7 +173,7 @@ export function InfoPanel({ nodeId, nodes, adjacency, lang, SCOPE_COLORS, SCOPE_
       ) : (
         <div style={{
           position: "absolute", right: 16, top: 16, width: 240,
-          background: "#161c28ee", backdropFilter: "blur(6px)",
+          background: COLORS.surfaceHi, backdropFilter: "blur(6px)",
           border: `1px solid ${color}40`, borderRadius: 8,
           padding: "12px 14px", fontSize: 11, color: COLORS.textBody,
           lineHeight: 1.6, zIndex: 10, maxHeight: "80vh", overflowY: "auto",

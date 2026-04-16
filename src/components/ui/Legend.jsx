@@ -19,7 +19,7 @@ export function Legend({ lang, diagMode, hasBelief, SCOPE_COLORS, SCOPE_LABELS, 
   return (
     <div style={{
       position: "absolute", left: 16, bottom: 16,
-      background: "#161c2895", backdropFilter: "blur(4px)",
+      background: `${COLORS.surface}95`, backdropFilter: "blur(4px)",
       borderRadius: 6, overflow: "hidden",
       border: "1px solid #1a2235",
       fontSize: 9,

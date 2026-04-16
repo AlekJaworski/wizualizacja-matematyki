@@ -1,13 +1,15 @@
 import { t } from "../../i18n.js";
 import { COLORS } from "../../styles/tokens.js";
 
-const PANEL_DESKTOP = {
-  position: "absolute", right: 16, top: 16, width: 230,
-  background: "#161c28ee", backdropFilter: "blur(6px)",
-  border: "1px solid #263248", borderRadius: 8,
-  padding: "12px 14px", fontSize: 11, color: "#c8d6e5",
-  zIndex: 10, maxHeight: "80vh", overflowY: "auto",
-};
+function panelDesktop() {
+  return {
+    position: "absolute", right: 16, top: 16, width: 230,
+    background: COLORS.surfaceHi, backdropFilter: "blur(6px)",
+    border: `1px solid ${COLORS.border}`, borderRadius: 8,
+    padding: "12px 14px", fontSize: 11, color: COLORS.textBody,
+    zIndex: 10, maxHeight: "80vh", overflowY: "auto",
+  };
+}
 
 export function DiagnosticPanel({
   belief, frontier, visibleFrontier, hasStarted,
@@ -219,8 +221,8 @@ export function DiagnosticPanel({
     return (
       <div style={{
         position: "fixed", left: 0, right: 0, bottom: 0,
-        background: "#161c28f5", backdropFilter: "blur(8px)",
-        borderTop: "1px solid #263248", borderRadius: "14px 14px 0 0",
+        background: `${COLORS.surface}f5`, backdropFilter: "blur(8px)",
+        borderTop: `1px solid ${COLORS.border}`, borderRadius: "14px 14px 0 0",
         padding: "16px 16px 24px",
         zIndex: 30, maxHeight: "65vh", overflowY: "auto",
       }}>
@@ -233,5 +235,5 @@ export function DiagnosticPanel({
     );
   }
 
-  return <div style={PANEL_DESKTOP}>{content}</div>;
+  return <div style={panelDesktop()}>{content}</div>;
 }

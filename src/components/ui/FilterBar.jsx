@@ -45,7 +45,7 @@ export function FilterBar({
             placeholder={t("search", lang)}
             style={{
               flex: 1,
-              background: "#161c28", border: `1px solid ${COLORS.border}`,
+              background: COLORS.surface, border: `1px solid ${COLORS.border}`,
               borderRadius: 6, color: COLORS.textBody,
               padding: "8px 12px", fontSize: 14, outline: "none",
               minHeight: 36,
@@ -106,7 +106,7 @@ export function FilterBar({
         onChange={e => setSearchTerm(e.target.value)}
         placeholder={t("search", lang)}
         style={{
-          background: "#161c28", border: `1px solid ${COLORS.border}`,
+          background: COLORS.surface, border: `1px solid ${COLORS.border}`,
           borderRadius: 4, color: COLORS.textBody,
           padding: "6px 10px", fontSize: 13,
           width: "min(140px, 30vw)", outline: "none", minHeight: 32,

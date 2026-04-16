@@ -42,7 +42,7 @@ export function OnboardingModal({ isOpen, onSelect, onClose, lang }) {
       <div style={{
         width: "100%", maxWidth: 480,
         background: COLORS.surface,
-        border: "1px solid #263248",
+        border: `1px solid ${COLORS.border}`,
         borderRadius: 12,
         overflow: "hidden",
         display: "flex", flexDirection: "column",
@@ -52,7 +52,7 @@ export function OnboardingModal({ isOpen, onSelect, onClose, lang }) {
         <div style={{
           padding: "28px 24px 20px",
           background: "linear-gradient(135deg, #0d1520 0%, #101b2a 100%)",
-          borderBottom: "1px solid #263248",
+          borderBottom: `1px solid ${COLORS.border}`,
           textAlign: "center",
         }}>
           <div style={{ fontSize: 32, marginBottom: 10 }}>◉</div>

@@ -28,15 +28,15 @@ export function DeepDivePanel({
 
   const panelStyle = isMobile ? {
     position: "fixed", left: 0, right: 0, bottom: 0,
-    background: "#161c28f5", backdropFilter: "blur(8px)",
-    borderTop: "1px solid #263248", borderRadius: "14px 14px 0 0",
+    background: `${COLORS.surface}f5`, backdropFilter: "blur(8px)",
+    borderTop: `1px solid ${COLORS.border}`, borderRadius: "14px 14px 0 0",
     padding: "16px 16px 24px",
     zIndex: 30, maxHeight: "65vh", overflowY: "auto",
   } : {
-    background: "#161c28ee", backdropFilter: "blur(6px)",
-      border: "1px solid #263248", borderRadius: 8,
-      padding: "12px 14px", fontSize: 11, color: "#c8d6e5",
-      zIndex: 10, maxHeight: "80vh", overflowY: "auto",
+    background: COLORS.surfaceHi, backdropFilter: "blur(6px)",
+    border: `1px solid ${COLORS.border}`, borderRadius: 8,
+    padding: "12px 14px", fontSize: 11, color: COLORS.textBody,
+    zIndex: 10, maxHeight: "80vh", overflowY: "auto",
   };
 
   return (
@@ -77,7 +77,7 @@ export function DeepDivePanel({
 
       {/* Progress bar */}
       <div style={{ marginBottom: 10 }}>
-        <div style={{ height: 5, borderRadius: 3, background: "#10141c", overflow: "hidden", marginBottom: 4 }}>
+        <div style={{ height: 5, borderRadius: 3, background: COLORS.bg, overflow: "hidden", marginBottom: 4 }}>
           <div style={{
             height: "100%", borderRadius: 3,
             width: `${pct}%`,
@@ -213,7 +213,7 @@ function ConfidenceBar({ beta }) {
   const color = mean > 0.6 ? "#27ae60" : mean < 0.4 ? "#e74c3c" : "#f39c12";
 
   return (
-    <div style={{ width: 30, height: 4, borderRadius: 2, background: "#10141c", overflow: "hidden", flexShrink: 0 }}>
+    <div style={{ width: 30, height: 4, borderRadius: 2, background: COLORS.bg, overflow: "hidden", flexShrink: 0 }}>
       <div style={{
         height: "100%", borderRadius: 2,
         width: `${Math.round(mean * 100)}%`,
