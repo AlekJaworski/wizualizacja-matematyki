@@ -1,16 +1,24 @@
+import { useMemo } from "react";
 import { COLORS } from "../../styles/tokens.js";
 
-/** Returns the visual radius of a node by curriculum level. */
-function nodeRadius(n) { return 6 + n.level * 2; }
+/** Node radius: base from level + boost from connection degree. */
+function nodeRadius(n, degree) {
+  const base = 8 + n.level * 3;
+  const degreeBoost = Math.min(4.8, (degree || 0) * 0.6);
+  return base + degreeBoost;
+}
 
-/**
- * How many characters to show in a node label given the current zoom scale.
- */
 function labelMaxChars(scale) {
-  if (scale < 0.4)  return 8;
-  if (scale < 0.65) return 13;
-  if (scale < 1.0)  return 18;
-  return 28;
+  if (scale < 0.3)  return 6;
+  if (scale < 0.5)  return 12;
+  if (scale < 0.8)  return 18;
+  return 30;
+}
+
+function labelFontSize(scale) {
+  if (scale < 0.3) return 9;
+  if (scale < 0.6) return 10;
+  return 11;
 }
 
 export function NodeLayer({
@@ -26,14 +34,26 @@ export function NodeLayer({
   frontier,
   scale,
   scopeColors,
+  edges,
 }) {
-  // Show belief colors if belief has any entries (works in both diagMode and explore with overlay)
   const hasBelief = belief && Object.keys(belief).length > 0;
+
+  // Compute degree map for node sizing
+  const degreeMap = useMemo(() => {
+    const m = {};
+    if (!edges) return m;
+    for (const [from, to] of edges) {
+      m[from] = (m[from] || 0) + 1;
+      m[to] = (m[to] || 0) + 1;
+    }
+    return m;
+  }, [edges]);
 
   return (
     <g>
       {nodes.map(n => {
-        const r         = nodeRadius(n);
+        const degree = degreeMap[n.id] || 0;
+        const r         = nodeRadius(n, degree);
         const baseColor = scopeColors?.[n.scope] || "#4a9eff";
         const filtered  = filteredIds && !filteredIds.has(n.id);
         const highlighted = highlightedIds?.has(n.id);
@@ -41,6 +61,7 @@ export function NodeLayer({
         const dimmed   = (highlightedIds && !highlighted) || filtered;
         const lbl      = lang === "pl" ? n.labelPl : n.label;
         const maxChars = labelMaxChars(scale ?? 1);
+        const fontSize = labelFontSize(scale ?? 1);
 
         let fillColor    = baseColor;
         let fillOpacity  = dimmed ? 0.15 : 0.9;
@@ -48,7 +69,6 @@ export function NodeLayer({
         let ringColor    = null;
         let ringWidth    = 2;
 
-        // Apply belief coloring (diagMode OR explore with quiz results overlay)
         if (hasBelief) {
           const state      = belief[n.id];
           const isFrontier = frontier?.includes(n.id);
@@ -70,11 +90,12 @@ export function NodeLayer({
             fillOpacity = filtered ? 0.1 : 0.9;
             labelOpacity = filtered ? 0.15 : 0.9;
           } else {
-            // Unclassified — keep scope color but dimmer
             fillOpacity = filtered ? 0.1 : (diagMode ? 0.35 : 0.5);
             labelOpacity = filtered ? 0.15 : 0.7;
           }
         }
+
+        const truncLbl = lbl.length > maxChars ? lbl.slice(0, maxChars - 1) + "…" : lbl;
 
         return (
           <g
@@ -102,15 +123,26 @@ export function NodeLayer({
               stroke={(highlighted || isSelected) && !hasBelief ? baseColor : "none"}
               strokeWidth={1.5}
             />
+            {/* Label background for readability */}
+            <rect
+              x={n.x - truncLbl.length * fontSize * 0.3}
+              y={n.y + r + 3}
+              width={truncLbl.length * fontSize * 0.6}
+              height={fontSize + 4}
+              rx={2}
+              fill={COLORS.bg}
+              fillOpacity={labelOpacity * 0.6}
+              style={{ pointerEvents: "none" }}
+            />
             <text
-              x={n.x} y={n.y + r + 10}
+              x={n.x} y={n.y + r + fontSize + 2}
               textAnchor="middle"
-              fontSize={8}
+              fontSize={fontSize}
               fill={COLORS.textBody}
               opacity={labelOpacity}
               style={{ pointerEvents: "none", userSelect: "none" }}
             >
-              {lbl.length > maxChars ? lbl.slice(0, maxChars - 1) + "…" : lbl}
+              {truncLbl}
             </text>
           </g>
         );

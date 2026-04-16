@@ -1,16 +1,16 @@
 import { computeRanks } from "./ranks.js";
 import { getLayout, DEFAULT_LAYOUT_ID } from "./layouts/index.js";
 
-export const CANVAS_W = 1400;
-export const CANVAS_H = 1000;
-export const MARGIN   = 80;
+export const CANVAS_W = 2200;
+export const CANVAS_H = 1600;
+export const MARGIN   = 120;
 
 // ── Simulation constants ──────────────────────────────────────────
 
 const DAMPING  = 0.4;
-const MAX_DISP = 6;
+const MAX_DISP = 10;
 const Y_SNAP   = 0.35;   // how hard nodes snap back to their rank Y
-const H_SPRING = 0.012;  // horizontal pull along edges
+const H_SPRING = 0.010;  // horizontal pull along edges
 
 // ── Per-graph helpers ─────────────────────────────────────────────
 

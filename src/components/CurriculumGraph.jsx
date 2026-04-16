@@ -27,8 +27,8 @@ import { DiagnosticModeModal } from "./ui/DiagnosticModeModal.jsx";
 import { OnboardingModal }     from "./ui/OnboardingModal.jsx";
 import { SettingsDropdown }    from "./ui/SettingsDropdown.jsx";
 
-const DEFAULT_VIEW    = { x: 40,  y: 40,  scale: 0.72 };
-const DEFAULT_VIEW_MB = { x: 20,  y: 20,  scale: 0.42 };
+const DEFAULT_VIEW    = { x: 40,  y: 40,  scale: 0.52 };
+const DEFAULT_VIEW_MB = { x: 10,  y: 10,  scale: 0.30 };
 
 export default function CurriculumGraph({
   courseId,
@@ -438,14 +438,14 @@ export default function CurriculumGraph({
           }}
         >
           <defs>
-            <marker id="arrow-default" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="userSpaceOnUse">
-              <path d="M0,0 L6,3 L0,6 L1.5,3 Z" fill="#3a5578" />
+            <marker id="arrow-default" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+              <path d="M0,0 L8,4 L0,8 L2,4 Z" fill="#3a5578" />
             </marker>
-            <marker id="arrow-hi" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="userSpaceOnUse">
-              <path d="M0,0 L6,3 L0,6 L1.5,3 Z" fill="#4a9eff" />
+            <marker id="arrow-hi" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+              <path d="M0,0 L8,4 L0,8 L2,4 Z" fill="#4a9eff" />
             </marker>
-            <marker id="arrow-dim" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="userSpaceOnUse">
-              <path d="M0,0 L6,3 L0,6 L1.5,3 Z" fill="#151b26" />
+            <marker id="arrow-dim" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+              <path d="M0,0 L8,4 L0,8 L2,4 Z" fill="#151b26" />
             </marker>
           </defs>
 
@@ -468,6 +468,7 @@ export default function CurriculumGraph({
               frontier={effectiveFrontier}
               scale={viewTransform.scale}
               scopeColors={SCOPE_COLORS}
+              edges={RAW_EDGES}
             />
           </g>
         </svg>

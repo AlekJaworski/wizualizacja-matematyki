@@ -3,14 +3,8 @@
  *
  * Rules:
  *   - Each topological rank occupies a horizontal row.
- *   - Nodes within a row are evenly spaced.
- *   - No edges exist between nodes in the same row (by construction of
- *     topological ranks), so the graph is a proper n-partite DAG.
- *   - Nodes in each row are sorted to minimise edge crossings with the
- *     row above (barycenter heuristic).
- *
- * Visual feel: a clean grid where vertical lines show prerequisite chains
- * and horizontal position groups related topics.
+ *   - Nodes within a row are evenly spaced with a minimum gap.
+ *   - Multi-pass barycenter heuristic minimises edge crossings.
  */
 import { computeRanks } from "../ranks.js";
 
@@ -19,7 +13,9 @@ export const meta = {
   label: "N-Partite Grid",
 };
 
-export function apply(nodes, edges, W, H, margin = 80) {
+const MIN_GAP = 90; // minimum px between node centres in a row
+
+export function apply(nodes, edges, W, H, margin = 120) {
   const rank    = computeRanks(nodes, edges);
   const maxRank = Math.max(...nodes.map(n => rank[n.id] ?? 0), 0);
 
@@ -30,15 +26,15 @@ export function apply(nodes, edges, W, H, margin = 80) {
     (byRank[r] ??= []).push(n);
   }
 
-  // Build prereq map for barycenter sorting
+  // Build prereq + dependent maps
   const prereqs = {};
-  for (const n of nodes) prereqs[n.id] = [];
+  const deps = {};
+  for (const n of nodes) { prereqs[n.id] = []; deps[n.id] = []; }
   for (const [from, to] of edges) {
     if (prereqs[to]) prereqs[to].push(from);
+    if (deps[from]) deps[from].push(to);
   }
 
-  // Sort each rank's nodes by barycenter of parent x-positions
-  // (rank 0 roots: sort by scope for a stable left-to-right domain order)
   const SCOPE_ORDER = [
     "logika", "statystyka", "kombinatoryka",
     "liczby_rzeczywiste", "wyrazenia", "rownania", "funkcje",
@@ -46,43 +42,54 @@ export function apply(nodes, edges, W, H, margin = 80) {
     "stereometria", "optymalizacja", "analiza",
   ];
 
-  // We need x positions from the previous rank to compute barycenters,
-  // so process ranks in order and store positions as we go.
   const pos = {}; // nodeId → { x, y }
-
   const usableW = W - 2 * margin;
   const usableH = H - 2 * margin;
 
+  // Initial placement: roots by scope, rest by parent barycenter
   for (let r = 0; r <= maxRank; r++) {
     const group = byRank[r] ?? [];
-
     if (r === 0) {
-      // Roots: sort by domain
       group.sort((a, b) => {
         const ai = SCOPE_ORDER.indexOf(a.scope);
         const bi = SCOPE_ORDER.indexOf(b.scope);
         return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
       });
     } else {
-      // Sort by barycenter of parent x positions
-      group.sort((a, b) => {
-        const bary = n => {
-          const ps = prereqs[n.id] ?? [];
-          if (ps.length === 0) return W / 2;
-          return ps.reduce((s, pid) => s + (pos[pid]?.x ?? W / 2), 0) / ps.length;
-        };
-        return bary(a) - bary(b);
-      });
+      group.sort((a, b) => bary(a, prereqs, pos, W) - bary(b, prereqs, pos, W));
     }
+    spreadRow(group, margin, usableW, W, r, maxRank, usableH, pos);
+  }
 
-    const y = margin + (r / Math.max(maxRank, 1)) * usableH;
-
-    group.forEach((n, i) => {
-      const x = group.length === 1
-        ? W / 2
-        : margin + (i / (group.length - 1)) * usableW;
-      pos[n.id] = { x, y };
-    });
+  // Multi-pass barycenter: 6 alternating sweeps to reduce crossings
+  for (let pass = 0; pass < 6; pass++) {
+    if (pass % 2 === 0) {
+      // Top-down: sort by parent positions
+      for (let r = 1; r <= maxRank; r++) {
+        const group = byRank[r] ?? [];
+        group.sort((a, b) => bary(a, prereqs, pos, W) - bary(b, prereqs, pos, W));
+        spreadRow(group, margin, usableW, W, r, maxRank, usableH, pos);
+      }
+    } else {
+      // Bottom-up: sort by child positions
+      for (let r = maxRank - 1; r >= 0; r--) {
+        const group = byRank[r] ?? [];
+        if (r === 0) {
+          // Roots: use child barycenter, tiebreak by scope
+          group.sort((a, b) => {
+            const ba = bary(a, deps, pos, W);
+            const bb = bary(b, deps, pos, W);
+            if (Math.abs(ba - bb) > 1) return ba - bb;
+            const ai = SCOPE_ORDER.indexOf(a.scope);
+            const bi = SCOPE_ORDER.indexOf(b.scope);
+            return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+          });
+        } else {
+          group.sort((a, b) => bary(a, deps, pos, W) - bary(b, deps, pos, W));
+        }
+        spreadRow(group, margin, usableW, W, r, maxRank, usableH, pos);
+      }
+    }
   }
 
   return nodes.map(n => ({
@@ -91,4 +98,24 @@ export function apply(nodes, edges, W, H, margin = 80) {
     y:  pos[n.id]?.y ?? H / 2,
     vx: 0, vy: 0,
   }));
+}
+
+function bary(node, adjMap, pos, W) {
+  const neighbours = adjMap[node.id] ?? [];
+  if (neighbours.length === 0) return W / 2;
+  return neighbours.reduce((s, pid) => s + (pos[pid]?.x ?? W / 2), 0) / neighbours.length;
+}
+
+function spreadRow(group, margin, usableW, W, r, maxRank, usableH, pos) {
+  const y = margin + (r / Math.max(maxRank, 1)) * usableH;
+  const neededW = (group.length - 1) * MIN_GAP;
+  const actualW = Math.max(neededW, usableW);
+  const offsetX = margin + (usableW - actualW) / 2;
+
+  group.forEach((n, i) => {
+    const x = group.length === 1
+      ? W / 2
+      : offsetX + (i / (group.length - 1)) * actualW;
+    pos[n.id] = { x, y };
+  });
 }
