@@ -229,6 +229,7 @@ export default function CourseApp() {
           onSeeMap={handleSeeMap}
           onRetake={() => handleStartQuiz(quizPreset)}
           onSelectTopic={(id) => handleSeeMap(id)}
+          onStartPath={(goalId) => { setGoalId(goalId); setPhase("goalPath"); }}
         />
       );
 

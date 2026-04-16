@@ -21,7 +21,7 @@ import { encodeBelief } from "../../utils/shareCode.js";
  */
 export function ResultsScreen({
   RAW_NODES, RAW_EDGES, SCOPE_COLORS, SCOPE_LABELS,
-  belief, stats, evidence, lang, onSeeMap, onRetake, onSelectTopic,
+  belief, stats, evidence, lang, onSeeMap, onRetake, onSelectTopic, onStartPath,
 }) {
   const adjacency = useMemo(() => buildAdjacency(RAW_NODES, RAW_EDGES), [RAW_NODES, RAW_EDGES]);
   const nodeById = useMemo(
@@ -184,15 +184,34 @@ export function ResultsScreen({
 
         {/* Actions */}
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
+          {/* Primary: learning path for top gap (if gaps exist) */}
+          {hasGaps && lowestGaps[0] && onStartPath && (
+            <button
+              onClick={() => onStartPath(lowestGaps[0].id)}
+              style={{
+                width: "100%", padding: "14px 24px",
+                fontSize: 14, fontWeight: 600, fontFamily: FONT,
+                borderRadius: 8,
+                border: "1px solid #f39c1250",
+                background: "#f39c1218",
+                color: "#f39c12",
+                cursor: "pointer",
+              }}
+            >
+              {t("resultsStartPath", lang)}
+            </button>
+          )}
+
+          {/* Secondary: see map */}
           <button
             onClick={onSeeMap}
             style={{
-              width: "100%", padding: "14px 24px",
-              fontSize: 14, fontWeight: 600, fontFamily: FONT,
+              width: "100%", padding: "12px 24px",
+              fontSize: 13, fontFamily: FONT,
               borderRadius: 8,
-              border: "1px solid #4a9eff50",
-              background: "#4a9eff18",
-              color: "#4a9eff",
+              border: `1px solid ${COLORS.border}`,
+              background: "transparent",
+              color: COLORS.textBody,
               cursor: "pointer",
             }}
           >

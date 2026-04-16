@@ -10,6 +10,7 @@ import { QUIZ_PRESETS } from "../../engine/belief.js";
  */
 export function HeroScreen({ lang, setLang, themeId, onThemeChange, onStartQuiz, onStartGoalQuiz, onBrowseViz, onBrowseMap }) {
   const [preset, setPreset] = useState("standard");
+  const [showMore, setShowMore] = useState(false);
   return (
     <div style={{
       width: "100%", minHeight: "100dvh",
@@ -145,104 +146,68 @@ export function HeroScreen({ lang, setLang, themeId, onThemeChange, onStartQuiz,
           {t("heroStart", lang)}
         </button>
 
-        {/* Quiz length selector */}
-        <div style={{
-          display: "flex", alignItems: "center", gap: 8,
-          marginBottom: 16, fontSize: 12,
-        }}>
-          <span style={{ color: COLORS.textFaint }}>{t("heroLength", lang)}</span>
-          <select
-            value={preset}
-            onChange={e => setPreset(e.target.value)}
-            style={{
-              background: COLORS.surface,
-              border: `1px solid ${COLORS.border}`,
-              borderRadius: 6,
-              padding: "5px 10px",
-              fontSize: 12,
-              fontFamily: FONT,
-              color: COLORS.textBody,
-              cursor: "pointer",
-              outline: "none",
-            }}
-          >
-            {Object.entries(QUIZ_PRESETS).map(([key, cfg]) => (
-              <option key={key} value={key}>
-                {t(cfg.labelKey, lang)} (~{cfg.maxQuestions} {t("heroQuestions", lang)})
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Goal quiz */}
-        {onStartGoalQuiz && (
-          <button
-            onClick={onStartGoalQuiz}
-            style={{
-              width: "100%", maxWidth: 320,
-              padding: "12px 24px",
-              fontSize: 13, fontFamily: FONT,
-              borderRadius: 8,
-              border: `1px solid ${COLORS.border}`,
-              background: "transparent",
-              color: COLORS.textBody,
-              cursor: "pointer",
-              transition: "background 0.15s, border-color 0.15s",
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = "#8e44ad14";
-              e.currentTarget.style.borderColor = "#8e44ad50";
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = "transparent";
-              e.currentTarget.style.borderColor = COLORS.border;
-            }}
-          >
-            {t("heroGoal", lang)}
-          </button>
-        )}
-
-        {/* Browse visualizations */}
-        {onBrowseViz && (
-          <button
-            onClick={onBrowseViz}
-            style={{
-              padding: "10px 24px",
-              fontSize: 12,
-              fontFamily: FONT,
-              borderRadius: 8,
-              border: "none",
-              background: "transparent",
-              color: COLORS.textDim,
-              cursor: "pointer",
-              transition: "color 0.15s",
-            }}
-            onMouseEnter={e => { e.currentTarget.style.color = COLORS.textBody; }}
-            onMouseLeave={e => { e.currentTarget.style.color = COLORS.textDim; }}
-          >
-            ⬡ {t("heroBrowseViz", lang)}
-          </button>
-        )}
-
-        {/* Explore without quiz */}
+        {/* More options — collapsed by default */}
         <button
-          onClick={onBrowseMap}
+          onClick={() => setShowMore(v => !v)}
           style={{
-            padding: "12px 24px",
-            fontSize: 12,
-            fontFamily: FONT,
-            borderRadius: 8,
-            border: "none",
-            background: "transparent",
-            color: COLORS.textFaint,
-            cursor: "pointer",
+            padding: "8px 16px", fontSize: 12, fontFamily: FONT,
+            border: "none", background: "transparent",
+            color: COLORS.textFaint, cursor: "pointer",
             transition: "color 0.15s",
           }}
           onMouseEnter={e => { e.currentTarget.style.color = COLORS.textDim; }}
           onMouseLeave={e => { e.currentTarget.style.color = COLORS.textFaint; }}
         >
-          {t("heroExplore", lang)}
+          {showMore ? "▲" : "▼"} {t("heroMore", lang)}
         </button>
+
+        {showMore && (
+          <div style={{
+            display: "flex", flexDirection: "column", alignItems: "center",
+            gap: 8, marginTop: 4, width: "100%", maxWidth: 320,
+          }}>
+            {/* Quiz length */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
+              <span style={{ color: COLORS.textFaint }}>{t("heroLength", lang)}</span>
+              <select
+                value={preset}
+                onChange={e => setPreset(e.target.value)}
+                style={{
+                  background: COLORS.surface, border: `1px solid ${COLORS.border}`,
+                  borderRadius: 6, padding: "5px 10px", fontSize: 12,
+                  fontFamily: FONT, color: COLORS.textBody, cursor: "pointer", outline: "none",
+                }}
+              >
+                {Object.entries(QUIZ_PRESETS).map(([key, cfg]) => (
+                  <option key={key} value={key}>
+                    {t(cfg.labelKey, lang)} (~{cfg.maxQuestions} {t("heroQuestions", lang)})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Goal quiz */}
+            <button onClick={onStartGoalQuiz} style={{
+              width: "100%", padding: "10px 16px", fontSize: 12, fontFamily: FONT,
+              borderRadius: 6, border: `1px solid ${COLORS.border}`,
+              background: "transparent", color: COLORS.textBody, cursor: "pointer",
+            }}>{t("heroGoal", lang)}</button>
+
+            {/* Browse vizzes */}
+            <button onClick={onBrowseViz} style={{
+              width: "100%", padding: "10px 16px", fontSize: 12, fontFamily: FONT,
+              borderRadius: 6, border: `1px solid ${COLORS.border}`,
+              background: "transparent", color: COLORS.textDim, cursor: "pointer",
+            }}>⬡ {t("heroBrowseViz", lang)}</button>
+
+            {/* Explore map */}
+            <button onClick={onBrowseMap} style={{
+              width: "100%", padding: "10px 16px", fontSize: 12, fontFamily: FONT,
+              borderRadius: 6, border: `1px solid ${COLORS.border}`,
+              background: "transparent", color: COLORS.textFaint, cursor: "pointer",
+            }}>{t("heroExplore", lang)}</button>
+          </div>
+        )}
 
         {/* How it works */}
         <div style={{

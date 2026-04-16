@@ -373,6 +373,31 @@ export function QuizFlow({ RAW_NODES, RAW_EDGES, QUESTION_BANK, lang, quizPreset
                 lineHeight: 1.7, borderLeft: `2px solid ${COLORS.border}`,
               }}>
                 {render(question.hint)}
+                {/* Link to visualization if wrong answer and node has one */}
+                {picked !== correctDisplayIndex && (() => {
+                  const node = nodeById[currentNodeId];
+                  const viz = node?.resources?.find(r => r.type === "interactive");
+                  if (!viz) return null;
+                  const base = import.meta.env.BASE_URL ?? "/";
+                  const url = viz.url.startsWith("http") ? viz.url
+                    : `${base.replace(/\/$/, "")}/${viz.url.replace(/^\//, "")}?lang=${lang}`;
+                  return (
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: "block", marginTop: 10,
+                        padding: "8px 12px", borderRadius: 6,
+                        background: "#58C4DD10", border: "1px solid #58C4DD30",
+                        color: "#58C4DD", fontSize: 12, fontFamily: FONT,
+                        textDecoration: "none",
+                      }}
+                    >
+                      ⬡ {t("quizSeeViz", lang)}
+                    </a>
+                  );
+                })()}
               </div>
             )}
 
