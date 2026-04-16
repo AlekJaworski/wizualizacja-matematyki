@@ -6,6 +6,8 @@ section: SP8
 level: 1
 x: 400
 y: 80
+resources:
+  - "interactive|powers-explorer.html|Powers & Roots Explorer|Potęgi i pierwiastki — eksplorator"
 ---
 Potęga aⁿ = a · a · ... · a (n razy). Kluczowe reguły: aᵐ · aⁿ = aᵐ⁺ⁿ, aᵐ/aⁿ = aᵐ⁻ⁿ, (aᵐ)ⁿ = aᵐⁿ, a⁰ = 1, a⁻ⁿ = 1/aⁿ. Pierwiastek: ⁿ√a = a^(1/n).
 

@@ -6,6 +6,8 @@ section: SP8
 level: 2
 x: 190
 y: 200
+resources:
+  - "interactive|equation-explorer.html|Equation Balance Scale|Równanie to waga — eksplorator"
 ---
 Równanie liniowe: ax + b = 0, rozwiązanie x = −b/a (gdy a ≠ 0). Metoda: przenosimy wyrazy z x na jedną stronę, liczby na drugą. Układ równań: dwa równania, dwa niewiadome — metoda podstawiania lub przeciwnych współczynników.
 
