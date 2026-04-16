@@ -88,7 +88,7 @@ export function ResourcePanel({ resource, lang, onClose }) {
       {/* Modal container */}
       <div style={{
         width: "100%",
-        maxWidth: 760,
+        maxWidth: "calc(100vw - 32px)",
         maxHeight: "calc(100vh - 32px)",
         display: "flex",
         flexDirection: "column",
@@ -165,7 +165,7 @@ export function ResourcePanel({ resource, lang, onClose }) {
             flex: 1,
             border: "none",
             background: "#0e0e12",
-            minHeight: 420,
+            minHeight: "calc(100vh - 120px)",
             display: "block",
           }}
           title={title}
