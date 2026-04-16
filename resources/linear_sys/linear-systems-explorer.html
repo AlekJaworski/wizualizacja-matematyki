@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Uklady rownan liniowych — Eksplorator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+  #qf { margin: 0 0 5px; font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  #qd { margin: 0 0 10px; font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); min-height: 48px; }
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 36px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+  .nav { display: flex; align-items: center; justify-content: space-between; }
+  button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  button:hover { background: rgba(255,255,255,.08); }
+  button:disabled { opacity: .3; cursor: default; }
+  #qdots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.18); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  #sliders-wrap { min-height: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="310"></canvas>
+  <div class="panel">
+    <p id="qf"></p>
+    <p id="qd"></p>
+    <div id="sliders-wrap"></div>
+    <div class="nav">
+      <button id="qprev">&larr;</button>
+      <div id="qdots"></div>
+      <button id="qnext">&rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const cv = document.getElementById('cv');
+  const cx = cv.getContext('2d');
+  const W = 600, H = 310;
+
+  const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
+  const T = (pl, en) => LANG === 'pl' ? pl : en;
+
+  // Colors
+  const COL_L1   = '#4a9eff';  // line 1
+  const COL_L2   = '#FF6B35';  // line 2
+  const COL_INT  = '#83C167';  // intersection / ok
+  const COL_ERR  = '#E07090';  // no solution / error
+  const COL_INF  = '#C080FF';  // infinite solutions
+  const COL_CYA  = '#58C4DD';  // cyan primary
+  const COL_YEL  = '#FFD166';  // yellow accent
+  const COL_GRID = 'rgba(255,255,255,0.04)';
+  const COL_AXIS = 'rgba(255,255,255,0.2)';
+
+  // Coordinate system
+  const OX = W / 2, OY = H * 0.52, SC = 38;
+  function px(x) { return OX + x * SC; }
+  function py(y) { return OY - y * SC; }
+
+  // State
+  let m1 = 1, b1 = 1, m2 = -0.5, b2 = 2;
+  let stage = 0;
+  let animTime = 0;
+  let substStep = 0;
+
+  // ── Drawing helpers ──────────────────────────────────
+  function clear() { cx.fillStyle = '#0e0e12'; cx.fillRect(0, 0, W, H); }
+
+  function drawGrid() {
+    cx.strokeStyle = COL_GRID;
+    cx.lineWidth = 0.7;
+    for (let x = -9; x <= 9; x++) {
+      cx.beginPath(); cx.moveTo(px(x), 0); cx.lineTo(px(x), H); cx.stroke();
+    }
+    for (let y = -5; y <= 7; y++) {
+      cx.beginPath(); cx.moveTo(0, py(y)); cx.lineTo(W, py(y)); cx.stroke();
+    }
+  }
+
+  function drawAxes() {
+    cx.strokeStyle = COL_AXIS;
+    cx.lineWidth = 1;
+    cx.beginPath(); cx.moveTo(0, py(0)); cx.lineTo(W, py(0)); cx.stroke();
+    cx.beginPath(); cx.moveTo(px(0), 0); cx.lineTo(px(0), H); cx.stroke();
+    cx.fillStyle = 'rgba(255,255,255,0.25)';
+    cx.font = '9px monospace';
+    cx.textAlign = 'center';
+    for (let x = -7; x <= 7; x++) {
+      if (x === 0) continue;
+      cx.fillText(x, px(x), py(0) + 13);
+    }
+    cx.textAlign = 'right';
+    for (let y = -3; y <= 5; y++) {
+      if (y === 0) continue;
+      cx.fillText(y, px(0) - 6, py(y) + 3);
+    }
+  }
+
+  function plotLine(m, b, color, alpha, width, dash) {
+    cx.save();
+    cx.strokeStyle = color;
+    cx.globalAlpha = alpha || 1;
+    cx.lineWidth = width || 2.5;
+    if (dash) cx.setLineDash(dash);
+    cx.beginPath();
+    const xLeft = (0 - OX) / SC;
+    const xRight = (W - OX) / SC;
+    cx.moveTo(0, py(m * xLeft + b));
+    cx.lineTo(W, py(m * xRight + b));
+    cx.stroke();
+    cx.restore();
+  }
+
+  function gdot(sx, sy, r, col) {
+    cx.beginPath();
+    cx.arc(sx, sy, r, 0, Math.PI * 2);
+    cx.fillStyle = col;
+    cx.shadowColor = col;
+    cx.shadowBlur = 14;
+    cx.fill();
+    cx.shadowBlur = 0;
+  }
+
+  function glowDot(x, y, r, col, pulsePhase) {
+    const pulse = 1 + 0.25 * Math.sin(pulsePhase);
+    const rr = r * pulse;
+    // outer glow
+    cx.beginPath();
+    cx.arc(px(x), py(y), rr * 2.5, 0, Math.PI * 2);
+    cx.fillStyle = col.slice(0,7) + '18';
+    cx.fill();
+    // middle glow
+    cx.beginPath();
+    cx.arc(px(x), py(y), rr * 1.5, 0, Math.PI * 2);
+    cx.fillStyle = col.slice(0,7) + '40';
+    cx.fill();
+    // core
+    gdot(px(x), py(y), rr, col);
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+    ctx.closePath();
+  }
+
+  function infoBox(text, sx, sy, col, alpha) {
+    cx.save();
+    cx.font = '12px monospace';
+    if (alpha !== undefined) cx.globalAlpha = alpha;
+    const w = cx.measureText(text).width + 16;
+    cx.fillStyle = 'rgba(14,14,18,0.9)';
+    cx.strokeStyle = (col || COL_CYA) + '50';
+    cx.lineWidth = 1;
+    roundRect(cx, sx - w/2, sy - 12, w, 24, 5);
+    cx.fill(); cx.stroke();
+    cx.fillStyle = col || COL_CYA;
+    cx.textAlign = 'center';
+    cx.textBaseline = 'middle';
+    cx.fillText(text, sx, sy);
+    cx.restore();
+  }
+
+  function multiBox(lines, sx, sy, col, lineH) {
+    cx.save();
+    const lh = lineH || 20;
+    cx.font = '12px monospace';
+    let maxW = 0;
+    lines.forEach(function(l) { maxW = Math.max(maxW, cx.measureText(l.text).width); });
+    const bw = maxW + 20;
+    const bh = lines.length * lh + 12;
+    cx.fillStyle = 'rgba(14,14,18,0.92)';
+    cx.strokeStyle = (col || COL_CYA) + '40';
+    cx.lineWidth = 1;
+    roundRect(cx, sx - bw/2, sy - 6, bw, bh, 6);
+    cx.fill(); cx.stroke();
+    cx.textAlign = 'center';
+    cx.textBaseline = 'middle';
+    lines.forEach(function(l, i) {
+      cx.fillStyle = l.color || col || COL_CYA;
+      cx.fillText(l.text, sx, sy + 6 + i * lh);
+    });
+    cx.restore();
+  }
+
+  function fmt(v) {
+    if (Math.abs(v - Math.round(v)) < 0.005) return Math.round(v).toString();
+    return v.toFixed(2);
+  }
+
+  function fmtEq(m, b, name) {
+    // y = mx + b
+    let s = name + ': y = ';
+    if (m === 0) {
+      s += fmt(b);
+    } else if (m === 1) {
+      s += 'x';
+      if (b > 0) s += ' + ' + fmt(b);
+      else if (b < 0) s += ' - ' + fmt(Math.abs(b));
+    } else if (m === -1) {
+      s += '-x';
+      if (b > 0) s += ' + ' + fmt(b);
+      else if (b < 0) s += ' - ' + fmt(Math.abs(b));
+    } else {
+      s += fmt(m) + 'x';
+      if (b > 0) s += ' + ' + fmt(b);
+      else if (b < 0) s += ' - ' + fmt(Math.abs(b));
+    }
+    return s;
+  }
+
+  function getIntersection(ma, ba, mb, bb) {
+    if (Math.abs(ma - mb) < 1e-9) return null;
+    const x = (bb - ba) / (ma - mb);
+    const y = ma * x + ba;
+    return { x: x, y: y };
+  }
+
+  // ── Stages ──────────────────────────────────────────
+  const stages = [
+    // Stage 1: Two lines, one point
+    {
+      title: function() { return T('Dwie proste, jeden punkt', 'Two lines, one point'); },
+      desc: function() { return T(
+        'Uklad dwoch rownan liniowych to dwie proste na plaszczyznie. Rozwiazanie ukladu to punkt, w ktorym sie przecinaja. Przesuwaj wspolczynniki i obserwuj, jak przesuwa sie punkt przeciecia.',
+        'A system of two linear equations means two lines on a plane. The solution is where they intersect. Move the coefficients and watch the intersection point move.'
+      ); },
+      sliders: [
+        { id: 'm1', lbl: 'm\u2081', color: COL_L1, min: -3, max: 3, step: 0.25, get: function() { return m1; }, set: function(v) { m1 = v; } },
+        { id: 'b1', lbl: 'b\u2081', color: COL_L1, min: -4, max: 4, step: 0.5, get: function() { return b1; }, set: function(v) { b1 = v; } },
+        { id: 'm2', lbl: 'm\u2082', color: COL_L2, min: -3, max: 3, step: 0.25, get: function() { return m2; }, set: function(v) { m2 = v; } },
+        { id: 'b2', lbl: 'b\u2082', color: COL_L2, min: -4, max: 4, step: 0.5, get: function() { return b2; }, set: function(v) { b2 = v; } },
+      ],
+      draw: function() {
+        plotLine(m1, b1, COL_L1, 0.85);
+        plotLine(m2, b2, COL_L2, 0.85);
+
+        // Equation labels
+        infoBox(fmtEq(m1, b1, 'L\u2081'), W * 0.28, 20, COL_L1);
+        infoBox(fmtEq(m2, b2, 'L\u2082'), W * 0.72, 20, COL_L2);
+
+        var pt = getIntersection(m1, b1, m2, b2);
+        if (pt) {
+          glowDot(pt.x, pt.y, 7, COL_INT, animTime * 3);
+          infoBox(T('Rozwiazanie', 'Solution') + ': (' + fmt(pt.x) + ', ' + fmt(pt.y) + ')', W/2, H - 20, COL_INT);
+        } else {
+          infoBox(T('Proste rownolegle — brak rozwiazania', 'Parallel lines — no solution'), W/2, H - 20, COL_ERR);
+        }
+      }
+    },
+
+    // Stage 2: Graphical method — verification
+    {
+      title: function() { return T('Metoda graficzna', 'Graphical method'); },
+      desc: function() { return T(
+        'W punkcie przeciecia obie proste daja te sama wartosc y dla tego samego x. Podstaw wspolrzedne do obu rownan — oba sa spelnione jednoczesnie!',
+        'At the intersection, both lines give the same y for the same x. Plug the coordinates into both equations — both are satisfied!'
+      ); },
+      sliders: [
+        { id: 'm1', lbl: 'm\u2081', color: COL_L1, min: -3, max: 3, step: 0.25, get: function() { return m1; }, set: function(v) { m1 = v; } },
+        { id: 'b1', lbl: 'b\u2081', color: COL_L1, min: -4, max: 4, step: 0.5, get: function() { return b1; }, set: function(v) { b1 = v; } },
+        { id: 'm2', lbl: 'm\u2082', color: COL_L2, min: -3, max: 3, step: 0.25, get: function() { return m2; }, set: function(v) { m2 = v; } },
+        { id: 'b2', lbl: 'b\u2082', color: COL_L2, min: -4, max: 4, step: 0.5, get: function() { return b2; }, set: function(v) { b2 = v; } },
+      ],
+      draw: function() {
+        plotLine(m1, b1, COL_L1, 0.85);
+        plotLine(m2, b2, COL_L2, 0.85);
+
+        var pt = getIntersection(m1, b1, m2, b2);
+        if (pt) {
+          // Dashed drop lines to axes
+          cx.save();
+          cx.setLineDash([4, 4]);
+          cx.strokeStyle = 'rgba(255,255,255,0.2)';
+          cx.lineWidth = 1;
+          cx.beginPath(); cx.moveTo(px(pt.x), py(pt.y)); cx.lineTo(px(pt.x), py(0)); cx.stroke();
+          cx.beginPath(); cx.moveTo(px(pt.x), py(pt.y)); cx.lineTo(px(0), py(pt.y)); cx.stroke();
+          cx.restore();
+
+          glowDot(pt.x, pt.y, 7, COL_INT, animTime * 3);
+
+          // Verification equations
+          var y1Check = m1 * pt.x + b1;
+          var y2Check = m2 * pt.x + b2;
+          var ok1 = Math.abs(y1Check - pt.y) < 0.01;
+          var ok2 = Math.abs(y2Check - pt.y) < 0.01;
+
+          var check1 = fmt(m1) + '\u00B7' + fmt(pt.x) + ' + ' + fmt(b1) + ' = ' + fmt(y1Check) + (ok1 ? ' \u2713' : ' \u2717');
+          var check2 = fmt(m2) + '\u00B7' + fmt(pt.x) + ' + ' + fmt(b2) + ' = ' + fmt(y2Check) + (ok2 ? ' \u2713' : ' \u2717');
+
+          multiBox([
+            { text: 'x = ' + fmt(pt.x) + ',  y = ' + fmt(pt.y), color: COL_INT },
+            { text: 'L\u2081: ' + check1, color: ok1 ? COL_INT : COL_ERR },
+            { text: 'L\u2082: ' + check2, color: ok2 ? COL_INT : COL_ERR }
+          ], W/2, H - 65, COL_INT, 18);
+        } else {
+          infoBox(T('Proste rownolegle — brak punktu przeciecia', 'Parallel — no intersection'), W/2, H - 20, COL_ERR);
+        }
+
+        infoBox(fmtEq(m1, b1, 'L\u2081'), W * 0.28, 20, COL_L1);
+        infoBox(fmtEq(m2, b2, 'L\u2082'), W * 0.72, 20, COL_L2);
+      }
+    },
+
+    // Stage 3: Parallel lines — no solution
+    {
+      title: function() { return T('Proste rownolegle — brak rozwiazan', 'Parallel lines — no solutions'); },
+      desc: function() { return T(
+        'Gdy m\u2081 = m\u2082 (ten sam nachylenie) ale b\u2081 \u2260 b\u2082, proste sa rownolegle i nigdy sie nie przetna. Uklad jest sprzeczny. Przesun b\u2081, by zobaczyc co sie stanie, gdy b\u2081 \u2192 b\u2082.',
+        'When m\u2081 = m\u2082 (same slope) but b\u2081 \u2260 b\u2082, the lines are parallel and never cross. The system is inconsistent. Move b\u2081 to see what happens as b\u2081 approaches b\u2082.'
+      ); },
+      sliders: [
+        { id: 'm_par', lbl: 'm', color: COL_CYA, min: -3, max: 3, step: 0.25, get: function() { return m1; }, set: function(v) { m1 = v; m2 = v; } },
+        { id: 'b1p', lbl: 'b\u2081', color: COL_L1, min: -4, max: 4, step: 0.5, get: function() { return b1; }, set: function(v) { b1 = v; } },
+        { id: 'b2p', lbl: 'b\u2082', color: COL_L2, min: -4, max: 4, step: 0.5, get: function() { return b2; }, set: function(v) { b2 = v; } },
+      ],
+      draw: function() {
+        // Force same slope
+        m2 = m1;
+
+        plotLine(m1, b1, COL_L1, 0.85);
+        plotLine(m2, b2, COL_L2, 0.85);
+
+        infoBox(fmtEq(m1, b1, 'L\u2081'), W * 0.28, 20, COL_L1);
+        infoBox(fmtEq(m2, b2, 'L\u2082'), W * 0.72, 20, COL_L2);
+
+        var sameLine = Math.abs(b1 - b2) < 0.01;
+        if (sameLine) {
+          infoBox(T('b\u2081 = b\u2082 — to ta sama prosta! (patrz etap 4)', 'b\u2081 = b\u2082 — same line! (see stage 4)'), W/2, H - 45, COL_INF);
+          infoBox(T('Nieskoncz. wiele rozwiazan', '\u221E solutions'), W/2, H - 20, COL_INF);
+        } else {
+          // Animated arrows showing lines never meet
+          var dist = Math.abs(b1 - b2);
+          var pulse = 0.5 + 0.5 * Math.sin(animTime * 2);
+
+          // Draw arrows between lines at two x positions
+          for (var xi = -3; xi <= 3; xi += 3) {
+            var y1at = m1 * xi + b1;
+            var y2at = m2 * xi + b2;
+            cx.save();
+            cx.strokeStyle = COL_ERR;
+            cx.globalAlpha = 0.3 + 0.3 * pulse;
+            cx.lineWidth = 1.5;
+            cx.setLineDash([3, 3]);
+            cx.beginPath();
+            cx.moveTo(px(xi), py(y1at));
+            cx.lineTo(px(xi), py(y2at));
+            cx.stroke();
+            cx.restore();
+          }
+
+          infoBox('m\u2081 = m\u2082 = ' + fmt(m1) + ',  b\u2081 \u2260 b\u2082', W/2, H - 45, COL_ERR);
+          infoBox(T('Uklad sprzeczny — brak rozwiazan', 'Inconsistent — no solutions'), W/2, H - 20, COL_ERR);
+        }
+      }
+    },
+
+    // Stage 4: Same line — infinite solutions
+    {
+      title: function() { return T('Ta sama prosta — nieskoncz. wiele rozwiazan', 'Same line — infinitely many solutions'); },
+      desc: function() { return T(
+        'Gdy m\u2081 = m\u2082 i b\u2081 = b\u2082, obie proste sie nakladaja. Kazdy punkt prostej jest rozwiazaniem. To uklad nieoznaczony. Przesun suwaki — proste zawsze sie pokrywaja.',
+        'When m\u2081 = m\u2082 and b\u2081 = b\u2082, both lines overlap completely. Every point on the line is a solution. The system is undetermined.'
+      ); },
+      sliders: [
+        { id: 'm_same', lbl: 'm', color: COL_CYA, min: -3, max: 3, step: 0.25, get: function() { return m1; }, set: function(v) { m1 = v; m2 = v; } },
+        { id: 'b_same', lbl: 'b', color: COL_INF, min: -4, max: 4, step: 0.5, get: function() { return b1; }, set: function(v) { b1 = v; b2 = v; } },
+      ],
+      draw: function() {
+        m2 = m1; b2 = b1;
+
+        // Draw thick glowing line
+        cx.save();
+        cx.strokeStyle = COL_INF;
+        cx.globalAlpha = 0.15;
+        cx.lineWidth = 18;
+        var xL = (0 - OX) / SC;
+        var xR = (W - OX) / SC;
+        cx.beginPath();
+        cx.moveTo(0, py(m1 * xL + b1));
+        cx.lineTo(W, py(m1 * xR + b1));
+        cx.stroke();
+        cx.restore();
+
+        plotLine(m1, b1, COL_INF, 0.9, 2.5);
+
+        // Animated solution dots moving along the line
+        for (var i = 0; i < 6; i++) {
+          var t = ((animTime * 0.5 + i * 1.1) % 7) - 3.5;
+          var xp = t * 2;
+          var yp = m1 * xp + b1;
+          if (px(xp) > 10 && px(xp) < W - 10) {
+            var pulseI = 0.4 + 0.6 * Math.abs(Math.sin(animTime * 2 + i));
+            cx.beginPath();
+            cx.arc(px(xp), py(yp), 4, 0, Math.PI * 2);
+            cx.fillStyle = COL_INF;
+            cx.globalAlpha = pulseI * 0.7;
+            cx.shadowColor = COL_INF;
+            cx.shadowBlur = 8;
+            cx.fill();
+            cx.shadowBlur = 0;
+            cx.globalAlpha = 1;
+          }
+        }
+
+        infoBox(fmtEq(m1, b1, 'L\u2081') + '  =  ' + fmtEq(m2, b2, 'L\u2082'), W/2, 20, COL_INF);
+
+        multiBox([
+          { text: 'm\u2081 = m\u2082 = ' + fmt(m1), color: COL_CYA },
+          { text: 'b\u2081 = b\u2082 = ' + fmt(b1), color: COL_INF },
+          { text: T('Uklad nieoznaczony — \u221E rozwiazan', 'Undetermined — \u221E solutions'), color: COL_INF }
+        ], W/2, H - 52, COL_INF, 18);
+      }
+    },
+
+    // Stage 5: Substitution method
+    {
+      title: function() { return T('Metoda podstawiania', 'Substitution method'); },
+      desc: function() { return T(
+        'Krok po kroku: z jednego rownania wyrazamy y, podstawiamy do drugiego, rozwiazujemy. Kliknij \u2192, zeby przejsc przez kolejne kroki (suwak n). Obserwuj kolory — kazdy term podaza ze swojego rownania.',
+        'Step by step: express y from one equation, substitute into the other, solve. Click through the steps (slider n). Watch the colors — each term traces back to its equation.'
+      ); },
+      sliders: [
+        { id: 'm1s', lbl: 'm\u2081', color: COL_L1, min: -3, max: 3, step: 0.5, get: function() { return m1; }, set: function(v) { m1 = v; } },
+        { id: 'b1s', lbl: 'b\u2081', color: COL_L1, min: -4, max: 4, step: 1, get: function() { return b1; }, set: function(v) { b1 = v; } },
+        { id: 'm2s', lbl: 'm\u2082', color: COL_L2, min: -3, max: 3, step: 0.5, get: function() { return m2; }, set: function(v) { m2 = v; } },
+        { id: 'b2s', lbl: 'b\u2082', color: COL_L2, min: -4, max: 4, step: 1, get: function() { return b2; }, set: function(v) { b2 = v; } },
+        { id: 'substep', lbl: T('krok', 'step'), color: COL_YEL, min: 0, max: 4, step: 1, get: function() { return substStep; }, set: function(v) { substStep = v; } },
+      ],
+      draw: function() {
+        // Show lines dimmed
+        plotLine(m1, b1, COL_L1, 0.35, 1.5);
+        plotLine(m2, b2, COL_L2, 0.35, 1.5);
+
+        var pt = getIntersection(m1, b1, m2, b2);
+        if (pt) {
+          glowDot(pt.x, pt.y, 5, COL_INT, animTime * 3);
+        }
+
+        // Substitution steps
+        var stepLines = [];
+        var stepN = Math.round(substStep);
+        var parallel = Math.abs(m1 - m2) < 1e-9;
+
+        // Step 0: Write both equations
+        stepLines.push({ text: T('Rownanie 1', 'Equation 1') + ': y = ' + fmt(m1) + 'x + ' + fmt(b1), color: COL_L1 });
+        stepLines.push({ text: T('Rownanie 2', 'Equation 2') + ': y = ' + fmt(m2) + 'x + ' + fmt(b2), color: COL_L2 });
+
+        if (stepN >= 1) {
+          // Step 1: From eq 1, y = m1*x + b1. Substitute into eq 2.
+          stepLines.push({ text: '', color: '#333' });
+          stepLines.push({ text: T('Krok 1: Z R1:', 'Step 1: From E1:') + ' y = ' + fmt(m1) + 'x + ' + fmt(b1), color: COL_YEL });
+        }
+
+        if (stepN >= 2) {
+          // Step 2: Substitute
+          stepLines.push({ text: T('Krok 2: Podstaw do R2:', 'Step 2: Sub into E2:'), color: COL_YEL });
+          stepLines.push({ text: fmt(m1) + 'x + ' + fmt(b1) + ' = ' + fmt(m2) + 'x + ' + fmt(b2), color: 'rgba(255,255,255,0.8)' });
+        }
+
+        if (stepN >= 3 && !parallel) {
+          // Step 3: Solve for x
+          var xSol = (b2 - b1) / (m1 - m2);
+          stepLines.push({ text: T('Krok 3:', 'Step 3:') + ' ' + fmt(m1 - m2) + 'x = ' + fmt(b2 - b1), color: COL_YEL });
+          stepLines.push({ text: 'x = ' + fmt(xSol), color: COL_INT });
+        } else if (stepN >= 3 && parallel) {
+          stepLines.push({ text: '0x = ' + fmt(b2 - b1), color: COL_ERR });
+          stepLines.push({ text: T('Sprzecznosc! Brak rozwiazania.', 'Contradiction! No solution.'), color: COL_ERR });
+        }
+
+        if (stepN >= 4 && !parallel) {
+          // Step 4: Back-substitute for y
+          var xSol2 = (b2 - b1) / (m1 - m2);
+          var ySol = m1 * xSol2 + b1;
+          stepLines.push({ text: T('Krok 4:', 'Step 4:') + ' y = ' + fmt(m1) + '\u00B7' + fmt(xSol2) + ' + ' + fmt(b1) + ' = ' + fmt(ySol), color: COL_YEL });
+          stepLines.push({ text: T('Rozwiazanie', 'Solution') + ': (' + fmt(xSol2) + ', ' + fmt(ySol) + ')', color: COL_INT });
+        }
+
+        // Render steps centered on canvas
+        var startY = 10;
+        var lh = 17;
+        cx.save();
+        cx.font = '11px monospace';
+        cx.textAlign = 'center';
+        cx.textBaseline = 'top';
+        stepLines.forEach(function(l, i) {
+          // Background pill for readability
+          var tw = cx.measureText(l.text).width;
+          if (tw > 0) {
+            cx.fillStyle = 'rgba(14,14,18,0.85)';
+            roundRect(cx, W/2 - tw/2 - 6, startY + i * lh - 2, tw + 12, lh, 3);
+            cx.fill();
+          }
+          cx.fillStyle = l.color;
+          cx.fillText(l.text, W/2, startY + i * lh);
+        });
+        cx.restore();
+      }
+    }
+  ];
+
+  // ── Slider management ─────────────────────────────────
+  var slWrap = document.getElementById('sliders-wrap');
+
+  function buildSliders(defs) {
+    var html = '<div class="sliders">';
+    defs.forEach(function(s) {
+      var v = s.get();
+      html += '<div class="slider-row">' +
+        '<span class="lbl" style="color:' + s.color + '">' + s.lbl + ' =</span>' +
+        '<input type="range" id="s_' + s.id + '" min="' + s.min + '" max="' + s.max + '" step="' + s.step + '" value="' + v + '">' +
+        '<span class="val" id="v_' + s.id + '" style="color:' + s.color + '"></span>' +
+      '</div>';
+    });
+    html += '</div>';
+    slWrap.innerHTML = html;
+
+    defs.forEach(function(s) {
+      var el = document.getElementById('s_' + s.id);
+      var valEl = document.getElementById('v_' + s.id);
+      valEl.textContent = fmtSlider(+el.value, s.step);
+      el.addEventListener('input', function() {
+        var v = +this.value;
+        valEl.textContent = fmtSlider(v, s.step);
+        s.set(v);
+      });
+    });
+  }
+
+  function fmtSlider(v, step) {
+    return step < 1 ? v.toFixed(step < 0.1 ? 2 : 1) : v.toFixed(0);
+  }
+
+  // ── Navigation ────────────────────────────────────────
+  var prevBtn = document.getElementById('qprev');
+  var nextBtn = document.getElementById('qnext');
+  var dotsEl  = document.getElementById('qdots');
+  var titleEl = document.getElementById('qf');
+  var descEl  = document.getElementById('qd');
+
+  function goTo(idx) {
+    stage = Math.max(0, Math.min(stages.length - 1, idx));
+    var s = stages[stage];
+    titleEl.textContent = s.title();
+    descEl.textContent = s.desc();
+
+    if (s.sliders) {
+      buildSliders(s.sliders);
+    } else {
+      slWrap.innerHTML = '';
+    }
+
+    prevBtn.disabled = stage === 0;
+    nextBtn.disabled = stage === stages.length - 1;
+    renderDots();
+  }
+
+  function renderDots() {
+    dotsEl.innerHTML = stages.map(function(_, i) {
+      return '<span class="dot' + (i === stage ? ' active' : '') + '" data-i="' + i + '"></span>';
+    }).join('');
+    dotsEl.querySelectorAll('.dot').forEach(function(d) {
+      d.addEventListener('click', function() { goTo(+d.dataset.i); });
+    });
+  }
+
+  prevBtn.addEventListener('click', function() { goTo(stage - 1); });
+  nextBtn.addEventListener('click', function() { goTo(stage + 1); });
+
+  // ── Render loop ───────────────────────────────────────
+  function tick() {
+    animTime += 0.016;
+    clear();
+    drawGrid();
+    drawAxes();
+    stages[stage].draw();
+    requestAnimationFrame(tick);
+  }
+
+  goTo(0);
+  tick();
+})();
+</script>
+</body>
+</html>

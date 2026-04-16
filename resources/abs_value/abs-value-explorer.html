@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Wartosc bezwzgledna — odleglosc od zera</title>
+<title>Wartość bezwzględna — odległość od zera</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
@@ -185,12 +185,12 @@
   const stages = [
     // Stage 1: Distance from zero
     {
-      title: () => T('Odleglosc od zera', 'Distance from zero'),
+      title: () => T('Odległość od zera', 'Distance from zero'),
       desc: () => {
         const x = sX;
         const absX = Math.abs(x);
         return T(
-          '|' + x + '| = ' + absX + ', bo ' + (x < 0 ? 'jest ' + absX + ' krokow na lewo od zera' : (x > 0 ? 'jest ' + absX + ' krokow na prawo od zera' : 'jestesmy dokladnie w zerze')) + '. Wartosc bezwzgledna = odleglosc, zawsze >= 0!',
+          '|' + x + '| = ' + absX + ', bo ' + (x < 0 ? 'jest ' + absX + ' kroków na lewo od zera' : (x > 0 ? 'jest ' + absX + ' kroków na prawo od zera' : 'jesteśmy dokładnie w zerze')) + '. Wartość bezwzględna = odległość, zawsze >= 0!',
           '|' + x + '| = ' + absX + ', because ' + (x < 0 ? 'it is ' + absX + ' steps left of zero' : (x > 0 ? 'it is ' + absX + ' steps right of zero' : 'we are exactly at zero')) + '. Absolute value = distance, always >= 0!'
         );
       },
@@ -201,7 +201,7 @@
         const x = sX;
         const absX = Math.abs(x);
 
-        textLine('|x| = ' + T('odleglosc od zera', 'distance from zero'), 28, 'rgba(255,255,255,.45)', 13);
+        textLine('|x| = ' + T('odległość od zera', 'distance from zero'), 28, 'rgba(255,255,255,.45)', 13);
 
         // Number line
         const nlY = 100;
@@ -218,7 +218,7 @@
 
         // Distance brace
         if (x !== 0) {
-          drawDistanceBrace(Math.min(zeroPx, xPx), Math.max(zeroPx, xPx), nlY + 8, nlY + 40, COL_EQ, T('odleglosc = ', 'distance = ') + absX);
+          drawDistanceBrace(Math.min(zeroPx, xPx), Math.max(zeroPx, xPx), nlY + 8, nlY + 40, COL_EQ, T('odległość = ', 'distance = ') + absX);
         }
 
         // Big result
@@ -226,15 +226,15 @@
 
         // Explanation
         if (x < 0) {
-          textLine(T('x jest ujemne, ale odleglosc jest zawsze dodatnia!', 'x is negative, but distance is always positive!'), 240, 'rgba(255,255,255,.4)', 12);
+          textLine(T('x jest ujemne, ale odległość jest zawsze dodatnia!', 'x is negative, but distance is always positive!'), 240, 'rgba(255,255,255,.4)', 12);
         } else if (x > 0) {
-          textLine(T('x jest dodatnie — odleglosc = x', 'x is positive — distance = x'), 240, 'rgba(255,255,255,.4)', 12);
+          textLine(T('x jest dodatnie — odległość = x', 'x is positive — distance = x'), 240, 'rgba(255,255,255,.4)', 12);
         } else {
-          textLine(T('x = 0 — odleglosc od zera to 0', 'x = 0 — distance from zero is 0'), 240, 'rgba(255,255,255,.4)', 12);
+          textLine(T('x = 0 — odległość od zera to 0', 'x = 0 — distance from zero is 0'), 240, 'rgba(255,255,255,.4)', 12);
         }
 
         // Piecewise formula
-        textLine(T('Regula: |x| = x gdy x >= 0,  |x| = -x gdy x < 0', 'Rule: |x| = x when x >= 0,  |x| = -x when x < 0'), H - 30, 'rgba(255,255,255,.3)', 11);
+        textLine(T('Reguła: |x| = x gdy x >= 0,  |x| = -x gdy x < 0', 'Rule: |x| = x when x >= 0,  |x| = -x when x < 0'), H - 30, 'rgba(255,255,255,.3)', 11);
       }
     },
 
@@ -242,7 +242,7 @@
     {
       title: () => T('Wykres |x|', 'Graph of |x|'),
       desc: () => T(
-        'Wykres y = |x| to litera V. Dla x >= 0 to prosta y = x. Dla x < 0 to prosta y = -x. Przesun x i sledz punkt na wykresie.',
+        'Wykres y = |x| to litera V. Dla x >= 0 to prosta y = x. Dla x < 0 to prosta y = -x. Przesuń x i śledź punkt na wykresie.',
         'The graph of y = |x| is a V-shape. For x >= 0 it is y = x. For x < 0 it is y = -x. Move x and follow the point on the graph.'
       ),
       sliders: [
@@ -365,9 +365,9 @@
 
     // Stage 3: Equation |x| = a
     {
-      title: () => T('Rownanie |x| = a', 'Equation |x| = a'),
+      title: () => T('Równanie |x| = a', 'Equation |x| = a'),
       desc: () => T(
-        '|x| = ' + sA + ' znaczy: x jest w odleglosci ' + sA + ' od zera. Sa DWA rozwiazania: x = ' + sA + ' i x = -' + sA + '.',
+        '|x| = ' + sA + ' znaczy: x jest w odległości ' + sA + ' od zera. Są DWA rozwiązania: x = ' + sA + ' i x = -' + sA + '.',
         '|x| = ' + sA + ' means: x is at distance ' + sA + ' from zero. There are TWO solutions: x = ' + sA + ' and x = -' + sA + '.'
       ),
       sliders: [
@@ -377,7 +377,7 @@
         const a = sA;
 
         textLine('|x| = ' + a, 28, COL_EQ, 22);
-        textLine(T('Pytanie: jakie x sa w odleglosci ' + a + ' od zera?',
+        textLine(T('Pytanie: jakie x są w odległości ' + a + ' od zera?',
                     'Question: which x are at distance ' + a + ' from zero?'), 52, 'rgba(255,255,255,.4)', 12);
 
         // Number line

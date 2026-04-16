@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Granice funkcji — Eksplorator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+  #qf { margin: 0 0 5px; font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  #qd { margin: 0 0 10px; font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); min-height: 48px; }
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 36px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+  .nav { display: flex; align-items: center; justify-content: space-between; }
+  button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  button:hover { background: rgba(255,255,255,.08); }
+  button:disabled { opacity: .3; cursor: default; }
+  #qdots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.18); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  #sliders-wrap { min-height: 0; }
+  .link-btn { display: inline-block; margin-top: 8px; padding: 6px 14px; border-radius: 6px; background: rgba(88,196,221,.12); border: 1px solid rgba(88,196,221,.3); color: #58C4DD; font-size: 12px; text-decoration: none; font-family: monospace; transition: background .15s; }
+  .link-btn:hover { background: rgba(88,196,221,.22); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="380"></canvas>
+  <div class="panel">
+    <p id="qf"></p>
+    <p id="qd"></p>
+    <div id="sliders-wrap"></div>
+    <div class="nav">
+      <button id="qprev">&larr;</button>
+      <div id="qdots"></div>
+      <button id="qnext">&rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const cv = document.getElementById('cv');
+  const cx = cv.getContext('2d');
+  const W = 600, H = 380;
+
+  const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
+  const T = (pl, en) => LANG === 'pl' ? pl : en;
+
+  // Color palette
+  const COL_CYAN   = '#58C4DD';
+  const COL_YELLOW = '#FFD166';
+  const COL_ORANGE = '#FF6B35';
+  const COL_GREEN  = '#83C167';
+  const COL_PINK   = '#E07090';
+  const COL_BLUE   = '#4a9eff';
+  const COL_PURPLE = '#C080FF';
+
+  // State
+  let stage = 0;
+  let time = 0;
+
+  // Stage-specific state
+  let s1_xApproach = 0.5;   // how close x is to 1 (0=far, 1=very close)
+  let s2_zoom = 1;           // zoom level around x=1
+  let s3_example = 0;        // 0 = 1/x, 1 = sin(1/x)
+  let s4_epsilon = 0.5;      // epsilon value
+  let s5_xRange = 5;         // how far out we look
+
+  // Animation state
+  let animT = 0;             // animation time accumulator
+
+  // ── Drawing helpers ──────────────────────────────────────
+  function clear() {
+    cx.fillStyle = '#0e0e12';
+    cx.fillRect(0, 0, W, H);
+  }
+
+  function ease(t) { return t < 0.5 ? 2*t*t : -1 + (4 - 2*t)*t; }
+  function lerp(a, b, t) { return a + (b - a) * Math.max(0, Math.min(1, t)); }
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+  function gdot(sx, sy, r, col, glow) {
+    cx.save();
+    cx.beginPath();
+    cx.arc(sx, sy, r, 0, Math.PI * 2);
+    cx.fillStyle = col;
+    cx.shadowColor = col;
+    cx.shadowBlur = glow || 12;
+    cx.fill();
+    cx.shadowBlur = 0;
+    cx.restore();
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+    ctx.closePath();
+  }
+
+  function infoBox(text, sx, sy, col, alpha, fontSize) {
+    cx.save();
+    cx.font = (fontSize || 12) + 'px monospace';
+    if (alpha !== undefined) cx.globalAlpha = alpha;
+    const w = cx.measureText(text).width + 16;
+    cx.fillStyle = 'rgba(14,14,18,0.88)';
+    cx.strokeStyle = (col || COL_CYAN) + '50';
+    cx.lineWidth = 1;
+    roundRect(cx, sx - w/2, sy - 12, w, 24, 5);
+    cx.fill(); cx.stroke();
+    cx.fillStyle = col || COL_CYAN;
+    cx.textAlign = 'center';
+    cx.textBaseline = 'middle';
+    cx.fillText(text, sx, sy);
+    cx.restore();
+  }
+
+  function formulaBox(text, sx, sy, col, size) {
+    cx.save();
+    cx.font = 'bold ' + (size || 15) + 'px monospace';
+    const w = cx.measureText(text).width + 24;
+    cx.fillStyle = 'rgba(14,14,18,0.92)';
+    cx.strokeStyle = (col || COL_CYAN) + '40';
+    cx.lineWidth = 1.5;
+    roundRect(cx, sx - w/2, sy - 14, w, 28, 6);
+    cx.fill(); cx.stroke();
+    cx.fillStyle = col || COL_CYAN;
+    cx.textAlign = 'center';
+    cx.textBaseline = 'middle';
+    cx.fillText(text, sx, sy);
+    cx.restore();
+  }
+
+  // Draw axes with given coordinate system
+  function drawAxesCustom(ox, oy, scX, scY, xRange, yRange, showLabels) {
+    // Grid
+    cx.strokeStyle = 'rgba(255,255,255,0.04)';
+    cx.lineWidth = 0.7;
+    const xMin = Math.floor(-ox / scX) - 1;
+    const xMax = Math.ceil((W - ox) / scX) + 1;
+    const yMin = Math.floor(-(H - oy) / scY) - 1;
+    const yMax = Math.ceil(oy / scY) + 1;
+    for (let x = xMin; x <= xMax; x++) {
+      const sx = ox + x * scX;
+      if (sx < 0 || sx > W) continue;
+      cx.beginPath(); cx.moveTo(sx, 0); cx.lineTo(sx, H); cx.stroke();
+    }
+    for (let y = yMin; y <= yMax; y++) {
+      const sy = oy - y * scY;
+      if (sy < 0 || sy > H) continue;
+      cx.beginPath(); cx.moveTo(0, sy); cx.lineTo(W, sy); cx.stroke();
+    }
+    // Axes
+    cx.strokeStyle = 'rgba(255,255,255,0.2)';
+    cx.lineWidth = 1;
+    cx.beginPath(); cx.moveTo(0, oy); cx.lineTo(W, oy); cx.stroke();
+    cx.beginPath(); cx.moveTo(ox, 0); cx.lineTo(ox, H); cx.stroke();
+
+    if (showLabels !== false) {
+      cx.fillStyle = 'rgba(255,255,255,0.25)';
+      cx.font = '9px monospace';
+      cx.textAlign = 'center';
+      cx.textBaseline = 'top';
+      for (let x = Math.ceil(xRange[0]); x <= Math.floor(xRange[1]); x++) {
+        if (x === 0) continue;
+        const sx = ox + x * scX;
+        if (sx < 15 || sx > W - 15) continue;
+        cx.fillText(x, sx, oy + 4);
+      }
+      cx.textAlign = 'right';
+      cx.textBaseline = 'middle';
+      for (let y = Math.ceil(yRange[0]); y <= Math.floor(yRange[1]); y++) {
+        if (y === 0) continue;
+        const sy = oy - y * scY;
+        if (sy < 15 || sy > H - 15) continue;
+        cx.fillText(y, ox - 5, sy);
+      }
+    }
+  }
+
+  // Plot a function within pixel range
+  function plotFn(fn, ox, oy, scX, scY, color, alpha, lineW, dash, xSkip) {
+    cx.save();
+    cx.strokeStyle = color;
+    cx.globalAlpha = alpha || 1;
+    cx.lineWidth = lineW || 2.5;
+    if (dash) cx.setLineDash(dash);
+    cx.beginPath();
+    let started = false;
+    for (let sx = 0; sx <= W; sx += 1) {
+      const x = (sx - ox) / scX;
+      if (xSkip && Math.abs(x - xSkip) < 0.03) { started = false; continue; }
+      const y = fn(x);
+      if (!isFinite(y) || Math.abs(y) > 1000) { started = false; continue; }
+      const sy = oy - y * scY;
+      if (sy < -200 || sy > H + 200) { started = false; continue; }
+      if (!started) { cx.moveTo(sx, sy); started = true; }
+      else cx.lineTo(sx, sy);
+    }
+    cx.stroke();
+    cx.restore();
+  }
+
+  // Draw a hollow circle (hole in graph)
+  function drawHole(sx, sy, r, col) {
+    cx.save();
+    cx.beginPath();
+    cx.arc(sx, sy, r, 0, Math.PI * 2);
+    cx.fillStyle = '#0e0e12';
+    cx.fill();
+    cx.strokeStyle = col;
+    cx.lineWidth = 2;
+    cx.shadowColor = col;
+    cx.shadowBlur = 8;
+    cx.stroke();
+    cx.shadowBlur = 0;
+    cx.restore();
+  }
+
+  // Draw a trail of fading dots
+  function drawTrail(points, col) {
+    for (let i = 0; i < points.length; i++) {
+      const alpha = (i + 1) / points.length * 0.6;
+      const r = lerp(1.5, 3, (i + 1) / points.length);
+      cx.save();
+      cx.globalAlpha = alpha;
+      cx.beginPath();
+      cx.arc(points[i][0], points[i][1], r, 0, Math.PI * 2);
+      cx.fillStyle = col;
+      cx.fill();
+      cx.restore();
+    }
+  }
+
+  // Dashed line in screen coords
+  function dashedLine(x1, y1, x2, y2, col, alpha, dashPat) {
+    cx.save();
+    cx.strokeStyle = col;
+    cx.globalAlpha = alpha || 0.6;
+    cx.lineWidth = 1;
+    cx.setLineDash(dashPat || [4, 3]);
+    cx.beginPath();
+    cx.moveTo(x1, y1);
+    cx.lineTo(x2, y2);
+    cx.stroke();
+    cx.restore();
+  }
+
+  // Filled band (rectangle) with alpha
+  function drawBand(x1, y1, x2, y2, col, alpha) {
+    cx.save();
+    cx.fillStyle = col;
+    cx.globalAlpha = alpha || 0.15;
+    cx.fillRect(Math.min(x1, x2), Math.min(y1, y2), Math.abs(x2 - x1), Math.abs(y2 - y1));
+    cx.restore();
+  }
+
+  function fmt(v, d) {
+    if (d !== undefined) return v.toFixed(d);
+    if (Math.abs(v - Math.round(v)) < 0.001) return Math.round(v).toString();
+    if (Math.abs(v) < 0.01) return v.toExponential(1);
+    return v.toFixed(Math.abs(v) < 1 ? 3 : 2);
+  }
+
+  // ── Stage 1: "Co sie dzieje blisko punktu?" ──────────────
+  function drawStage1() {
+    const OX = W * 0.15, OY = H * 0.72;
+    const SCX = 90, SCY = 70;
+
+    // f(x) = (x^2 - 1)/(x - 1) = x + 1 (with hole at x=1)
+    const fn = function(x) { return x + 1; };
+
+    drawAxesCustom(OX, OY, SCX, SCY, [-1, 5], [-1, 4.5]);
+
+    // Plot the function
+    plotFn(fn, OX, OY, SCX, SCY, COL_CYAN, 0.85, 2.5, null, 1);
+
+    // Draw the hole at (1, 2)
+    const holeSX = OX + 1 * SCX;
+    const holeSY = OY - 2 * SCY;
+    drawHole(holeSX, holeSY, 7, COL_CYAN);
+
+    // Formula at top
+    formulaBox('f(x) = (x\u00B2 - 1) / (x - 1)', W/2, 22, COL_CYAN);
+
+    // Animate approach: slider controls how close
+    const closeness = s1_xApproach; // 0 to 1 slider
+    // Map to x distance from 1
+    const dist = Math.pow(10, -closeness * 3); // from 1 to 0.001
+
+    // Approach from right
+    const xR = 1 + dist;
+    const yR = fn(xR);
+    const sxR = OX + xR * SCX;
+    const syR = OY - yR * SCY;
+
+    // Approach from left
+    const xL = 1 - dist;
+    const yL = fn(xL);
+    const sxL = OX + xL * SCX;
+    const syL = OY - yL * SCY;
+
+    // Glowing trail from right
+    const trailR = [];
+    for (let i = 0; i < 12; i++) {
+      const td = dist + (1 - dist) * (i / 11) * 0.8;
+      const tx = 1 + td;
+      trailR.push([OX + tx * SCX, OY - fn(tx) * SCY]);
+    }
+    drawTrail(trailR, COL_YELLOW);
+
+    // Glowing trail from left
+    const trailL = [];
+    for (let i = 0; i < 12; i++) {
+      const td = dist + (1 - dist) * (i / 11) * 0.8;
+      const tx = 1 - td;
+      if (tx > -0.5) trailL.push([OX + tx * SCX, OY - fn(tx) * SCY]);
+    }
+    drawTrail(trailL, COL_ORANGE);
+
+    // Glowing dots at current position
+    const pulse = 0.7 + 0.3 * Math.sin(animT * 3);
+    gdot(sxR, syR, 5 * pulse, COL_YELLOW, 18);
+    gdot(sxL, syL, 5 * pulse, COL_ORANGE, 18);
+
+    // Dashed lines to limit
+    dashedLine(sxR, syR, holeSX, holeSY, COL_YELLOW, 0.3, [2, 3]);
+    dashedLine(sxL, syL, holeSX, holeSY, COL_ORANGE, 0.3, [2, 3]);
+
+    // Limit target line
+    dashedLine(0, holeSY, W, holeSY, COL_YELLOW, 0.15, [6, 4]);
+
+    // Value table
+    const tableX = W * 0.62;
+    const tableY = H * 0.12;
+
+    cx.save();
+    cx.font = '10px monospace';
+    cx.textAlign = 'left';
+
+    // Table header
+    cx.fillStyle = 'rgba(255,255,255,0.35)';
+    cx.fillText('  x          f(x)', tableX, tableY + 40);
+
+    // Values from left
+    const leftVals = [0.5, 0.9, 0.99, 0.999];
+    cx.fillStyle = COL_ORANGE;
+    for (let i = 0; i < leftVals.length; i++) {
+      const show = closeness >= i * 0.25;
+      if (!show) continue;
+      const fadeIn = clamp((closeness - i * 0.25) / 0.1, 0, 1);
+      cx.globalAlpha = fadeIn;
+      const xv = leftVals[i];
+      cx.fillText('  ' + xv.toFixed(3) + '     ' + fn(xv).toFixed(3), tableX, tableY + 56 + i * 14);
+    }
+
+    // Undefined
+    cx.globalAlpha = 0.5;
+    cx.fillStyle = COL_PINK;
+    cx.fillText('  1.000     ???', tableX, tableY + 56 + 4 * 14);
+
+    // Values from right
+    const rightVals = [1.5, 1.1, 1.01, 1.001];
+    cx.fillStyle = COL_YELLOW;
+    for (let i = 0; i < rightVals.length; i++) {
+      const show = closeness >= i * 0.25;
+      if (!show) continue;
+      const fadeIn = clamp((closeness - i * 0.25) / 0.1, 0, 1);
+      cx.globalAlpha = fadeIn;
+      const xv = rightVals[i];
+      cx.fillText('  ' + xv.toFixed(3) + '     ' + fn(xv).toFixed(3), tableX, tableY + 56 + (5 + i) * 14);
+    }
+    cx.restore();
+
+    // Limit label
+    if (closeness > 0.3) {
+      const la = clamp((closeness - 0.3) / 0.3, 0, 1);
+      infoBox(T('Zbli\u017Ca si\u0119 do 2!', 'Approaching 2!'), holeSX, holeSY - 22, COL_GREEN, la);
+    }
+
+    // Values near the dots
+    infoBox('x=' + fmt(xR, 4) + '  f=' + fmt(yR, 4), sxR + 5, syR - 16, COL_YELLOW, 0.8, 9);
+    infoBox('x=' + fmt(xL, 4) + '  f=' + fmt(yL, 4), sxL - 5, syL + 18, COL_ORANGE, 0.8, 9);
+
+    // Y=2 label
+    infoBox('y = 2', 25, holeSY, COL_YELLOW, 0.5, 10);
+  }
+
+  // ── Stage 2: "Zbli\u017Camy si\u0119 - z obu stron" ──────────────
+  function drawStage2() {
+    // Zooming number line visualization
+    const zoomLevel = s2_zoom; // 0 to 1
+
+    // Scale: as zoom increases, we see smaller range around x=1
+    const halfRange = lerp(3, 0.001, ease(zoomLevel));
+    const xMin = 1 - halfRange;
+    const xMax = 1 + halfRange;
+
+    const margin = 60;
+    const lineY = H * 0.55;
+    const lineLeft = margin;
+    const lineRight = W - margin;
+    const lineW = lineRight - lineLeft;
+
+    function mapX(x) { return lineLeft + (x - xMin) / (xMax - xMin) * lineW; }
+
+    // Background gradient bands showing zoom depth
+    const zoomAlpha = ease(zoomLevel) * 0.15;
+    cx.save();
+    const grad = cx.createRadialGradient(W/2, lineY, 0, W/2, lineY, lineW * 0.6);
+    grad.addColorStop(0, 'rgba(88, 196, 221, ' + zoomAlpha + ')');
+    grad.addColorStop(1, 'rgba(88, 196, 221, 0)');
+    cx.fillStyle = grad;
+    cx.fillRect(0, 0, W, H);
+    cx.restore();
+
+    // Formula at top
+    formulaBox('f(x) = (x\u00B2 - 1) / (x - 1)', W/2, 22, COL_CYAN);
+
+    // "Microscope" framing
+    cx.save();
+    cx.strokeStyle = 'rgba(255,255,255,0.08)';
+    cx.lineWidth = 1;
+    roundRect(cx, margin - 20, lineY - 80, lineW + 40, 160, 8);
+    cx.stroke();
+    cx.restore();
+
+    // Number line
+    cx.save();
+    cx.strokeStyle = 'rgba(255,255,255,0.3)';
+    cx.lineWidth = 1.5;
+    cx.beginPath();
+    cx.moveTo(lineLeft, lineY);
+    cx.lineTo(lineRight, lineY);
+    cx.stroke();
+    cx.restore();
+
+    // Center mark at x=1
+    const cx1 = mapX(1);
+    cx.save();
+    cx.strokeStyle = COL_PINK;
+    cx.lineWidth = 1.5;
+    cx.setLineDash([3, 3]);
+    cx.beginPath();
+    cx.moveTo(cx1, lineY - 60);
+    cx.lineTo(cx1, lineY + 60);
+    cx.stroke();
+    cx.restore();
+
+    // Tick marks
+    cx.save();
+    cx.fillStyle = 'rgba(255,255,255,0.3)';
+    cx.strokeStyle = 'rgba(255,255,255,0.2)';
+    cx.font = '9px monospace';
+    cx.textAlign = 'center';
+    cx.lineWidth = 1;
+    // Choose nice tick spacing
+    const range = xMax - xMin;
+    let tickStep;
+    if (range > 4) tickStep = 1;
+    else if (range > 1) tickStep = 0.5;
+    else if (range > 0.1) tickStep = 0.05;
+    else if (range > 0.01) tickStep = 0.005;
+    else tickStep = 0.0005;
+
+    const tickStart = Math.ceil(xMin / tickStep) * tickStep;
+    for (let x = tickStart; x <= xMax; x += tickStep) {
+      const sx = mapX(x);
+      if (sx < lineLeft - 5 || sx > lineRight + 5) continue;
+      cx.beginPath(); cx.moveTo(sx, lineY - 5); cx.lineTo(sx, lineY + 5); cx.stroke();
+      const decimals = tickStep < 0.001 ? 4 : (tickStep < 0.01 ? 3 : (tickStep < 0.1 ? 2 : 1));
+      cx.fillText(x.toFixed(decimals), sx, lineY + 18);
+    }
+    cx.restore();
+
+    // Approaching values from left
+    const approaches = [0.2, 0.1, 0.05, 0.01, 0.005, 0.001, 0.0005];
+    const pulse = 0.6 + 0.4 * Math.sin(animT * 3);
+
+    // Left approach (orange)
+    cx.save();
+    for (let i = 0; i < approaches.length; i++) {
+      const x = 1 - approaches[i];
+      const sx = mapX(x);
+      if (sx < lineLeft - 10 || sx > cx1 - 2) continue;
+      const fv = x + 1;
+      const dotR = lerp(3, 5, i / approaches.length);
+      const alpha = lerp(0.3, 0.9, i / approaches.length);
+      gdot(sx, lineY, dotR, COL_ORANGE, 10 * alpha);
+
+      // f(x) value above
+      cx.font = '9px monospace';
+      cx.fillStyle = COL_ORANGE;
+      cx.globalAlpha = alpha;
+      cx.textAlign = 'center';
+      cx.fillText('f=' + fv.toFixed(approaches[i] < 0.01 ? 4 : 2), sx, lineY - 28);
+    }
+    cx.restore();
+
+    // Right approach (yellow)
+    cx.save();
+    for (let i = 0; i < approaches.length; i++) {
+      const x = 1 + approaches[i];
+      const sx = mapX(x);
+      if (sx > lineRight + 10 || sx < cx1 + 2) continue;
+      const fv = x + 1;
+      const dotR = lerp(3, 5, i / approaches.length);
+      const alpha = lerp(0.3, 0.9, i / approaches.length);
+      gdot(sx, lineY, dotR, COL_YELLOW, 10 * alpha);
+
+      cx.font = '9px monospace';
+      cx.fillStyle = COL_YELLOW;
+      cx.globalAlpha = alpha;
+      cx.textAlign = 'center';
+      cx.fillText('f=' + fv.toFixed(approaches[i] < 0.01 ? 4 : 2), sx, lineY + 40);
+    }
+    cx.restore();
+
+    // Window shrinking visual — bracket around x=1
+    const windowHalf = halfRange * 0.3;
+    const wLeft = mapX(1 - windowHalf);
+    const wRight = mapX(1 + windowHalf);
+    cx.save();
+    cx.strokeStyle = COL_GREEN;
+    cx.globalAlpha = 0.4 + 0.2 * Math.sin(animT * 2);
+    cx.lineWidth = 2;
+    cx.setLineDash([]);
+    // Left bracket
+    cx.beginPath();
+    cx.moveTo(wLeft + 5, lineY - 35);
+    cx.lineTo(wLeft, lineY - 35);
+    cx.lineTo(wLeft, lineY + 35);
+    cx.lineTo(wLeft + 5, lineY + 35);
+    cx.stroke();
+    // Right bracket
+    cx.beginPath();
+    cx.moveTo(wRight - 5, lineY - 35);
+    cx.lineTo(wRight, lineY - 35);
+    cx.lineTo(wRight, lineY + 35);
+    cx.lineTo(wRight - 5, lineY + 35);
+    cx.stroke();
+    cx.restore();
+
+    // Central undefined point
+    drawHole(cx1, lineY, 6, COL_PINK);
+
+    // Labels
+    infoBox('x = 1  (nieokreslone!)', cx1, lineY - 50, COL_PINK, 0.8, 10);
+
+    // Left/right labels
+    infoBox(T('x \u2192 1\u207B', 'x \u2192 1\u207B'), lineLeft + 40, lineY - 65, COL_ORANGE, 0.7, 11);
+    infoBox(T('x \u2192 1\u207A', 'x \u2192 1\u207A'), lineRight - 40, lineY - 65, COL_YELLOW, 0.7, 11);
+
+    // Convergence message
+    if (zoomLevel > 0.3) {
+      const a = clamp((zoomLevel - 0.3) / 0.3, 0, 1);
+      infoBox(T('Obie strony \u2192 2    Granica = 2', 'Both sides \u2192 2    Limit = 2'), W/2, H - 45, COL_GREEN, a * pulse, 13);
+    }
+
+    // Zoom indicator
+    infoBox(T('Zoom: x' + Math.pow(10, zoomLevel * 3).toFixed(0) + '  zakres: \u00B1' + halfRange.toFixed(halfRange < 0.01 ? 4 : 3),
+            'Zoom: x' + Math.pow(10, zoomLevel * 3).toFixed(0) + '  range: \u00B1' + halfRange.toFixed(halfRange < 0.01 ? 4 : 3)),
+            W/2, H - 18, 'rgba(255,255,255,0.4)', 0.7, 10);
+  }
+
+  // ── Stage 3: "Kiedy granica NIE istnieje" ────────────────
+  function drawStage3() {
+    const showSin = s3_example >= 0.5;
+
+    if (!showSin) {
+      // f(x) = 1/x near x=0
+      const OX = W * 0.45, OY = H * 0.5;
+      const SCX = 60, SCY = 30;
+
+      drawAxesCustom(OX, OY, SCX, SCY, [-4, 5], [-5, 5]);
+
+      formulaBox('f(x) = 1/x', W/2, 22, COL_CYAN);
+
+      // Plot 1/x (two branches)
+      const fn = function(x) { return 1/x; };
+      // Right branch (positive)
+      cx.save();
+      cx.strokeStyle = COL_YELLOW;
+      cx.lineWidth = 2.5;
+      cx.beginPath();
+      let started = false;
+      for (let sx = OX + 3; sx <= W; sx += 1) {
+        const x = (sx - OX) / SCX;
+        const y = fn(x);
+        if (!isFinite(y) || y > 12 || y < -12) { started = false; continue; }
+        const sy = OY - y * SCY;
+        if (!started) { cx.moveTo(sx, sy); started = true; }
+        else cx.lineTo(sx, sy);
+      }
+      cx.stroke();
+      cx.restore();
+
+      // Left branch (negative)
+      cx.save();
+      cx.strokeStyle = COL_ORANGE;
+      cx.lineWidth = 2.5;
+      cx.beginPath();
+      started = false;
+      for (let sx = 0; sx < OX - 3; sx += 1) {
+        const x = (sx - OX) / SCX;
+        const y = fn(x);
+        if (!isFinite(y) || y > 12 || y < -12) { started = false; continue; }
+        const sy = OY - y * SCY;
+        if (!started) { cx.moveTo(sx, sy); started = true; }
+        else cx.lineTo(sx, sy);
+      }
+      cx.stroke();
+      cx.restore();
+
+      // Vertical asymptote
+      dashedLine(OX, 0, OX, H, COL_PINK, 0.3, [6, 4]);
+
+      // Animated arrows showing divergence
+      const t = (animT * 0.5) % 1;
+      const arrowYR = OY - lerp(1, 8, ease(t)) * SCY;
+      const arrowYL = OY - lerp(-1, -8, ease(t)) * SCY;
+
+      // Right arrow going up
+      gdot(OX + 8, clamp(arrowYR, 5, H - 5), 4, COL_YELLOW, 15);
+      // Left arrow going down
+      gdot(OX - 8, clamp(arrowYL, 5, H - 5), 4, COL_ORANGE, 15);
+
+      // Labels
+      infoBox(T('x \u2192 0\u207A: f(x) \u2192 +\u221E', 'x \u2192 0\u207A: f(x) \u2192 +\u221E'), W * 0.75, H * 0.15, COL_YELLOW, 0.9);
+      infoBox(T('x \u2192 0\u207B: f(x) \u2192 -\u221E', 'x \u2192 0\u207B: f(x) \u2192 -\u221E'), W * 0.2, H * 0.85, COL_ORANGE, 0.9);
+
+      // Disagreement
+      infoBox(T('+\u221E \u2260 -\u221E  \u2192  granica NIE istnieje!', '+\u221E \u2260 -\u221E  \u2192  limit does NOT exist!'), W/2, H - 22, COL_PINK, 0.7 + 0.3 * Math.sin(animT * 2), 12);
+
+    } else {
+      // f(x) = sin(1/x) near x=0
+      const OX = W * 0.45, OY = H * 0.5;
+      const SCX = 120, SCY = 80;
+
+      drawAxesCustom(OX, OY, SCX, SCY, [-2, 3], [-2, 2]);
+
+      formulaBox('f(x) = sin(1/x)', W/2, 22, COL_PURPLE);
+
+      // Plot sin(1/x) with high resolution near 0
+      const fn = function(x) { return Math.sin(1/x); };
+      cx.save();
+      cx.strokeStyle = COL_PURPLE;
+      cx.lineWidth = 1.5;
+      cx.globalAlpha = 0.85;
+      cx.beginPath();
+      let started = false;
+      // Right of 0
+      for (let sx = OX + 2; sx <= W; sx += 0.5) {
+        const x = (sx - OX) / SCX;
+        if (x < 0.003) continue;
+        const y = fn(x);
+        const sy = OY - y * SCY;
+        if (!started) { cx.moveTo(sx, sy); started = true; }
+        else cx.lineTo(sx, sy);
+      }
+      cx.stroke();
+
+      // Left of 0
+      cx.beginPath();
+      started = false;
+      for (let sx = OX - 2; sx >= 0; sx -= 0.5) {
+        const x = (sx - OX) / SCX;
+        if (x > -0.003) continue;
+        const y = fn(x);
+        const sy = OY - y * SCY;
+        if (!started) { cx.moveTo(sx, sy); started = true; }
+        else cx.lineTo(sx, sy);
+      }
+      cx.stroke();
+      cx.restore();
+
+      // Oscillation band
+      drawBand(OX - 5, OY - 1 * SCY, OX + 5, OY + 1 * SCY, COL_PURPLE, 0.08);
+
+      // Vertical asymptote area
+      dashedLine(OX, 0, OX, H, COL_PINK, 0.2, [4, 3]);
+
+      // y=1 and y=-1 bounds
+      dashedLine(0, OY - SCY, W, OY - SCY, 'rgba(255,255,255,0.15)', 0.3, [3, 5]);
+      dashedLine(0, OY + SCY, W, OY + SCY, 'rgba(255,255,255,0.15)', 0.3, [3, 5]);
+
+      // Animated dot oscillating wildly
+      const osc = Math.sin(1 / (0.005 + 0.1 * (1 - ease((animT * 0.3) % 1))));
+      const oscX = OX + (0.005 + 0.1 * (1 - ease((animT * 0.3) % 1))) * SCX;
+      const oscY = OY - osc * SCY;
+      gdot(clamp(oscX, OX + 2, W - 10), clamp(oscY, 10, H - 10), 4, COL_PURPLE, 18);
+
+      infoBox(T('Oscyluje mi\u0119dzy -1 a 1 \u2014 nie zbli\u017Ca si\u0119 do niczego!',
+               'Oscillates between -1 and 1 \u2014 never settles!'), W/2, H * 0.18, COL_PURPLE, 0.8, 10);
+      infoBox(T('Granica NIE istnieje!', 'Limit does NOT exist!'), W/2, H - 22, COL_PINK, 0.7 + 0.3 * Math.sin(animT * 2.5), 12);
+    }
+  }
+
+  // ── Stage 4: "Epsilon-delta" ─────────────────────────────
+  function drawStage4() {
+    const OX = W * 0.35, OY = H * 0.7;
+    const SCX = 100, SCY = 70;
+
+    const fn = function(x) { return x + 1; };
+    const limitX = 1;
+    const limitY = 2;
+    const eps = s4_epsilon;
+    const delta = eps; // For this function, delta = epsilon
+
+    drawAxesCustom(OX, OY, SCX, SCY, [-1, 4], [-0.5, 4.5]);
+
+    // Formula at top
+    formulaBox('f(x) = (x\u00B2 - 1)/(x - 1)     lim = 2', W/2, 22, COL_CYAN, 14);
+
+    // Epsilon band (horizontal around y=2)
+    const epsTop = OY - (limitY + eps) * SCY;
+    const epsBot = OY - (limitY - eps) * SCY;
+    drawBand(0, epsTop, W, epsBot, COL_YELLOW, 0.12);
+    // Epsilon band borders
+    dashedLine(0, epsTop, W, epsTop, COL_YELLOW, 0.5, [4, 3]);
+    dashedLine(0, epsBot, W, epsBot, COL_YELLOW, 0.5, [4, 3]);
+
+    // Delta band (vertical around x=1)
+    const deltaLeft = OX + (limitX - delta) * SCX;
+    const deltaRight = OX + (limitX + delta) * SCX;
+    drawBand(deltaLeft, 0, deltaRight, H, COL_ORANGE, 0.1);
+    dashedLine(deltaLeft, 0, deltaLeft, H, COL_ORANGE, 0.4, [4, 3]);
+    dashedLine(deltaRight, 0, deltaRight, H, COL_ORANGE, 0.4, [4, 3]);
+
+    // Intersection box glow
+    cx.save();
+    cx.fillStyle = COL_GREEN;
+    cx.globalAlpha = 0.06 + 0.04 * Math.sin(animT * 2);
+    cx.fillRect(deltaLeft, epsTop, deltaRight - deltaLeft, epsBot - epsTop);
+    cx.restore();
+
+    // Plot the function
+    plotFn(fn, OX, OY, SCX, SCY, COL_CYAN, 0.85, 2.5);
+
+    // Draw the hole at (1, 2)
+    const holeSX = OX + limitX * SCX;
+    const holeSY = OY - limitY * SCY;
+    drawHole(holeSX, holeSY, 6, COL_CYAN);
+
+    // Limit point crosshair
+    dashedLine(holeSX, 0, holeSX, H, COL_PINK, 0.2, [3, 4]);
+    dashedLine(0, holeSY, W, holeSY, COL_YELLOW, 0.2, [3, 4]);
+
+    // Epsilon labels
+    cx.save();
+    cx.font = '10px monospace';
+    cx.fillStyle = COL_YELLOW;
+    cx.textAlign = 'left';
+    const eMidY = (epsTop + holeSY) / 2;
+    // Epsilon arrow
+    cx.strokeStyle = COL_YELLOW;
+    cx.lineWidth = 1;
+    cx.globalAlpha = 0.7;
+    cx.beginPath(); cx.moveTo(W - 50, holeSY); cx.lineTo(W - 50, epsTop); cx.stroke();
+    cx.beginPath(); cx.moveTo(W - 53, epsTop + 5); cx.lineTo(W - 50, epsTop); cx.lineTo(W - 47, epsTop + 5); cx.stroke();
+    cx.beginPath(); cx.moveTo(W - 53, holeSY - 5); cx.lineTo(W - 50, holeSY); cx.lineTo(W - 47, holeSY - 5); cx.stroke();
+    cx.globalAlpha = 1;
+    cx.fillText('\u03B5=' + fmt(eps, eps < 0.1 ? 2 : 1), W - 48, eMidY);
+    cx.restore();
+
+    // Delta labels
+    cx.save();
+    cx.font = '10px monospace';
+    cx.fillStyle = COL_ORANGE;
+    cx.textAlign = 'center';
+    const dMidX = (holeSX + deltaRight) / 2;
+    // Delta arrow
+    cx.strokeStyle = COL_ORANGE;
+    cx.lineWidth = 1;
+    cx.globalAlpha = 0.7;
+    const arrY = H - 30;
+    cx.beginPath(); cx.moveTo(holeSX, arrY); cx.lineTo(deltaRight, arrY); cx.stroke();
+    cx.beginPath(); cx.moveTo(deltaRight - 5, arrY - 3); cx.lineTo(deltaRight, arrY); cx.lineTo(deltaRight - 5, arrY + 3); cx.stroke();
+    cx.beginPath(); cx.moveTo(holeSX + 5, arrY - 3); cx.lineTo(holeSX, arrY); cx.lineTo(holeSX + 5, arrY + 3); cx.stroke();
+    cx.globalAlpha = 1;
+    cx.fillText('\u03B4=' + fmt(delta, delta < 0.1 ? 2 : 1), dMidX, arrY - 8);
+    cx.restore();
+
+    // Animated dot: pick a random x in delta range and show it's in epsilon range
+    const t = (animT * 0.4) % 1;
+    const testDist = delta * 0.8 * Math.sin(animT * 1.7);
+    const testX = limitX + testDist;
+    const testY = fn(testX);
+    const testSX = OX + testX * SCX;
+    const testSY = OY - testY * SCY;
+
+    gdot(testSX, testSY, 5, COL_GREEN, 16);
+
+    // Show the test point values
+    if (Math.abs(testDist) > 0.01) {
+      infoBox('|x-1|=' + fmt(Math.abs(testDist), 3) + ' < \u03B4   |f(x)-2|=' + fmt(Math.abs(testY - 2), 3) + ' < \u03B5',
+              W/2, H * 0.13, COL_GREEN, 0.8, 10);
+    }
+
+    // Central message
+    infoBox(T('Chcesz f(x) blisko 2? Trzymaj x blisko 1!',
+             'Want f(x) near 2? Keep x near 1!'), W/2, H * 0.06 + 60, 'rgba(255,255,255,0.5)', 0.6, 10);
+  }
+
+  // ── Stage 5: "Granica w niesko\u0144czono\u015Bci" ──────────────────
+  function drawStage5() {
+    const xR = s5_xRange; // 2 to 50
+    const OX = W * 0.08, OY = H * 0.45;
+    const SCX = (W - 80) / xR;
+    const SCY = H * 0.16;
+
+    // Determine y range
+    const yMin = -0.5;
+    const yMax = 3;
+
+    drawAxesCustom(OX, OY, SCX, SCY, [0, xR], [yMin, yMax], true);
+
+    // Formula at top
+    formulaBox(T('Granica w niesko\u0144czono\u015Bci: x \u2192 \u221E', 'Limit at infinity: x \u2192 \u221E'), W/2, 22, COL_CYAN, 13);
+
+    // f(x) = 1/x
+    const fn1 = function(x) { return 1/x; };
+    plotFn(fn1, OX, OY, SCX, SCY, COL_YELLOW, 0.8, 2.5, null, 0);
+
+    // f(x) = (2x+1)/(x+1)
+    const fn2 = function(x) { return (2*x + 1) / (x + 1); };
+    plotFn(fn2, OX, OY, SCX, SCY, COL_PURPLE, 0.8, 2.5);
+
+    // Asymptote y=0 for 1/x
+    dashedLine(0, OY, W, OY, COL_YELLOW, 0.25, [6, 4]);
+    infoBox('y = 0', W - 35, OY + 12, COL_YELLOW, 0.5, 9);
+
+    // Asymptote y=2 for (2x+1)/(x+1)
+    const asy2Y = OY - 2 * SCY;
+    dashedLine(0, asy2Y, W, asy2Y, COL_PURPLE, 0.25, [6, 4]);
+    infoBox('y = 2', W - 35, asy2Y - 12, COL_PURPLE, 0.5, 9);
+
+    // Epsilon band around y=0 for 1/x
+    const epsSmall = 0.3;
+    const epsTopY = OY - epsSmall * SCY;
+    const epsBotY = OY + epsSmall * SCY;
+    drawBand(0, epsTopY, W, epsBotY, COL_YELLOW, 0.06);
+    dashedLine(0, epsTopY, W, epsTopY, COL_YELLOW, 0.15, [2, 3]);
+    dashedLine(0, epsBotY, W, epsBotY, COL_YELLOW, 0.15, [2, 3]);
+
+    // Show where 1/x enters the epsilon band
+    const enterX = 1 / epsSmall;
+    if (enterX < xR) {
+      const enterSX = OX + enterX * SCX;
+      dashedLine(enterSX, epsTopY, enterSX, epsBotY, COL_GREEN, 0.4, [3, 3]);
+      infoBox('x > ' + fmt(enterX, 1) + ': |f(x)| < \u03B5', enterSX, epsBotY + 15, COL_GREEN, 0.7, 9);
+    }
+
+    // Animated dot on 1/x
+    const dotT = (animT * 0.15) % 1;
+    const dotX1 = lerp(0.5, xR * 0.9, ease(dotT));
+    const dotY1 = fn1(dotX1);
+    const dotSX1 = OX + dotX1 * SCX;
+    const dotSY1 = OY - dotY1 * SCY;
+    if (dotSX1 > OX && dotSX1 < W) {
+      gdot(dotSX1, dotSY1, 4, COL_YELLOW, 14);
+    }
+
+    // Animated dot on (2x+1)/(x+1)
+    const dotX2 = lerp(0.2, xR * 0.9, ease(dotT));
+    const dotY2 = fn2(dotX2);
+    const dotSX2 = OX + dotX2 * SCX;
+    const dotSY2 = OY - dotY2 * SCY;
+    if (dotSX2 > OX && dotSX2 < W) {
+      gdot(dotSX2, dotSY2, 4, COL_PURPLE, 14);
+    }
+
+    // Value display
+    if (dotX1 > 1 && dotSX1 < W - 30) {
+      infoBox('1/x: f(' + fmt(dotX1, 1) + ')=' + fmt(dotY1, 4), dotSX1, dotSY1 - 16, COL_YELLOW, 0.7, 9);
+    }
+    if (dotX2 > 1 && dotSX2 < W - 30) {
+      infoBox('(2x+1)/(x+1): f(' + fmt(dotX2, 1) + ')=' + fmt(dotY2, 3), dotSX2, dotSY2 + 18, COL_PURPLE, 0.7, 9);
+    }
+
+    // Legend
+    cx.save();
+    cx.font = '10px monospace';
+    // 1/x legend
+    cx.fillStyle = COL_YELLOW;
+    cx.globalAlpha = 0.8;
+    cx.fillRect(20, H - 50, 12, 3);
+    cx.fillText('1/x \u2192 0', 38, H - 46);
+    // (2x+1)/(x+1) legend
+    cx.fillStyle = COL_PURPLE;
+    cx.fillRect(20, H - 35, 12, 3);
+    cx.fillText('(2x+1)/(x+1) \u2192 2', 38, H - 31);
+    cx.restore();
+
+    // Bottom insight
+    infoBox(T('Przy du\u017Cych x, funkcja stabilizuje si\u0119 blisko asymptoty',
+             'For large x, the function settles near its asymptote'), W/2, H - 12, 'rgba(255,255,255,0.4)', 0.6, 10);
+  }
+
+  // ── Stages ───────────────────────────────────────────────
+  const stages = [
+    {
+      title: () => T('Co si\u0119 dzieje blisko punktu?', 'What happens near a point?'),
+      desc: () => T(
+        'f(x) = (x\u00B2\u22121)/(x\u22121) jest nieokre\u015Blona dla x=1 (0/0!). Ale przesuwaj x coraz bli\u017Cej 1 \u2014 warto\u015Bci zbli\u017Caj\u0105 si\u0119 do 2. To w\u0142a\u015Bnie jest granica: warto\u015B\u0107, do kt\u00F3rej funkcja D\u0104\u017BY.',
+        'f(x) = (x\u00B2\u22121)/(x\u22121) is undefined at x=1 (0/0!). But slide x closer and closer to 1 \u2014 the values approach 2. That IS the limit: the value the function APPROACHES.'
+      ),
+      sliders: [
+        { id: 'approach', lbl: T('blisko\u015B\u0107', 'closeness'), color: COL_YELLOW, min: 0, max: 1, step: 0.01, get: () => s1_xApproach, set: v => s1_xApproach = v },
+      ],
+      draw: drawStage1
+    },
+    {
+      title: () => T('Zbli\u017Camy si\u0119 \u2014 z obu stron', 'Approaching \u2014 from both sides'),
+      desc: () => T(
+        'Granica istnieje, gdy OBE strony si\u0119 zgadzaj\u0105. Zoom: powi\u0119kszamy okolice x=1 jak mikroskopem. Z lewej x\u21921\u207B, z prawej x\u21921\u207A. Obie zbiegaj\u0105 do 2 \u2014 granica = 2.',
+        'A limit exists when BOTH sides agree. Zoom: magnifying around x=1 like a microscope. From the left x\u21921\u207B, from the right x\u21921\u207A. Both converge to 2 \u2014 limit = 2.'
+      ),
+      sliders: [
+        { id: 'zoom', lbl: 'zoom', color: COL_GREEN, min: 0, max: 1, step: 0.01, get: () => s2_zoom, set: v => s2_zoom = v },
+      ],
+      draw: drawStage2
+    },
+    {
+      title: () => T('Kiedy granica NIE istnieje', 'When the limit does NOT exist'),
+      desc: () => T(
+        'Prze\u0142\u0105cz mi\u0119dzy 1/x (strony id\u0105 w \u00B1\u221E \u2014 nie zgadzaj\u0105 si\u0119) i sin(1/x) (oszalale oscylacje \u2014 nigdy si\u0119 nie ustabilizuje). W obu przypadkach granica nie istnieje.',
+        'Toggle between 1/x (sides go to \u00B1\u221E \u2014 disagree) and sin(1/x) (wild oscillations \u2014 never settles). In both cases the limit does not exist.'
+      ),
+      sliders: [
+        { id: 'example', lbl: T('przyk\u0142ad', 'example'), color: COL_PINK, min: 0, max: 1, step: 1, get: () => s3_example, set: v => s3_example = v },
+      ],
+      draw: drawStage3
+    },
+    {
+      title: () => T('Epsilon-delta \u2014 jak blisko wystarczy?', 'Epsilon-delta \u2014 how close is enough?'),
+      desc: () => T(
+        'Chcesz f(x) w odleg\u0142o\u015Bci \u03B5 od 2? Trzymaj x w odleg\u0142o\u015Bci \u03B4 od 1. Zmniejszaj \u03B5 \u2014 \u03B4 maleje razem z nim, ale ZAWSZE si\u0119 da! To formalna definicja granicy.',
+        'Want f(x) within \u03B5 of 2? Keep x within \u03B4 of 1. Shrink \u03B5 \u2014 \u03B4 shrinks with it, but it ALWAYS works! That\'s the formal definition of a limit.'
+      ),
+      sliders: [
+        { id: 'eps', lbl: '\u03B5', color: COL_YELLOW, min: 0.01, max: 2, step: 0.01, get: () => s4_epsilon, set: v => s4_epsilon = v },
+      ],
+      draw: drawStage4
+    },
+    {
+      title: () => T('Granica w niesko\u0144czono\u015Bci', 'Limit at infinity'),
+      desc: () => T(
+        '1/x \u2192 0 i (2x+1)/(x+1) \u2192 2 gdy x \u2192 \u221E. Powi\u0119kszaj zakres \u2014 krzywa sp\u0142aszcza si\u0119 ku asympto\u0107ie. Bez wzgl\u0119du na \u03B5, w ko\u0144cu f(x) zostaje w pasmie.',
+        '1/x \u2192 0 and (2x+1)/(x+1) \u2192 2 as x \u2192 \u221E. Increase the range \u2014 the curve flattens toward the asymptote. No matter how small \u03B5, eventually f(x) stays in the band.'
+      ),
+      sliders: [
+        { id: 'xrange', lbl: T('zakres x', 'x range'), color: COL_BLUE, min: 2, max: 50, step: 1, get: () => s5_xRange, set: v => s5_xRange = v },
+      ],
+      draw: drawStage5
+    },
+  ];
+
+  // ── Slider management ────────────────────────────────────
+  const slWrap = document.getElementById('sliders-wrap');
+
+  function buildSliders(defs) {
+    let html = '<div class="sliders">';
+    defs.forEach(function(s) {
+      const v = s.get();
+      html += '<div class="slider-row">' +
+        '<span class="lbl" style="color:' + s.color + '">' + s.lbl + ' =</span>' +
+        '<input type="range" id="s_' + s.id + '" min="' + s.min + '" max="' + s.max + '" step="' + s.step + '" value="' + v + '">' +
+        '<span class="val" id="v_' + s.id + '" style="color:' + s.color + '"></span>' +
+      '</div>';
+    });
+    html += '</div>';
+    slWrap.innerHTML = html;
+
+    defs.forEach(function(s) {
+      const el = document.getElementById('s_' + s.id);
+      const valEl = document.getElementById('v_' + s.id);
+      valEl.textContent = fmtSlider(+el.value, s.step);
+      el.addEventListener('input', function() {
+        const v = +this.value;
+        valEl.textContent = fmtSlider(v, s.step);
+        s.set(v);
+      });
+    });
+  }
+
+  function fmtSlider(v, step) {
+    if (step < 0.01) return v.toFixed(3);
+    if (step < 0.1) return v.toFixed(2);
+    if (step < 1) return v.toFixed(1 + (step < 0.5 ? 1 : 0));
+    return v.toFixed(0);
+  }
+
+  // ── Navigation ───────────────────────────────────────────
+  const prevBtn = document.getElementById('qprev');
+  const nextBtn = document.getElementById('qnext');
+  const dotsEl  = document.getElementById('qdots');
+  const titleEl = document.getElementById('qf');
+  const descEl  = document.getElementById('qd');
+
+  function goTo(idx) {
+    stage = Math.max(0, Math.min(stages.length - 1, idx));
+    const s = stages[stage];
+    titleEl.textContent = s.title();
+    descEl.textContent = s.desc();
+
+    if (s.sliders) {
+      buildSliders(s.sliders);
+    } else {
+      slWrap.innerHTML = '';
+    }
+
+    prevBtn.disabled = stage === 0;
+    nextBtn.disabled = stage === stages.length - 1;
+    renderDots();
+  }
+
+  function renderDots() {
+    dotsEl.innerHTML = stages.map(function(_, i) {
+      return '<span class="dot' + (i === stage ? ' active' : '') + '" data-i="' + i + '"></span>';
+    }).join('');
+    dotsEl.querySelectorAll('.dot').forEach(function(d) {
+      d.addEventListener('click', function() { goTo(+d.dataset.i); });
+    });
+  }
+
+  prevBtn.addEventListener('click', function() { goTo(stage - 1); });
+  nextBtn.addEventListener('click', function() { goTo(stage + 1); });
+
+  // ── Render loop ──────────────────────────────────────────
+  let lastTime = 0;
+  function tick(ts) {
+    const dt = Math.min((ts - lastTime) / 1000, 0.05);
+    lastTime = ts;
+    animT += dt;
+    time = ts / 1000;
+
+    clear();
+    stages[stage].draw();
+    requestAnimationFrame(tick);
+  }
+
+  goTo(0);
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rownania liniowe — Waga w rownowadze</title>
+<title>Równania liniowe — Waga w równowadze</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
@@ -229,9 +229,9 @@
   const stages = [
     // Stage 1: Equation is a balance
     {
-      title: () => T('Rownanie to waga', 'An equation is a balance'),
+      title: () => T('Równanie to waga', 'An equation is a balance'),
       desc: () => T(
-        'Rownanie mowi: lewa strona wazy tyle samo co prawa. 2x + 3 = 7 znaczy: dwa x-y plus trzy jednostki waza dokladnie siedem.',
+        'Równanie mówi: lewa strona waży tyle samo co prawa. 2x + 3 = 7 znaczy: dwa x-y plus trzy jednostki ważą dokładnie siedem.',
         'An equation says: the left side weighs the same as the right. 2x + 3 = 7 means: two x-blocks plus three units weigh exactly seven.'
       ),
       sliders: [],
@@ -263,7 +263,7 @@
     {
       title: () => T('Odejmij z obu stron', 'Subtract from both sides'),
       desc: () => T(
-        'Odejmij 3 z obu stron. Waga zostaje w rownowadze! 2x + 3 - 3 = 7 - 3, czyli 2x = 4.',
+        'Odejmij 3 z obu stron. Waga zostaje w równowadze! 2x + 3 - 3 = 7 - 3, czyli 2x = 4.',
         'Subtract 3 from both sides. The balance stays level! 2x + 3 - 3 = 7 - 3, so 2x = 4.'
       ),
       sliders: [],
@@ -303,7 +303,7 @@
     {
       title: () => T('Podziel obie strony', 'Divide both sides'),
       desc: () => T(
-        'Podziel obie strony przez 2. 2x/2 = 4/2, czyli x = 2. Sprawdzenie: 2*2 + 3 = 7. Zgadza sie!',
+        'Podziel obie strony przez 2. 2x/2 = 4/2, czyli x = 2. Sprawdzenie: 2*2 + 3 = 7. Zgadza się!',
         'Divide both sides by 2. 2x/2 = 4/2, so x = 2. Check: 2*2 + 3 = 7. Correct!'
       ),
       sliders: [],
@@ -345,7 +345,7 @@
     {
       title: () => T('Twoja kolej: ax + b = c', 'Your turn: ax + b = c'),
       desc: () => T(
-        'Ustaw a, b, c i zobacz rozwiazanie krok po kroku. Kazdy krok to operacja na obu stronach wagi.',
+        'Ustaw a, b, c i zobacz rozwiązanie krok po kroku. Każdy krok to operacja na obu stronach wagi.',
         'Set a, b, c and see the step-by-step solution. Each step is an operation on both sides of the balance.'
       ),
       sliders: [
@@ -451,9 +451,9 @@
 
     // Stage 5: Special cases / traps
     {
-      title: () => T('Pulapki: a = 0', 'Traps: a = 0'),
+      title: () => T('Pułapki: a = 0', 'Traps: a = 0'),
       desc: () => T(
-        'Co jesli a = 0? Wtedy 0*x + b = c, czyli b = c. Jesli b = c, kazdy x jest rozwiazaniem (waga zawsze w rownowadze). Jesli b != c, nie ma rozwiazania (waga sie nigdy nie zrownoważy).',
+        'Co jeśli a = 0? Wtedy 0*x + b = c, czyli b = c. Jeśli b = c, każdy x jest rozwiązaniem (waga zawsze w równowadze). Jeśli b != c, nie ma rozwiązania (waga się nigdy nie zrównoważy).',
         'What if a = 0? Then 0*x + b = c, i.e. b = c. If b = c, every x is a solution (scale always balanced). If b != c, no solution (scale can never balance).'
       ),
       sliders: [
@@ -486,7 +486,7 @@
           cx.font = '14px monospace';
           cx.fillStyle = COL_OK;
           cx.textAlign = 'center';
-          cx.fillText(b + ' = ' + c + '  \u2713  ' + T('Kazdy x jest rozwiazaniem!', 'Every x is a solution!'), W/2, H - 30);
+          cx.fillText(b + ' = ' + c + '  \u2713  ' + T('Każdy x jest rozwiązaniem!', 'Every x is a solution!'), W/2, H - 30);
           cx.restore();
         } else {
           // Contradiction: no solution
@@ -507,7 +507,7 @@
           cx.font = '14px monospace';
           cx.fillStyle = COL_CANCEL;
           cx.textAlign = 'center';
-          cx.fillText(b + ' \u2260 ' + c + '  \u2717  ' + T('Brak rozwiazania!', 'No solution!'), W/2, H - 30);
+          cx.fillText(b + ' \u2260 ' + c + '  \u2717  ' + T('Brak rozwiązania!', 'No solution!'), W/2, H - 30);
           cx.restore();
         }
       }
