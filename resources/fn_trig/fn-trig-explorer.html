@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Funkcje trygonometryczne (okresowe)</title>
+</head>
+<body>
+<script type="module">
+import { VizCore, T, COLORS } from '../lib/viz-core.js';
+
+const OX = 80, OY = 185, SC_X = 55, SC_Y = 85;
+const px = x => OX + x * SC_X;
+const py = y => OY - y * SC_Y;
+
+function drawAxes(cx, W, H) {
+  cx.strokeStyle = 'rgba(255,255,255,0.3)'; cx.lineWidth = 1.5;
+  cx.beginPath(); cx.moveTo(0, OY); cx.lineTo(W, OY); cx.stroke();
+  cx.beginPath(); cx.moveTo(OX, 0); cx.lineTo(OX, H); cx.stroke();
+  // x-axis labels in π
+  cx.font = '10px monospace'; cx.fillStyle = 'rgba(255,255,255,0.25)'; cx.textAlign = 'center';
+  [[-2,'−2π'],[-1.5,'−3π/2'],[-1,'−π'],[-0.5,'−π/2'],[0,'0'],
+   [0.5,'π/2'],[1,'π'],[1.5,'3π/2'],[2,'2π']].forEach(([k, lbl]) => {
+    const x = px(k * Math.PI);
+    if (x > 10 && x < W - 10) cx.fillText(lbl, x, OY + 14);
+  });
+  // y-axis
+  [-1, 1].forEach(v => {
+    const y = py(v);
+    cx.beginPath(); cx.moveTo(OX - 4, y); cx.lineTo(OX + 4, y);
+    cx.strokeStyle = 'rgba(255,255,255,0.2)'; cx.lineWidth = 1; cx.stroke();
+    cx.textAlign = 'right'; cx.fillText(v, OX - 7, y + 4);
+  });
+}
+function plotFn(cx, W, fn, col, lw = 2) {
+  cx.beginPath(); let first = true;
+  for (let sx = 0; sx < W; sx += 2) {
+    const x = (sx - OX) / SC_X;
+    const y = fn(x);
+    if (!isFinite(y) || y > 3 || y < -3) { first = true; continue; }
+    if (first) { cx.moveTo(sx, py(y)); first = false; } else cx.lineTo(sx, py(y));
+  }
+  cx.strokeStyle = col; cx.lineWidth = lw;
+  cx.shadowColor = col; cx.shadowBlur = 4; cx.stroke(); cx.shadowBlur = 0;
+}
+
+const { cx, W, H } = VizCore.init({
+  title: T('Funkcje trygon. (okresowe)', 'Trig Functions (periodic)'),
+  H: 360,
+  stages: [
+    // ── Stage 0: sin(x) — period, amplitude ──────────────────────
+    {
+      title: () => T('sin(x) — okres i amplituda', 'sin(x) — period and amplitude'),
+      desc:  () => T(
+        'sin(x) ma okres 2π (powtarza się co 2π) i amplitudę 1 (oscyluje między −1 a 1). Zmień A i B w A·sin(B·x).',
+        'sin(x) has period 2π (repeats every 2π) and amplitude 1 (oscillates between −1 and 1). Change A and B in A·sin(B·x).'
+      ),
+      sliders: [
+        { id: 'A', lbl: 'A', color: COLORS.CYAN,   min: 0.1, max: 2,   step: 0.1, val: 1 },
+        { id: 'B', lbl: 'B', color: COLORS.ORANGE, min: 0.25, max: 3,  step: 0.25, val: 1 },
+      ],
+      draw(cx, W, H, vals) {
+        const A = vals.A, B = vals.B;
+        drawAxes(cx, W, H);
+        // Reference sin(x) faint
+        plotFn(cx, W, x => Math.sin(x), 'rgba(88,196,221,0.2)', 1);
+        // Modified
+        plotFn(cx, W, x => A * Math.sin(B * x), COLORS.CYAN, 2.5);
+
+        // Period marker
+        const period = 2 * Math.PI / B;
+        cx.beginPath(); cx.moveTo(px(0), py(A)); cx.lineTo(px(period), py(A));
+        cx.strokeStyle = 'rgba(255,209,102,0.5)'; cx.lineWidth = 1; cx.setLineDash([4,3]); cx.stroke(); cx.setLineDash([]);
+        cx.font = '11px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = COLORS.YELLOW; cx.fillText('T = 2π/' + B + ' = ' + (Math.round(period * 100) / 100).toFixed(2), px(period / 2), py(A) - 10);
+
+        // Amplitude marker
+        cx.beginPath(); cx.moveTo(OX - 30, py(A)); cx.lineTo(OX - 30, py(-A));
+        cx.strokeStyle = 'rgba(88,196,221,0.5)'; cx.lineWidth = 1; cx.setLineDash([3,3]); cx.stroke(); cx.setLineDash([]);
+        cx.fillStyle = COLORS.CYAN; cx.fillText('A=' + A, OX - 42, (py(A) + py(-A)) / 2);
+
+        cx.font = '13px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText(A + '·sin(' + B + 'x)', 12, 22);
+        cx.fillStyle = 'rgba(255,255,255,0.4)';
+        cx.fillText('Okres T = 2π/' + B + ', Amplituda = ' + A, 12, 40);
+      },
+    },
+
+    // ── Stage 1: cos(x) — shift relation to sin ───────────────────
+    {
+      title: () => T('cos(x) = sin(x + π/2)', 'cos(x) = sin(x + π/2)'),
+      desc:  () => T(
+        'Cosinus to sinus przesunięty o π/2 w lewo. Mają ten sam kształt, tylko inne położenie. Zmień przesunięcie fazowe.',
+        'Cosine is sine shifted left by π/2. Same shape, different position. Change the phase shift.'
+      ),
+      sliders: [
+        { id: 'phi', lbl: 'φ', color: COLORS.ORANGE, min: -2, max: 2, step: 0.1, val: 0 },
+      ],
+      draw(cx, W, H, vals) {
+        const phi = vals.phi;
+        drawAxes(cx, W, H);
+        plotFn(cx, W, x => Math.sin(x), COLORS.CYAN, 2);
+        plotFn(cx, W, x => Math.sin(x + phi * Math.PI), COLORS.ORANGE, 2);
+        plotFn(cx, W, x => Math.cos(x), 'rgba(131,193,103,0.4)', 1.5);
+
+        cx.font = '12px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN;    cx.fillText('sin(x)', 12, 22);
+        cx.fillStyle = COLORS.ORANGE;  cx.fillText('sin(x + ' + phi.toFixed(1) + 'π)', 12, 40);
+        cx.fillStyle = COLORS.GREEN;   cx.fillText('cos(x) — dla porównania', 12, 58);
+        if (Math.abs(phi - 0.5) < 0.05) {
+          cx.fillStyle = COLORS.YELLOW; cx.fillText('↑ to prawie cos(x)! φ = π/2', 12, 76);
+        }
+      },
+    },
+
+    // ── Stage 2: tan(x) ──────────────────────────────────────────
+    {
+      title: () => T('tan(x) = sin(x)/cos(x)', 'tan(x) = sin(x)/cos(x)'),
+      desc:  () => T(
+        'tan(x) nie jest ograniczony — dąży do ±∞ gdy cos(x)→0 (w ±π/2, ±3π/2,...). Okres to π, nie 2π.',
+        'tan(x) is unbounded — approaches ±∞ as cos(x)→0 (at ±π/2, ±3π/2,...). Period is π, not 2π.'
+      ),
+      sliders: [],
+      draw(cx, W, H) {
+        drawAxes(cx, W, H);
+        // Asymptotes
+        [-1.5, -0.5, 0.5, 1.5].forEach(k => {
+          const x = px(k * Math.PI);
+          cx.beginPath(); cx.moveTo(x, 0); cx.lineTo(x, H);
+          cx.strokeStyle = 'rgba(255,107,53,0.3)'; cx.lineWidth = 1; cx.setLineDash([4,4]); cx.stroke(); cx.setLineDash([]);
+        });
+        // tan(x) — clip hard
+        plotFn(cx, W, x => {
+          const cosv = Math.cos(x);
+          if (Math.abs(cosv) < 0.08) return NaN;
+          return Math.sin(x) / cosv;
+        }, COLORS.YELLOW, 2.5);
+        // sin and cos faint
+        plotFn(cx, W, Math.sin, 'rgba(88,196,221,0.3)', 1.5);
+        plotFn(cx, W, Math.cos, 'rgba(255,107,53,0.3)', 1.5);
+
+        cx.font = '12px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.YELLOW; cx.fillText('tan(x) = sin(x)/cos(x)', 12, 22);
+        cx.fillStyle = COLORS.ORANGE; cx.fillText('asymptoty w x = ±π/2, ±3π/2...', 12, 40);
+        cx.fillStyle = 'rgba(255,255,255,0.35)'; cx.fillText('Okres = π', 12, 58);
+      },
+    },
+
+    // ── Stage 3: All three — unit circle link ─────────────────────
+    {
+      title: () => T('Wszystkie trzy na kole jednostkowym', 'All three on the unit circle'),
+      desc:  () => T(
+        'Suwak obraca punkt na kole. sin = rzut na Y, cos = rzut na X, tan = odcinek styczny. Patrz jak wykresy budują się na bieżąco.',
+        'Slider rotates the point on the circle. sin = Y projection, cos = X projection, tan = tangent segment. Watch the graphs build up live.'
+      ),
+      sliders: [
+        { id: 'angle', lbl: 'θ', color: COLORS.CYAN, min: 0, max: 360, step: 1, val: 45 },
+      ],
+      draw(cx, W, H, vals) {
+        const theta = vals.angle * Math.PI / 180;
+        // Split canvas: left = unit circle, right = mini graph
+        const CX = 140, CY = H / 2, R = 110;
+
+        cx.beginPath(); cx.arc(CX, CY, R, 0, Math.PI * 2);
+        cx.strokeStyle = 'rgba(255,255,255,0.2)'; cx.lineWidth = 1.5; cx.stroke();
+        cx.beginPath(); cx.moveTo(CX - R - 10, CY); cx.lineTo(CX + R + 10, CY);
+        cx.moveTo(CX, CY - R - 10); cx.lineTo(CX, CY + R + 10);
+        cx.strokeStyle = 'rgba(255,255,255,0.3)'; cx.lineWidth = 1.5; cx.stroke();
+
+        const Px = CX + R * Math.cos(theta), Py = CY - R * Math.sin(theta);
+
+        // cos (x-projection)
+        cx.beginPath(); cx.moveTo(CX, CY); cx.lineTo(Px, CY);
+        cx.strokeStyle = COLORS.ORANGE; cx.lineWidth = 3; cx.stroke();
+        // sin (y-projection)
+        cx.beginPath(); cx.moveTo(Px, Py); cx.lineTo(Px, CY);
+        cx.strokeStyle = COLORS.GREEN; cx.lineWidth = 3; cx.stroke();
+        // radius
+        cx.beginPath(); cx.moveTo(CX, CY); cx.lineTo(Px, Py);
+        cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 2.5; cx.stroke();
+
+        cx.beginPath(); cx.arc(Px, Py, 6, 0, Math.PI * 2);
+        cx.fillStyle = COLORS.CYAN; cx.shadowColor = COLORS.CYAN;
+        cx.shadowBlur = 10; cx.fill(); cx.shadowBlur = 0;
+
+        // Mini waveform on right side
+        const gx0 = 295, gW = W - gx0 - 10, gH = 80, gY = H / 2;
+        const gSC = gW / (2 * Math.PI);
+
+        cx.beginPath(); cx.moveTo(gx0, gY); cx.lineTo(gx0 + gW, gY);
+        cx.strokeStyle = 'rgba(255,255,255,0.2)'; cx.lineWidth = 1; cx.stroke();
+
+        // Draw sin wave
+        cx.beginPath();
+        for (let t = 0; t <= 2 * Math.PI; t += 0.05) {
+          const sx = gx0 + t * gSC, sy = gY - Math.sin(t) * gH / 2;
+          if (t === 0) cx.moveTo(sx, sy); else cx.lineTo(sx, sy);
+        }
+        cx.strokeStyle = COLORS.GREEN; cx.lineWidth = 1.5; cx.stroke();
+
+        // Dot on wave
+        const wx = gx0 + theta * gSC, wy = gY - Math.sin(theta) * gH / 2;
+        cx.beginPath(); cx.arc(wx % (gx0 + gW) || wx, wy, 5, 0, Math.PI * 2);
+        cx.fillStyle = COLORS.GREEN; cx.fill();
+
+        // Values
+        cx.font = '11px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN;   cx.fillText('θ = ' + vals.angle + '°', CX + R + 14, CY - 36);
+        cx.fillStyle = COLORS.GREEN;  cx.fillText('sin = ' + Math.sin(theta).toFixed(3), CX + R + 14, CY - 18);
+        cx.fillStyle = COLORS.ORANGE; cx.fillText('cos = ' + Math.cos(theta).toFixed(3), CX + R + 14, CY);
+        const tanV = Math.abs(Math.cos(theta)) > 0.01 ? Math.tan(theta).toFixed(3) : '∞';
+        cx.fillStyle = COLORS.YELLOW; cx.fillText('tan = ' + tanV, CX + R + 14, CY + 18);
+      },
+    },
+  ],
+});
+</script>
+</body>
+</html>

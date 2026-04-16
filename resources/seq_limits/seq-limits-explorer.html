@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Granice ciągów</title>
+</head>
+<body>
+<script type="module">
+import { VizCore, T, COLORS } from '../lib/viz-core.js';
+
+const { cx, W, H } = VizCore.init({
+  title: T('Granice ciągów', 'Limits of Sequences'),
+  H: 360,
+  stages: [
+    // ── Stage 0: Convergent sequence — 1/n ───────────────────────
+    {
+      title: () => T('Ciąg zbieżny — 1/n → 0', 'Convergent sequence — 1/n → 0'),
+      desc:  () => T(
+        'Ciąg aₙ = 1/n dąży do 0 — wyrazy coraz bliżej granicy, ale nigdy jej nie osiągają. Zmień N aby zobaczyć więcej wyrazów.',
+        'Sequence aₙ = 1/n approaches 0 — terms get closer to the limit but never reach it. Change N to see more terms.'
+      ),
+      sliders: [
+        { id: 'N', lbl: 'N', color: COLORS.CYAN, min: 5, max: 40, step: 1, val: 15 },
+      ],
+      draw(cx, W, H, vals) {
+        const N = Math.round(vals.N);
+        const OX = 60, OY = H - 50, gW = W - 80, gH = H - 90;
+        const px = n => OX + (n / (N + 1)) * gW;
+        const py = v => OY - v * gH;
+
+        // Axes
+        cx.strokeStyle = 'rgba(255,255,255,0.3)'; cx.lineWidth = 1.5;
+        cx.beginPath(); cx.moveTo(OX, OY); cx.lineTo(OX + gW, OY); cx.stroke();
+        cx.beginPath(); cx.moveTo(OX, 10); cx.lineTo(OX, OY); cx.stroke();
+
+        // Limit line y = 0
+        cx.beginPath(); cx.moveTo(OX, OY); cx.lineTo(OX + gW, OY);
+        cx.strokeStyle = COLORS.GREEN; cx.lineWidth = 1.5;
+        cx.setLineDash([5, 4]); cx.stroke(); cx.setLineDash([]);
+        cx.font = '11px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.GREEN; cx.fillText('lim = 0', OX + gW - 58, OY - 6);
+
+        // Labels y-axis
+        cx.fillStyle = 'rgba(255,255,255,0.25)'; cx.font = '10px monospace'; cx.textAlign = 'right';
+        [0.25, 0.5, 0.75, 1].forEach(v => {
+          const y = py(v);
+          cx.fillText(v.toFixed(2), OX - 4, y + 4);
+          cx.beginPath(); cx.moveTo(OX - 2, y); cx.lineTo(OX + 2, y);
+          cx.strokeStyle = 'rgba(255,255,255,0.15)'; cx.lineWidth = 1; cx.stroke();
+        });
+
+        // Sequence dots + connecting line
+        cx.beginPath();
+        for (let n = 1; n <= N; n++) {
+          const x = px(n), y = py(1 / n);
+          if (n === 1) cx.moveTo(x, y); else cx.lineTo(x, y);
+        }
+        cx.strokeStyle = 'rgba(88,196,221,0.3)'; cx.lineWidth = 1; cx.stroke();
+
+        for (let n = 1; n <= N; n++) {
+          const x = px(n), y = py(1 / n);
+          cx.beginPath(); cx.arc(x, y, 4, 0, Math.PI * 2);
+          const alpha = Math.max(0.3, 1 - n / (N * 1.2));
+          cx.fillStyle = COLORS.CYAN; cx.shadowColor = COLORS.CYAN;
+          cx.shadowBlur = 4; cx.fill(); cx.shadowBlur = 0;
+        }
+
+        cx.font = '13px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('aₙ = 1/n', 14, 22);
+        cx.fillStyle = 'rgba(255,255,255,0.45)';
+        cx.fillText('a' + N + ' = ' + (1 / N).toFixed(4) + ' → 0', 14, 40);
+      },
+    },
+
+    // ── Stage 1: Algebraic limit — divide by highest power ─────
+    {
+      title: () => T('Obliczanie granicy algebraicznie', 'Computing limits algebraically'),
+      desc:  () => T(
+        'Dzielimy licznik i mianownik przez n (najwyższa potęga w mianowniku). Wyrazy 3/n i 1/n dążą do 0 gdy n→∞. Granica = 2.',
+        'Divide top and bottom by n (highest power in denominator). Terms 3/n and 1/n approach 0 as n→∞. Limit = 2.'
+      ),
+      sliders: [
+        { id: 'N', lbl: 'N', color: COLORS.CYAN, min: 1, max: 50, step: 1, val: 8 },
+      ],
+      draw(cx, W, H, vals) {
+        const N = Math.round(vals.N);
+        const fn = n => (2 * n + 3) / (n + 1);
+        const OX = 60, OY = H - 50, gW = W - 80, gH = H - 90;
+        const yMin = 1.85, yMax = 3.2;
+        const px = n => OX + (n / (N + 1)) * gW;
+        const py = v => OY - (v - yMin) / (yMax - yMin) * gH;
+
+        // Axes
+        cx.strokeStyle = 'rgba(255,255,255,0.3)'; cx.lineWidth = 1.5;
+        cx.beginPath(); cx.moveTo(OX, OY); cx.lineTo(OX + gW, OY); cx.stroke();
+        cx.beginPath(); cx.moveTo(OX, 10); cx.lineTo(OX, OY); cx.stroke();
+
+        // Limit line y = 2
+        cx.beginPath(); cx.moveTo(OX, py(2)); cx.lineTo(OX + gW, py(2));
+        cx.strokeStyle = COLORS.GREEN; cx.lineWidth = 1.5; cx.setLineDash([5, 4]); cx.stroke(); cx.setLineDash([]);
+        cx.font = '11px monospace'; cx.textAlign = 'right';
+        cx.fillStyle = COLORS.GREEN; cx.fillText('lim = 2', OX + gW - 4, py(2) - 6);
+
+        // y-axis labels
+        [2, 2.5, 3].forEach(v => {
+          const y = py(v);
+          if (y < 0 || y > OY) return;
+          cx.fillStyle = 'rgba(255,255,255,0.25)'; cx.font = '10px monospace'; cx.textAlign = 'right';
+          cx.fillText(v.toFixed(1), OX - 4, y + 4);
+          cx.beginPath(); cx.moveTo(OX - 2, y); cx.lineTo(OX + 2, y);
+          cx.strokeStyle = 'rgba(255,255,255,0.15)'; cx.lineWidth = 1; cx.stroke();
+        });
+
+        // Connecting line
+        cx.beginPath();
+        for (let n = 1; n <= N; n++) {
+          const x = px(n), y = py(fn(n));
+          if (n === 1) cx.moveTo(x, y); else cx.lineTo(x, y);
+        }
+        cx.strokeStyle = 'rgba(88,196,221,0.3)'; cx.lineWidth = 1; cx.stroke();
+
+        // Dots
+        for (let n = 1; n <= N; n++) {
+          const sy = py(fn(n));
+          if (sy < 5 || sy > OY + 5) continue;
+          cx.beginPath(); cx.arc(px(n), sy, 4, 0, Math.PI * 2);
+          cx.fillStyle = COLORS.CYAN; cx.shadowColor = COLORS.CYAN; cx.shadowBlur = 4; cx.fill(); cx.shadowBlur = 0;
+        }
+
+        // Algebraic steps box (right side)
+        const bx = W - 214, by2 = 10;
+        cx.fillStyle = 'rgba(22,22,26,0.92)';
+        cx.strokeStyle = 'rgba(255,255,255,0.1)'; cx.lineWidth = 0.8;
+        cx.beginPath(); cx.roundRect(bx, by2, 206, 118, 6); cx.fill(); cx.stroke();
+
+        let lx2 = bx + 10, ly2 = by2 + 16;
+        cx.font = '11px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('aₙ = (2n + 3) / (n + 1)', lx2, ly2); ly2 += 18;
+        cx.fillStyle = 'rgba(255,255,255,0.45)'; cx.fillText('÷ n:', lx2, ly2);
+        cx.fillStyle = 'rgba(255,255,255,0.85)'; cx.fillText('(2 + 3/n) / (1 + 1/n)', lx2 + 34, ly2); ly2 += 18;
+
+        const inv = 1 / N;
+        cx.fillStyle = 'rgba(255,255,255,0.5)'; cx.fillText('3/n =', lx2, ly2);
+        cx.fillStyle = COLORS.YELLOW; cx.fillText((3 * inv).toFixed(4) + ' → 0', lx2 + 40, ly2); ly2 += 16;
+        cx.fillStyle = 'rgba(255,255,255,0.5)'; cx.fillText('1/n =', lx2, ly2);
+        cx.fillStyle = COLORS.YELLOW; cx.fillText(inv.toFixed(4) + ' → 0', lx2 + 40, ly2); ly2 += 18;
+
+        cx.fillStyle = 'rgba(255,255,255,0.5)'; cx.fillText('lim =', lx2, ly2);
+        cx.fillStyle = COLORS.GREEN; cx.fillText('(2+0)/(1+0) = 2', lx2 + 38, ly2);
+
+        cx.font = '13px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN; cx.fillText('aₙ = (2n+3)/(n+1)', 14, 22);
+        cx.fillStyle = 'rgba(255,255,255,0.5)'; cx.fillText('a' + N + ' = ' + fn(N).toFixed(5) + ' → 2', 14, 40);
+      },
+    },
+
+    // ── Stage 2: Divergent vs convergent ─────────────────────────
+    {
+      title: () => T('Zbieżność vs rozbieżność', 'Convergent vs divergent'),
+      desc:  () => T(
+        'Nie każdy ciąg ma granicę. Porównaj 1/n (zbieżny do 0), (−1)ⁿ (rozbieżny — oscyluje), n (rozbieżny do ∞).',
+        'Not every sequence has a limit. Compare 1/n (converges to 0), (−1)ⁿ (diverges — oscillates), n (diverges to ∞).'
+      ),
+      sliders: [
+        { id: 'seq', lbl: 'ciąg', color: COLORS.CYAN, min: 0, max: 2, step: 1, val: 0 },
+      ],
+      draw(cx, W, H, vals) {
+        const seq = Math.round(vals.seq);
+        const N = 20;
+        const OX = 60, OY = H / 2, gW = W - 80;
+        const seqs = [
+          { fn: n => 1 / n,         name: 'aₙ = 1/n',    gH: (H - 90) / 2, limit: '→ 0', col: COLORS.CYAN },
+          { fn: n => Math.pow(-1,n), name: 'aₙ = (−1)ⁿ', gH: (H - 90) / 2, limit: 'rozbieżny', col: COLORS.ORANGE },
+          { fn: n => n / N,          name: 'aₙ = n',      gH: (H - 90) / 2, limit: '→ ∞', col: COLORS.PINK },
+        ];
+        const s = seqs[seq];
+        const px = n => OX + (n / (N + 1)) * gW;
+        const py = v => OY - v * s.gH;
+
+        cx.strokeStyle = 'rgba(255,255,255,0.3)'; cx.lineWidth = 1.5;
+        cx.beginPath(); cx.moveTo(OX, OY); cx.lineTo(OX + gW, OY); cx.stroke();
+        cx.beginPath(); cx.moveTo(OX, 20); cx.lineTo(OX, H - 20); cx.stroke();
+
+        // y-axis labels
+        [-1, 0, 1].forEach(v => {
+          const y = py(v);
+          cx.beginPath(); cx.moveTo(OX - 3, y); cx.lineTo(OX + 3, y);
+          cx.strokeStyle = 'rgba(255,255,255,0.15)'; cx.lineWidth = 1; cx.stroke();
+          cx.font = '10px monospace'; cx.textAlign = 'right'; cx.fillStyle = 'rgba(255,255,255,0.2)';
+          cx.fillText(v, OX - 5, y + 4);
+        });
+
+        for (let n = 1; n <= N; n++) {
+          const v = s.fn(n);
+          cx.beginPath(); cx.arc(px(n), py(v), 5, 0, Math.PI * 2);
+          cx.fillStyle = s.col; cx.shadowColor = s.col; cx.shadowBlur = 5; cx.fill(); cx.shadowBlur = 0;
+        }
+
+        cx.font = '14px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = s.col; cx.fillText(s.name + ' ' + s.limit, 14, 24);
+
+        // Type indicator
+        const isConv = seq === 0;
+        cx.fillStyle = isConv ? COLORS.GREEN : COLORS.PINK;
+        cx.font = '12px monospace';
+        cx.fillText(isConv ? '✓ zbieżny' : '✗ rozbieżny', 14, 44);
+
+        cx.fillStyle = 'rgba(255,255,255,0.3)'; cx.font = '11px monospace';
+        cx.fillText('← suwak: zmień ciąg', 14, H - 14);
+      },
+    },
+
+    // ── Stage 3: Important limits ─────────────────────────────────
+    {
+      title: () => T('Ważne granice ciągów', 'Important sequence limits'),
+      desc:  () => T(
+        'Kilka kluczowych granic: (1+1/n)ⁿ → e, n·sin(1/n) → 1, n^(1/n) → 1. Użyj suwaka aby zobaczyć kolejne.',
+        'Key limits: (1+1/n)ⁿ → e, n·sin(1/n) → 1, n^(1/n) → 1. Use slider to step through them.'
+      ),
+      sliders: [
+        { id: 'which', lbl: '→', color: COLORS.CYAN, min: 0, max: 2, step: 1, val: 0 },
+        { id: 'N',     lbl: 'N', color: COLORS.ORANGE, min: 5, max: 50, step: 1, val: 20 },
+      ],
+      draw(cx, W, H, vals) {
+        const which = Math.round(vals.which), N = Math.round(vals.N);
+        const defs = [
+          { fn: n => Math.pow(1 + 1/n, n), limit: Math.E,  label: '(1+1/n)ⁿ → e ≈ 2.718', col: COLORS.CYAN },
+          { fn: n => n * Math.sin(1/n),    limit: 1,        label: 'n·sin(1/n) → 1',        col: COLORS.GREEN },
+          { fn: n => Math.pow(n, 1/n),     limit: 1,        label: 'n^(1/n) → 1',            col: COLORS.ORANGE },
+        ];
+        const d = defs[which];
+        const OX = 60, gW = W - 80, gH = H - 100;
+        // Compute range
+        const vals2 = Array.from({ length: N }, (_, i) => d.fn(i + 1));
+        const minV = Math.min(...vals2), maxV = Math.max(...vals2);
+        const span = Math.max(maxV - minV, 0.01);
+        const padV = span * 0.2;
+        const yMin = minV - padV, yMax = maxV + padV;
+        const OY = H - 50;
+        const px = n => OX + ((n - 1) / (N - 1)) * gW;
+        const py = v => OY - ((v - yMin) / (yMax - yMin)) * gH;
+
+        cx.strokeStyle = 'rgba(255,255,255,0.3)'; cx.lineWidth = 1.5;
+        cx.beginPath(); cx.moveTo(OX, OY); cx.lineTo(OX + gW, OY); cx.stroke();
+        cx.beginPath(); cx.moveTo(OX, 10); cx.lineTo(OX, OY); cx.stroke();
+
+        // Limit line
+        const ly = py(d.limit);
+        if (ly > 10 && ly < OY) {
+          cx.beginPath(); cx.moveTo(OX, ly); cx.lineTo(OX + gW, ly);
+          cx.strokeStyle = COLORS.YELLOW; cx.lineWidth = 1; cx.setLineDash([5,4]); cx.stroke(); cx.setLineDash([]);
+          cx.font = '10px monospace'; cx.fillStyle = COLORS.YELLOW; cx.textAlign = 'right';
+          cx.fillText('lim = ' + d.limit.toFixed(3), OX + gW - 2, ly - 4);
+        }
+
+        for (let n = 1; n <= N; n++) {
+          const v = d.fn(n);
+          const y = py(v);
+          if (y < 5 || y > OY + 5) continue;
+          cx.beginPath(); cx.arc(px(n), y, 4, 0, Math.PI * 2);
+          cx.fillStyle = d.col; cx.shadowColor = d.col; cx.shadowBlur = 4; cx.fill(); cx.shadowBlur = 0;
+        }
+
+        cx.font = '13px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = d.col; cx.fillText(d.label, 14, 22);
+        cx.fillStyle = 'rgba(255,255,255,0.4)';
+        cx.fillText('a' + N + ' ≈ ' + d.fn(N).toFixed(5), 14, 40);
+      },
+    },
+  ],
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zastosowania pochodnych</title>
+</head>
+<body>
+<script type="module">
+import { VizCore, T, COLORS } from '../lib/viz-core.js';
+
+const OX = 300, OY = 195, SC = 50;
+const px = x => OX + x * SC;
+const py = y => OY - y * SC;
+
+function drawGrid(cx, W, H) {
+  cx.strokeStyle = 'rgba(255,255,255,0.05)'; cx.lineWidth = 1;
+  for (let x = OX % SC; x < W; x += SC) { cx.beginPath(); cx.moveTo(x, 0); cx.lineTo(x, H); cx.stroke(); }
+  for (let y = OY % SC; y < H; y += SC) { cx.beginPath(); cx.moveTo(0, y); cx.lineTo(W, y); cx.stroke(); }
+}
+function drawAxes(cx, W, H) {
+  cx.strokeStyle = 'rgba(255,255,255,0.3)'; cx.lineWidth = 1.5;
+  cx.beginPath(); cx.moveTo(0, OY); cx.lineTo(W, OY); cx.stroke();
+  cx.beginPath(); cx.moveTo(OX, 0); cx.lineTo(OX, H); cx.stroke();
+  cx.font = '10px monospace'; cx.fillStyle = 'rgba(255,255,255,0.2)'; cx.textAlign = 'center';
+  for (let i = -5; i <= 5; i++) {
+    if (i === 0) continue;
+    const x = OX + i * SC;
+    if (x > 8 && x < W - 8) cx.fillText(i, x, OY + 13);
+  }
+}
+function plotFn(cx, W, fn, col, lw = 2.5) {
+  cx.beginPath(); let first = true;
+  for (let sx = 0; sx < W; sx += 2) {
+    const x = (sx - OX) / SC, y = fn(x);
+    if (!isFinite(y) || y > 5 || y < -5) { first = true; continue; }
+    if (first) { cx.moveTo(sx, py(y)); first = false; } else cx.lineTo(sx, py(y));
+  }
+  cx.strokeStyle = col; cx.lineWidth = lw;
+  cx.shadowColor = col; cx.shadowBlur = 4; cx.stroke(); cx.shadowBlur = 0;
+}
+
+const { cx, W, H } = VizCore.init({
+  title: T('Zastosowania pochodnych', 'Applications of Derivatives'),
+  H: 360,
+  stages: [
+    // ── Stage 0: Tangent line ─────────────────────────────────────
+    {
+      title: () => T('Linia styczna — nachylenie w punkcie', 'Tangent line — slope at a point'),
+      desc:  () => T(
+        'Pochodna f′(a) to nachylenie stycznej w punkcie (a, f(a)). Styczna dotyka wykresu w jednym punkcie.',
+        'Derivative f′(a) is the slope of the tangent at point (a, f(a)). The tangent touches the curve at one point.'
+      ),
+      sliders: [
+        { id: 'a', lbl: 'a', color: COLORS.YELLOW, min: -2.5, max: 2.5, step: 0.1, val: 1 },
+      ],
+      draw(cx, W, H, vals) {
+        const a = vals.a;
+        // f(x) = x³ − x
+        const f  = x => x * x * x - x;
+        const df = x => 3 * x * x - 1;
+        drawGrid(cx, W, H); drawAxes(cx, W, H);
+        plotFn(cx, W, f, COLORS.CYAN);
+
+        const fa = f(a), dfa = df(a);
+        // Tangent line: y = fa + dfa*(x - a)
+        plotFn(cx, W, x => fa + dfa * (x - a), COLORS.YELLOW, 1.5);
+
+        // Point of tangency
+        cx.beginPath(); cx.arc(px(a), py(fa), 6, 0, Math.PI * 2);
+        cx.fillStyle = COLORS.YELLOW; cx.shadowColor = COLORS.YELLOW; cx.shadowBlur = 8; cx.fill(); cx.shadowBlur = 0;
+
+        cx.font = '13px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN;   cx.fillText('f(x) = x³ − x', 14, 22);
+        cx.fillStyle = COLORS.YELLOW; cx.fillText("f'(" + a.toFixed(1) + ') = ' + dfa.toFixed(2), 14, 40);
+        cx.fillText('styczna: y = ' + dfa.toFixed(2) + '(x − ' + a.toFixed(1) + ') + ' + fa.toFixed(2), 14, 58);
+      },
+    },
+
+    // ── Stage 1: Monotonicity from sign of f′ ────────────────────
+    {
+      title: () => T('Monotoniczność z f′(x)', 'Monotonicity from f′(x)'),
+      desc:  () => T(
+        'f′(x) > 0: funkcja rośnie; f′(x) < 0: maleje; f′(x) = 0: potencjalne ekstremum. Zmień a aby przesunąć minimum.',
+        'f′(x) > 0: function increasing; f′(x) < 0: decreasing; f′(x) = 0: potential extremum. Change a to shift the minimum.'
+      ),
+      sliders: [
+        { id: 'a', lbl: 'a', color: COLORS.ORANGE, min: -2, max: 2, step: 0.25, val: 0 },
+      ],
+      draw(cx, W, H, vals) {
+        const a = vals.a;
+        // f(x) = (x−a)² + 0.5
+        const f  = x => (x - a) * (x - a) + 0.5;
+        const df = x => 2 * (x - a);
+        drawGrid(cx, W, H); drawAxes(cx, W, H);
+        plotFn(cx, W, f, COLORS.CYAN);
+
+        // Colour segments of curve by sign of derivative
+        cx.lineWidth = 4;
+        for (let sx = 0; sx < W - 2; sx += 3) {
+          const x = (sx - OX) / SC;
+          const y = f(x);
+          if (!isFinite(y) || y > 5 || y < -5) continue;
+          const rising = df(x) > 0;
+          cx.beginPath(); cx.moveTo(sx, py(y)); cx.lineTo(sx + 3, py(f(x + 3/SC)));
+          cx.strokeStyle = rising ? COLORS.GREEN : COLORS.PINK;
+          cx.lineWidth = 3; cx.stroke();
+        }
+
+        // Minimum point
+        cx.beginPath(); cx.arc(px(a), py(0.5), 7, 0, Math.PI * 2);
+        cx.fillStyle = COLORS.YELLOW; cx.shadowColor = COLORS.YELLOW; cx.shadowBlur = 10; cx.fill(); cx.shadowBlur = 0;
+
+        cx.font = '13px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN; cx.fillText('f(x) = (x−' + a.toFixed(2) + ')² + 0.5', 14, 22);
+        cx.fillStyle = COLORS.GREEN; cx.fillText('↑ rośnie (f′ > 0)', 14, 40);
+        cx.fillStyle = COLORS.PINK;  cx.fillText('↓ maleje (f′ < 0)', 14, 58);
+        cx.fillStyle = COLORS.YELLOW; cx.fillText('● min w x = ' + a.toFixed(2), 14, 76);
+      },
+    },
+
+    // ── Stage 2: Optimisation — max area of rectangle ────────────
+    {
+      title: () => T('Optymalizacja — maksymalne pole', 'Optimisation — maximum area'),
+      desc:  () => T(
+        'Prostokąt wpisany w okrąg jednostkowy: maksymalne pole = 2 (przy x = 1/√2). Pochodna = 0 wyznacza maksimum.',
+        'Rectangle inscribed in unit circle: maximum area = 2 (at x = 1/√2). Derivative = 0 gives the maximum.'
+      ),
+      sliders: [
+        { id: 'x', lbl: 'x', color: COLORS.CYAN, min: 0.1, max: 0.99, step: 0.01, val: 0.5 },
+      ],
+      draw(cx, W, H, vals) {
+        const xv = vals.x;
+        const yv = Math.sqrt(1 - xv * xv);
+        const area = 4 * xv * yv;
+
+        // Circle in left half
+        const CX = 180, CY = H / 2, R = 120;
+        cx.beginPath(); cx.arc(CX, CY, R, 0, Math.PI * 2);
+        cx.strokeStyle = 'rgba(255,255,255,0.2)'; cx.lineWidth = 1.5; cx.stroke();
+
+        // Rectangle
+        const rx = xv * R, ry = yv * R;
+        cx.beginPath(); cx.rect(CX - rx, CY - ry, 2 * rx, 2 * ry);
+        cx.fillStyle = 'rgba(88,196,221,0.15)'; cx.fill();
+        cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 2.5;
+        cx.shadowColor = COLORS.CYAN; cx.shadowBlur = 5; cx.stroke(); cx.shadowBlur = 0;
+
+        // Area vs x graph (right side)
+        const gx0 = 330, gW2 = W - gx0 - 14, gH2 = H - 60;
+        const gOX = gx0, gOY = H - 30;
+        const gpx = v => gx0 + v * gW2, gpy = v => gOY - v * gH2 / 2.2;
+
+        cx.strokeStyle = 'rgba(255,255,255,0.2)'; cx.lineWidth = 1;
+        cx.beginPath(); cx.moveTo(gx0, gOY); cx.lineTo(gx0 + gW2, gOY); cx.stroke();
+        cx.beginPath(); cx.moveTo(gx0, 10); cx.lineTo(gx0, gOY); cx.stroke();
+
+        cx.beginPath();
+        for (let t = 0.01; t <= 0.99; t += 0.01) {
+          const y = Math.sqrt(1 - t * t);
+          const A = 4 * t * y;
+          if (t === 0.01) cx.moveTo(gpx(t), gpy(A)); else cx.lineTo(gpx(t), gpy(A));
+        }
+        cx.strokeStyle = COLORS.ORANGE; cx.lineWidth = 2; cx.stroke();
+
+        // Max point
+        const xOpt = 1 / Math.SQRT2;
+        cx.beginPath(); cx.arc(gpx(xOpt), gpy(2), 5, 0, Math.PI * 2);
+        cx.fillStyle = COLORS.YELLOW; cx.fill();
+
+        // Current x marker
+        cx.beginPath(); cx.arc(gpx(xv), gpy(area), 5, 0, Math.PI * 2);
+        cx.fillStyle = COLORS.CYAN; cx.shadowColor = COLORS.CYAN; cx.shadowBlur = 6; cx.fill(); cx.shadowBlur = 0;
+
+        cx.font = '12px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN; cx.fillText('P(x) = 4x√(1−x²)', gx0 + 4, 22);
+        cx.fillStyle = COLORS.YELLOW; cx.fillText('max = 2 przy x=1/√2', gx0 + 4, 40);
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('x=' + xv.toFixed(2) + ', P=' + area.toFixed(3), gx0 + 4, 58);
+      },
+    },
+
+    // ── Stage 3: Newton's method ──────────────────────────────────
+    {
+      title: () => T('Metoda Newtona — przybliżanie pierwiastka', "Newton's method — approximating a root"),
+      desc:  () => T(
+        'Metoda Newtona: xₙ₊₁ = xₙ − f(xₙ)/f′(xₙ). Każda iteracja przesuwa się wzdłuż stycznej bliżej pierwiastka.',
+        "Newton's method: xₙ₊₁ = xₙ − f(xₙ)/f′(xₙ). Each iteration moves along the tangent closer to the root."
+      ),
+      sliders: [
+        { id: 'x0',   lbl: 'x₀',  color: COLORS.ORANGE, min: 0.5, max: 3,  step: 0.1, val: 2.5 },
+        { id: 'iter', lbl: 'iter', color: COLORS.CYAN,   min: 0,   max: 5,  step: 1,   val: 0 },
+      ],
+      draw(cx, W, H, vals) {
+        const iter = Math.round(vals.iter);
+        // f(x) = x² − 2, root = √2 ≈ 1.414
+        const f  = x => x * x - 2;
+        const df = x => 2 * x;
+        drawGrid(cx, W, H); drawAxes(cx, W, H);
+        plotFn(cx, W, f, COLORS.CYAN);
+
+        // True root marker
+        cx.beginPath(); cx.moveTo(px(Math.SQRT2), OY - 8); cx.lineTo(px(Math.SQRT2), OY + 8);
+        cx.strokeStyle = COLORS.GREEN; cx.lineWidth = 2; cx.stroke();
+        cx.font = '10px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = COLORS.GREEN; cx.fillText('√2', px(Math.SQRT2), OY + 20);
+
+        // Newton iterations
+        let x = vals.x0;
+        const xs = [x];
+        for (let i = 0; i < 5; i++) {
+          const fx = f(x), dfx = df(x);
+          if (Math.abs(dfx) < 1e-10) break;
+          x = x - fx / dfx;
+          xs.push(x);
+        }
+
+        for (let i = 0; i < Math.min(iter + 1, xs.length - 1); i++) {
+          const xi = xs[i], fi = f(xi), dfi = df(xi);
+          const xNext = xs[i + 1];
+          if (!isFinite(fi) || fi > 5 || fi < -5) continue;
+
+          // Vertical line from x-axis to curve
+          cx.beginPath(); cx.moveTo(px(xi), OY); cx.lineTo(px(xi), py(fi));
+          cx.strokeStyle = 'rgba(255,209,102,0.5)'; cx.lineWidth = 1; cx.setLineDash([3,3]); cx.stroke(); cx.setLineDash([]);
+
+          // Tangent to x-axis
+          cx.beginPath(); cx.moveTo(px(xi), py(fi)); cx.lineTo(px(xNext), OY);
+          cx.strokeStyle = COLORS.YELLOW; cx.lineWidth = 1.5; cx.stroke();
+
+          cx.beginPath(); cx.arc(px(xi), py(fi), 5, 0, Math.PI * 2);
+          cx.fillStyle = COLORS.YELLOW; cx.fill();
+
+          cx.beginPath(); cx.arc(px(xNext), OY, 5, 0, Math.PI * 2);
+          cx.fillStyle = COLORS.ORANGE; cx.fill();
+        }
+
+        cx.font = '13px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN; cx.fillText('f(x) = x² − 2', 14, 22);
+        if (iter < xs.length) {
+          const xi = xs[iter];
+          cx.fillStyle = COLORS.ORANGE;
+          cx.fillText('x' + iter + ' = ' + xi.toFixed(6), 14, 40);
+          cx.fillStyle = 'rgba(255,255,255,0.35)';
+          cx.fillText('błąd = ' + Math.abs(xi - Math.SQRT2).toFixed(6), 14, 58);
+        }
+      },
+    },
+  ],
+});
+</script>
+</body>
+</html>

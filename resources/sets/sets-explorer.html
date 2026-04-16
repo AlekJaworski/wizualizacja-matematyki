@@ -74,9 +74,14 @@
   let opMode = 0; // 0: A∩B, 1: A\B, 2: B\A
   let dmStep = 0; // De Morgan step
 
-  // Venn circle geometry
-  const CX_A = 225, CX_B = 375, CY = 145, CR = 100;
-  const OVERLAP = 50; // how much circles overlap in px
+  // Venn circle geometry — dynamic, scales with set sizes
+  function getVennParams() {
+    const rA = Math.max(26, Math.round(130 * Math.sqrt(sA / UNIVERSE)));
+    const rB = Math.max(26, Math.round(130 * Math.sqrt(sB / UNIVERSE)));
+    const cy = 148;
+    const d = Math.round((rA + rB) * 0.65);
+    return { rA, rB, cxA: Math.round(W / 2 - d / 2), cxB: Math.round(W / 2 + d / 2), cy };
+  }
 
   // ── Seeded random for stable dot positions ──────────────────
   function mulberry32(seed) {
@@ -111,12 +116,14 @@
   }
 
   function inCircleA(x, y) {
-    const dx = x - CX_A, dy = y - CY;
-    return dx * dx + dy * dy < CR * CR;
+    const { rA, cxA, cy } = getVennParams();
+    const dx = x - cxA, dy = y - cy;
+    return dx * dx + dy * dy < rA * rA;
   }
   function inCircleB(x, y) {
-    const dx = x - CX_B, dy = y - CY;
-    return dx * dx + dy * dy < CR * CR;
+    const { rB, cxB, cy } = getVennParams();
+    const dx = x - cxB, dy = y - cy;
+    return dx * dx + dy * dy < rB * rB;
   }
   function inOnlyA(x, y) { return inCircleA(x, y) && !inCircleB(x, y); }
   function inOnlyB(x, y) { return !inCircleA(x, y) && inCircleB(x, y); }
@@ -142,34 +149,33 @@
   }
 
   function drawVennCircles(alphaA, alphaB) {
+    const { rA, rB, cxA, cxB, cy } = getVennParams();
     cx.save();
     // Circle A
     cx.beginPath();
-    cx.arc(CX_A, CY, CR, 0, Math.PI * 2);
+    cx.arc(cxA, cy, rA, 0, Math.PI * 2);
     cx.strokeStyle = COL_A;
     cx.globalAlpha = alphaA || 0.7;
     cx.lineWidth = 2;
     cx.stroke();
-    // Label A
     cx.font = '13px monospace';
     cx.fillStyle = COL_A;
     cx.globalAlpha = 0.8;
     cx.textAlign = 'center';
-    cx.fillText(T('A (piłka nożna)', 'A (football)'), CX_A - 35, CY - CR - 10);
+    cx.fillText(T('A (piłka nożna)', 'A (football)'), cxA - rA * 0.3, cy - rA - 10);
 
     // Circle B
     cx.beginPath();
-    cx.arc(CX_B, CY, CR, 0, Math.PI * 2);
+    cx.arc(cxB, cy, rB, 0, Math.PI * 2);
     cx.strokeStyle = COL_B;
     cx.globalAlpha = alphaB || 0.7;
     cx.lineWidth = 2;
     cx.stroke();
-    // Label B
     cx.font = '13px monospace';
     cx.fillStyle = COL_B;
     cx.globalAlpha = 0.8;
     cx.textAlign = 'center';
-    cx.fillText(T('B (koszykówka)', 'B (basketball)'), CX_B + 35, CY - CR - 10);
+    cx.fillText(T('B (koszykówka)', 'B (basketball)'), cxB + rB * 0.3, cy - rB - 10);
     cx.restore();
   }
 
@@ -233,10 +239,10 @@
 
   // For stage 1: single circle dots
   function getSingleDots() {
-    // Place sA dots inside circle A (using full circle, no B)
+    const r = Math.max(26, Math.round(130 * Math.sqrt(sA / UNIVERSE)));
     const testA = (x, y) => {
-      const dx = x - 300, dy = y - 150;
-      return dx * dx + dy * dy < 110 * 110;
+      const dx = x - W / 2, dy = y - 150;
+      return dx * dx + dy * dy < r * r;
     };
     return generateDots(sA, testA, 42);
   }
@@ -258,8 +264,8 @@
       ],
       buttons: null,
       draw() {
-        // Single big circle in center
-        const ccx = 300, ccy = 150, ccr = 110;
+        const ccx = W / 2, ccy = 150;
+        const ccr = Math.max(26, Math.round(130 * Math.sqrt(sA / UNIVERSE)));
         cx.save();
         cx.beginPath();
         cx.arc(ccx, ccy, ccr, 0, Math.PI * 2);
@@ -272,19 +278,13 @@
         cx.fill();
         cx.restore();
 
-        // Label
         cx.font = '14px monospace';
         cx.fillStyle = COL_A;
-        cx.globalAlpha = 0.9;
         cx.textAlign = 'center';
         cx.fillText(T('A — piłka nożna', 'A — football'), ccx, ccy - ccr - 14);
-        cx.globalAlpha = 1;
 
-        // Dots
         const dots = getSingleDots();
         dots.forEach(d => drawDot(d.x, d.y, COL_A, 5));
-
-        // Count
         drawCountBadge(ccx, ccy + ccr + 22, '|A| = ' + sA, COL_A);
       }
     },
@@ -319,10 +319,11 @@
         dots.dotsNeither.forEach(d => drawDot(d.x, d.y, COL_NONE, 4));
 
         // Counts in regions
-        drawCountBadge(CX_A - 45, CY + 45, r.onlyA, COL_A);
-        drawCountBadge((CX_A + CX_B) / 2, CY + 45, r.both, COL_AB);
-        drawCountBadge(CX_B + 45, CY + 45, r.onlyB, COL_B);
-        if (r.neither > 0) drawCountBadge(80, 270, r.neither, COL_NONE);
+        const p1 = getVennParams();
+        drawCountBadge(p1.cxA - p1.rA * 0.55, p1.cy + 10, r.onlyA, COL_A);
+        drawCountBadge((p1.cxA + p1.cxB) / 2, p1.cy + 10, r.both, COL_AB);
+        drawCountBadge(p1.cxB + p1.rB * 0.55, p1.cy + 10, r.onlyB, COL_B);
+        if (r.neither > 0) drawCountBadge(55, H - 30, r.neither, COL_NONE);
       }
     },
 
@@ -361,9 +362,10 @@
         });
 
         // Counts
-        drawCountBadge(CX_A - 45, CY + 45, r.onlyA, COL_A);
-        drawCountBadge((CX_A + CX_B) / 2, CY + 45, r.both, COL_AB);
-        drawCountBadge(CX_B + 45, CY + 45, r.onlyB, COL_B);
+        const p2 = getVennParams();
+        drawCountBadge(p2.cxA - p2.rA * 0.55, p2.cy + 10, r.onlyA, COL_A);
+        drawCountBadge((p2.cxA + p2.cxB) / 2, p2.cy + 10, r.both, COL_AB);
+        drawCountBadge(p2.cxB + p2.rB * 0.55, p2.cy + 10, r.onlyB, COL_B);
 
         // Formula at top
         const unionSize = r.onlyA + r.both + r.onlyB;

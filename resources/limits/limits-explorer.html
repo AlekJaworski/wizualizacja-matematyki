@@ -273,38 +273,34 @@
 
   // ── Stage 1: "Co sie dzieje blisko punktu?" ──────────────
   function drawStage1() {
-    const OX = W * 0.15, OY = H * 0.72;
-    const SCX = 90, SCY = 70;
+    const OX = W * 0.40, OY = H * 0.68;
+    const SCX = 72, SCY = 100;
 
-    // f(x) = (x^2 - 1)/(x - 1) = x + 1 (with hole at x=1)
-    const fn = function(x) { return x + 1; };
+    // f(x) = sin(x)/x  (undefined at x=0, limit = 1)
+    const fn = function(x) { return Math.sin(x) / x; };
 
-    drawAxesCustom(OX, OY, SCX, SCY, [-1, 5], [-1, 4.5]);
+    drawAxesCustom(OX, OY, SCX, SCY, [-4, 6], [-0.4, 1.3]);
 
-    // Plot the function
-    plotFn(fn, OX, OY, SCX, SCY, COL_CYAN, 0.85, 2.5, null, 1);
+    // Plot sin(x)/x (skip x=0)
+    plotFn(fn, OX, OY, SCX, SCY, COL_CYAN, 0.85, 2.5, null, 0);
 
-    // Draw the hole at (1, 2)
-    const holeSX = OX + 1 * SCX;
-    const holeSY = OY - 2 * SCY;
+    // Draw the hole at (0, 1)
+    const holeSX = OX;
+    const holeSY = OY - 1 * SCY;
     drawHole(holeSX, holeSY, 7, COL_CYAN);
 
     // Formula at top
-    formulaBox('f(x) = (x\u00B2 - 1) / (x - 1)', W/2, 22, COL_CYAN);
+    formulaBox('f(x) = sin(x) / x', W/2, 22, COL_CYAN);
 
-    // Animate approach: slider controls how close
-    const closeness = s1_xApproach; // 0 to 1 slider
-    // Map to x distance from 1
-    const dist = Math.pow(10, -closeness * 3); // from 1 to 0.001
+    const closeness = s1_xApproach;
+    const dist = Math.pow(10, -closeness * 3);
 
-    // Approach from right
-    const xR = 1 + dist;
+    const xR = dist;
     const yR = fn(xR);
     const sxR = OX + xR * SCX;
     const syR = OY - yR * SCY;
 
-    // Approach from left
-    const xL = 1 - dist;
+    const xL = -dist;
     const yL = fn(xL);
     const sxL = OX + xL * SCX;
     const syL = OY - yL * SCY;
@@ -312,87 +308,71 @@
     // Glowing trail from right
     const trailR = [];
     for (let i = 0; i < 12; i++) {
-      const td = dist + (1 - dist) * (i / 11) * 0.8;
-      const tx = 1 + td;
-      trailR.push([OX + tx * SCX, OY - fn(tx) * SCY]);
+      const td = dist + (1.5 - dist) * (i / 11) * 0.85;
+      trailR.push([OX + td * SCX, OY - fn(td) * SCY]);
     }
     drawTrail(trailR, COL_YELLOW);
 
     // Glowing trail from left
     const trailL = [];
     for (let i = 0; i < 12; i++) {
-      const td = dist + (1 - dist) * (i / 11) * 0.8;
-      const tx = 1 - td;
-      if (tx > -0.5) trailL.push([OX + tx * SCX, OY - fn(tx) * SCY]);
+      const td = dist + (1.5 - dist) * (i / 11) * 0.85;
+      trailL.push([OX - td * SCX, OY - fn(-td) * SCY]);
     }
     drawTrail(trailL, COL_ORANGE);
 
-    // Glowing dots at current position
     const pulse = 0.7 + 0.3 * Math.sin(animT * 3);
     gdot(sxR, syR, 5 * pulse, COL_YELLOW, 18);
     gdot(sxL, syL, 5 * pulse, COL_ORANGE, 18);
 
-    // Dashed lines to limit
     dashedLine(sxR, syR, holeSX, holeSY, COL_YELLOW, 0.3, [2, 3]);
     dashedLine(sxL, syL, holeSX, holeSY, COL_ORANGE, 0.3, [2, 3]);
-
-    // Limit target line
     dashedLine(0, holeSY, W, holeSY, COL_YELLOW, 0.15, [6, 4]);
 
     // Value table
-    const tableX = W * 0.62;
-    const tableY = H * 0.12;
+    const tableX = W * 0.66;
+    const tableY = H * 0.07;
 
     cx.save();
     cx.font = '10px monospace';
     cx.textAlign = 'left';
 
-    // Table header
     cx.fillStyle = 'rgba(255,255,255,0.35)';
     cx.fillText('  x          f(x)', tableX, tableY + 40);
 
-    // Values from left
-    const leftVals = [0.5, 0.9, 0.99, 0.999];
+    const leftVals = [-1, -0.5, -0.1, -0.01];
     cx.fillStyle = COL_ORANGE;
     for (let i = 0; i < leftVals.length; i++) {
       const show = closeness >= i * 0.25;
       if (!show) continue;
-      const fadeIn = clamp((closeness - i * 0.25) / 0.1, 0, 1);
-      cx.globalAlpha = fadeIn;
+      cx.globalAlpha = clamp((closeness - i * 0.25) / 0.1, 0, 1);
       const xv = leftVals[i];
-      cx.fillText('  ' + xv.toFixed(3) + '     ' + fn(xv).toFixed(3), tableX, tableY + 56 + i * 14);
+      cx.fillText('  ' + xv.toFixed(3) + '  ' + (Math.sin(xv)/xv).toFixed(4), tableX, tableY + 56 + i * 14);
     }
 
-    // Undefined
     cx.globalAlpha = 0.5;
     cx.fillStyle = COL_PINK;
-    cx.fillText('  1.000     ???', tableX, tableY + 56 + 4 * 14);
+    cx.fillText('  0.000     ???', tableX, tableY + 56 + 4 * 14);
 
-    // Values from right
-    const rightVals = [1.5, 1.1, 1.01, 1.001];
+    const rightVals = [1, 0.5, 0.1, 0.01];
     cx.fillStyle = COL_YELLOW;
     for (let i = 0; i < rightVals.length; i++) {
       const show = closeness >= i * 0.25;
       if (!show) continue;
-      const fadeIn = clamp((closeness - i * 0.25) / 0.1, 0, 1);
-      cx.globalAlpha = fadeIn;
+      cx.globalAlpha = clamp((closeness - i * 0.25) / 0.1, 0, 1);
       const xv = rightVals[i];
-      cx.fillText('  ' + xv.toFixed(3) + '     ' + fn(xv).toFixed(3), tableX, tableY + 56 + (5 + i) * 14);
+      cx.fillText('  ' + xv.toFixed(3) + '  ' + (Math.sin(xv)/xv).toFixed(4), tableX, tableY + 56 + (5 + i) * 14);
     }
     cx.restore();
 
-    // Limit label
     if (closeness > 0.3) {
       const la = clamp((closeness - 0.3) / 0.3, 0, 1);
-      infoBox(T('Zbli\u017Ca si\u0119 do 2!', 'Approaching 2!'), holeSX, holeSY - 22, COL_GREEN, la);
+      infoBox(T('Zbli\u017Ca si\u0119 do 1!', 'Approaching 1!'), holeSX, holeSY - 22, COL_GREEN, la);
     }
 
-    // Values near the dots
     infoBox('x=' + fmt(xR, 4) + '  f=' + fmt(yR, 4), sxR + 5, syR - 16, COL_YELLOW, 0.8, 9);
     infoBox('x=' + fmt(xL, 4) + '  f=' + fmt(yL, 4), sxL - 5, syL + 18, COL_ORANGE, 0.8, 9);
-
-    // Y=2 label
-    infoBox('y = 2', 25, holeSY, COL_YELLOW, 0.5, 10);
+    infoBox('y = 1', OX - 50, holeSY, COL_YELLOW, 0.5, 10);
   }
 
   // ── Stage 2: "Zbli\u017Camy si\u0119 - z obu stron" ──────────────
@@ -402,8 +382,8 @@
 
     // Scale: as zoom increases, we see smaller range around x=1
     const halfRange = lerp(3, 0.001, ease(zoomLevel));
-    const xMin = 1 - halfRange;
-    const xMax = 1 + halfRange;
+    const xMin = 0 - halfRange;
+    const xMax = 0 + halfRange;
 
     const margin = 60;
     const lineY = H * 0.55;
@@ -424,7 +404,7 @@
     cx.restore();
 
     // Formula at top
-    formulaBox('f(x) = (x\u00B2 - 1) / (x - 1)', W/2, 22, COL_CYAN);
+    formulaBox('f(x) = sin(x) / x', W/2, 22, COL_CYAN);
 
     // "Microscope" framing
     cx.save();
@@ -444,8 +424,8 @@
     cx.stroke();
     cx.restore();
 
-    // Center mark at x=1
-    const cx1 = mapX(1);
+    // Center mark at x=0
+    const cx1 = mapX(0);
     cx.save();
     cx.strokeStyle = COL_PINK;
     cx.lineWidth = 1.5;
@@ -489,30 +469,29 @@
     // Left approach (orange)
     cx.save();
     for (let i = 0; i < approaches.length; i++) {
-      const x = 1 - approaches[i];
+      const x = 0 - approaches[i];
       const sx = mapX(x);
       if (sx < lineLeft - 10 || sx > cx1 - 2) continue;
-      const fv = x + 1;
+      const fv = Math.sin(x) / x;
       const dotR = lerp(3, 5, i / approaches.length);
       const alpha = lerp(0.3, 0.9, i / approaches.length);
       gdot(sx, lineY, dotR, COL_ORANGE, 10 * alpha);
 
-      // f(x) value above
       cx.font = '9px monospace';
       cx.fillStyle = COL_ORANGE;
       cx.globalAlpha = alpha;
       cx.textAlign = 'center';
-      cx.fillText('f=' + fv.toFixed(approaches[i] < 0.01 ? 4 : 2), sx, lineY - 28);
+      cx.fillText('f=' + fv.toFixed(approaches[i] < 0.01 ? 4 : 3), sx, lineY - 28);
     }
     cx.restore();
 
     // Right approach (yellow)
     cx.save();
     for (let i = 0; i < approaches.length; i++) {
-      const x = 1 + approaches[i];
+      const x = 0 + approaches[i];
       const sx = mapX(x);
       if (sx > lineRight + 10 || sx < cx1 + 2) continue;
-      const fv = x + 1;
+      const fv = Math.sin(x) / x;
       const dotR = lerp(3, 5, i / approaches.length);
       const alpha = lerp(0.3, 0.9, i / approaches.length);
       gdot(sx, lineY, dotR, COL_YELLOW, 10 * alpha);
@@ -521,7 +500,7 @@
       cx.fillStyle = COL_YELLOW;
       cx.globalAlpha = alpha;
       cx.textAlign = 'center';
-      cx.fillText('f=' + fv.toFixed(approaches[i] < 0.01 ? 4 : 2), sx, lineY + 40);
+      cx.fillText('f=' + fv.toFixed(approaches[i] < 0.01 ? 4 : 3), sx, lineY + 40);
     }
     cx.restore();
 
@@ -554,16 +533,16 @@
     drawHole(cx1, lineY, 6, COL_PINK);
 
     // Labels
-    infoBox('x = 1  (nieokreslone!)', cx1, lineY - 50, COL_PINK, 0.8, 10);
+    infoBox('x = 0  (nieokreslone!)', cx1, lineY - 50, COL_PINK, 0.8, 10);
 
     // Left/right labels
-    infoBox(T('x \u2192 1\u207B', 'x \u2192 1\u207B'), lineLeft + 40, lineY - 65, COL_ORANGE, 0.7, 11);
-    infoBox(T('x \u2192 1\u207A', 'x \u2192 1\u207A'), lineRight - 40, lineY - 65, COL_YELLOW, 0.7, 11);
+    infoBox(T('x \u2192 0\u207B', 'x \u2192 0\u207B'), lineLeft + 40, lineY - 65, COL_ORANGE, 0.7, 11);
+    infoBox(T('x \u2192 0\u207A', 'x \u2192 0\u207A'), lineRight - 40, lineY - 65, COL_YELLOW, 0.7, 11);
 
     // Convergence message
     if (zoomLevel > 0.3) {
       const a = clamp((zoomLevel - 0.3) / 0.3, 0, 1);
-      infoBox(T('Obie strony \u2192 2    Granica = 2', 'Both sides \u2192 2    Limit = 2'), W/2, H - 45, COL_GREEN, a * pulse, 13);
+      infoBox(T('Obie strony \u2192 1    Granica = 1', 'Both sides \u2192 1    Limit = 1'), W/2, H - 45, COL_GREEN, a * pulse, 13);
     }
 
     // Zoom indicator
@@ -707,19 +686,20 @@
 
   // ── Stage 4: "Epsilon-delta" ─────────────────────────────
   function drawStage4() {
-    const OX = W * 0.35, OY = H * 0.7;
-    const SCX = 100, SCY = 70;
+    const OX = W * 0.45, OY = H * 0.7;
+    const SCX = 80, SCY = 120;
 
-    const fn = function(x) { return x + 1; };
-    const limitX = 1;
-    const limitY = 2;
+    const fn = function(x) { return Math.sin(x) / x; };
+    const limitX = 0;
+    const limitY = 1;
     const eps = s4_epsilon;
-    const delta = eps; // For this function, delta = epsilon
+    // |sin(x)/x - 1| ≈ x²/6 for small x, so delta = sqrt(6·eps)
+    const delta = Math.min(2.5, Math.sqrt(6 * eps));
 
-    drawAxesCustom(OX, OY, SCX, SCY, [-1, 4], [-0.5, 4.5]);
+    drawAxesCustom(OX, OY, SCX, SCY, [-3.5, 4], [-0.5, 1.5]);
 
     // Formula at top
-    formulaBox('f(x) = (x\u00B2 - 1)/(x - 1)     lim = 2', W/2, 22, COL_CYAN, 14);
+    formulaBox('f(x) = sin(x)/x        lim(x\u21920) = 1', W/2, 22, COL_CYAN, 14);
 
     // Epsilon band (horizontal around y=2)
     const epsTop = OY - (limitY + eps) * SCY;
@@ -743,10 +723,10 @@
     cx.fillRect(deltaLeft, epsTop, deltaRight - deltaLeft, epsBot - epsTop);
     cx.restore();
 
-    // Plot the function
-    plotFn(fn, OX, OY, SCX, SCY, COL_CYAN, 0.85, 2.5);
+    // Plot sin(x)/x (skip x=0)
+    plotFn(fn, OX, OY, SCX, SCY, COL_CYAN, 0.85, 2.5, null, 0);
 
-    // Draw the hole at (1, 2)
+    // Draw the hole at (0, 1)
     const holeSX = OX + limitX * SCX;
     const holeSY = OY - limitY * SCY;
     drawHole(holeSX, holeSY, 6, COL_CYAN);
@@ -802,13 +782,13 @@
 
     // Show the test point values
     if (Math.abs(testDist) > 0.01) {
-      infoBox('|x-1|=' + fmt(Math.abs(testDist), 3) + ' < \u03B4   |f(x)-2|=' + fmt(Math.abs(testY - 2), 3) + ' < \u03B5',
+      infoBox('|x|=' + fmt(Math.abs(testDist), 3) + ' < \u03B4   |f(x)-1|=' + fmt(Math.abs(testY - 1), 3) + ' < \u03B5',
               W/2, H * 0.13, COL_GREEN, 0.8, 10);
     }
 
     // Central message
-    infoBox(T('Chcesz f(x) blisko 2? Trzymaj x blisko 1!',
-             'Want f(x) near 2? Keep x near 1!'), W/2, H * 0.06 + 60, 'rgba(255,255,255,0.5)', 0.6, 10);
+    infoBox(T('Chcesz sin(x)/x blisko 1? Trzymaj x blisko 0!',
+             'Want sin(x)/x near 1? Keep x near 0!'), W/2, H * 0.06 + 60, 'rgba(255,255,255,0.5)', 0.6, 10);
   }
 
   // ── Stage 5: "Granica w niesko\u0144czono\u015Bci" ──────────────────
@@ -831,8 +811,8 @@
     const fn1 = function(x) { return 1/x; };
     plotFn(fn1, OX, OY, SCX, SCY, COL_YELLOW, 0.8, 2.5, null, 0);
 
-    // f(x) = (2x+1)/(x+1)
-    const fn2 = function(x) { return (2*x + 1) / (x + 1); };
+    // f(x) = 2*(1 - (1/2)^x)  — partial sum of geometric series 1 + 1/2 + 1/4 + ...
+    const fn2 = function(x) { return 2 * (1 - Math.pow(0.5, x)); };
     plotFn(fn2, OX, OY, SCX, SCY, COL_PURPLE, 0.8, 2.5);
 
     // Asymptote y=0 for 1/x
@@ -884,21 +864,19 @@
       infoBox('1/x: f(' + fmt(dotX1, 1) + ')=' + fmt(dotY1, 4), dotSX1, dotSY1 - 16, COL_YELLOW, 0.7, 9);
     }
     if (dotX2 > 1 && dotSX2 < W - 30) {
-      infoBox('(2x+1)/(x+1): f(' + fmt(dotX2, 1) + ')=' + fmt(dotY2, 3), dotSX2, dotSY2 + 18, COL_PURPLE, 0.7, 9);
+      infoBox('2(1-\u00BD\u02E3): f(' + fmt(dotX2, 1) + ')=' + fmt(dotY2, 4), dotSX2, dotSY2 + 18, COL_PURPLE, 0.7, 9);
     }
 
     // Legend
     cx.save();
     cx.font = '10px monospace';
-    // 1/x legend
     cx.fillStyle = COL_YELLOW;
     cx.globalAlpha = 0.8;
     cx.fillRect(20, H - 50, 12, 3);
     cx.fillText('1/x \u2192 0', 38, H - 46);
-    // (2x+1)/(x+1) legend
     cx.fillStyle = COL_PURPLE;
     cx.fillRect(20, H - 35, 12, 3);
-    cx.fillText('(2x+1)/(x+1) \u2192 2', 38, H - 31);
+    cx.fillText('2(1\u2212\u00BD\u02E3) \u2192 2  (szereg geom.)', 38, H - 31);
     cx.restore();
 
     // Bottom insight
@@ -911,8 +889,8 @@
     {
       title: () => T('Co si\u0119 dzieje blisko punktu?', 'What happens near a point?'),
       desc: () => T(
-        'f(x) = (x\u00B2\u22121)/(x\u22121) jest nieokre\u015Blona dla x=1 (0/0!). Ale przesuwaj x coraz bli\u017Cej 1 \u2014 warto\u015Bci zbli\u017Caj\u0105 si\u0119 do 2. To w\u0142a\u015Bnie jest granica: warto\u015B\u0107, do kt\u00F3rej funkcja D\u0104\u017BY.',
-        'f(x) = (x\u00B2\u22121)/(x\u22121) is undefined at x=1 (0/0!). But slide x closer and closer to 1 \u2014 the values approach 2. That IS the limit: the value the function APPROACHES.'
+        'f(x) = sin(x)/x jest nieokre\u015Blona dla x=0 (0/0!). Ale zbli\u017Caj x do 0 \u2014 warto\u015Bci d\u0105\u017C\u0105 do 1. To w\u0142a\u015Bnie jest granica: warto\u015B\u0107, do kt\u00F3rej funkcja D\u0104\u017BY.',
+        'f(x) = sin(x)/x is undefined at x=0 (0/0!). But slide x closer to 0 \u2014 the values approach 1. That IS the limit: the value the function APPROACHES.'
       ),
       sliders: [
         { id: 'approach', lbl: T('blisko\u015B\u0107', 'closeness'), color: COL_YELLOW, min: 0, max: 1, step: 0.01, get: () => s1_xApproach, set: v => s1_xApproach = v },
@@ -922,8 +900,8 @@
     {
       title: () => T('Zbli\u017Camy si\u0119 \u2014 z obu stron', 'Approaching \u2014 from both sides'),
       desc: () => T(
-        'Granica istnieje, gdy OBE strony si\u0119 zgadzaj\u0105. Zoom: powi\u0119kszamy okolice x=1 jak mikroskopem. Z lewej x\u21921\u207B, z prawej x\u21921\u207A. Obie zbiegaj\u0105 do 2 \u2014 granica = 2.',
-        'A limit exists when BOTH sides agree. Zoom: magnifying around x=1 like a microscope. From the left x\u21921\u207B, from the right x\u21921\u207A. Both converge to 2 \u2014 limit = 2.'
+        'Granica istnieje, gdy OBE strony si\u0119 zgadzaj\u0105. Zoom: powi\u0119kszamy okolice x=0 jak mikroskopem. Z lewej x\u21920\u207B, z prawej x\u21920\u207A. Obie zbiegaj\u0105 do 1 \u2014 granica = 1.',
+        'A limit exists when BOTH sides agree. Zoom: magnifying around x=0 like a microscope. From the left x\u21920\u207B, from the right x\u21920\u207A. Both converge to 1 \u2014 limit = 1.'
       ),
       sliders: [
         { id: 'zoom', lbl: 'zoom', color: COL_GREEN, min: 0, max: 1, step: 0.01, get: () => s2_zoom, set: v => s2_zoom = v },
@@ -944,8 +922,8 @@
     {
       title: () => T('Epsilon-delta \u2014 jak blisko wystarczy?', 'Epsilon-delta \u2014 how close is enough?'),
       desc: () => T(
-        'Chcesz f(x) w odleg\u0142o\u015Bci \u03B5 od 2? Trzymaj x w odleg\u0142o\u015Bci \u03B4 od 1. Zmniejszaj \u03B5 \u2014 \u03B4 maleje razem z nim, ale ZAWSZE si\u0119 da! To formalna definicja granicy.',
-        'Want f(x) within \u03B5 of 2? Keep x within \u03B4 of 1. Shrink \u03B5 \u2014 \u03B4 shrinks with it, but it ALWAYS works! That\'s the formal definition of a limit.'
+        'Chcesz sin(x)/x w odleg\u0142o\u015Bci \u03B5 od 1? Trzymaj x w odleg\u0142o\u015Bci \u03B4 od 0. Zmniejszaj \u03B5 \u2014 \u03B4 maleje razem z nim, ale ZAWSZE si\u0119 da! To formalna definicja granicy.',
+        'Want sin(x)/x within \u03B5 of 1? Keep x within \u03B4 of 0. Shrink \u03B5 \u2014 \u03B4 shrinks with it, but it ALWAYS works! That\'s the formal definition of a limit.'
       ),
       sliders: [
         { id: 'eps', lbl: '\u03B5', color: COL_YELLOW, min: 0.01, max: 2, step: 0.01, get: () => s4_epsilon, set: v => s4_epsilon = v },
@@ -955,8 +933,8 @@
     {
       title: () => T('Granica w niesko\u0144czono\u015Bci', 'Limit at infinity'),
       desc: () => T(
-        '1/x \u2192 0 i (2x+1)/(x+1) \u2192 2 gdy x \u2192 \u221E. Powi\u0119kszaj zakres \u2014 krzywa sp\u0142aszcza si\u0119 ku asympto\u0107ie. Bez wzgl\u0119du na \u03B5, w ko\u0144cu f(x) zostaje w pasmie.',
-        '1/x \u2192 0 and (2x+1)/(x+1) \u2192 2 as x \u2192 \u221E. Increase the range \u2014 the curve flattens toward the asymptote. No matter how small \u03B5, eventually f(x) stays in the band.'
+        '1/x \u2192 0 i suma cz\u0119\u015Bciowa 2(1\u2212\u00BD\u02E3) \u2192 2 gdy x \u2192 \u221E. To jest 1 + \u00BD + \u00BC + ... = 2. Ka\u017Cdy wyraz to po\u0142owa poprzedniego \u2014 suma nigdy nie przekracza 2, ale stale ro\u015Bnie.',
+        '1/x \u2192 0 and geometric partial sum 2(1\u2212\u00BD\u02E3) \u2192 2 as x \u2192 \u221E. That is 1 + \u00BD + \u00BC + ... = 2. Each term is half the previous \u2014 sum never exceeds 2 but keeps growing.'
       ),
       sliders: [
         { id: 'xrange', lbl: T('zakres x', 'x range'), color: COL_BLUE, min: 2, max: 50, step: 1, get: () => s5_xRange, set: v => s5_xRange = v },

@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Funkcja wykładnicza</title>
+</head>
+<body>
+<script type="module">
+import { VizCore, T, COLORS } from '../lib/viz-core.js';
+
+const OX = 300, OY = 220, SC = 55;
+const px = x => OX + x * SC;
+const py = y => OY - y * SC;
+
+function drawGrid(cx, W, H) {
+  cx.strokeStyle = 'rgba(255,255,255,0.06)'; cx.lineWidth = 1;
+  for (let x = OX % SC; x < W; x += SC) { cx.beginPath(); cx.moveTo(x, 0); cx.lineTo(x, H); cx.stroke(); }
+  for (let y = OY % SC; y < H; y += SC) { cx.beginPath(); cx.moveTo(0, y); cx.lineTo(W, y); cx.stroke(); }
+}
+function drawAxes(cx, W, H) {
+  cx.strokeStyle = 'rgba(255,255,255,0.3)'; cx.lineWidth = 1.5;
+  cx.beginPath(); cx.moveTo(0, OY); cx.lineTo(W, OY); cx.stroke();
+  cx.beginPath(); cx.moveTo(OX, 0); cx.lineTo(OX, H); cx.stroke();
+  cx.font = '10px monospace'; cx.fillStyle = 'rgba(255,255,255,0.25)'; cx.textAlign = 'center';
+  for (let i = -5; i <= 5; i++) {
+    if (i === 0) continue;
+    const x = OX + i * SC, y = OY - i * SC;
+    if (x > 10 && x < W - 10) cx.fillText(i, x, OY + 13);
+    if (y > 10 && y < H - 10) { cx.textAlign = 'right'; cx.fillText(i, OX - 5, y + 4); cx.textAlign = 'center'; }
+  }
+}
+function plotFn(cx, W, fn, col, lw = 2, dash = []) {
+  cx.beginPath(); let first = true;
+  for (let sx = 0; sx < W; sx += 2) {
+    const x = (sx - OX) / SC;
+    const y = fn(x);
+    if (!isFinite(y) || y > 12 || y < -4) { first = true; continue; }
+    if (first) { cx.moveTo(sx, py(y)); first = false; } else cx.lineTo(sx, py(y));
+  }
+  cx.strokeStyle = col; cx.lineWidth = lw; cx.setLineDash(dash);
+  cx.shadowColor = col; cx.shadowBlur = 4; cx.stroke(); cx.shadowBlur = 0; cx.setLineDash([]);
+}
+function gdot(cx, x, y, r, col) {
+  cx.beginPath(); cx.arc(px(x), py(y), r, 0, Math.PI * 2);
+  cx.fillStyle = col; cx.shadowColor = col; cx.shadowBlur = 10; cx.fill(); cx.shadowBlur = 0;
+}
+
+const { cx, W, H } = VizCore.init({
+  title: T('Funkcja wykładnicza', 'Exponential Function'),
+  H: 360,
+  stages: [
+    // ── Stage 0: Where does aˣ come from? ───────────────────────
+    {
+      title: () => T('Sk\u0105d bierze si\u0119 a\u02E3?', 'Where does a\u02E3 come from?'),
+      desc:  () => T(
+        'a\u207F = a\u00B7a\u00B7...\u00B7a (n razy). St\u0105d a\u207F\u207A\u1D50 = a\u207F\u00B7a\u1D50 \u2014 po prostu sklejamy dwie grupy mno\u017Ce\u0144. To wymusza: a\u2070=1, a\u207B\u207F=1/a\u207F, a^(1/n)=\u207F\u221Aa.',
+        'a\u207F = a\u00B7a\u00B7...\u00B7a (n times). So a\u207F\u207A\u1D50 = a\u207F\u00B7a\u1D50 \u2014 just joining two groups of multiplications. This forces: a\u2070=1, a\u207B\u207F=1/a\u207F, a^(1/n)=\u207F\u221Aa.'
+      ),
+      sliders: [
+        { id: 'n', lbl: 'n', color: COLORS.CYAN,   min: 1, max: 6, step: 1, val: 3 },
+        { id: 'm', lbl: 'm', color: COLORS.YELLOW, min: 1, max: 6, step: 1, val: 2 },
+      ],
+      draw(cx, W, H, vals) {
+        const n = Math.round(vals.n), m = Math.round(vals.m), a = 2;
+        const nm = n + m;
+        const bW = 30, bGap = 3, stride = bW + bGap;
+        const totalW = nm * stride - bGap;
+        const startX = (W - totalW) / 2;
+        const rowY = 75;
+
+        // Draw n+m blocks in one row (n = cyan, m = yellow)
+        for (let i = 0; i < nm; i++) {
+          const bx = startX + i * stride, isN = i < n;
+          cx.fillStyle = isN ? 'rgba(88,196,221,0.18)' : 'rgba(255,209,102,0.18)';
+          cx.strokeStyle = isN ? COLORS.CYAN : COLORS.YELLOW; cx.lineWidth = 1.5;
+          cx.fillRect(bx, rowY, bW, 26); cx.strokeRect(bx, rowY, bW, 26);
+          cx.font = '12px monospace'; cx.textAlign = 'center';
+          cx.fillStyle = isN ? COLORS.CYAN : COLORS.YELLOW;
+          cx.fillText('a', bx + bW / 2, rowY + 17);
+        }
+
+        // Bottom brackets
+        const brY = rowY + 32;
+        const drawBracket = (x1, x2, col, label) => {
+          cx.strokeStyle = col; cx.lineWidth = 1.2;
+          cx.beginPath(); cx.moveTo(x1, brY); cx.lineTo(x1, brY+4); cx.lineTo(x2, brY+4); cx.lineTo(x2, brY); cx.stroke();
+          cx.font = '11px monospace'; cx.textAlign = 'center'; cx.fillStyle = col;
+          cx.fillText(label, (x1 + x2) / 2, brY + 16);
+        };
+        drawBracket(startX, startX + n*stride - bGap, COLORS.CYAN,
+          'n=' + n + ':  a^n = ' + Math.pow(a, n));
+        drawBracket(startX + n*stride, startX + nm*stride - bGap, COLORS.YELLOW,
+          'm=' + m + ':  a^m = ' + Math.pow(a, m));
+
+        // Top bracket
+        cx.strokeStyle = COLORS.GREEN; cx.lineWidth = 1.2;
+        cx.beginPath();
+        cx.moveTo(startX, rowY-14); cx.lineTo(startX, rowY-18);
+        cx.lineTo(startX + nm*stride - bGap, rowY-18);
+        cx.lineTo(startX + nm*stride - bGap, rowY-14); cx.stroke();
+        cx.font = 'bold 12px monospace'; cx.textAlign = 'center'; cx.fillStyle = COLORS.GREEN;
+        cx.fillText('n+m=' + nm + ':  a^(n+m) = ' + Math.pow(a, nm), W/2, rowY - 22);
+
+        // Key law
+        const lawY = brY + 32;
+        cx.font = 'bold 15px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = 'rgba(255,255,255,0.92)';
+        cx.fillText('a^n \u00D7 a^m  =  a^(n+m)', W/2, lawY);
+        cx.fillStyle = 'rgba(255,255,255,0.42)'; cx.font = '12px monospace';
+        cx.fillText(Math.pow(a,n) + ' \u00D7 ' + Math.pow(a,m) + ' = ' + Math.pow(a,nm) + '  \u2713', W/2, lawY + 18);
+
+        // Extension rules box
+        const rY = lawY + 48;
+        cx.font = '11px monospace'; cx.textAlign = 'left'; cx.fillStyle = 'rgba(255,255,255,0.5)';
+        cx.fillText(T('Wymuszone przez prawo dodawania a^n\u00B7a^m = a^(n+m):',
+                      'Forced by the addition law a^n\u00B7a^m = a^(n+m):'), 20, rY);
+        const rules = [
+          [COLORS.CYAN,   'a\u2070 = 1',        T('bo a\u2070\u00B7a\u207F = a\u207F  \u27F9  a\u2070 = 1', 'since a\u2070\u00B7a\u207F = a\u207F  \u27F9  a\u2070 = 1')],
+          [COLORS.ORANGE, 'a\u207B\u207F = 1/a\u207F', T('bo a\u207F\u00B7a\u207B\u207F = a\u2070 = 1', 'since a\u207F\u00B7a\u207B\u207F = a\u2070 = 1')],
+          [COLORS.GREEN,  'a^(1/n) = \u207F\u221Aa', T('bo (a^(1/n))\u207F = a^(n/n) = a', 'since (a^(1/n))\u207F = a^(n/n) = a')],
+        ];
+        rules.forEach(([col, lbl, note], i) => {
+          cx.fillStyle = col; cx.font = 'bold 11px monospace';
+          cx.fillText(lbl + ':  ', 20, rY + 16 + i * 17);
+          cx.fillStyle = 'rgba(255,255,255,0.5)'; cx.font = '11px monospace';
+          cx.fillText(note, 110, rY + 16 + i * 17);
+        });
+      },
+    },
+
+    // ── Stage 1: What is aˣ ──────────────────────────────────────
+    {
+      title: () => T('aˣ — co to jest?', 'aˣ — what is it?'),
+      desc:  () => T(
+        'Funkcja wykładnicza f(x) = aˣ gdzie a > 0, a ≠ 1. Dla a > 1: rośnie. Dla 0 < a < 1: maleje. Zawsze przechodzi przez (0, 1), bo a⁰ = 1.',
+        'Exponential function f(x) = aˣ where a > 0, a ≠ 1. For a > 1: growing. For 0 < a < 1: decreasing. Always passes through (0, 1), since a⁰ = 1.'
+      ),
+      sliders: [
+        { id: 'a', lbl: 'a', color: COLORS.CYAN, min: 0.1, max: 4, step: 0.1, val: 2 },
+      ],
+      draw(cx, W, H, vals) {
+        const a = Math.max(0.11, vals.a);
+        drawGrid(cx, W, H); drawAxes(cx, W, H);
+        plotFn(cx, W, x => Math.pow(a, x), COLORS.CYAN, 2.5);
+        // Asymptote y=0
+        cx.beginPath(); cx.moveTo(0, OY); cx.lineTo(W, OY);
+        cx.strokeStyle = 'rgba(255,107,53,0.3)'; cx.lineWidth = 1; cx.setLineDash([6,4]); cx.stroke(); cx.setLineDash([]);
+        // Point (0,1)
+        gdot(cx, 0, 1, 6, COLORS.GREEN);
+        cx.font = '12px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.GREEN; cx.fillText('(0, 1)', px(0) + 8, py(1) - 8);
+        // Point (1, a)
+        gdot(cx, 1, a, 5, COLORS.YELLOW);
+        cx.fillStyle = COLORS.YELLOW; cx.fillText('(1, ' + a.toFixed(1) + ')', px(1) + 8, py(a) - 8);
+
+        cx.font = '13px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN; cx.fillText('f(x) = ' + a.toFixed(1) + 'ˣ', 14, 22);
+        cx.fillStyle = a > 1 ? COLORS.GREEN : COLORS.ORANGE;
+        cx.fillText(a > 1 ? '↑ rośnie' : a < 1 ? '↓ maleje' : '= 1 (stała)', 14, 40);
+        cx.fillStyle = 'rgba(255,107,53,0.6)'; cx.fillText('y = 0 (asymptota)', 14, 58);
+      },
+    },
+
+    // ── Stage 1: Growth rate & doubling ──────────────────────────
+    {
+      title: () => T('Wzrost wykładniczy — podwajanie', 'Exponential growth — doubling'),
+      desc:  () => T(
+        'Populacja bakterii podwaja się co godzinę: P(t) = P₀ · 2ᵗ. Wykładniczy wzrost jest zwodniczo powolny na początku i błyskawicznie szybki później.',
+        'Bacteria population doubles each hour: P(t) = P₀ · 2ᵗ. Exponential growth is deceptively slow at first and blazingly fast later.'
+      ),
+      sliders: [
+        { id: 'p0', lbl: 'P₀', color: COLORS.ORANGE, min: 1, max: 10, step: 1, val: 1 },
+        { id: 't',  lbl: 't',  color: COLORS.CYAN,   min: 0, max: 6, step: 0.1, val: 3 },
+      ],
+      draw(cx, W, H, vals) {
+        const p0 = vals.p0, t = vals.t;
+        drawGrid(cx, W, H); drawAxes(cx, W, H);
+        plotFn(cx, W, x => x >= 0 ? p0 * Math.pow(2, x) : null, COLORS.CYAN, 2.5);
+
+        // Point at t
+        const Pt = p0 * Math.pow(2, t);
+        if (Pt <= 12) {
+          cx.beginPath(); cx.moveTo(px(t), OY); cx.lineTo(px(t), py(Pt));
+          cx.strokeStyle = 'rgba(255,209,102,0.5)'; cx.lineWidth = 1.5; cx.setLineDash([3,3]); cx.stroke(); cx.setLineDash([]);
+          cx.beginPath(); cx.moveTo(0, py(Pt)); cx.lineTo(px(t), py(Pt));
+          cx.strokeStyle = 'rgba(255,209,102,0.5)'; cx.lineWidth = 1.5; cx.setLineDash([3,3]); cx.stroke(); cx.setLineDash([]);
+          gdot(cx, t, Pt, 6, COLORS.YELLOW);
+          cx.font = '12px monospace'; cx.textAlign = 'left';
+          cx.fillStyle = COLORS.YELLOW;
+          cx.fillText('P(' + t.toFixed(1) + ') = ' + p0 + '·2^' + t.toFixed(1) + ' = ' + (Math.round(Pt * 100) / 100), px(t) + 8, py(Pt) - 8);
+        }
+
+        cx.font = '13px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN; cx.fillText('P(t) = ' + p0 + ' · 2ᵗ', 14, 22);
+        cx.fillStyle = 'rgba(255,255,255,0.45)'; cx.fillText('Po ' + Math.round(t) + ' godz.: ' + Math.round(p0 * Math.pow(2, Math.round(t))) + ' bakterii', 14, 40);
+      },
+    },
+
+    // ── Stage 2: Compare bases ────────────────────────────────────
+    {
+      title: () => T('Porównanie podstaw', 'Comparing bases'),
+      desc:  () => T(
+        'Różne podstawy dają różne tempa wzrostu. e ≈ 2.718 to podstawa naturalna — pojawia się w fizyce, biologii, finansach wszędzie tam, gdzie coś rośnie proporcjonalnie do swojej wielkości.',
+        'Different bases give different growth rates. e ≈ 2.718 is the natural base — it appears in physics, biology, finance wherever something grows proportional to its size.'
+      ),
+      sliders: [],
+      draw(cx, W, H) {
+        drawGrid(cx, W, H); drawAxes(cx, W, H);
+        const fns = [
+          { a: 1.5, col: COLORS.GREEN,  lbl: '1.5ˣ' },
+          { a: 2,   col: COLORS.CYAN,   lbl: '2ˣ' },
+          { a: Math.E, col: COLORS.YELLOW, lbl: 'eˣ' },
+          { a: 3,   col: COLORS.ORANGE, lbl: '3ˣ' },
+        ];
+        fns.forEach(({ a, col }) => plotFn(cx, W, x => Math.pow(a, x), col, 2));
+        cx.font = '12px monospace'; cx.textAlign = 'left';
+        fns.forEach(({ a, col, lbl }, i) => {
+          cx.fillStyle = col;
+          cx.fillText(lbl, W - 60, 22 + i * 18);
+        });
+        gdot(cx, 0, 1, 5, 'rgba(255,255,255,0.6)');
+        cx.font = '11px monospace'; cx.fillStyle = 'rgba(255,255,255,0.4)';
+        cx.fillText('Wszystkie przez (0,1)', px(0) + 8, py(1) - 8);
+      },
+    },
+
+    // ── Stage 3: Decay ────────────────────────────────────────────
+    {
+      title: () => T('Zanik wykładniczy — rozpad promieniotwórczy', 'Exponential decay — radioactive decay'),
+      desc:  () => T(
+        'Dla 0 < a < 1 funkcja maleje: N(t) = N₀ · (½)ᵗ/T gdzie T to czas połowicznego rozpadu. Zmień T suwakiem.',
+        'For 0 < a < 1 the function decreases: N(t) = N₀ · (½)ᵗ/T where T is the half-life. Change T with the slider.'
+      ),
+      sliders: [
+        { id: 'T', lbl: 'T½', color: COLORS.PINK, min: 0.5, max: 3, step: 0.1, val: 1.5 },
+      ],
+      draw(cx, W, H, vals) {
+        const T = vals.T;
+        drawGrid(cx, W, H); drawAxes(cx, W, H);
+        plotFn(cx, W, x => x >= 0 ? Math.pow(0.5, x / T) : null, COLORS.PINK, 2.5);
+
+        // Mark half-lives
+        for (let k = 1; k <= 4; k++) {
+          const tx = T * k, ty = Math.pow(0.5, k);
+          if (tx > 4.5) break;
+          cx.beginPath(); cx.moveTo(px(tx), OY); cx.lineTo(px(tx), py(ty));
+          cx.strokeStyle = 'rgba(224,112,144,0.3)'; cx.lineWidth = 1; cx.setLineDash([3,3]); cx.stroke(); cx.setLineDash([]);
+          gdot(cx, tx, ty, 4, COLORS.PINK);
+          cx.font = '10px monospace'; cx.textAlign = 'center';
+          cx.fillStyle = COLORS.PINK; cx.fillText('½' + ['', '²', '³', '⁴'][k - 1], px(tx), py(ty) - 10);
+        }
+        cx.font = '13px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.PINK; cx.fillText('N(t) = (½)^(t/' + T.toFixed(1) + ')', 14, 22);
+        cx.fillStyle = 'rgba(255,255,255,0.45)'; cx.fillText('co ' + T.toFixed(1) + ' jedn. → ½ pozostaje', 14, 40);
+      },
+    },
+
+    // ── Stage 4: Compound interest ───────────────────────────────
+    {
+      title: () => T('Procent składany — pieniądze w czasie', 'Compound interest — money over time'),
+      desc:  () => T(
+        '1000 zł na lokacie z oprocentowaniem r% rocznie. Po n latach: K = 1000 · (1 + r/100)ⁿ. Zmień stopę procentową i obserwuj wzrost.',
+        '1000 PLN in a savings account at rate r% per year. After n years: K = 1000 · (1 + r/100)ⁿ. Change the rate and watch the growth.'
+      ),
+      sliders: [
+        { id: 'r', lbl: 'r%', color: COLORS.GREEN,  min: 1, max: 15, step: 0.5, val: 5 },
+        { id: 'n', lbl: 'n',  color: COLORS.YELLOW, min: 1, max: 30, step: 1,   val: 10 },
+      ],
+      draw(cx, W, H, vals) {
+        const r = vals.r, n = Math.round(vals.n);
+        const K0 = 1000, a = 1 + r / 100;
+
+        // Bar chart of yearly values
+        const maxK = K0 * Math.pow(a, n);
+        const barW = Math.min(20, (W - 60) / n);
+        const chartH = H - 80, chartY = H - 50;
+
+        for (let i = 0; i <= n; i++) {
+          const Ki = K0 * Math.pow(a, i);
+          const bh = (Ki / maxK) * chartH;
+          const bx = 30 + i * (barW + 2);
+          const frac = i / n;
+          const r2 = Math.round(255 * (1 - frac * 0.6));
+          const g2 = Math.round(196 * (0.4 + frac * 0.6));
+          cx.fillStyle = `rgba(${r2},${g2},100,0.7)`;
+          cx.fillRect(bx, chartY - bh, barW, bh);
+        }
+
+        // Curve overlay
+        cx.beginPath(); let first = true;
+        for (let i = 0; i <= n; i += 0.1) {
+          const Ki = K0 * Math.pow(a, i);
+          const bx = 30 + i * (barW + 2) + barW / 2;
+          const by = chartY - (Ki / maxK) * chartH;
+          if (first) { cx.moveTo(bx, by); first = false; } else cx.lineTo(bx, by);
+        }
+        cx.strokeStyle = COLORS.GREEN; cx.lineWidth = 2; cx.stroke();
+
+        cx.font = '13px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.GREEN; cx.fillText('r = ' + r + '%  n = ' + n + ' lat', 14, 22);
+        cx.fillStyle = COLORS.YELLOW;
+        cx.fillText('K = 1000 · ' + a.toFixed(2) + '^' + n + ' = ' + Math.round(maxK) + ' zł', 14, 40);
+      },
+    },
+  ],
+});
+</script>
+</body>
+</html>

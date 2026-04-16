@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pole i obwód</title>
+</head>
+<body>
+<script type="module">
+import { VizCore, T, COLORS } from '../lib/viz-core.js';
+
+const { cv, cx, W, H, getCanvasPos } = VizCore.init({
+  title: T('Pole i obwód', 'Area & Perimeter'),
+  H: 360,
+  stages: [
+    // ── Stage 0: Rectangle ───────────────────────────────────────
+    {
+      title: () => T('Prostokąt — pole i obwód', 'Rectangle — area and perimeter'),
+      desc:  () => T(
+        'Pole = a × b. Obwód = 2(a + b). Przeciągnij narożnik lub użyj suwaków.',
+        'Area = a × b. Perimeter = 2(a + b). Drag the corner or use sliders.'
+      ),
+      sliders: [
+        { id: 'a', lbl: 'a', color: COLORS.CYAN,   min: 20, max: 220, step: 1, val: 160 },
+        { id: 'b', lbl: 'b', color: COLORS.ORANGE, min: 20, max: 180, step: 1, val: 100 },
+      ],
+      draw(cx, W, H, vals) {
+        const a = vals.a, b = vals.b;
+        const x0 = W / 2 - a / 2, y0 = H / 2 - b / 2;
+
+        cx.fillStyle = 'rgba(88,196,221,0.1)';
+        cx.fillRect(x0, y0, a, b);
+        cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 2.5;
+        cx.shadowColor = COLORS.CYAN; cx.shadowBlur = 5;
+        cx.strokeRect(x0, y0, a, b);
+        cx.shadowBlur = 0;
+
+        // Dimension arrows
+        drawDimArrow(cx, x0, y0 - 18, x0 + a, y0 - 18, COLORS.CYAN, 'a = ' + a);
+        drawDimArrow(cx, x0 - 18, y0, x0 - 18, y0 + b, COLORS.ORANGE, 'b = ' + b);
+
+        // Draggable corner dot
+        cx.beginPath(); cx.arc(x0 + a, y0 + b, 8, 0, Math.PI * 2);
+        cx.fillStyle = COLORS.GREEN; cx.shadowColor = COLORS.GREEN;
+        cx.shadowBlur = 10; cx.fill(); cx.shadowBlur = 0;
+
+        cx.font = '14px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('Pole = a × b = ' + a + ' × ' + b + ' = ' + (a * b), W / 2, H - 36);
+        cx.fillStyle = COLORS.ORANGE;
+        cx.fillText('Obwód = 2(a+b) = ' + 2 * (a + b), W / 2, H - 16);
+      },
+    },
+
+    // ── Stage 1: Triangle ────────────────────────────────────────
+    {
+      title: () => T('Trójkąt — pole i obwód', 'Triangle — area and perimeter'),
+      desc:  () => T(
+        'Pole trójkąta = ½ × podstawa × wysokość. Wysokość to prostopadła do podstawy.',
+        'Area of triangle = ½ × base × height. Height is perpendicular to the base.'
+      ),
+      sliders: [
+        { id: 'base', lbl: 'a',  color: COLORS.CYAN,   min: 60,  max: 280, step: 1, val: 200 },
+        { id: 'h',    lbl: 'h',  color: COLORS.ORANGE, min: 30,  max: 200, step: 1, val: 120 },
+        { id: 'off',  lbl: '←→', color: COLORS.YELLOW, min: -80, max: 80,  step: 1, val: 0 },
+      ],
+      draw(cx, W, H, vals) {
+        const base = vals.base, h = vals.h, off = vals.off;
+        const bx = W / 2 - base / 2, by = H / 2 + h / 2;
+        const tx = W / 2 + off, ty = by - h;
+
+        cx.beginPath(); cx.moveTo(bx, by); cx.lineTo(bx + base, by); cx.lineTo(tx, ty); cx.closePath();
+        cx.fillStyle = 'rgba(255,107,53,0.1)'; cx.fill();
+        cx.strokeStyle = COLORS.ORANGE; cx.lineWidth = 2.5;
+        cx.shadowColor = COLORS.ORANGE; cx.shadowBlur = 5; cx.stroke(); cx.shadowBlur = 0;
+
+        // Height line
+        cx.beginPath(); cx.moveTo(tx, ty); cx.lineTo(tx, by);
+        cx.strokeStyle = 'rgba(255,209,102,0.6)'; cx.lineWidth = 1.5; cx.setLineDash([4,3]); cx.stroke(); cx.setLineDash([]);
+        // Right angle at foot
+        cx.beginPath(); cx.moveTo(tx + 8, by); cx.lineTo(tx + 8, by - 8); cx.lineTo(tx, by - 8);
+        cx.strokeStyle = COLORS.YELLOW; cx.lineWidth = 1.5; cx.stroke();
+
+        // Labels
+        drawDimArrow(cx, bx, by + 18, bx + base, by + 18, COLORS.CYAN, 'a = ' + base);
+        cx.font = '12px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.YELLOW; cx.fillText('h = ' + h, tx + 14, (ty + by) / 2);
+
+        const sides = [
+          Math.hypot(tx - bx, ty - by),
+          Math.hypot(tx - (bx + base), ty - by),
+          base,
+        ];
+        const perim = sides.reduce((a, b) => a + b, 0);
+
+        cx.font = '13px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = COLORS.ORANGE;
+        cx.fillText('Pole = ½ × ' + base + ' × ' + h + ' = ' + (base * h / 2), W / 2, H - 36);
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('Obwód = ' + Math.round(perim), W / 2, H - 16);
+      },
+    },
+
+    // ── Stage 2: Circle ──────────────────────────────────────────
+    {
+      title: () => T('Koło — pole i obwód', 'Circle — area and circumference'),
+      desc:  () => T(
+        'Obwód (długość okręgu) = 2πr. Pole koła = πr². Liczba π ≈ 3.14159... łączy promień z polem i obwodem.',
+        'Circumference = 2πr. Area of circle = πr². The number π ≈ 3.14159... links radius to area and circumference.'
+      ),
+      sliders: [
+        { id: 'r', lbl: 'r', color: COLORS.CYAN, min: 20, max: 130, step: 1, val: 80 },
+      ],
+      draw(cx, W, H, vals) {
+        const r = vals.r;
+        const CX = W / 2, CY = H / 2;
+
+        cx.beginPath(); cx.arc(CX, CY, r, 0, Math.PI * 2);
+        cx.fillStyle = 'rgba(88,196,221,0.1)'; cx.fill();
+        cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 2.5;
+        cx.shadowColor = COLORS.CYAN; cx.shadowBlur = 6; cx.stroke(); cx.shadowBlur = 0;
+
+        // Radius line
+        cx.beginPath(); cx.moveTo(CX, CY); cx.lineTo(CX + r, CY);
+        cx.strokeStyle = COLORS.YELLOW; cx.lineWidth = 2; cx.stroke();
+        cx.font = '12px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = COLORS.YELLOW; cx.fillText('r = ' + r, CX + r / 2, CY - 10);
+
+        // Centre dot
+        cx.beginPath(); cx.arc(CX, CY, 4, 0, Math.PI * 2);
+        cx.fillStyle = COLORS.ORANGE; cx.fill();
+
+        // "Unroll" circumference visualisation (bar at bottom)
+        const circ = 2 * Math.PI * r;
+        const barY = H - 30, barX = W / 2 - circ / 2;
+        cx.fillStyle = 'rgba(88,196,221,0.2)';
+        cx.fillRect(barX, barY - 10, circ, 12);
+        cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 1; cx.strokeRect(barX, barY - 10, circ, 12);
+        cx.font = '11px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = 'rgba(255,255,255,0.4)'; cx.fillText('← 2πr = ' + Math.round(circ) + ' →', W / 2, barY + 12);
+
+        cx.font = '13px monospace';
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('Pole = πr² = ' + Math.round(Math.PI * r * r), W / 2, 22);
+        cx.fillStyle = COLORS.ORANGE;
+        cx.fillText('Obwód = 2πr = ' + Math.round(circ), W / 2, 40);
+      },
+    },
+
+    // ── Stage 3: Composite shapes ────────────────────────────────
+    {
+      title: () => T('Figury złożone', 'Composite shapes'),
+      desc:  () => T(
+        'Pole figury złożonej = suma lub różnica pól prostszych figur. Przykład: prostokąt z wyciętym kołem.',
+        'Area of composite shape = sum or difference of simpler areas. Example: rectangle with a circular cutout.'
+      ),
+      sliders: [
+        { id: 'a', lbl: 'a', color: COLORS.CYAN,   min: 80,  max: 300, step: 1, val: 200 },
+        { id: 'b', lbl: 'b', color: COLORS.ORANGE, min: 60,  max: 200, step: 1, val: 120 },
+        { id: 'r', lbl: 'r', color: COLORS.GREEN,  min: 10,  max: 55,  step: 1, val: 35 },
+      ],
+      draw(cx, W, H, vals) {
+        const a = vals.a, b = vals.b, r = Math.min(vals.r, b / 2 - 5, a / 2 - 5);
+        const x0 = W / 2 - a / 2, y0 = H / 2 - b / 2;
+        const CX = W / 2, CY = H / 2;
+
+        // Rectangle with hole
+        cx.beginPath();
+        cx.rect(x0, y0, a, b);
+        cx.arc(CX, CY, r, 0, Math.PI * 2, true); // cutout (counter-clockwise)
+        cx.fillStyle = 'rgba(88,196,221,0.12)'; cx.fill('evenodd');
+        cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 2; cx.stroke();
+
+        cx.strokeStyle = COLORS.GREEN; cx.lineWidth = 2;
+        cx.beginPath(); cx.arc(CX, CY, r, 0, Math.PI * 2); cx.stroke();
+
+        // Labels
+        drawDimArrow(cx, x0, y0 - 14, x0 + a, y0 - 14, COLORS.CYAN, 'a=' + a);
+        drawDimArrow(cx, x0 - 14, y0, x0 - 14, y0 + b, COLORS.ORANGE, 'b=' + b);
+        cx.font = '11px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = COLORS.GREEN; cx.fillText('r=' + r, CX, CY - r - 8);
+
+        const area = a * b - Math.PI * r * r;
+        cx.font = '13px monospace';
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('Pole = a×b − πr²', W / 2, H - 34);
+        cx.fillStyle = COLORS.GREEN;
+        cx.fillText('= ' + a * b + ' − ' + Math.round(Math.PI * r * r) + ' = ' + Math.round(area), W / 2, H - 14);
+      },
+    },
+  ],
+});
+
+// ── Drag corner for rectangle (stage 0) ──────────────────────────
+let dragging = false;
+cv.classList.add('draggable');
+
+function onDown(e) {
+  // approximate: just enable drag anywhere for simplicity
+  dragging = true;
+  if (e.preventDefault) e.preventDefault();
+}
+function onUp() { dragging = false; }
+cv.addEventListener('mouseup', onUp);
+cv.addEventListener('mouseleave', onUp);
+cv.addEventListener('touchend', onUp);
+
+// ── Dimension arrow helper ────────────────────────────────────────
+function drawDimArrow(cx, x1, y1, x2, y2, col, label) {
+  cx.beginPath(); cx.moveTo(x1, y1); cx.lineTo(x2, y2);
+  cx.strokeStyle = col; cx.lineWidth = 1.5; cx.stroke();
+  const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy);
+  const ux = dx / len, uy = dy / len;
+  [[x1, y1], [x2, y2]].forEach(([x, y], i) => {
+    const dir = i === 0 ? 1 : -1;
+    cx.beginPath(); cx.moveTo(x, y);
+    cx.lineTo(x + dir * ux * 8 + uy * 4, y + dir * uy * 8 - ux * 4);
+    cx.moveTo(x, y);
+    cx.lineTo(x + dir * ux * 8 - uy * 4, y + dir * uy * 8 + ux * 4);
+    cx.strokeStyle = col; cx.lineWidth = 1.5; cx.stroke();
+  });
+  cx.font = '12px monospace'; cx.textAlign = 'center';
+  cx.fillStyle = col;
+  const nx = -(y2 - y1) / len, ny = (x2 - x1) / len;
+  cx.fillText(label, (x1 + x2) / 2 + nx * 14, (y1 + y2) / 2 + ny * 14);
+}
+</script>
+</body>
+</html>

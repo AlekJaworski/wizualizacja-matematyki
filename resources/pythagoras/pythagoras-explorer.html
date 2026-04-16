@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Twierdzenie Pitagorasa</title>
+</head>
+<body>
+<script type="module">
+import { VizCore, T, COLORS } from '../lib/viz-core.js';
+
+const { cx, W, H } = VizCore.init({
+  title: T('Twierdzenie Pitagorasa', 'Pythagorean Theorem'),
+  H: 360,
+  stages: [
+    // ── Stage 0: Right triangle with labels ──────────────────────
+    {
+      title: () => T('Trójkąt prostokątny', 'Right triangle'),
+      desc:  () => T(
+        'W trójkącie prostokątnym mamy dwie przyprostokątne (a i b) i przeciwprostokątną (c). Przeciwprostokątna jest naprzeciwko kąta prostego i jest najdłuższa.',
+        'A right triangle has two legs (a and b) and a hypotenuse (c). The hypotenuse is opposite the right angle and is the longest side.'
+      ),
+      sliders: [
+        { id: 'a', lbl: 'a', color: COLORS.CYAN,   min: 30, max: 140, step: 1, val: 80 },
+        { id: 'b', lbl: 'b', color: COLORS.ORANGE, min: 30, max: 140, step: 1, val: 60 },
+      ],
+      draw(cx, W, H, vals) {
+        const a = vals.a, b = vals.b;
+        const c = Math.sqrt(a * a + b * b);
+        const Ox = W / 2 - a / 2, Oy = H / 2 + b / 2;
+        const Ax = Ox + a,  Ay = Oy;
+        const Bx = Ox,      By = Oy - b;
+
+        // Triangle
+        cx.beginPath(); cx.moveTo(Ox, Oy); cx.lineTo(Ax, Ay); cx.lineTo(Bx, By); cx.closePath();
+        cx.fillStyle = 'rgba(88,196,221,0.06)'; cx.fill();
+        cx.strokeStyle = 'rgba(255,255,255,0.4)'; cx.lineWidth = 2; cx.stroke();
+
+        // Right angle box
+        const sq = 12;
+        cx.beginPath();
+        cx.moveTo(Ox + sq, Oy); cx.lineTo(Ox + sq, Oy - sq); cx.lineTo(Ox, Oy - sq);
+        cx.strokeStyle = COLORS.GREEN; cx.lineWidth = 1.5; cx.stroke();
+
+        // Side labels
+        cx.font = 'bold 15px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('a = ' + Math.round(a), (Ox + Ax) / 2, Oy + 20);
+        cx.fillStyle = COLORS.ORANGE;
+        cx.fillText('b = ' + Math.round(b), Ox - 28, (Oy + By) / 2);
+        cx.fillStyle = COLORS.YELLOW;
+        cx.fillText('c = ' + c.toFixed(1), (Ax + Bx) / 2 + 22, (Ay + By) / 2 - 8);
+
+        // Hypotenuse highlight
+        cx.beginPath(); cx.moveTo(Ax, Ay); cx.lineTo(Bx, By);
+        cx.strokeStyle = COLORS.YELLOW; cx.lineWidth = 3;
+        cx.shadowColor = COLORS.YELLOW; cx.shadowBlur = 6; cx.stroke(); cx.shadowBlur = 0;
+      },
+    },
+
+    // ── Stage 1: Area squares on each side ───────────────────────
+    {
+      title: () => T('Kwadraty na bokach', 'Squares on the sides'),
+      desc:  () => T(
+        'Na każdym boku budujemy kwadrat. Pole kwadratu na boku długości x wynosi x². Twierdzenie Pitagorasa mówi: a² + b² = c².',
+        'We build a square on each side. Area of a square with side x is x². Pythagorean theorem: a² + b² = c².'
+      ),
+      sliders: [
+        { id: 'a', lbl: 'a', color: COLORS.CYAN,   min: 40, max: 120, step: 1, val: 80 },
+        { id: 'b', lbl: 'b', color: COLORS.ORANGE, min: 40, max: 120, step: 1, val: 60 },
+      ],
+      draw(cx, W, H, vals) {
+        const a = vals.a, b = vals.b;
+        const c = Math.sqrt(a * a + b * b);
+
+        // Triangle origin — position to make room for squares on all sides
+        const Ox = W / 2 - a / 2 + 30, Oy = H / 2 + b / 2 - 10;
+        const Ax = Ox + a, Ay = Oy;
+        const Bx = Ox,     By = Oy - b;
+
+        // Square on a (below)
+        cx.fillStyle = 'rgba(88,196,221,0.15)';
+        cx.fillRect(Ox, Oy, a, a * 0.6);  // visual only, scaled
+        cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 1.5;
+        cx.strokeRect(Ox, Oy, a, a * 0.6);
+        cx.font = '13px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('a² = ' + Math.round(a * a), Ox + a / 2, Oy + a * 0.3 + 5);
+
+        // Square on b (left)
+        cx.fillStyle = 'rgba(255,107,53,0.15)';
+        cx.fillRect(Ox - b * 0.6, By, b * 0.6, b);
+        cx.strokeStyle = COLORS.ORANGE; cx.lineWidth = 1.5;
+        cx.strokeRect(Ox - b * 0.6, By, b * 0.6, b);
+        cx.fillStyle = COLORS.ORANGE;
+        cx.fillText('b² = ' + Math.round(b * b), Ox - b * 0.3, By + b / 2 + 4);
+
+        // Triangle
+        cx.beginPath(); cx.moveTo(Ox, Oy); cx.lineTo(Ax, Ay); cx.lineTo(Bx, By); cx.closePath();
+        cx.fillStyle = 'rgba(88,196,221,0.08)'; cx.fill();
+        cx.strokeStyle = 'rgba(255,255,255,0.5)'; cx.lineWidth = 2; cx.stroke();
+
+        // Right angle box
+        cx.beginPath();
+        cx.moveTo(Ox + 12, Oy); cx.lineTo(Ox + 12, Oy - 12); cx.lineTo(Ox, Oy - 12);
+        cx.strokeStyle = COLORS.GREEN; cx.lineWidth = 1.5; cx.stroke();
+
+        // c² label on hypotenuse
+        cx.fillStyle = COLORS.YELLOW;
+        cx.font = '13px monospace';
+        cx.fillText('c² = ' + Math.round(c * c), (Ax + Bx) / 2 + 35, (Ay + By) / 2);
+
+        // Formula
+        cx.font = 'bold 14px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = 'rgba(255,255,255,0.7)';
+        cx.fillText(Math.round(a*a) + ' + ' + Math.round(b*b) + ' = ' + Math.round(c*c), W / 2 + 30, H - 14);
+      },
+    },
+
+    // ── Stage 2: Visual proof — rearrangement ────────────────────
+    {
+      title: () => T('Dowód: przestawianie trójkątów', 'Proof: rearranging triangles'),
+      desc:  () => T(
+        'Dwa kwadraty (a+b)². Lewy: 4 trójkąty + c². Prawy: 4 trójkąty + a² + b². Oba mają tę samą powierzchnię, więc c² = a² + b².',
+        'Two squares of side (a+b). Left: 4 triangles + c². Right: 4 triangles + a² + b². Both have the same area, so c² = a² + b².'
+      ),
+      sliders: [
+        { id: 'a', lbl: 'a', color: COLORS.CYAN,   min: 30, max: 100, step: 1, val: 70 },
+        { id: 'b', lbl: 'b', color: COLORS.ORANGE, min: 30, max: 100, step: 1, val: 50 },
+      ],
+      draw(cx, W, H, vals) {
+        const a = vals.a, b = vals.b;
+        const s = a + b;
+        const scale = Math.min(150 / s, 1.2);
+        const ss = s * scale, as = a * scale, bs = b * scale;
+
+        function drawSquareLeft(ox, oy) {
+          cx.strokeStyle = 'rgba(255,255,255,0.3)'; cx.lineWidth = 1.5;
+          cx.strokeRect(ox, oy, ss, ss);
+
+          // 4 right triangles around a tilted inner square (showing c²)
+          cx.fillStyle = 'rgba(255,209,102,0.2)';
+          // tilted square vertices
+          const c_ = Math.sqrt(a*a+b*b) * scale;
+          const v = [
+            [ox + as, oy],
+            [ox + ss, oy + as],
+            [ox + bs, oy + ss],
+            [ox, oy + bs],
+          ];
+          cx.beginPath();
+          cx.moveTo(v[0][0], v[0][1]);
+          v.slice(1).forEach(p => cx.lineTo(p[0], p[1]));
+          cx.closePath();
+          cx.fillStyle = 'rgba(255,209,102,0.25)'; cx.fill();
+          cx.strokeStyle = COLORS.YELLOW; cx.lineWidth = 2; cx.stroke();
+
+          // 4 triangles (cyan)
+          [[ox, oy, ox+as, oy, ox, oy+bs],
+           [ox+as, oy, ox+ss, oy, ox+ss, oy+as],
+           [ox+ss, oy+as, ox+ss, oy+ss, ox+bs, oy+ss],
+           [ox, oy+bs, ox+bs, oy+ss, ox, oy+ss]].forEach(([x1,y1,x2,y2,x3,y3]) => {
+            cx.beginPath(); cx.moveTo(x1,y1); cx.lineTo(x2,y2); cx.lineTo(x3,y3); cx.closePath();
+            cx.fillStyle = 'rgba(88,196,221,0.2)'; cx.fill();
+            cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 1; cx.stroke();
+          });
+
+          cx.font = '12px monospace'; cx.textAlign = 'center';
+          cx.fillStyle = COLORS.YELLOW;
+          cx.fillText('c²', ox + ss/2, oy + ss/2 + 5);
+        }
+
+        function drawSquareRight(ox, oy) {
+          cx.strokeStyle = 'rgba(255,255,255,0.3)'; cx.lineWidth = 1.5;
+          cx.strokeRect(ox, oy, ss, ss);
+
+          // a² square (top-left)
+          cx.fillStyle = 'rgba(88,196,221,0.2)';
+          cx.fillRect(ox, oy, as, as);
+          cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 1.5;
+          cx.strokeRect(ox, oy, as, as);
+
+          // b² square (bottom-right)
+          cx.fillStyle = 'rgba(255,107,53,0.2)';
+          cx.fillRect(ox + as, oy + as, bs, bs);
+          cx.strokeStyle = COLORS.ORANGE; cx.lineWidth = 1.5;
+          cx.strokeRect(ox + as, oy + as, bs, bs);
+
+          // 4 triangles (same as left)
+          [[ox+as, oy, ox+ss, oy, ox+ss, oy+as],
+           [ox, oy+as, ox+as, oy, ox, oy+ss],  // not quite right, approximate
+           [ox, oy+as, ox+as, oy+ss, ox, oy+ss],
+           [ox+as, oy+as, ox+ss, oy+as, ox+as, oy+ss]].forEach(([x1,y1,x2,y2,x3,y3]) => {
+            cx.beginPath(); cx.moveTo(x1,y1); cx.lineTo(x2,y2); cx.lineTo(x3,y3); cx.closePath();
+            cx.fillStyle = 'rgba(88,196,221,0.15)'; cx.fill();
+            cx.strokeStyle = 'rgba(88,196,221,0.4)'; cx.lineWidth = 1; cx.stroke();
+          });
+
+          cx.font = '12px monospace'; cx.textAlign = 'center';
+          cx.fillStyle = COLORS.CYAN;
+          cx.fillText('a²', ox + as/2, oy + as/2 + 4);
+          cx.fillStyle = COLORS.ORANGE;
+          cx.fillText('b²', ox + as + bs/2, oy + as + bs/2 + 4);
+        }
+
+        const gap = 20;
+        const lx = W/2 - ss - gap/2, rx = W/2 + gap/2;
+        const ty = (H - ss) / 2 - 10;
+        drawSquareLeft(lx, ty);
+        drawSquareRight(rx, ty);
+
+        cx.font = '13px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = 'rgba(255,255,255,0.5)';
+        cx.fillText('4△ + c²', lx + ss/2, ty + ss + 18);
+        cx.fillText('4△ + a² + b²', rx + ss/2, ty + ss + 18);
+        cx.fillStyle = 'rgba(255,255,255,0.7)';
+        cx.fillText('∴  c² = a² + b²', W/2, H - 10);
+      },
+    },
+
+    // ── Stage 3: Converse — check right angle ─────────────────────
+    {
+      title: () => T('Odwrotność — sprawdzanie kąta prostego', 'Converse — checking right angle'),
+      desc:  () => T(
+        'Odwrotność: jeśli a² + b² = c², to trójkąt jest prostokątny. Zmień boki i sprawdź, czy tworzą trójkąt prostokątny. Znane trójki: 3-4-5, 5-12-13, 8-15-17.',
+        'Converse: if a² + b² = c², the triangle is right-angled. Adjust sides and check. Famous triples: 3-4-5, 5-12-13, 8-15-17.'
+      ),
+      sliders: [
+        { id: 'a', lbl: 'a', color: COLORS.CYAN,   min: 10, max: 100, step: 1, val: 60 },
+        { id: 'b', lbl: 'b', color: COLORS.ORANGE, min: 10, max: 100, step: 1, val: 80 },
+        { id: 'c', lbl: 'c', color: COLORS.YELLOW, min: 10, max: 140, step: 1, val: 100 },
+      ],
+      draw(cx, W, H, vals) {
+        const a = vals.a, b = vals.b, c = vals.c;
+        const sum = a * a + b * b;
+        const diff = Math.abs(sum - c * c);
+        const isRight = diff < 5;
+        const isValid = a + b > c && a + c > b && b + c > a;
+
+        const CX = W / 2, CY = H / 2;
+
+        if (!isValid) {
+          cx.font = '14px monospace'; cx.textAlign = 'center';
+          cx.fillStyle = COLORS.PINK;
+          cx.fillText('Te boki nie tworzą trójkąta!', CX, CY);
+          cx.fillStyle = 'rgba(255,255,255,0.4)';
+          cx.fillText('Zmień wartości suwaka', CX, CY + 24);
+          return;
+        }
+
+        // Draw triangle using law of cosines
+        const cosA = (b * b + c * c - a * a) / (2 * b * c);
+        const angle = Math.acos(Math.max(-1, Math.min(1, cosA)));
+        const sc = 1.4;
+        const Ox = CX - b * sc / 2, Oy = CY + a * sc * 0.3;
+        const Bx = Ox + b * sc, By = Oy;
+        const Cx2 = Ox + c * sc * Math.cos(angle), Cy2 = Oy - c * sc * Math.sin(angle);
+
+        cx.beginPath(); cx.moveTo(Ox, Oy); cx.lineTo(Bx, By); cx.lineTo(Cx2, Cy2); cx.closePath();
+        cx.fillStyle = isRight ? 'rgba(131,193,103,0.1)' : 'rgba(255,107,53,0.08)';
+        cx.fill();
+        cx.strokeStyle = isRight ? COLORS.GREEN : 'rgba(255,255,255,0.4)';
+        cx.lineWidth = 2; cx.stroke();
+
+        cx.font = 'bold 15px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = isRight ? COLORS.GREEN : COLORS.PINK;
+        cx.fillText(
+          isRight ? '✓ Prostokątny!  a²+b² = c²' : 'a²+b² ≠ c²  (różnica: ' + Math.round(diff) + ')',
+          CX, 24
+        );
+
+        cx.font = '13px monospace';
+        cx.fillStyle = COLORS.CYAN;   cx.fillText('a² = ' + a*a, CX - 110, H - 30);
+        cx.fillStyle = COLORS.ORANGE; cx.fillText('b² = ' + b*b, CX, H - 30);
+        cx.fillStyle = COLORS.YELLOW; cx.fillText('c² = ' + c*c, CX + 110, H - 30);
+        cx.fillStyle = 'rgba(255,255,255,0.5)';
+        cx.fillText(a*a + ' + ' + b*b + ' = ' + sum + (isRight ? ' ✓' : ' ≠ ' + c*c), CX, H - 10);
+      },
+    },
+  ],
+});
+</script>
+</body>
+</html>

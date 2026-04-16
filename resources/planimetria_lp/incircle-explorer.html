@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Okrąg wpisany — eksplorator</title>
+</head>
+<body>
+<script type="module">
+import { VizCore, T, COLORS } from '../lib/viz-core.js';
+
+// ── Triangle helpers ──────────────────────────────────────────────
+function incenter(A, B, C) {
+  const a = Math.hypot(B.x - C.x, B.y - C.y);
+  const b = Math.hypot(A.x - C.x, A.y - C.y);
+  const c = Math.hypot(A.x - B.x, A.y - B.y);
+  const s = a + b + c;
+  return { x: (a * A.x + b * B.x + c * C.x) / s, y: (a * A.y + b * B.y + c * C.y) / s };
+}
+
+function distPointLine(P, A, B) {
+  const dx = B.x - A.x, dy = B.y - A.y;
+  return Math.abs(dy * P.x - dx * P.y + B.x * A.y - B.y * A.x) / Math.hypot(dx, dy);
+}
+
+function foot(P, A, B) {
+  const dx = B.x - A.x, dy = B.y - A.y;
+  const t = ((P.x - A.x) * dx + (P.y - A.y) * dy) / (dx * dx + dy * dy);
+  return { x: A.x + t * dx, y: A.y + t * dy };
+}
+
+function angleBisectorDir(A, B, C) {
+  // Direction from B bisecting angle ABC
+  const dBA = Math.hypot(A.x - B.x, A.y - B.y);
+  const dBC = Math.hypot(C.x - B.x, C.y - B.y);
+  const ux = (A.x - B.x) / dBA + (C.x - B.x) / dBC;
+  const uy = (A.y - B.y) / dBA + (C.y - B.y) / dBC;
+  return { x: ux, y: uy };
+}
+
+function drawTriangle(cx, pts, col, lw = 1.5, alpha = 1) {
+  cx.save(); cx.globalAlpha = alpha;
+  cx.beginPath();
+  cx.moveTo(pts[0].x, pts[0].y);
+  pts.slice(1).forEach(p => cx.lineTo(p.x, p.y));
+  cx.closePath();
+  cx.strokeStyle = col; cx.lineWidth = lw; cx.stroke();
+  cx.restore();
+}
+
+function drawDot(cx, x, y, r, col) {
+  cx.beginPath(); cx.arc(x, y, r, 0, Math.PI * 2);
+  cx.fillStyle = col; cx.shadowColor = col; cx.shadowBlur = 8; cx.fill(); cx.shadowBlur = 0;
+}
+
+// Default triangle vertices (draggable)
+let verts = [
+  { x: 300, y: 60  },
+  { x: 140, y: 290 },
+  { x: 460, y: 290 },
+];
+
+const { cv, cx, W, H, getCanvasPos } = VizCore.init({
+  title: T('Okrąg wpisany — eksplorator', 'Incircle — Explorer'),
+  H: 360,
+  stages: [
+    // ── Stage 0: What is the incircle ───────────────────────────
+    {
+      title: () => T('Okrąg wpisany — co to jest?', 'Incircle — what is it?'),
+      desc:  () => T(
+        'Okrąg wpisany w trójkąt dotyka wszystkich trzech boków. Jego środek nazywamy środkiem wpisanym (incentrum). Przeciągnij wierzchołki trójkąta!',
+        'The incircle of a triangle touches all three sides. Its centre is called the incentre. Drag the triangle vertices!'
+      ),
+      sliders: [],
+      draw(cx, W, H) {
+        const [A, B, C] = verts;
+        const I = incenter(A, B, C);
+        const r = distPointLine(I, A, B);
+
+        drawTriangle(cx, [A, B, C], 'rgba(255,255,255,0.3)', 2);
+
+        // Incircle
+        cx.beginPath(); cx.arc(I.x, I.y, r, 0, Math.PI * 2);
+        cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 2.5;
+        cx.shadowColor = COLORS.CYAN; cx.shadowBlur = 8; cx.stroke(); cx.shadowBlur = 0;
+
+        // Tangent points
+        [foot(I, A, B), foot(I, B, C), foot(I, C, A)].forEach(p => drawDot(cx, p.x, p.y, 4, COLORS.GREEN));
+
+        drawDot(cx, I.x, I.y, 5, COLORS.CYAN);
+        [A, B, C].forEach(p => drawDot(cx, p.x, p.y, dragging ? 9 : 7, COLORS.ORANGE));
+
+        cx.font = '12px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = 'rgba(255,255,255,0.45)'; cx.fillText('Przeciągnij wierzchołki!', 16, 22);
+        cx.fillStyle = COLORS.CYAN; cx.fillText('I = środek wpisany', 16, 40);
+        cx.fillStyle = COLORS.GREEN; cx.fillText('● punkty styczne', 16, 58);
+      },
+    },
+
+    // ── Stage 1: Angle bisectors ─────────────────────────────────
+    {
+      title: () => T('Dwusieczne kątów', 'Angle bisectors'),
+      desc:  () => T(
+        'Dwusieczna kąta dzieli go na połowę. Każdy punkt na dwusiecznej jest jednakowo odległy od obu ramion. Dlatego środek wpisany leży na WSZYSTKICH trzech dwusiecznych.',
+        'An angle bisector halves the angle. Every point on a bisector is equidistant from both sides. So the incentre lies on ALL three bisectors.'
+      ),
+      sliders: [],
+      draw(cx, W, H) {
+        const [A, B, C] = verts;
+        const I = incenter(A, B, C);
+        const r = distPointLine(I, A, B);
+
+        drawTriangle(cx, [A, B, C], 'rgba(255,255,255,0.25)', 1.5);
+
+        // Three bisectors: extend from vertex through incentre
+        const bisColours = [COLORS.YELLOW, COLORS.PINK, COLORS.PURPLE];
+        const vertArr = [A, B, C];
+        vertArr.forEach((V, i) => {
+          cx.beginPath(); cx.moveTo(V.x, V.y); cx.lineTo(I.x, I.y);
+          // Extend past incentre
+          const dx = I.x - V.x, dy = I.y - V.y;
+          const len = Math.hypot(dx, dy);
+          cx.lineTo(I.x + dx / len * 40, I.y + dy / len * 40);
+          cx.strokeStyle = bisColours[i]; cx.lineWidth = 2;
+          cx.setLineDash([5, 4]); cx.stroke(); cx.setLineDash([]);
+        });
+
+        cx.beginPath(); cx.arc(I.x, I.y, r, 0, Math.PI * 2);
+        cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 2; cx.globalAlpha = 0.5; cx.stroke(); cx.globalAlpha = 1;
+
+        drawDot(cx, I.x, I.y, 6, COLORS.CYAN);
+        [A, B, C].forEach(p => drawDot(cx, p.x, p.y, 6, COLORS.ORANGE));
+
+        cx.font = '12px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = 'rgba(255,255,255,0.55)';
+        cx.fillText('Trzy dwusieczne spotykają się w I', 16, 22);
+      },
+    },
+
+    // ── Stage 2: Equal distances from sides ──────────────────────
+    {
+      title: () => T('Środek wpisany jest jednakowo odległy od wszystkich boków', 'Incentre is equidistant from all sides'),
+      desc:  () => T(
+        'Prostopadłe od środka wpisanego I do każdego boku mają tę samą długość — to promień okręgu wpisanego r. To właśnie dlatego okrąg dotyka wszystkich trzech boków.',
+        'Perpendiculars from the incentre I to each side are all equal — that\'s the inradius r. That\'s why the circle touches all three sides.'
+      ),
+      sliders: [],
+      draw(cx, W, H) {
+        const [A, B, C] = verts;
+        const I = incenter(A, B, C);
+        const r = distPointLine(I, A, B);
+
+        drawTriangle(cx, [A, B, C], 'rgba(255,255,255,0.3)', 2);
+
+        // Perpendiculars to each side
+        const sides = [[A, B], [B, C], [C, A]];
+        const perpCols = [COLORS.YELLOW, COLORS.PINK, COLORS.GREEN];
+        sides.forEach(([P1, P2], i) => {
+          const F = foot(I, P1, P2);
+          cx.beginPath(); cx.moveTo(I.x, I.y); cx.lineTo(F.x, F.y);
+          cx.strokeStyle = perpCols[i]; cx.lineWidth = 2;
+          cx.shadowColor = perpCols[i]; cx.shadowBlur = 4; cx.stroke(); cx.shadowBlur = 0;
+
+          // Right angle square
+          const dx = F.x - I.x, dy = F.y - I.y;
+          const len = Math.hypot(dx, dy);
+          if (len > 5) {
+            const ux = dx / len * 10, uy = dy / len * 10;
+            const nx = -uy, ny = ux;
+            cx.beginPath();
+            cx.moveTo(F.x - ux + nx, F.y - uy + ny);
+            cx.lineTo(F.x + nx, F.y + ny);
+            cx.lineTo(F.x + ux + nx, F.y + uy + ny);
+            cx.strokeStyle = perpCols[i]; cx.lineWidth = 1; cx.stroke();
+          }
+
+          drawDot(cx, F.x, F.y, 4, perpCols[i]);
+        });
+
+        cx.beginPath(); cx.arc(I.x, I.y, r, 0, Math.PI * 2);
+        cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 2.5;
+        cx.shadowColor = COLORS.CYAN; cx.shadowBlur = 8; cx.stroke(); cx.shadowBlur = 0;
+
+        drawDot(cx, I.x, I.y, 5, COLORS.CYAN);
+        [A, B, C].forEach(p => drawDot(cx, p.x, p.y, 6, COLORS.ORANGE));
+
+        cx.font = '12px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('r = ' + Math.round(r) + ' px  (promień wpisany)', 16, 22);
+        cx.fillStyle = 'rgba(255,255,255,0.45)';
+        cx.fillText('Wszystkie prostopadłe równe!', 16, 40);
+      },
+    },
+
+    // ── Stage 3: Drag vertices, live update ──────────────────────
+    {
+      title: () => T('Eksploruj — przeciągaj wierzchołki', 'Explore — drag the vertices'),
+      desc:  () => T(
+        'Przeciągnij dowolny wierzchołek. Okrąg wpisany i dwusieczne aktualizują się na bieżąco. Spróbuj trójkąta prostokątnego, równobocznego i rozwartokątnego.',
+        'Drag any vertex. The incircle and bisectors update live. Try a right triangle, equilateral, and obtuse triangle.'
+      ),
+      sliders: [],
+      draw(cx, W, H) {
+        const [A, B, C] = verts;
+        const I = incenter(A, B, C);
+        const r = distPointLine(I, A, B);
+
+        drawTriangle(cx, [A, B, C], 'rgba(255,255,255,0.3)', 2);
+
+        const bisColours = [COLORS.YELLOW, COLORS.PINK, COLORS.PURPLE];
+        [A, B, C].forEach((V, i) => {
+          cx.beginPath(); cx.moveTo(V.x, V.y); cx.lineTo(I.x, I.y);
+          cx.strokeStyle = bisColours[i]; cx.lineWidth = 1.5;
+          cx.setLineDash([4, 4]); cx.stroke(); cx.setLineDash([]);
+        });
+
+        [[A, B], [B, C], [C, A]].forEach(([P1, P2], i) => {
+          const F = foot(I, P1, P2);
+          drawDot(cx, F.x, F.y, 4, COLORS.GREEN);
+        });
+
+        cx.beginPath(); cx.arc(I.x, I.y, r, 0, Math.PI * 2);
+        cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 2.5;
+        cx.shadowColor = COLORS.CYAN; cx.shadowBlur = 8; cx.stroke(); cx.shadowBlur = 0;
+
+        drawDot(cx, I.x, I.y, 5, COLORS.CYAN);
+        [A, B, C].forEach(p => drawDot(cx, p.x, p.y, 9, COLORS.ORANGE));
+
+        const a = Math.hypot(B.x - C.x, B.y - C.y);
+        const b = Math.hypot(A.x - C.x, A.y - C.y);
+        const c = Math.hypot(A.x - B.x, A.y - B.y);
+        const s = (a + b + c) / 2;
+        const area = Math.abs((B.x - A.x) * (C.y - A.y) - (C.x - A.x) * (B.y - A.y)) / 2;
+        const rCalc = area / s;
+
+        cx.font = '12px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('r = Pole / s = ' + Math.round(rCalc), 16, 22);
+        cx.fillStyle = 'rgba(255,255,255,0.4)';
+        cx.fillText('s = półobwód = ' + Math.round(s), 16, 40);
+      },
+    },
+  ],
+});
+
+// ── Drag vertex interaction ───────────────────────────────────────
+let dragging = null;
+cv.classList.add('draggable');
+
+function onDown(e) {
+  const pos = getCanvasPos(e);
+  dragging = verts.find(v => Math.hypot(v.x - pos.x, v.y - pos.y) < 24) || null;
+  if (dragging && e.preventDefault) e.preventDefault();
+}
+function onMove(e) {
+  if (!dragging) return;
+  if (e.preventDefault) e.preventDefault();
+  const pos = getCanvasPos(e);
+  dragging.x = Math.max(20, Math.min(W - 20, pos.x));
+  dragging.y = Math.max(20, Math.min(H - 20, pos.y));
+}
+function onUp() { dragging = null; }
+
+cv.addEventListener('mousedown', onDown);
+cv.addEventListener('mousemove', onMove);
+cv.addEventListener('mouseup', onUp);
+cv.addEventListener('mouseleave', onUp);
+cv.addEventListener('touchstart', onDown, { passive: false });
+cv.addEventListener('touchmove', onMove, { passive: false });
+cv.addEventListener('touchend', onUp);
+</script>
+</body>
+</html>

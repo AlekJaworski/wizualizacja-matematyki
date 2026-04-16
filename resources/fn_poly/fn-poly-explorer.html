@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Funkcje wielomianowe</title>
+</head>
+<body>
+<script type="module">
+import { VizCore, T, COLORS } from '../lib/viz-core.js';
+
+const OX = 300, OY = 195, SC = 48;
+const px = x => OX + x * SC;
+const py = y => OY - y * SC;
+
+function drawGrid(cx, W, H) {
+  cx.strokeStyle = 'rgba(255,255,255,0.05)'; cx.lineWidth = 1;
+  for (let x = OX % SC; x < W; x += SC) { cx.beginPath(); cx.moveTo(x, 0); cx.lineTo(x, H); cx.stroke(); }
+  for (let y = OY % SC; y < H; y += SC) { cx.beginPath(); cx.moveTo(0, y); cx.lineTo(W, y); cx.stroke(); }
+}
+function drawAxes(cx, W, H) {
+  cx.strokeStyle = 'rgba(255,255,255,0.3)'; cx.lineWidth = 1.5;
+  cx.beginPath(); cx.moveTo(0, OY); cx.lineTo(W, OY); cx.stroke();
+  cx.beginPath(); cx.moveTo(OX, 0); cx.lineTo(OX, H); cx.stroke();
+  cx.font = '10px monospace'; cx.fillStyle = 'rgba(255,255,255,0.2)'; cx.textAlign = 'center';
+  for (let i = -5; i <= 5; i++) {
+    if (i === 0) continue;
+    const x = OX + i * SC;
+    if (x > 10 && x < W - 10) cx.fillText(i, x, OY + 13);
+  }
+}
+function plotFn(cx, W, fn, col, lw = 2.5) {
+  cx.beginPath(); let first = true;
+  for (let sx = 0; sx < W; sx += 2) {
+    const x = (sx - OX) / SC, y = fn(x);
+    if (!isFinite(y) || y > 6 || y < -6) { first = true; continue; }
+    if (first) { cx.moveTo(sx, py(y)); first = false; } else cx.lineTo(sx, py(y));
+  }
+  cx.strokeStyle = col; cx.lineWidth = lw;
+  cx.shadowColor = col; cx.shadowBlur = 4; cx.stroke(); cx.shadowBlur = 0;
+}
+function gdot(cx, x, y, r, col) {
+  cx.beginPath(); cx.arc(px(x), py(y), r, 0, Math.PI * 2);
+  cx.fillStyle = col; cx.shadowColor = col; cx.shadowBlur = 8; cx.fill(); cx.shadowBlur = 0;
+}
+
+const { cx, W, H } = VizCore.init({
+  title: T('Funkcje wielomianowe', 'Polynomial Functions'),
+  H: 360,
+  stages: [
+    // ── Stage 0: Degree & end behaviour ──────────────────────────
+    {
+      title: () => T('Stopień a zachowanie na krańcach', 'Degree and end behaviour'),
+      desc:  () => T(
+        'Stopień wielomianu decyduje o kształcie na ±∞. Parzysty stopień: oba końce w tym samym kierunku. Nieparzysty: w przeciwnych.',
+        'Degree determines shape at ±∞. Even degree: both ends in same direction. Odd degree: opposite directions.'
+      ),
+      sliders: [
+        { id: 'n',  lbl: 'n', color: COLORS.CYAN,   min: 1, max: 6, step: 1,   val: 3 },
+        { id: 'a',  lbl: 'a', color: COLORS.ORANGE, min: -2, max: 2, step: 0.5, val: 1 },
+      ],
+      draw(cx, W, H, vals) {
+        const n = Math.round(vals.n), a = vals.a;
+        if (Math.abs(a) < 0.1) return;
+        drawGrid(cx, W, H); drawAxes(cx, W, H);
+        plotFn(cx, W, x => a * Math.pow(x, n), COLORS.CYAN);
+
+        const even = n % 2 === 0;
+        cx.font = '13px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('f(x) = ' + (a === 1 ? '' : a < 0 ? '−' : a) + 'x^' + n, 14, 22);
+        cx.fillStyle = 'rgba(255,255,255,0.5)';
+        cx.fillText('Stopień ' + n + (even ? ' (parzysty)' : ' (nieparzysty)'), 14, 40);
+        cx.fillStyle = a > 0 ? COLORS.GREEN : COLORS.PINK;
+        const lr = a > 0;
+        cx.fillText(
+          even
+            ? (lr ? 'x→±∞: f→+∞' : 'x→±∞: f→−∞')
+            : (lr ? 'x→−∞: f→−∞, x→+∞: f→+∞' : 'x→−∞: f→+∞, x→+∞: f→−∞'),
+          14, 58
+        );
+      },
+    },
+
+    // ── Stage 1: Roots from factored form ─────────────────────────
+    {
+      title: () => T('Miejsca zerowe z postaci iloczynowej', 'Roots from factored form'),
+      desc:  () => T(
+        'f(x) = a(x−r₁)(x−r₂)(x−r₃). Miejsca zerowe to r₁, r₂, r₃. Zmień wartości suwakami.',
+        'f(x) = a(x−r₁)(x−r₂)(x−r₃). The roots are r₁, r₂, r₃. Change values with sliders.'
+      ),
+      sliders: [
+        { id: 'r1', lbl: 'r₁', color: COLORS.CYAN,   min: -3, max: 0,  step: 0.5, val: -2 },
+        { id: 'r2', lbl: 'r₂', color: COLORS.ORANGE, min: -1, max: 1,  step: 0.5, val: 0 },
+        { id: 'r3', lbl: 'r₃', color: COLORS.GREEN,  min: 0,  max: 3,  step: 0.5, val: 2 },
+      ],
+      draw(cx, W, H, vals) {
+        const { r1, r2, r3 } = vals;
+        drawGrid(cx, W, H); drawAxes(cx, W, H);
+        const fn = x => (x - r1) * (x - r2) * (x - r3);
+        plotFn(cx, W, fn, COLORS.CYAN);
+        // Mark roots
+        [[r1, COLORS.CYAN], [r2, COLORS.ORANGE], [r3, COLORS.GREEN]].forEach(([r, col]) => {
+          gdot(cx, r, 0, 7, col);
+          cx.font = '11px monospace'; cx.textAlign = 'center';
+          cx.fillStyle = col; cx.fillText('r=' + r, px(r), py(0) + 18);
+        });
+        cx.font = '13px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('f(x) = (x−' + r1 + ')(x−' + r2 + ')(x−' + r3 + ')', 14, 22);
+      },
+    },
+
+    // ── Stage 2: Multiplicity of roots ───────────────────────────
+    {
+      title: () => T('Krotność miejsca zerowego', 'Root multiplicity'),
+      desc:  () => T(
+        'Krotność decyduje czy wykres przecina oś X (krotność nieparzysta) czy tylko jej dotyka (krotność parzysta).',
+        'Multiplicity determines whether the graph crosses the x-axis (odd multiplicity) or just touches it (even multiplicity).'
+      ),
+      sliders: [
+        { id: 'm1', lbl: 'm₁', color: COLORS.CYAN,   min: 1, max: 3, step: 1, val: 1 },
+        { id: 'm2', lbl: 'm₂', color: COLORS.ORANGE, min: 1, max: 3, step: 1, val: 2 },
+      ],
+      draw(cx, W, H, vals) {
+        const m1 = Math.round(vals.m1), m2 = Math.round(vals.m2);
+        drawGrid(cx, W, H); drawAxes(cx, W, H);
+        const fn = x => Math.pow(x + 1.5, m1) * Math.pow(x - 1.5, m2);
+        // Scale to fit
+        const maxY = Math.max(...[-3,-2,-1,0,1,2,3].map(x => Math.abs(fn(x))));
+        const s = Math.min(1, 4 / maxY);
+        plotFn(cx, W, x => fn(x) * s, COLORS.CYAN);
+
+        [[-1.5, m1, COLORS.CYAN], [1.5, m2, COLORS.ORANGE]].forEach(([r, m, col]) => {
+          gdot(cx, r, 0, 7, col);
+          cx.font = '11px monospace'; cx.textAlign = 'center';
+          cx.fillStyle = col;
+          const type = m % 2 === 0 ? '(dotyka)' : '(przecina)';
+          cx.fillText('k=' + m + ' ' + type, px(r), py(0) + 20);
+        });
+
+        cx.font = '13px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('f(x) = (x+1.5)^' + m1 + ' · (x−1.5)^' + m2, 14, 22);
+      },
+    },
+
+    // ── Stage 3: Local extrema & turning points ───────────────────
+    {
+      title: () => T('Ekstrema lokalne i punkty zwrotne', 'Local extrema and turning points'),
+      desc:  () => T(
+        'Wielomian stopnia n ma co najwyżej n−1 ekstremów. W ekstremum pochodna = 0. Suwak a zmienia kształt — obserwuj jak pojawiają się i znikają ekstrema.',
+        'Degree-n polynomial has at most n−1 extrema. At an extremum the derivative = 0. Slider a changes shape — watch extrema appear and disappear.'
+      ),
+      sliders: [
+        { id: 'a', lbl: 'a', color: COLORS.YELLOW, min: -3, max: 3, step: 0.1, val: 1.5 },
+      ],
+      draw(cx, W, H, vals) {
+        const a = vals.a;
+        // f(x) = x⁴ − a·x² (two potential extrema depending on a)
+        const fn = x => x * x * x * x - a * x * x;
+        drawGrid(cx, W, H); drawAxes(cx, W, H);
+        plotFn(cx, W, fn, COLORS.CYAN);
+
+        // Critical points: f'(x) = 4x³ − 2ax = 2x(2x²−a) = 0
+        // x=0 always; x = ±√(a/2) if a > 0
+        const crits = [0];
+        if (a > 0) { const r = Math.sqrt(a / 2); crits.push(r, -r); }
+        crits.forEach(xc => {
+          const yc = fn(xc);
+          if (yc > 6 || yc < -6) return;
+          gdot(cx, xc, yc, 6, COLORS.YELLOW);
+          const d2 = 12 * xc * xc - 2 * a;
+          const type = d2 > 0 ? 'min' : d2 < 0 ? 'max' : '?';
+          cx.font = '10px monospace'; cx.textAlign = 'center';
+          cx.fillStyle = COLORS.YELLOW;
+          cx.fillText(type, px(xc), py(yc) + (d2 > 0 ? 16 : -8));
+        });
+
+        cx.font = '13px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('f(x) = x⁴ − ' + a.toFixed(1) + 'x²', 14, 22);
+        cx.fillStyle = COLORS.YELLOW;
+        cx.fillText('ekstrema: ' + (a > 0 ? '3 punkty' : '1 punkt'), 14, 40);
+      },
+    },
+  ],
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wzory trygonometryczne</title>
+</head>
+<body>
+<script type="module">
+import { VizCore, T, COLORS } from '../lib/viz-core.js';
+
+const { cx, W, H } = VizCore.init({
+  title: T('Wzory trygonometryczne', 'Trigonometric Identities'),
+  H: 360,
+  stages: [
+    // ── Stage 0: sin(a+b) — geometric proof ──────────────────────
+    {
+      title: () => T('sin(α+β) — dowód geometryczny', 'sin(α+β) — geometric proof'),
+      desc:  () => T(
+        'sin(α+β) = sin(α)cos(β) + cos(α)sin(β). Obracamy wektor o kąt α, potem o kąt β. Rzut na oś Y daje sin(α+β).',
+        'sin(α+β) = sin(α)cos(β) + cos(α)sin(β). Rotate a vector by α then by β. Its Y-projection gives sin(α+β).'
+      ),
+      sliders: [
+        { id: 'a', lbl: 'α', color: COLORS.CYAN,   min: 0, max: 80, step: 1, val: 35 },
+        { id: 'b', lbl: 'β', color: COLORS.ORANGE, min: 0, max: 80, step: 1, val: 25 },
+      ],
+      draw(cx, W, H, vals) {
+        const a = vals.a * Math.PI / 180, b = vals.b * Math.PI / 180;
+        const CX = W / 2 - 30, CY = H / 2 + 50, R = 130;
+
+        // Unit circle
+        cx.beginPath(); cx.arc(CX, CY, R, 0, Math.PI * 2);
+        cx.strokeStyle = 'rgba(255,255,255,0.15)'; cx.lineWidth = 1.5; cx.stroke();
+        // Axes
+        cx.beginPath(); cx.moveTo(CX - R - 10, CY); cx.lineTo(CX + R + 10, CY);
+        cx.moveTo(CX, CY - R - 10); cx.lineTo(CX, CY + R + 10);
+        cx.strokeStyle = 'rgba(255,255,255,0.3)'; cx.lineWidth = 1.5; cx.stroke();
+
+        // Vector at angle a
+        const Pax = CX + R * Math.cos(a), Pay = CY - R * Math.sin(a);
+        cx.beginPath(); cx.moveTo(CX, CY); cx.lineTo(Pax, Pay);
+        cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 2.5;
+        cx.shadowColor = COLORS.CYAN; cx.shadowBlur = 5; cx.stroke(); cx.shadowBlur = 0;
+        // Angle arc a
+        cx.beginPath(); cx.arc(CX, CY, 28, -a, 0);
+        cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 1.5; cx.stroke();
+        cx.font = '11px monospace'; cx.fillStyle = COLORS.CYAN; cx.textAlign = 'left';
+        cx.fillText('α', CX + 32, CY - 8);
+
+        // Vector at angle a+b
+        const ab = a + b;
+        const Pabx = CX + R * Math.cos(ab), Paby = CY - R * Math.sin(ab);
+        cx.beginPath(); cx.moveTo(CX, CY); cx.lineTo(Pabx, Paby);
+        cx.strokeStyle = COLORS.YELLOW; cx.lineWidth = 2.5;
+        cx.shadowColor = COLORS.YELLOW; cx.shadowBlur = 5; cx.stroke(); cx.shadowBlur = 0;
+        cx.beginPath(); cx.arc(CX, CY, 38, -ab, -a);
+        cx.strokeStyle = COLORS.ORANGE; cx.lineWidth = 1.5; cx.stroke();
+        cx.fillStyle = COLORS.ORANGE; cx.fillText('β', CX + 42, CY - 20);
+
+        // Projection on Y axis (sin(a+b))
+        cx.beginPath(); cx.moveTo(Pabx, Paby); cx.lineTo(CX, Paby);
+        cx.strokeStyle = 'rgba(255,255,255,0.25)'; cx.lineWidth = 1; cx.setLineDash([3,3]); cx.stroke(); cx.setLineDash([]);
+        cx.beginPath(); cx.moveTo(CX, CY); cx.lineTo(CX, Paby);
+        cx.strokeStyle = COLORS.GREEN; cx.lineWidth = 3;
+        cx.shadowColor = COLORS.GREEN; cx.shadowBlur = 5; cx.stroke(); cx.shadowBlur = 0;
+
+        cx.font = '11px monospace'; cx.textAlign = 'right';
+        cx.fillStyle = COLORS.GREEN; cx.fillText('sin(α+β)', CX - 5, (CY + Paby) / 2);
+
+        // Points
+        [[Pax, Pay, COLORS.CYAN], [Pabx, Paby, COLORS.YELLOW]].forEach(([x, y, c]) => {
+          cx.beginPath(); cx.arc(x, y, 5, 0, Math.PI * 2);
+          cx.fillStyle = c; cx.shadowColor = c; cx.shadowBlur = 8; cx.fill(); cx.shadowBlur = 0;
+        });
+
+        const sinAB = Math.sin(ab), rhs = Math.sin(a) * Math.cos(b) + Math.cos(a) * Math.sin(b);
+        // Right panel
+        const rx = CX + R + 18;
+        cx.font = '12px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.GREEN;
+        cx.fillText('sin(' + Math.round((a+b)*180/Math.PI) + '°)', rx, H / 2 - 30);
+        cx.fillText('= ' + sinAB.toFixed(3), rx, H / 2 - 12);
+        cx.fillStyle = 'rgba(255,255,255,0.5)';
+        cx.fillText('= sinα·cosβ', rx, H / 2 + 8);
+        cx.fillText('  + cosα·sinβ', rx, H / 2 + 26);
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('= ' + rhs.toFixed(3) + ' ✓', rx, H / 2 + 46);
+      },
+    },
+
+    // ── Stage 1: cos(a+b) ─────────────────────────────────────────
+    {
+      title: () => T('cos(α+β) = cosα·cosβ − sinα·sinβ', 'cos(α+β) = cosα·cosβ − sinα·sinβ'),
+      desc:  () => T(
+        'Rzut wektora (α+β) na oś X. Uwaga na minus! Ten wzór jest symetryczny — zmień kolejność α i β, wynik ten sam.',
+        'X-projection of the (α+β) vector. Note the minus! This formula is symmetric — swap α and β, result is the same.'
+      ),
+      sliders: [
+        { id: 'a', lbl: 'α', color: COLORS.CYAN,   min: 0, max: 80, step: 1, val: 40 },
+        { id: 'b', lbl: 'β', color: COLORS.ORANGE, min: 0, max: 80, step: 1, val: 20 },
+      ],
+      draw(cx, W, H, vals) {
+        const a = vals.a * Math.PI / 180, b = vals.b * Math.PI / 180;
+        const CX = W / 2, CY = H / 2 + 40, R = 120;
+        const ab = a + b;
+
+        cx.beginPath(); cx.arc(CX, CY, R, 0, Math.PI * 2);
+        cx.strokeStyle = 'rgba(255,255,255,0.15)'; cx.lineWidth = 1.5; cx.stroke();
+        cx.beginPath(); cx.moveTo(CX - R - 10, CY); cx.lineTo(CX + R + 10, CY);
+        cx.moveTo(CX, CY - R - 10); cx.lineTo(CX, CY + R + 10);
+        cx.strokeStyle = 'rgba(255,255,255,0.3)'; cx.lineWidth = 1.5; cx.stroke();
+
+        const Pabx = CX + R * Math.cos(ab), Paby = CY - R * Math.sin(ab);
+        cx.beginPath(); cx.moveTo(CX, CY); cx.lineTo(Pabx, Paby);
+        cx.strokeStyle = COLORS.YELLOW; cx.lineWidth = 2.5;
+        cx.shadowColor = COLORS.YELLOW; cx.shadowBlur = 5; cx.stroke(); cx.shadowBlur = 0;
+
+        // Projection on X axis (cos(a+b))
+        cx.beginPath(); cx.moveTo(Pabx, Paby); cx.lineTo(Pabx, CY);
+        cx.strokeStyle = 'rgba(255,255,255,0.2)'; cx.lineWidth = 1; cx.setLineDash([3,3]); cx.stroke(); cx.setLineDash([]);
+        cx.beginPath(); cx.moveTo(CX, CY); cx.lineTo(Pabx, CY);
+        cx.strokeStyle = COLORS.ORANGE; cx.lineWidth = 3;
+        cx.shadowColor = COLORS.ORANGE; cx.shadowBlur = 5; cx.stroke(); cx.shadowBlur = 0;
+
+        cx.beginPath(); cx.arc(Pabx, Paby, 5, 0, Math.PI * 2);
+        cx.fillStyle = COLORS.YELLOW; cx.shadowColor = COLORS.YELLOW;
+        cx.shadowBlur = 8; cx.fill(); cx.shadowBlur = 0;
+
+        cx.font = '11px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = COLORS.ORANGE; cx.fillText('cos(α+β)', (CX + Pabx) / 2, CY + 16);
+
+        const cosAB = Math.cos(ab);
+        cx.font = '13px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.ORANGE;
+        cx.fillText('cos(' + Math.round(ab * 180 / Math.PI) + '°) = ' + cosAB.toFixed(3), 14, 22);
+        cx.fillStyle = 'rgba(255,255,255,0.55)';
+        cx.fillText('= cosα·cosβ − sinα·sinβ', 14, 40);
+        const rhs = Math.cos(a) * Math.cos(b) - Math.sin(a) * Math.sin(b);
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('= ' + rhs.toFixed(3) + ' ✓', 14, 58);
+      },
+    },
+
+    // ── Stage 2: Double angle formulas ───────────────────────────
+    {
+      title: () => T('Wzory na kąt podwójny', 'Double angle formulas'),
+      desc:  () => T(
+        'Gdy α = β: sin(2α) = 2sinα·cosα. cos(2α) = cos²α − sin²α = 1 − 2sin²α = 2cos²α − 1. Wszystkie trzy formy są równoważne.',
+        'When α = β: sin(2α) = 2sinα·cosα. cos(2α) = cos²α − sin²α = 1 − 2sin²α = 2cos²α − 1. All three forms are equivalent.'
+      ),
+      sliders: [
+        { id: 'a', lbl: 'α', color: COLORS.CYAN, min: 0, max: 180, step: 1, val: 45 },
+      ],
+      draw(cx, W, H, vals) {
+        const a = vals.a * Math.PI / 180;
+        const sin2 = Math.sin(2 * a), cos2 = Math.cos(2 * a);
+        const sinA = Math.sin(a), cosA = Math.cos(a);
+
+        // Show three cos(2a) forms all being equal
+        const forms = [
+          { label: 'cos²α − sin²α', val: cosA * cosA - sinA * sinA },
+          { label: '1 − 2sin²α',    val: 1 - 2 * sinA * sinA },
+          { label: '2cos²α − 1',    val: 2 * cosA * cosA - 1 },
+        ];
+
+        const CX = W / 2, barY = 80, barH = 28, barMax = 220;
+
+        cx.font = '14px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('α = ' + vals.a + '°', CX, 32);
+        cx.fillStyle = COLORS.GREEN;
+        cx.fillText('sin(2α) = 2sinα·cosα = ' + sin2.toFixed(3), CX, 55);
+
+        cx.font = '12px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = 'rgba(255,255,255,0.5)'; cx.fillText('cos(2α) — trzy formy:', 14, 75);
+
+        forms.forEach(({ label, val }, i) => {
+          const y = barY + 14 + i * 52;
+          const barLen = Math.abs(val) * barMax;
+          cx.fillStyle = val >= 0 ? 'rgba(88,196,221,0.2)' : 'rgba(255,107,53,0.2)';
+          cx.fillRect(14, y, barLen, barH);
+          cx.strokeStyle = val >= 0 ? COLORS.CYAN : COLORS.ORANGE;
+          cx.lineWidth = 1.5; cx.strokeRect(14, y, barLen, barH);
+          cx.font = '12px monospace';
+          cx.fillStyle = 'rgba(255,255,255,0.7)';
+          cx.fillText(label + ' = ' + val.toFixed(3), 20, y + 19);
+        });
+
+        cx.font = '12px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = COLORS.GREEN;
+        cx.fillText('Wszystkie trzy = ' + cos2.toFixed(3) + ' ✓', CX, H - 16);
+      },
+    },
+
+    // ── Stage 3: Reduction formulas ───────────────────────────────
+    {
+      title: () => T('Wzory redukcyjne', 'Reduction formulas'),
+      desc:  () => T(
+        'sin(90°−α) = cos(α), cos(90°−α) = sin(α). sin(180°−α) = sin(α). Wzory redukcyjne pozwalają sprowadzić kąt do I ćwiartki.',
+        'sin(90°−α) = cos(α), cos(90°−α) = sin(α). sin(180°−α) = sin(α). Reduction formulas bring any angle to the first quadrant.'
+      ),
+      sliders: [
+        { id: 'a', lbl: 'α', color: COLORS.CYAN, min: 0, max: 90, step: 1, val: 35 },
+      ],
+      draw(cx, W, H, vals) {
+        const a = vals.a * Math.PI / 180, aDeg = vals.a;
+        const CX = W / 2, CY = H / 2 + 30, R = 110;
+
+        cx.beginPath(); cx.arc(CX, CY, R, 0, Math.PI * 2);
+        cx.strokeStyle = 'rgba(255,255,255,0.15)'; cx.lineWidth = 1.5; cx.stroke();
+        cx.beginPath(); cx.moveTo(CX - R - 10, CY); cx.lineTo(CX + R + 10, CY);
+        cx.moveTo(CX, CY - R - 10); cx.lineTo(CX, CY + R + 10);
+        cx.strokeStyle = 'rgba(255,255,255,0.3)'; cx.lineWidth = 1.5; cx.stroke();
+
+        const pairs = [
+          { angle: a,              label: 'α = ' + aDeg + '°',       col: COLORS.CYAN },
+          { angle: Math.PI/2 - a,  label: '90°−α = ' + (90 - aDeg) + '°', col: COLORS.ORANGE },
+          { angle: Math.PI - a,    label: '180°−α = ' + (180 - aDeg) + '°', col: COLORS.GREEN },
+        ];
+
+        pairs.forEach(({ angle, label, col }) => {
+          const Px = CX + R * Math.cos(angle), Py = CY - R * Math.sin(angle);
+          cx.beginPath(); cx.moveTo(CX, CY); cx.lineTo(Px, Py);
+          cx.strokeStyle = col; cx.lineWidth = 2; cx.stroke();
+          cx.beginPath(); cx.arc(Px, Py, 5, 0, Math.PI * 2);
+          cx.fillStyle = col; cx.shadowColor = col; cx.shadowBlur = 8; cx.fill(); cx.shadowBlur = 0;
+        });
+
+        cx.font = '12px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('sin(' + aDeg + '°) = ' + Math.sin(a).toFixed(3), 14, 22);
+        cx.fillStyle = COLORS.ORANGE;
+        cx.fillText('sin(' + (90 - aDeg) + '°) = cos(' + aDeg + '°) = ' + Math.cos(a).toFixed(3), 14, 40);
+        cx.fillStyle = COLORS.GREEN;
+        cx.fillText('sin(' + (180 - aDeg) + '°) = sin(' + aDeg + '°) = ' + Math.sin(a).toFixed(3), 14, 58);
+        cx.fillStyle = 'rgba(255,255,255,0.35)';
+        cx.fillText('Reguła: zmień funkcję ↔ dopełnienie do 90°', 14, 80);
+      },
+    },
+  ],
+});
+</script>
+</body>
+</html>

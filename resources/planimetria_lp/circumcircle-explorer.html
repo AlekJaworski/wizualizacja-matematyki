@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Okrąg opisany — eksplorator</title>
+</head>
+<body>
+<script type="module">
+import { VizCore, T, COLORS } from '../lib/viz-core.js';
+
+// ── Geometry helpers ──────────────────────────────────────────────
+function midpoint(A, B) {
+  return { x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 };
+}
+
+function perpBisectorDir(A, B) {
+  // Direction perpendicular to AB
+  const dx = B.x - A.x, dy = B.y - A.y;
+  return { x: -dy, y: dx };
+}
+
+function circumcenter(A, B, C) {
+  // Solve intersection of two perpendicular bisectors
+  const mx1 = (A.x + B.x) / 2, my1 = (A.y + B.y) / 2;
+  const mx2 = (B.x + C.x) / 2, my2 = (B.y + C.y) / 2;
+  const dx1 = -(B.y - A.y), dy1 = B.x - A.x;
+  const dx2 = -(C.y - B.y), dy2 = C.x - B.x;
+  // mx1 + t*dx1 = mx2 + s*dx2
+  // my1 + t*dy1 = my2 + s*dy2
+  const det = dx1 * dy2 - dy1 * dx2;
+  if (Math.abs(det) < 1e-8) return { x: mx1, y: my1 }; // degenerate
+  const t = ((mx2 - mx1) * dy2 - (my2 - my1) * dx2) / det;
+  return { x: mx1 + t * dx1, y: my1 + t * dy1 };
+}
+
+function drawDot(cx, x, y, r, col) {
+  cx.beginPath(); cx.arc(x, y, r, 0, Math.PI * 2);
+  cx.fillStyle = col; cx.shadowColor = col; cx.shadowBlur = 8; cx.fill(); cx.shadowBlur = 0;
+}
+
+function drawLine(cx, x1, y1, x2, y2, col, lw = 1.5, dash = []) {
+  cx.beginPath(); cx.moveTo(x1, y1); cx.lineTo(x2, y2);
+  cx.strokeStyle = col; cx.lineWidth = lw;
+  cx.setLineDash(dash); cx.stroke(); cx.setLineDash([]);
+}
+
+let verts = [
+  { x: 300, y: 55  },
+  { x: 130, y: 295 },
+  { x: 470, y: 295 },
+];
+
+const { cv, cx, W, H, getCanvasPos } = VizCore.init({
+  title: T('Okrąg opisany — eksplorator', 'Circumcircle — Explorer'),
+  H: 360,
+  stages: [
+    // ── Stage 0: What is the circumcircle ────────────────────────
+    {
+      title: () => T('Okrąg opisany — co to jest?', 'Circumcircle — what is it?'),
+      desc:  () => T(
+        'Okrąg opisany przechodzi przez wszystkie trzy wierzchołki trójkąta. Jego środek (circumcenter O) jest jednakowo odległy od każdego wierzchołka. Przeciągnij wierzchołki!',
+        'The circumcircle passes through all three vertices. Its centre O is equidistant from every vertex. Drag the vertices!'
+      ),
+      sliders: [],
+      draw(cx, W, H) {
+        const [A, B, C] = verts;
+        const O = circumcenter(A, B, C);
+        const R = Math.hypot(A.x - O.x, A.y - O.y);
+
+        cx.beginPath();
+        cx.moveTo(A.x, A.y); cx.lineTo(B.x, B.y); cx.lineTo(C.x, C.y); cx.closePath();
+        cx.strokeStyle = 'rgba(255,255,255,0.3)'; cx.lineWidth = 2; cx.stroke();
+
+        cx.beginPath(); cx.arc(O.x, O.y, R, 0, Math.PI * 2);
+        cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 2.5;
+        cx.shadowColor = COLORS.CYAN; cx.shadowBlur = 8; cx.stroke(); cx.shadowBlur = 0;
+
+        drawDot(cx, O.x, O.y, 5, COLORS.CYAN);
+        [A, B, C].forEach(p => drawDot(cx, p.x, p.y, 7, COLORS.ORANGE));
+
+        cx.font = '12px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = 'rgba(255,255,255,0.45)'; cx.fillText('Przeciągnij wierzchołki!', 16, 22);
+        cx.fillStyle = COLORS.CYAN; cx.fillText('O = środek opisany', 16, 40);
+      },
+    },
+
+    // ── Stage 1: Each side is a chord ────────────────────────────
+    {
+      title: () => T('Każdy bok to cięciwa okręgu', 'Each side is a chord of the circle'),
+      desc:  () => T(
+        'Kluczowy pomysł: każdy bok trójkąta to cięciwa okręgu. Oś symetrii cięciwy (prostopadła dwusieczna) zawsze przechodzi przez środek okręgu.',
+        'Key insight: each side of the triangle is a chord of the circle. The symmetry axis of a chord (perpendicular bisector) always passes through the circle\'s centre.'
+      ),
+      sliders: [
+        { id: 'side', lbl: 'bok', color: COLORS.YELLOW, min: 0, max: 2, step: 1, val: 0 },
+      ],
+      draw(cx, W, H, vals) {
+        const [A, B, C] = verts;
+        const O = circumcenter(A, B, C);
+        const R = Math.hypot(A.x - O.x, A.y - O.y);
+        const sides = [[A, B], [B, C], [C, A]];
+        const sideColors = [COLORS.YELLOW, COLORS.PINK, COLORS.GREEN];
+        const idx = Math.round(vals.side);
+
+        cx.beginPath();
+        cx.moveTo(A.x, A.y); cx.lineTo(B.x, B.y); cx.lineTo(C.x, C.y); cx.closePath();
+        cx.strokeStyle = 'rgba(255,255,255,0.2)'; cx.lineWidth = 1.5; cx.stroke();
+
+        cx.beginPath(); cx.arc(O.x, O.y, R, 0, Math.PI * 2);
+        cx.strokeStyle = 'rgba(88,196,221,0.35)'; cx.lineWidth = 1.5; cx.stroke();
+
+        // Highlight selected side
+        const [P1, P2] = sides[idx];
+        drawLine(cx, P1.x, P1.y, P2.x, P2.y, sideColors[idx], 3);
+
+        // Perpendicular bisector of selected side
+        const M = midpoint(P1, P2);
+        const d = perpBisectorDir(P1, P2);
+        const len = Math.hypot(d.x, d.y);
+        const ux = d.x / len, uy = d.y / len;
+        drawLine(cx, M.x - ux * 160, M.y - uy * 160, M.x + ux * 160, M.y + uy * 160,
+          sideColors[idx], 2, [6, 4]);
+
+        // Mark midpoint
+        drawDot(cx, M.x, M.y, 4, sideColors[idx]);
+
+        // Right angle square at M
+        const sdx = (P2.x - P1.x), sdy = (P2.y - P1.y);
+        const sl = Math.hypot(sdx, sdy);
+        const su = sdx / sl * 10, sv = sdy / sl * 10;
+        cx.beginPath();
+        cx.moveTo(M.x + su - uy * 10, M.y + sv + ux * 10 * (sl / Math.max(sl, 1)));
+        // simpler: just draw the angle box
+        const px = -sdy / sl * 10, py = sdx / sl * 10;
+        cx.beginPath();
+        cx.moveTo(M.x + su + px, M.y + sv + py);
+        cx.lineTo(M.x + px, M.y + py);
+        cx.lineTo(M.x - su + px, M.y - sv + py);
+        cx.strokeStyle = sideColors[idx]; cx.lineWidth = 1; cx.stroke();
+
+        drawDot(cx, O.x, O.y, 6, COLORS.CYAN);
+        [A, B, C].forEach(p => drawDot(cx, p.x, p.y, 6, COLORS.ORANGE));
+
+        cx.font = '12px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = sideColors[idx];
+        cx.fillText(['AB', 'BC', 'CA'][idx] + ' → prostopadła dwusieczna', 16, 22);
+        cx.fillStyle = 'rgba(255,255,255,0.45)';
+        cx.fillText('przechodzi przez środek O', 16, 40);
+      },
+    },
+
+    // ── Stage 2: All three perpendicular bisectors meet ──────────
+    {
+      title: () => T('Trzy prostopadłe dwusieczne spotykają się w O', 'Three perpendicular bisectors meet at O'),
+      desc:  () => T(
+        'Prostopadłe dwusieczne wszystkich trzech boków przecinają się w jednym punkcie — środku opisanym O. Ten punkt jest jednakowo odległy od A, B i C.',
+        'The perpendicular bisectors of all three sides intersect at one point — the circumcenter O. That point is equidistant from A, B, and C.'
+      ),
+      sliders: [],
+      draw(cx, W, H) {
+        const [A, B, C] = verts;
+        const O = circumcenter(A, B, C);
+        const R = Math.hypot(A.x - O.x, A.y - O.y);
+        const sides = [[A, B], [B, C], [C, A]];
+        const sideColors = [COLORS.YELLOW, COLORS.PINK, COLORS.GREEN];
+
+        cx.beginPath();
+        cx.moveTo(A.x, A.y); cx.lineTo(B.x, B.y); cx.lineTo(C.x, C.y); cx.closePath();
+        cx.strokeStyle = 'rgba(255,255,255,0.25)'; cx.lineWidth = 1.5; cx.stroke();
+
+        // All three perpendicular bisectors
+        sides.forEach(([P1, P2], i) => {
+          const M = midpoint(P1, P2);
+          const d = perpBisectorDir(P1, P2);
+          const len = Math.hypot(d.x, d.y);
+          const ux = d.x / len, uy = d.y / len;
+          drawLine(cx, M.x - ux * 200, M.y - uy * 200, M.x + ux * 200, M.y + uy * 200,
+            sideColors[i], 1.5, [5, 4]);
+          drawDot(cx, M.x, M.y, 4, sideColors[i]);
+        });
+
+        cx.beginPath(); cx.arc(O.x, O.y, R, 0, Math.PI * 2);
+        cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 2.5;
+        cx.shadowColor = COLORS.CYAN; cx.shadowBlur = 8; cx.stroke(); cx.shadowBlur = 0;
+
+        // Radii to vertices
+        [A, B, C].forEach(p => {
+          drawLine(cx, O.x, O.y, p.x, p.y, 'rgba(88,196,221,0.4)', 1.5);
+        });
+
+        drawDot(cx, O.x, O.y, 7, COLORS.CYAN);
+        [A, B, C].forEach(p => drawDot(cx, p.x, p.y, 6, COLORS.ORANGE));
+
+        const dA = Math.round(Math.hypot(A.x - O.x, A.y - O.y));
+        cx.font = '12px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('OA = OB = OC = ' + dA + ' px', 16, 22);
+        cx.fillStyle = 'rgba(255,255,255,0.45)';
+        cx.fillText('Trzy linie spotykają się w O', 16, 40);
+      },
+    },
+
+    // ── Stage 3: Acute / right / obtuse cases ────────────────────
+    {
+      title: () => T('Gdzie leży środek? Zależy od trójkąta!', 'Where is the centre? Depends on the triangle!'),
+      desc:  () => T(
+        'Ostrokątny: O wewnątrz trójkąta. Prostokątny: O na przeciwprostokątnej (środek). Rozwartokątny: O na zewnątrz. Przeciągnij wierzchołki i sprawdź!',
+        'Acute: O inside. Right: O at hypotenuse midpoint. Obtuse: O outside. Drag the vertices and check!'
+      ),
+      sliders: [],
+      draw(cx, W, H) {
+        const [A, B, C] = verts;
+        const O = circumcenter(A, B, C);
+        const R = Math.hypot(A.x - O.x, A.y - O.y);
+
+        cx.beginPath();
+        cx.moveTo(A.x, A.y); cx.lineTo(B.x, B.y); cx.lineTo(C.x, C.y); cx.closePath();
+        cx.strokeStyle = 'rgba(255,255,255,0.3)'; cx.lineWidth = 2; cx.stroke();
+
+        // Fill triangle to show if O is inside/outside
+        const sign = (O.x - A.x) * (B.y - A.y) - (O.y - A.y) * (B.x - A.x);
+        const isInside = isPointInTriangle(O, A, B, C);
+        cx.beginPath();
+        cx.moveTo(A.x, A.y); cx.lineTo(B.x, B.y); cx.lineTo(C.x, C.y); cx.closePath();
+        cx.fillStyle = isInside ? 'rgba(88,196,221,0.06)' : 'rgba(255,107,53,0.06)';
+        cx.fill();
+
+        cx.beginPath(); cx.arc(O.x, O.y, R, 0, Math.PI * 2);
+        cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 2.5;
+        cx.shadowColor = COLORS.CYAN; cx.shadowBlur = 8; cx.stroke(); cx.shadowBlur = 0;
+
+        drawDot(cx, O.x, O.y, 6, isInside ? COLORS.CYAN : COLORS.ORANGE);
+        [A, B, C].forEach(p => drawDot(cx, p.x, p.y, 8, COLORS.ORANGE));
+
+        cx.font = '12px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = isInside ? COLORS.CYAN : COLORS.ORANGE;
+        cx.fillText('O jest ' + (isInside ? 'WEWNĄTRZ' : 'NA ZEWNĄTRZ'), 16, 22);
+        cx.fillStyle = 'rgba(255,255,255,0.45)';
+        cx.fillText('Przeciągnij wierzchołki!', 16, 40);
+      },
+    },
+
+    // ── Stage 4: Live drag ────────────────────────────────────────
+    {
+      title: () => T('Eksploruj swobodnie', 'Explore freely'),
+      desc:  () => T(
+        'Trójkąt z pełnym układem: okrąg opisany, prostopadłe dwusieczne i promienie. Wzór: R = abc / (4·Pole).',
+        'Triangle with full setup: circumcircle, perpendicular bisectors and radii. Formula: R = abc / (4·Area).'
+      ),
+      sliders: [],
+      draw(cx, W, H) {
+        const [A, B, C] = verts;
+        const O = circumcenter(A, B, C);
+        const R = Math.hypot(A.x - O.x, A.y - O.y);
+
+        const sides = [[A, B], [B, C], [C, A]];
+        const sideColors = [COLORS.YELLOW, COLORS.PINK, COLORS.GREEN];
+        sides.forEach(([P1, P2], i) => {
+          const M = midpoint(P1, P2);
+          const d = perpBisectorDir(P1, P2);
+          const len = Math.hypot(d.x, d.y);
+          const ux = d.x / len, uy = d.y / len;
+          drawLine(cx, M.x - ux * 180, M.y - uy * 180, M.x + ux * 180, M.y + uy * 180,
+            sideColors[i], 1, [4, 4]);
+        });
+
+        cx.beginPath();
+        cx.moveTo(A.x, A.y); cx.lineTo(B.x, B.y); cx.lineTo(C.x, C.y); cx.closePath();
+        cx.strokeStyle = 'rgba(255,255,255,0.3)'; cx.lineWidth = 2; cx.stroke();
+
+        [A, B, C].forEach(p => drawLine(cx, O.x, O.y, p.x, p.y, 'rgba(88,196,221,0.35)', 1.5));
+
+        cx.beginPath(); cx.arc(O.x, O.y, R, 0, Math.PI * 2);
+        cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 2.5;
+        cx.shadowColor = COLORS.CYAN; cx.shadowBlur = 8; cx.stroke(); cx.shadowBlur = 0;
+
+        drawDot(cx, O.x, O.y, 5, COLORS.CYAN);
+        [A, B, C].forEach(p => drawDot(cx, p.x, p.y, 9, COLORS.ORANGE));
+
+        const a = Math.hypot(B.x - C.x, B.y - C.y);
+        const b = Math.hypot(A.x - C.x, A.y - C.y);
+        const c = Math.hypot(A.x - B.x, A.y - B.y);
+        const area = Math.abs((B.x - A.x) * (C.y - A.y) - (C.x - A.x) * (B.y - A.y)) / 2;
+        const Rcalc = (a * b * c) / (4 * area);
+
+        cx.font = '12px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('R = abc / 4S ≈ ' + Math.round(Rcalc), 16, 22);
+        cx.fillStyle = 'rgba(255,255,255,0.4)';
+        cx.fillText('Pole S ≈ ' + Math.round(area), 16, 40);
+      },
+    },
+  ],
+});
+
+// ── Point-in-triangle helper ──────────────────────────────────────
+function sign(p1, p2, p3) {
+  return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
+}
+function isPointInTriangle(pt, v1, v2, v3) {
+  const d1 = sign(pt, v1, v2), d2 = sign(pt, v2, v3), d3 = sign(pt, v3, v1);
+  const hasNeg = (d1 < 0) || (d2 < 0) || (d3 < 0);
+  const hasPos = (d1 > 0) || (d2 > 0) || (d3 > 0);
+  return !(hasNeg && hasPos);
+}
+
+// ── Drag interaction ──────────────────────────────────────────────
+let dragging = null;
+cv.classList.add('draggable');
+
+function onDown(e) {
+  const pos = getCanvasPos(e);
+  dragging = verts.find(v => Math.hypot(v.x - pos.x, v.y - pos.y) < 24) || null;
+  if (dragging && e.preventDefault) e.preventDefault();
+}
+function onMove(e) {
+  if (!dragging) return;
+  if (e.preventDefault) e.preventDefault();
+  const pos = getCanvasPos(e);
+  dragging.x = Math.max(20, Math.min(W - 20, pos.x));
+  dragging.y = Math.max(20, Math.min(H - 20, pos.y));
+}
+function onUp() { dragging = null; }
+
+cv.addEventListener('mousedown', onDown);
+cv.addEventListener('mousemove', onMove);
+cv.addEventListener('mouseup', onUp);
+cv.addEventListener('mouseleave', onUp);
+cv.addEventListener('touchstart', onDown, { passive: false });
+cv.addEventListener('touchmove', onMove, { passive: false });
+cv.addEventListener('touchend', onUp);
+</script>
+</body>
+</html>

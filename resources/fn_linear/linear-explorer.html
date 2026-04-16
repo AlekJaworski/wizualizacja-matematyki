@@ -74,6 +74,16 @@
       </div>
     </div>
 
+    <div id="sl_proof" class="slider-group">
+      <div class="sliders">
+        <div class="slider-row">
+          <span class="lbl" style="color:#58C4DD;">m =</span>
+          <input type="range" id="s_proof" min="-2" max="2" step="0.1" value="2">
+          <span class="val" id="v_proof" style="color:#58C4DD;">2.0</span>
+        </div>
+      </div>
+    </div>
+
     <div id="sl_sys" class="slider-group">
       <div class="sliders">
         <div class="slider-row">
@@ -131,6 +141,7 @@ let dragging=null;
 let s3m=1,s3b=1;
 // Stage 4 params
 let s4m1=1,s4b1=0,s4m2=-0.5,s4b2=2;
+let s_proof=2;
 
 const stages=[
   {f:'y = mx + b',
@@ -145,6 +156,10 @@ const stages=[
   {f:T('R\u00F3wnoleg\u0142o\u015B\u0107 i prostopad\u0142o\u015B\u0107','Parallel & Perpendicular'),
    d:T('Proste r\u00F3wnoleg\u0142e maj\u0105 to samo nachylenie m. Proste prostopad\u0142e maj\u0105 nachylenia m i \u22121/m (iloczyn = \u22121).','Parallel lines share slope m. Perpendicular lines have slopes m and \u22121/m (product = \u22121).'),
    sl:'sl_par'},
+  {f:T('Dow\u00F3d: dlaczego m\u2081\u00B7m\u2082 = \u22121?','Proof: why m\u2081\u00B7m\u2082 = \u22121?'),
+   d:T('Obr\u00F3\u0107 tr\u00F3jk\u0105t rise\/run o 90\u00B0. Nogi zamieniaj\u0105 si\u0119 miejscami (ze zmian\u0105 znaku) \u2014 dlatego iloczyn = \u22121. R\u00F3wnoleg\u0142e: ten sam k\u0105t \u03B8 z osi\u0105 x \u2192 to samo m = tg(\u03B8).',
+     'Rotate the rise\/run triangle 90\u00B0. Legs swap with a sign flip \u2014 so m\u2081\u00B7m\u2082 = \u22121. Parallel lines: same tilt angle \u03B8 means same m = tan(\u03B8).'),
+   sl:'sl_proof'},
   {f:T('Uk\u0142ad dw\u00F3ch r\u00F3wna\u0144 liniowych','Systems of two linear equations'),
    d:T('Dwie proste mog\u0105 si\u0119 przeci\u0105\u0107 (jedno rozwi\u0105zanie), by\u0107 r\u00F3wnoleg\u0142e (brak rozwi\u0105za\u0144) lub pokrywa\u0107 si\u0119 (niesko\u0144czenie wiele rozwi\u0105za\u0144).','Two lines can intersect (one solution), be parallel (no solution), or overlap (infinite solutions).'),
    sl:'sl_sys'},
@@ -194,6 +209,7 @@ bindSlider('s_m5a','v_m5a',v=>{s4m1=v;});
 bindSlider('s_b5a','v_b5a',v=>{s4b1=v;});
 bindSlider('s_m5b','v_m5b',v=>{s4m2=v;});
 bindSlider('s_b5b','v_b5b',v=>{s4b2=v;});
+bindSlider('s_proof','v_proof',v=>{s_proof=v;});
 
 // Dragging for stage 2
 cv.addEventListener('mousedown',e=>{
@@ -446,6 +462,100 @@ function drawStage3(){
   gdot(px(0),py(bPar),5,GREEN);
 }
 
+function drawStageProof(){
+  const m=s_proof;
+  const S=48,OXP=185,OYP=162;
+  const pxp=x=>OXP+x*S, pyp=y=>OYP-y*S;
+  // Grid
+  cx.strokeStyle='rgba(255,255,255,.04)';cx.lineWidth=.6;
+  for(let xi=-3;xi<=4;xi++){cx.beginPath();cx.moveTo(pxp(xi),0);cx.lineTo(pxp(xi),H);cx.stroke();}
+  for(let yi=-3;yi<=3;yi++){cx.beginPath();cx.moveTo(0,pyp(yi));cx.lineTo(W,pyp(yi));cx.stroke();}
+  // Axes
+  cx.strokeStyle='rgba(255,255,255,.22)';cx.lineWidth=1.2;
+  cx.beginPath();cx.moveTo(20,pyp(0));cx.lineTo(W-20,pyp(0));cx.stroke();
+  cx.beginPath();cx.moveTo(pxp(0),5);cx.lineTo(pxp(0),H-5);cx.stroke();
+  // Both lines
+  const ext=3.8;
+  cx.strokeStyle=CYAN+'88';cx.lineWidth=2;
+  cx.beginPath();cx.moveTo(pxp(-ext),pyp(-ext*m));cx.lineTo(pxp(ext),pyp(ext*m));cx.stroke();
+  const absM=Math.abs(m);
+  if(absM>0.15){
+    const mp=-1/m;
+    cx.strokeStyle=PURPLE+'88';cx.lineWidth=2;
+    cx.beginPath();cx.moveTo(pxp(-ext),pyp(-ext*mp));cx.lineTo(pxp(ext),pyp(ext*mp));cx.stroke();
+  }
+  // Triangle 1: O(0,0), A(1,0), B(1,m)
+  cx.fillStyle='rgba(88,196,221,.13)';
+  cx.beginPath();cx.moveTo(pxp(0),pyp(0));cx.lineTo(pxp(1),pyp(0));cx.lineTo(pxp(1),pyp(m));cx.closePath();cx.fill();
+  cx.strokeStyle='rgba(255,209,102,.7)';cx.lineWidth=1.5;cx.setLineDash([4,3]);
+  cx.beginPath();cx.moveTo(pxp(0),pyp(0));cx.lineTo(pxp(1),pyp(0));cx.stroke();
+  cx.beginPath();cx.moveTo(pxp(1),pyp(0));cx.lineTo(pxp(1),pyp(m));cx.stroke();
+  cx.setLineDash([]);
+  cx.strokeStyle=CYAN;cx.lineWidth=2.5;
+  cx.beginPath();cx.moveTo(pxp(0),pyp(0));cx.lineTo(pxp(1),pyp(m));cx.stroke();
+  const rz=0.11;
+  cx.strokeStyle='rgba(255,255,255,.3)';cx.lineWidth=1;
+  const d1=m>=0?1:-1;
+  cx.beginPath();cx.moveTo(pxp(1-rz),pyp(0));cx.lineTo(pxp(1-rz),pyp(rz*d1));cx.lineTo(pxp(1),pyp(rz*d1));cx.stroke();
+  cx.font='bold 12px monospace';cx.fillStyle=GOLD;cx.textAlign='center';
+  cx.fillText('a=1',pxp(0.5),pyp(0)+(m>=0?14:-7));
+  cx.fillStyle=CYAN;cx.textAlign=m>=0?'left':'right';
+  cx.fillText('b='+m.toFixed(1),pxp(1)+(m>=0?5:-5),pyp(m/2)+4);
+  if(absM>0.15){
+    // Triangle 2: O(0,0), C(m,0), D(m,-1)
+    cx.fillStyle='rgba(176,124,216,.13)';
+    cx.beginPath();cx.moveTo(pxp(0),pyp(0));cx.lineTo(pxp(m),pyp(0));cx.lineTo(pxp(m),pyp(-1));cx.closePath();cx.fill();
+    cx.strokeStyle='rgba(255,209,102,.7)';cx.lineWidth=1.5;cx.setLineDash([4,3]);
+    cx.beginPath();cx.moveTo(pxp(0),pyp(0));cx.lineTo(pxp(m),pyp(0));cx.stroke();
+    cx.beginPath();cx.moveTo(pxp(m),pyp(0));cx.lineTo(pxp(m),pyp(-1));cx.stroke();
+    cx.setLineDash([]);
+    cx.strokeStyle=PURPLE;cx.lineWidth=2.5;
+    cx.beginPath();cx.moveTo(pxp(0),pyp(0));cx.lineTo(pxp(m),pyp(-1));cx.stroke();
+    const d2=m>=0?-1:1;
+    cx.strokeStyle='rgba(255,255,255,.3)';cx.lineWidth=1;
+    cx.beginPath();cx.moveTo(pxp(m+rz*d2),pyp(0));cx.lineTo(pxp(m+rz*d2),pyp(-rz));cx.lineTo(pxp(m),pyp(-rz));cx.stroke();
+    cx.font='bold 12px monospace';cx.fillStyle=GOLD;cx.textAlign='center';
+    cx.fillText('b='+m.toFixed(1),pxp(m/2),pyp(0)-7);
+    cx.fillStyle=PURPLE;cx.textAlign=m>=0?'right':'left';
+    cx.fillText('\u2212a',pxp(m)+(m>=0?-5:5),pyp(-0.5)+4);
+    // Rotation arc B→D
+    const angB=Math.atan2(-m,1), angD=Math.atan2(1,m);
+    const rArc=S*Math.sqrt(1+m*m)*0.32;
+    cx.beginPath();cx.strokeStyle='rgba(255,209,102,.5)';cx.lineWidth=1.2;cx.setLineDash([3,4]);
+    cx.arc(pxp(0),pyp(0),rArc,angB,angD,false);
+    cx.stroke();cx.setLineDash([]);
+    gdot(pxp(1),pyp(m),4,CYAN);
+    gdot(pxp(m),pyp(-1),4,PURPLE);
+  }
+  gdot(pxp(0),pyp(0),5,GOLD);
+  // Annotation box
+  const bx=298,by=12,bw=294,bh=absM>0.15?152:60;
+  cx.fillStyle='rgba(22,22,26,.92)';cx.strokeStyle='rgba(255,255,255,.1)';cx.lineWidth=.8;
+  cx.beginPath();cx.roundRect(bx,by,bw,bh,6);cx.fill();cx.stroke();
+  cx.font='11px monospace';cx.textAlign='left';
+  cx.fillStyle='rgba(255,255,255,.6)';
+  cx.fillText(T('Obracamy tr\u00F3jk\u0105t T1 o 90\u00B0:','Rotate triangle T1 by 90\u00B0:'),bx+10,by+17);
+  cx.fillStyle=CYAN;cx.font='bold 12px monospace';
+  cx.fillText('m\u2081 = b/a = '+m.toFixed(1)+'/1 = '+m.toFixed(1),bx+10,by+35);
+  if(absM>0.15){
+    const mp=-1/m;
+    cx.fillStyle=PURPLE;
+    cx.fillText('m\u2082 = \u2212a/b = \u22121/'+m.toFixed(1)+' = '+mp.toFixed(2),bx+10,by+53);
+    cx.fillStyle='rgba(255,255,255,.3)';cx.font='11px monospace';
+    cx.fillText('\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500',bx+10,by+66);
+    cx.fillStyle=GOLD;cx.font='bold 13px monospace';
+    cx.fillText('m\u2081\u00B7m\u2082 = '+m.toFixed(1)+'\u00B7('+mp.toFixed(2)+')',bx+10,by+83);
+    cx.fillStyle=GREEN;
+    cx.fillText('= '+(m*mp).toFixed(1)+' = \u22121 \u2713',bx+10,by+101);
+    cx.fillStyle='rgba(255,255,255,.38)';cx.font='11px monospace';
+    cx.fillText(T('Te same boki (a,b), tylko obr\u00F3cone.','Same legs (a,b), just rotated.'),bx+10,by+121);
+    cx.fillStyle=CYAN;cx.font='11px monospace';
+    cx.fillText('T1: run=a=1, rise=b='+m.toFixed(1),bx+10,by+136);
+    cx.fillStyle=PURPLE;
+    cx.fillText('T2: run=b='+m.toFixed(1)+', rise=\u2212a=\u22121',bx+10,by+151);
+  }
+}
+
 function drawStage4(){
   const m1=s4m1,b1=s4b1,m2=s4m2,b2=s4b2;
   drawLine(m1,b1,CYAN,2.5);
@@ -497,7 +607,8 @@ function tick(){
   else if(stage===1)drawStage1();
   else if(stage===2)drawStage2();
   else if(stage===3)drawStage3();
-  else if(stage===4)drawStage4();
+  else if(stage===4)drawStageProof();
+  else if(stage===5)drawStage4();
   requestAnimationFrame(tick);
 }
 
