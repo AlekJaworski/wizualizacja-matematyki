@@ -430,8 +430,8 @@
     {
       title: function() { return T('Metoda podstawiania', 'Substitution method'); },
       desc: function() { return T(
-        'Krok po kroku: z jednego rownania wyrazamy y, podstawiamy do drugiego, rozwiazujemy. Kliknij \u2192, zeby przejsc przez kolejne kroki (suwak n). Obserwuj kolory — kazdy term podaza ze swojego rownania.',
-        'Step by step: express y from one equation, substitute into the other, solve. Click through the steps (slider n). Watch the colors — each term traces back to its equation.'
+        'Kluczowy pomysł: wyrażamy jedną niewiadomą z pierwszego równania i \'chowamy\' ją w drugie. To redukuje układ do jednego równania z jedną niewiadomą! Obserwuj kolory — każdy wyraz pamięta, z którego równania pochodzi. Kliknij →, żeby przejść przez kolejne kroki.',
+        'The key idea: express one unknown from the first equation and \'hide\' it in the second. This reduces the system to one equation with one unknown! Watch the colors — each term remembers which equation it came from. Click → to step through.'
       ); },
       sliders: [
         { id: 'm1s', lbl: 'm\u2081', color: COL_L1, min: -3, max: 3, step: 0.5, get: function() { return m1; }, set: function(v) { m1 = v; } },

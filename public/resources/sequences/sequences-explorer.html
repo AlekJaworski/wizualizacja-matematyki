@@ -174,8 +174,8 @@
         const vals = [];
         for (let n = 1; n <= 5; n++) vals.push(f.fn(n));
         return T(
-          f.label + ': elementy to ' + vals.join(', ') + '... Każdy wyraz zależy od pozycji n. Przesuń suwak, by zmienić wzór.',
-          f.label + ': elements are ' + vals.join(', ') + '... Each term depends on position n. Move the slider to change the formula.'
+          'Ci\u0105g to maszyna: podajesz numer pozycji n, a dostajesz warto\u015B\u0107 a\u2099. Wz\u00F3r ' + f.label + ' m\u00F3wi: pozycja 1\u2192' + f.fn(1) + ', pozycja 2\u2192' + f.fn(2) + ', pozycja 3\u2192' + f.fn(3) + '... Zmie\u0144 wz\u00F3r suwakiem \u2014 zauwa\u017C, \u017Ce wz\u00F3r jednoznacznie wyznacza ca\u0142y ci\u0105g. Nie trzeba zgadywa\u0107 kolejnych wyraz\u00F3w!',
+          'A sequence is a machine: feed it a position n, get a value a\u2099. The formula ' + f.label + ' says: position 1\u2192' + f.fn(1) + ', 2\u2192' + f.fn(2) + ', 3\u2192' + f.fn(3) + '... Change the formula \u2014 notice it fully determines the sequence. No guessing needed!'
         );
       },
       sliders: [
