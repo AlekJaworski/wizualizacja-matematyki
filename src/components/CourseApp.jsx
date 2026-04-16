@@ -10,6 +10,7 @@ import { GoalQuizFlow } from "./screens/GoalQuizFlow.jsx";
 import { ResultsScreen } from "./screens/ResultsScreen.jsx";
 import { LearningPath } from "./screens/LearningPath.jsx";
 import { GoalSelectionModal } from "./ui/GoalSelectionModal.jsx";
+import { VizGallery } from "./screens/VizGallery.jsx";
 
 /**
  * CourseApp — top-level flow controller.
@@ -115,6 +116,10 @@ export default function CourseApp() {
     setPhase("map");
   }, []);
 
+  const handleBrowseViz = useCallback(() => {
+    setPhase("gallery");
+  }, []);
+
   const handleBrowseMap = useCallback(() => {
     setQuizBelief(null);
     setQuizStats(null);
@@ -138,7 +143,19 @@ export default function CourseApp() {
           onThemeChange={handleThemeChange}
           onStartQuiz={handleStartQuiz}
           onStartGoalQuiz={handleStartGoalQuiz}
+          onBrowseViz={handleBrowseViz}
           onBrowseMap={handleBrowseMap}
+        />
+      );
+
+    case "gallery":
+      return (
+        <VizGallery
+          RAW_NODES={course.RAW_NODES}
+          SCOPE_COLORS={course.SCOPE_COLORS}
+          SCOPE_LABELS={course.SCOPE_LABELS}
+          lang={lang}
+          onClose={handleBackToHero}
         />
       );
 

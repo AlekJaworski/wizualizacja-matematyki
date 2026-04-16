@@ -224,6 +224,11 @@ const STRINGS = {
   topicLearnPath:    { pl: "Ścieżka do tego tematu",     en: "Path to this topic" },
   topicQuizMe:       { pl: "Sprawdź się z tego tematu",  en: "Quiz me on this topic" },
 
+  // ── Viz gallery ──────────────────────────────────────────────────
+  galleryTitle:      { pl: "Interaktywne wizualizacje",   en: "Interactive visualizations" },
+  galleryCount:      { pl: "wizualizacji",                en: "visualizations" },
+  heroBrowseViz:     { pl: "Przeglądaj wizualizacje",     en: "Browse visualizations" },
+
   // ── Learning path ────────────────────────────────────────────────
   pathLabel:         { pl: "Ścieżka nauki",              en: "Learning path" },
   pathTopics:        { pl: "tematów w ścieżce",          en: "topics in path" },

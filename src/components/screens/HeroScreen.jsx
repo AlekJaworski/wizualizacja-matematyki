@@ -8,7 +8,7 @@ import { QUIZ_PRESETS } from "../../engine/belief.js";
  * One clear purpose: start the diagnostic quiz.
  * Secondary: browse the map directly.
  */
-export function HeroScreen({ lang, setLang, themeId, onThemeChange, onStartQuiz, onStartGoalQuiz, onBrowseMap }) {
+export function HeroScreen({ lang, setLang, themeId, onThemeChange, onStartQuiz, onStartGoalQuiz, onBrowseViz, onBrowseMap }) {
   const [preset, setPreset] = useState("standard");
   return (
     <div style={{
@@ -199,6 +199,28 @@ export function HeroScreen({ lang, setLang, themeId, onThemeChange, onStartQuiz,
             }}
           >
             {t("heroGoal", lang)}
+          </button>
+        )}
+
+        {/* Browse visualizations */}
+        {onBrowseViz && (
+          <button
+            onClick={onBrowseViz}
+            style={{
+              padding: "10px 24px",
+              fontSize: 12,
+              fontFamily: FONT,
+              borderRadius: 8,
+              border: "none",
+              background: "transparent",
+              color: COLORS.textDim,
+              cursor: "pointer",
+              transition: "color 0.15s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.color = COLORS.textBody; }}
+            onMouseLeave={e => { e.currentTarget.style.color = COLORS.textDim; }}
+          >
+            ⬡ {t("heroBrowseViz", lang)}
           </button>
         )}
 
