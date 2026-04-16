@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reguła iloczynu — (f·g)' = f'g + fg'</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+  #qf { margin: 0 0 5px; font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  #qd { margin: 0 0 10px; font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); min-height: 48px; }
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 36px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+  .nav { display: flex; align-items: center; justify-content: space-between; }
+  button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  button:hover { background: rgba(255,255,255,.08); }
+  button:disabled { opacity: .3; cursor: default; }
+  #qdots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.18); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  #sliders-wrap { min-height: 0; }
+  .link-btn { display: inline-block; margin-top: 8px; padding: 6px 14px; border-radius: 6px; background: rgba(88,196,221,.12); border: 1px solid rgba(88,196,221,.3); color: #58C4DD; font-size: 12px; text-decoration: none; font-family: monospace; transition: background .15s; }
+  .link-btn:hover { background: rgba(88,196,221,.22); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="310"></canvas>
+  <div class="panel">
+    <p id="qf"></p>
+    <p id="qd"></p>
+    <div id="sliders-wrap"></div>
+    <div class="nav">
+      <button id="qprev">&larr;</button>
+      <div id="qdots"></div>
+      <button id="qnext">&rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const cv = document.getElementById('cv');
+  const cx = cv.getContext('2d');
+  const W = 600, H = 310;
+
+  const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
+  const T = (pl, en) => LANG === 'pl' ? pl : en;
+
+  const COL_F = '#4a9eff';
+  const COL_G = '#FF6B35';
+  const COL_FG = '#83C167';
+  const COL_DX = '#FFD166';
+  const COL_DFXG = '#7aa8ff';  // f'·g strip
+  const COL_FXDG = '#ffaa6b';  // f·g' strip
+  const COL_DFDG = '#E07090';  // Δf·Δg corner
+
+  let x0 = 2, dx = 1.5;
+  let stage = 0;
+
+  // Example functions: f(x) = x+1, g(x) = x²
+  // So f' = 1, g' = 2x, (fg)' = g + f·2x = x² + 2x(x+1) = 3x²+2x
+  function f(x) { return x + 1; }
+  function g(x) { return x * x; }
+  function fp(x) { return 1; }     // f'
+  function gp(x) { return 2 * x; } // g'
+  function fg(x) { return f(x) * g(x); }
+
+  function clear() { cx.fillStyle = '#0e0e12'; cx.fillRect(0, 0, W, H); }
+
+  // ── Rectangle drawing ────────────────────────────────────────
+  function drawProductRect(fVal, gVal, df, dg, showLabels, showCorner) {
+    const margin = 55;
+    const maxW = Math.abs(fVal) + Math.abs(df);
+    const maxH = Math.abs(gVal) + Math.abs(dg);
+    const maxSide = Math.max(maxW, maxH, 0.5);
+    const scale = Math.min((W - margin * 2) / maxSide, (H - margin * 2.5) / maxSide, 65);
+
+    const fW = Math.abs(fVal) * scale;
+    const gH = Math.abs(gVal) * scale;
+    const dfW = Math.abs(df) * scale;
+    const dgH = Math.abs(dg) * scale;
+    const totalW = fW + dfW;
+    const totalH = gH + dgH;
+    const offX = (W - totalW) / 2;
+    const offY = (H - totalH) / 2 - 8;
+
+    // f·g (main)
+    cx.fillStyle = COL_FG + '25'; cx.strokeStyle = COL_FG + '50'; cx.lineWidth = 1;
+    cx.fillRect(offX, offY, fW, gH); cx.strokeRect(offX, offY, fW, gH);
+
+    // Δf·g (right strip) — this is f'·Δx · g
+    cx.fillStyle = COL_DFXG + '25'; cx.strokeStyle = COL_DFXG + '50';
+    cx.fillRect(offX + fW, offY, dfW, gH); cx.strokeRect(offX + fW, offY, dfW, gH);
+
+    // f·Δg (bottom strip) — this is f · g'·Δx
+    cx.fillStyle = COL_FXDG + '25'; cx.strokeStyle = COL_FXDG + '50';
+    cx.fillRect(offX, offY + gH, fW, dgH); cx.strokeRect(offX, offY + gH, fW, dgH);
+
+    // Δf·Δg (corner)
+    cx.fillStyle = showCorner ? COL_DFDG + '20' : 'rgba(255,255,255,0.02)';
+    cx.strokeStyle = showCorner ? COL_DFDG + '35' : 'rgba(255,255,255,0.06)';
+    cx.fillRect(offX + fW, offY + gH, dfW, dgH); cx.strokeRect(offX + fW, offY + gH, dfW, dgH);
+
+    cx.font = '11px monospace'; cx.textAlign = 'center';
+
+    if (showLabels) {
+      // Area labels
+      if (fW > 25 && gH > 18) { cx.fillStyle = COL_FG; cx.fillText('f·g', offX + fW/2, offY + gH/2 + 4); }
+      if (dfW > 18 && gH > 18) { cx.fillStyle = COL_DFXG; cx.fillText('Δf·g', offX + fW + dfW/2, offY + gH/2 + 4); }
+      if (fW > 18 && dgH > 14) { cx.fillStyle = COL_FXDG; cx.fillText('f·Δg', offX + fW/2, offY + gH + dgH/2 + 4); }
+      if (showCorner && dfW > 15 && dgH > 12) {
+        cx.font = '9px monospace'; cx.fillStyle = COL_DFDG;
+        cx.fillText('Δf·Δg', offX + fW + dfW/2, offY + gH + dgH/2 + 4);
+      }
+    }
+
+    // Side labels
+    cx.font = '11px monospace';
+    cx.textAlign = 'right';
+    cx.fillStyle = COL_F; cx.fillText('f=' + fVal.toFixed(1), offX - 5, offY + gH/2 + 4);
+    cx.fillStyle = COL_DX; cx.fillText('Δf=' + df.toFixed(2), offX - 5, offY + gH + dgH/2 + 4);
+    cx.textAlign = 'center';
+    cx.fillStyle = COL_G; cx.fillText('g=' + gVal.toFixed(1), offX + fW/2, offY - 7);
+    cx.fillStyle = COL_DX; cx.fillText('Δg=' + dg.toFixed(2), offX + fW + dfW/2, offY - 7);
+
+    return { offX, offY, fW, gH, dfW, dgH };
+  }
+
+  // ── Stages ───────────────────────────────────────────────────
+  const stages = [
+    {
+      title: () => T('Iloczyn dwóch funkcji', 'Product of two functions'),
+      desc: () => T(
+        'Mamy dwie funkcje: f(x) = x+1 i g(x) = x². Ich iloczyn h(x) = f(x)·g(x) to pole prostokąta o bokach f i g. Jak szybko rośnie to pole, gdy x się zmienia?',
+        'Two functions: f(x) = x+1 and g(x) = x². Their product h(x) = f(x)·g(x) is the area of a rectangle with sides f and g. How fast does this area grow when x changes?'
+      ),
+      sliders: [
+        { id: 'x0', lbl: 'x', color: '#fff', min: 0.5, max: 4, step: 0.5, val: 2 },
+      ],
+      draw() {
+        const fVal = f(x0), gVal = g(x0);
+        drawProductRect(fVal, gVal, 0.01, 0.01, false, false);
+        cx.font = '13px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = COL_FG;
+        cx.fillText('h(x) = f·g = ' + fVal.toFixed(1) + '·' + gVal.toFixed(1) + ' = ' + (fVal * gVal).toFixed(1), W/2, H - 12);
+      }
+    },
+    {
+      title: () => T('Zmiana iloczynu: Δ(f·g)', 'Change in the product: Δ(f·g)'),
+      desc: () => T(
+        'Gdy x rośnie o Δx, f zmienia się o Δf = f\'·Δx, a g o Δg = g\'·Δx. Nowy prostokąt ma boki (f+Δf) i (g+Δg). Przyrost pola = trzy kawałki: Δf·g (prawy pasek), f·Δg (dolny pasek) i mały Δf·Δg (róg).',
+        'When x grows by Δx, f changes by Δf = f\'·Δx and g by Δg = g\'·Δx. The new rectangle has sides (f+Δf) and (g+Δg). Area gain = three pieces: Δf·g (right strip), f·Δg (bottom strip), tiny Δf·Δg (corner).'
+      ),
+      sliders: [
+        { id: 'x0', lbl: 'x', color: '#fff', min: 0.5, max: 4, step: 0.5, val: 2 },
+        { id: 'dx', lbl: 'Δx', color: COL_DX, min: 0.1, max: 2, step: 0.05, val: 1 },
+      ],
+      draw() {
+        const fVal = f(x0), gVal = g(x0);
+        const df = fp(x0) * dx;  // Δf = f'·Δx
+        const dg = gp(x0) * dx;  // Δg = g'·Δx
+        drawProductRect(fVal, gVal, df, dg, true, true);
+
+        cx.font = '11px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = 'rgba(255,255,255,0.5)';
+        cx.fillText('Δf = f\'·Δx = ' + fp(x0).toFixed(0) + '·' + dx.toFixed(1) + ' = ' + df.toFixed(2) +
+          '    Δg = g\'·Δx = ' + gp(x0).toFixed(0) + '·' + dx.toFixed(1) + ' = ' + dg.toFixed(2), W/2, H - 12);
+      }
+    },
+    {
+      title: () => T('Dzielimy przez Δx', 'Divide by Δx'),
+      desc: () => T(
+        'Zmiana pola = Δf·g + f·Δg + Δf·Δg. Dzielimy przez Δx: (Δf/Δx)·g + f·(Δg/Δx) + (Δf·Δg/Δx). Pierwsze dwa wyrazy to f\'·g + f·g\'. Trzeci? Δf·Δg/Δx = f\'·g\'·Δx — ma jeszcze Δx, więc znika gdy Δx→0!',
+        'Area change = Δf·g + f·Δg + Δf·Δg. Divide by Δx: (Δf/Δx)·g + f·(Δg/Δx) + (Δf·Δg/Δx). First two = f\'g + fg\'. Third = f\'·g\'·Δx — still has Δx, so it vanishes as Δx→0!'
+      ),
+      sliders: [
+        { id: 'x0', lbl: 'x', color: '#fff', min: 0.5, max: 4, step: 0.5, val: 2 },
+        { id: 'dx', lbl: 'Δx', color: COL_DX, min: 0.02, max: 2, step: 0.02, val: 1 },
+      ],
+      draw() {
+        const fVal = f(x0), gVal = g(x0);
+        const df = fp(x0) * dx;
+        const dg = gp(x0) * dx;
+        const showCorner = dx > 0.2;
+        drawProductRect(fVal, gVal, df, dg, true, showCorner);
+
+        const term1 = fp(x0) * gVal;      // f'·g
+        const term2 = fVal * gp(x0);       // f·g'
+        const term3 = fp(x0) * gp(x0) * dx; // f'·g'·Δx (vanishes)
+
+        cx.font = '12px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = COL_DFXG;
+        cx.fillText("f'·g = " + term1.toFixed(1), W * 0.25, H - 28);
+        cx.fillStyle = 'rgba(255,255,255,0.4)';
+        cx.fillText('+', W * 0.42, H - 28);
+        cx.fillStyle = COL_FXDG;
+        cx.fillText("f·g' = " + term2.toFixed(1), W * 0.58, H - 28);
+
+        if (showCorner) {
+          cx.fillStyle = 'rgba(255,255,255,0.4)';
+          cx.fillText('+', W * 0.75, H - 28);
+          cx.fillStyle = COL_DFDG;
+          cx.fillText("f'g'Δx = " + term3.toFixed(2), W * 0.88, H - 28);
+        }
+
+        cx.fillStyle = dx < 0.1 ? COL_FG : 'rgba(255,255,255,0.5)';
+        cx.font = '13px monospace';
+        cx.fillText(T('zmiana/Δx → ', 'change/Δx → ') + (term1 + term2 + term3).toFixed(2) +
+          (dx < 0.1 ? '  ≈ ' + (term1 + term2).toFixed(1) + ' ✓' : ''), W/2, H - 8);
+      }
+    },
+    {
+      title: () => T("Reguła iloczynu: (f·g)' = f'·g + f·g'", "Product rule: (f·g)' = f'·g + f·g'"),
+      desc: () => T(
+        'Obie funkcje się zmieniają jednocześnie. Każda dokłada swój wkład: f\' powiększa prostokąt w pionie (pasek Δf·g), g\' w poziomie (pasek f·Δg). Róg Δf·Δg znika, bo jest „za mały". Zostaje f\'·g + f·g\' — to jest reguła iloczynu.',
+        'Both functions change simultaneously. Each contributes: f\' grows the rectangle vertically (strip Δf·g), g\' horizontally (strip f·Δg). The corner Δf·Δg vanishes — too small. What remains: f\'·g + f·g\' — the product rule.'
+      ),
+      sliders: [
+        { id: 'x0', lbl: 'x', color: '#fff', min: -2, max: 4, step: 0.5, val: 2 },
+      ],
+      draw() {
+        // Show on graph: f, g, fg, and tangent to fg
+        const GOX = W / 2, GOY = H * 0.65, GSC = 28;
+        function px(x) { return GOX + x * GSC; }
+        function py(y) { return GOY - y * GSC; }
+
+        // Grid
+        cx.strokeStyle = 'rgba(255,255,255,0.04)'; cx.lineWidth = 0.7;
+        for (let x = -10; x <= 10; x++) { cx.beginPath(); cx.moveTo(px(x), 0); cx.lineTo(px(x), H); cx.stroke(); }
+        for (let y = -3; y <= 10; y++) { cx.beginPath(); cx.moveTo(0, py(y)); cx.lineTo(W, py(y)); cx.stroke(); }
+        cx.strokeStyle = 'rgba(255,255,255,0.15)'; cx.lineWidth = 1;
+        cx.beginPath(); cx.moveTo(0, py(0)); cx.lineTo(W, py(0)); cx.stroke();
+        cx.beginPath(); cx.moveTo(px(0), 0); cx.lineTo(px(0), H); cx.stroke();
+
+        // Plot f, g, fg
+        function plotFn(fn, col, alpha, dash) {
+          cx.save(); cx.strokeStyle = col; cx.globalAlpha = alpha; cx.lineWidth = 1.5;
+          if (dash) cx.setLineDash(dash);
+          cx.beginPath(); let s = false;
+          for (let sx = 0; sx <= W; sx += 2) {
+            const x = (sx - GOX) / GSC, y = fn(x), sy = py(y);
+            if (sy < -60 || sy > H + 60) { s = false; continue; }
+            if (!s) { cx.moveTo(sx, sy); s = true; } else cx.lineTo(sx, sy);
+          }
+          cx.stroke(); cx.restore();
+        }
+
+        plotFn(f, COL_F, 0.4, [4, 4]);
+        plotFn(g, COL_G, 0.4, [4, 4]);
+        plotFn(fg, COL_FG, 0.7);
+
+        // Tangent to fg at x0
+        const fgVal = fg(x0);
+        const fgSlope = fp(x0) * g(x0) + f(x0) * gp(x0);
+        const tangent = x => fgVal + fgSlope * (x - x0);
+        plotFn(tangent, COL_DX, 0.6, [6, 4]);
+
+        // Point
+        cx.beginPath(); cx.arc(px(x0), py(fgVal), 5, 0, Math.PI * 2);
+        cx.fillStyle = COL_FG; cx.shadowColor = COL_FG; cx.shadowBlur = 10; cx.fill(); cx.shadowBlur = 0;
+
+        // Labels
+        cx.font = '11px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COL_F; cx.fillText('f(x)=x+1', 10, 18);
+        cx.fillStyle = COL_G; cx.fillText('g(x)=x²', 10, 32);
+        cx.fillStyle = COL_FG; cx.fillText('h=f·g', 10, 46);
+
+        cx.font = '12px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = COL_DX;
+        cx.fillText("h'(" + x0.toFixed(0) + ") = f'g + fg' = " +
+          fp(x0).toFixed(0) + '·' + g(x0).toFixed(0) + ' + ' + f(x0).toFixed(0) + '·' + gp(x0).toFixed(0) +
+          ' = ' + fgSlope.toFixed(0), W/2, H - 10);
+      }
+    },
+    {
+      title: () => T('Sprawdź: x² to f·g gdzie f=g=x', 'Check: x² is f·g where f=g=x'),
+      desc: () => T(
+        'Wróćmy do x². Jeśli f(x) = x i g(x) = x, to f\' = 1, g\' = 1. Reguła iloczynu: (x·x)\' = 1·x + x·1 = 2x. Zgadza się! Dwa paski — każda funkcja dokłada swoją zmianę. Dlatego pochodna x² to 2x, nie x.',
+        'Back to x². If f(x)=x and g(x)=x, then f\'=1, g\'=1. Product rule: (x·x)\' = 1·x + x·1 = 2x. Checks out! Two strips — each function contributes its change. That\'s why d/dx[x²] = 2x, not x.'
+      ),
+      sliders: [
+        { id: 'x0', lbl: 'x', color: '#fff', min: 0.5, max: 4, step: 0.5, val: 2 },
+        { id: 'dx', lbl: 'Δx', color: COL_DX, min: 0.05, max: 2, step: 0.05, val: 0.8 },
+      ],
+      draw() {
+        // Rectangle where f = g = x, so both strips are x·Δx
+        drawProductRect(x0, x0, dx, dx, true, dx > 0.2);
+
+        cx.font = '13px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = COL_DFXG; cx.fillText("f'·g = 1·x = " + x0.toFixed(1), W * 0.3, H - 28);
+        cx.fillStyle = 'rgba(255,255,255,0.4)'; cx.fillText('+', W * 0.5, H - 28);
+        cx.fillStyle = COL_FXDG; cx.fillText("f·g' = x·1 = " + x0.toFixed(1), W * 0.7, H - 28);
+
+        cx.fillStyle = COL_FG;
+        cx.fillText("(x²)' = x + x = 2x = " + (2 * x0).toFixed(1), W/2, H - 8);
+
+        const el = document.getElementById('prev-link');
+        if (el) el.style.display = 'inline-block';
+      }
+    },
+  ];
+
+  // ── Slider management ────────────────────────────────────────
+  const slWrap = document.getElementById('sliders-wrap');
+
+  function buildSliders(defs) {
+    let html = '<div class="sliders">';
+    defs.forEach(s => {
+      html += `<div class="slider-row">
+        <span class="lbl" style="color:${s.color}">${s.lbl} =</span>
+        <input type="range" id="s_${s.id}" min="${s.min}" max="${s.max}" step="${s.step}" value="${s.val}">
+        <span class="val" id="v_${s.id}" style="color:${s.color}"></span>
+      </div>`;
+    });
+    html += '</div>';
+    if (stage === stages.length - 1) {
+      html += `<a id="prev-link" class="link-btn" href="product-rule-explorer.html${window.location.search}" style="display:none;">
+        ${T('← Dlaczego pochodna x² to 2x?', '← Why is d/dx[x²] = 2x?')}
+      </a>`;
+    }
+    slWrap.innerHTML = html;
+
+    defs.forEach(s => {
+      const el = document.getElementById('s_' + s.id);
+      document.getElementById('v_' + s.id).textContent = (+el.value).toFixed(s.step < 0.1 ? 2 : 1);
+      el.addEventListener('input', function() {
+        const v = +this.value;
+        document.getElementById('v_' + s.id).textContent = v.toFixed(s.step < 0.1 ? 2 : 1);
+        if (s.id === 'x0') x0 = v;
+        if (s.id === 'dx') dx = v;
+      });
+    });
+  }
+
+  // ── Navigation ───────────────────────────────────────────────
+  const prevBtn = document.getElementById('qprev');
+  const nextBtn = document.getElementById('qnext');
+  const dotsEl  = document.getElementById('qdots');
+  const titleEl = document.getElementById('qf');
+  const descEl  = document.getElementById('qd');
+
+  function goTo(idx) {
+    stage = Math.max(0, Math.min(stages.length - 1, idx));
+    const s = stages[stage];
+    titleEl.textContent = s.title();
+    descEl.textContent = s.desc();
+    if (s.sliders) {
+      s.sliders.forEach(sl => { if (sl.id === 'x0') sl.val = x0; if (sl.id === 'dx') sl.val = dx; });
+      buildSliders(s.sliders);
+    } else { slWrap.innerHTML = ''; }
+    prevBtn.disabled = stage === 0;
+    nextBtn.disabled = stage === stages.length - 1;
+    renderDots();
+  }
+
+  function renderDots() {
+    dotsEl.innerHTML = stages.map((_, i) =>
+      `<span class="dot${i === stage ? ' active' : ''}" data-i="${i}"></span>`
+    ).join('');
+    dotsEl.querySelectorAll('.dot').forEach(d =>
+      d.addEventListener('click', () => goTo(+d.dataset.i))
+    );
+  }
+
+  prevBtn.addEventListener('click', () => goTo(stage - 1));
+  nextBtn.addEventListener('click', () => goTo(stage + 1));
+
+  function tick() { clear(); stages[stage].draw(); requestAnimationFrame(tick); }
+  goTo(0);
+  tick();
+})();
+</script>
+</body>
+</html>
