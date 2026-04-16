@@ -274,6 +274,19 @@ const STRINGS = {
                            en: "Full path through all topics" },
   heroContinue:      { pl: "Kontynuuj naukę →",           en: "Continue learning →" },
   heroProfile:       { pl: "Mój profil",                  en: "My profile" },
+
+  // ── Lesson view ──────────────────────────────────────────────────
+  startLesson:     { pl: "Rozpocznij lekcję",          en: "Start lesson" },
+  lessonOf:        { pl: "z",                           en: "of" },
+  iUnderstand:     { pl: "Rozumiem — dalej →",         en: "I understand — next →" },
+  lessonPrev:      { pl: "← Poprzedni",                en: "← Previous" },
+  lessonNext:      { pl: "Następny →",                 en: "Next →" },
+  lessonComplete:  { pl: "Ścieżka ukończona! 🎉",     en: "Path complete! 🎉" },
+  lessonCompleteSub: { pl: "Gratulacje — przeszedłeś całą ścieżkę.",
+                       en: "Congratulations — you've completed the entire path." },
+  lessonViz:       { pl: "Wizualizacja",               en: "Visualization" },
+  lessonPractice:  { pl: "Sprawdź się",                en: "Check yourself" },
+  lessonCheck:     { pl: "Sprawdź",                    en: "Check" },
 };
 
 /**

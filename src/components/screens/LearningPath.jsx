@@ -24,7 +24,7 @@ export function LearningPath({
   goalId, RAW_NODES, RAW_EDGES,
   SCOPE_COLORS, SCOPE_LABELS, SECTIONS,
   belief, evidence, lang,
-  onSelectTopic, onClose,
+  onSelectTopic, onStartLesson, onClose,
 }) {
   const adjacency = useMemo(() => buildAdjacency(RAW_NODES, RAW_EDGES), [RAW_NODES, RAW_EDGES]);
   const nodeById = useMemo(
@@ -156,7 +156,7 @@ export function LearningPath({
         {belief && Object.keys(belief).length > 0 && (
           <div style={{
             height: 4, borderRadius: 2, background: COLORS.border,
-            overflow: "hidden", marginBottom: 28,
+            overflow: "hidden", marginBottom: 20,
           }}>
             <div style={{
               height: "100%", borderRadius: 2,
@@ -165,6 +165,24 @@ export function LearningPath({
               transition: "width 0.4s ease",
             }} />
           </div>
+        )}
+
+        {/* Start lesson button */}
+        {onStartLesson && (
+          <button
+            onClick={() => onStartLesson(path, goalId)}
+            style={{
+              width: "100%", padding: "14px 24px", marginBottom: 28,
+              fontSize: 14, fontWeight: 600, fontFamily: FONT,
+              borderRadius: 8,
+              border: "1px solid #f39c1250",
+              background: "#f39c1218",
+              color: "#f39c12",
+              cursor: "pointer",
+            }}
+          >
+            {t("startLesson", lang)}
+          </button>
         )}
 
         {/* Path timeline */}

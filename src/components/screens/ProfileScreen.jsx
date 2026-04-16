@@ -20,7 +20,7 @@ export function ProfileScreen({
   savedCourse, RAW_NODES, RAW_EDGES,
   SCOPE_COLORS, SCOPE_LABELS, SECTIONS,
   lang,
-  onResumePath, onStartNew, onSeeMap, onClose,
+  onResumePath, onStartLesson, onStartNew, onSeeMap, onClose,
 }) {
   const [confirmReset, setConfirmReset] = useState(false);
 
@@ -338,10 +338,16 @@ export function ProfileScreen({
 
         {/* Actions */}
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
-          {/* Primary: Continue learning */}
+          {/* Primary: Continue learning — launch lesson */}
           {firstActionableId && (
             <button
-              onClick={() => onResumePath(firstActionableId)}
+              onClick={() => {
+                if (onStartLesson) {
+                  onStartLesson(path, goalId);
+                } else {
+                  onResumePath(firstActionableId);
+                }
+              }}
               style={{
                 width: "100%", padding: "14px 24px",
                 fontSize: 14, fontWeight: 600, fontFamily: FONT,

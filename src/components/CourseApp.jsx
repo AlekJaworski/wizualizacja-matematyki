@@ -12,6 +12,7 @@ import { LearningPath } from "./screens/LearningPath.jsx";
 import { GoalSelectionModal } from "./ui/GoalSelectionModal.jsx";
 import { VizGallery } from "./screens/VizGallery.jsx";
 import { ProfileScreen } from "./screens/ProfileScreen.jsx";
+import { LessonView } from "./screens/LessonView.jsx";
 
 /**
  * CourseApp — top-level flow controller.
@@ -56,6 +57,7 @@ export default function CourseApp() {
   const [quizEvidence, setQuizEvidence] = useState(null);
   const [quizPreset, setQuizPreset] = useState("standard");
   const [goalId, setGoalId] = useState(null);
+  const [lessonPath, setLessonPath] = useState(null);
 
   // ── Persisted learning course ──────────────────────────────────
   const [savedCourse, setSavedCourse] = useLocalStorage("savedCourse", null);
@@ -159,6 +161,28 @@ export default function CourseApp() {
     setPhase("map");
   }, [savedCourse]);
 
+  const handleStartLesson = useCallback((path, gId) => {
+    setLessonPath(path);
+    setGoalId(gId ?? null);
+    if (savedCourse) {
+      setQuizBelief(savedCourse.belief ?? {});
+      setQuizEvidence(savedCourse.evidence ?? {});
+    }
+    setPhase("lesson");
+  }, [savedCourse]);
+
+  const handleLessonUpdateBelief = useCallback((newBelief, newEvidence) => {
+    setQuizBelief(newBelief);
+    setQuizEvidence(newEvidence);
+    setSavedCourse(prev => ({
+      ...(prev ?? {}),
+      goalId: goalId,
+      belief: newBelief,
+      evidence: newEvidence,
+      createdAt: prev?.createdAt ?? new Date().toISOString(),
+    }));
+  }, [goalId, setSavedCourse]);
+
   if (!course) return null;
 
   switch (phase) {
@@ -242,6 +266,7 @@ export default function CourseApp() {
           evidence={quizEvidence}
           lang={lang}
           onSelectTopic={(id) => handleSeeMap(id)}
+          onStartLesson={handleStartLesson}
           onClose={handleBackToHero}
         />
       );
@@ -268,6 +293,25 @@ export default function CourseApp() {
         />
       );
 
+    case "lesson":
+      return (
+        <LessonView
+          path={lessonPath}
+          goalId={goalId}
+          RAW_NODES={course.RAW_NODES}
+          RAW_EDGES={course.RAW_EDGES}
+          QUESTION_BANK={course.QUESTION_BANK}
+          SCOPE_COLORS={course.SCOPE_COLORS}
+          SCOPE_LABELS={course.SCOPE_LABELS}
+          SECTIONS={course.SECTIONS}
+          belief={quizBelief ?? {}}
+          evidence={quizEvidence ?? {}}
+          lang={lang}
+          onUpdateBelief={handleLessonUpdateBelief}
+          onClose={() => setPhase(savedCourse ? "profile" : "hero")}
+        />
+      );
+
     case "profile":
       return (
         <ProfileScreen
@@ -279,6 +323,7 @@ export default function CourseApp() {
           SECTIONS={course.SECTIONS}
           lang={lang}
           onResumePath={handleResumePath}
+          onStartLesson={handleStartLesson}
           onStartNew={() => {
             setSavedCourse(null);
             setQuizBelief(null);
