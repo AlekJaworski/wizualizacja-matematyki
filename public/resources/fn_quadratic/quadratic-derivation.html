@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pl">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Quadratic Formula — Derivation via Transformations</title>
+<title>Wzór kwadratowy — Wyprowadzenie przez przekształcenia</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
@@ -80,15 +80,18 @@
     </div>
 
     <div class="nav">
-      <button id="qprev">← prev</button>
+      <button id="qprev">← wstecz</button>
       <div id="qdots"></div>
-      <button id="qnext">next →</button>
+      <button id="qnext">dalej →</button>
     </div>
   </div>
 </div>
 
 <script>
 (function(){
+const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
+const T = (pl, en) => LANG === 'pl' ? pl : en;
+
 const cv=document.getElementById('qc'),cx=cv.getContext('2d');
 const W=600,H=310,OX=300,OY=190,SC=48;
 const px=x=>OX+x*SC, py=y=>OY-y*SC;
@@ -102,23 +105,23 @@ const CURVE='#58C4DD',VERT='#FF6B35',ROOT='#FFD166';
 const stages=[
   {a:1,h:0,k:0,
    f:'y = x²',
-   d:'Canonical parabola. Double root at x = 0.',
+   d:T('Kanoniczna parabola. Podwójny pierwiastek w x = 0.','Canonical parabola. Double root at x = 0.'),
    show:''},
   {a:1,h:0,k:-2,
    f:'y = x² + k',
-   d:'Vertical shift splits the double root to x = ±√(−k). Drag to explore.',
+   d:T('Przesunięcie pionowe rozdziela podwójny pierwiastek na x = ±√(−k). Przesuń suwak, żeby zobaczyć efekt.','Vertical shift splits the double root to x = ±√(−k). Drag to explore.'),
    show:'k'},
   {a:1,h:2,k:-2,
    f:'y = (x − h)² + k,  h = 2',
-   d:'Horizontal shift: roots become x = h ± √(−k). The midpoint is h, the spread is √(−k).',
+   d:T('Przesunięcie poziome: pierwiastki to x = h ± √(−k). Środek to h, rozstaw to √(−k).','Horizontal shift: roots become x = h ± √(−k). The midpoint is h, the spread is √(−k).'),
    show:''},
   {a:0.5,h:2,k:-2,
    f:'y = a(x − h)² + k,  a = ½',
-   d:'Vertical stretch: roots become x = h ± √(−k/a). One formula to rule them all.',
+   d:T('Rozciąganie pionowe: pierwiastki to x = h ± √(−k/a). Jeden wzór rządzi wszystkimi.','Vertical stretch: roots become x = h ± √(−k/a). One formula to rule them all.'),
    show:''},
   {a:1,h:2,k:-3,
    f:'y = ax² + bx + c',
-   d:'Expand a(x−h)²+k and match terms with ax²+bx+c. Drag a, b, c — watch h and k update.',
+   d:T('Rozwiń a(x−h)²+k i porównaj z ax²+bx+c. Przesuwaj a, b, c — obserwuj, jak zmieniają się h i k.','Expand a(x−h)²+k and match terms with ax²+bx+c. Drag a, b, c — watch h and k update.'),
    show:'abc'},
 ];
 
@@ -277,7 +280,7 @@ function drawRoots(a,h,k){
     const alpha=Math.min((-d-0.001)/0.2,1);
     cx.globalAlpha=alpha;
     cx.fillStyle='rgba(220,80,80,.8)';cx.font='12px sans-serif';cx.textAlign='center';
-    cx.fillText('no real roots',px(h),py(Math.max(k+0.1,-1.5)));
+    cx.fillText(T('brak pierwiastków rzeczywistych','no real roots'),px(h),py(Math.max(k+0.1,-1.5)));
     cx.globalAlpha=1;return;
   }
   const sqD=Math.sqrt(Math.max(0,d));
@@ -379,17 +382,17 @@ function drawABCOverlay(a,h,k){
   cx.font='11px monospace';cx.textAlign='left';
 
   // vertex form
-  cx.fillStyle='rgba(255,255,255,.40)';cx.fillText('vertex:',lx,ly);
+  cx.fillStyle='rgba(255,255,255,.40)';cx.fillText(T('wierzchołek:','vertex:'),lx,ly);
   cx.fillStyle='rgba(255,255,255,.85)';cx.fillText('a(x − h)² + k',lx+52,ly);
 
   // expand
   ly+=17;
-  cx.fillStyle='rgba(255,255,255,.40)';cx.fillText('expand:',lx,ly);
+  cx.fillStyle='rgba(255,255,255,.40)';cx.fillText(T('rozwinięcie:','expand:'),lx,ly);
   cx.fillStyle='rgba(255,255,255,.70)';cx.fillText('ax² − 2ah·x + ah²+k',lx+52,ly);
 
   // coefficients
   ly+=17;
-  cx.fillStyle='rgba(255,255,255,.40)';cx.fillText('so:',lx,ly);
+  cx.fillStyle='rgba(255,255,255,.40)';cx.fillText(T('czyli:','so:'),lx,ly);
   cx.fillStyle='#FF6B35';cx.fillText('a='+a.toFixed(2),lx+28,ly);
   cx.fillStyle='#58C4DD';cx.fillText('b='+b.toFixed(2),lx+98,ly);
   cx.fillStyle='#83C167';cx.fillText('c='+c.toFixed(2),lx+168,ly);
@@ -419,13 +422,13 @@ function drawABCOverlay(a,h,k){
   } else if(disc>=-0.01){
     drawQuadraticFormula(10,fy,a,b,c,'rgba(255,209,102,.85)',13);
     cx.font='12px monospace';cx.fillStyle='rgba(255,209,102,.65)';cx.textAlign='right';
-    cx.fillText('= '+h.toFixed(3)+'  (repeated)',W-8,fy);
+    cx.fillText('= '+h.toFixed(3)+'  '+T('(podwójny)','(repeated)'),W-8,fy);
   } else {
     cx.font='bold 12px monospace';cx.fillStyle='rgba(220,80,80,.8)';cx.textAlign='left';
     cx.fillText('b²−4ac = '+disc.toFixed(3)+' < 0',10,fy);
     // draw crossed-out sqrt
     cx.fillStyle='rgba(220,80,80,.5)';
-    cx.fillText('  →  no real roots',180,fy);
+    cx.fillText('  →  '+T('brak pierwiastków rzeczywistych','no real roots'),180,fy);
   }
 }
 
@@ -444,6 +447,8 @@ function tick(){
   requestAnimationFrame(tick);
 }
 
+document.getElementById('qprev').innerHTML='&larr; '+T('wstecz','prev');
+document.getElementById('qnext').innerHTML=T('dalej','next')+' &rarr;';
 qGo(0);tick();
 })();
 </script>

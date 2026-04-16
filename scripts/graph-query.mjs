@@ -48,9 +48,17 @@ function loadNode(id) {
   const body = parts.length > 2 ? parts.slice(2).join("---").trim() : "";
   const hasBody = body.length > 10;
   const hasExample = body.includes("<!-- example -->");
-  // Extract label
+  // Extract label and status
   const labelMatch = content.match(/labelPl:\s*"([^"]+)"/);
   const label = labelMatch ? labelMatch[1] : id;
+  const statusMatch = content.match(/status:\s*"?(\w+)"?/);
+  // Auto-derive status if not set: done > prototype > draft > empty
+  let status = statusMatch ? statusMatch[1] : null;
+  if (!status) {
+    if (hasResource && hasBody && hasExample) status = "prototype";
+    else if (hasBody) status = "draft";
+    else status = "empty";
+  }
   // Count questions
   const qDir = join(root, `src/data/courses/math_pl/nodes/${id}/questions`);
   let qCount = 0;

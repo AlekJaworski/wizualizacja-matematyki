@@ -409,7 +409,18 @@
       el.addEventListener('input', function() {
         const v = +this.value;
         document.getElementById('v_' + s.id).textContent = v.toFixed(s.step < 1 ? 1 : 0);
-        if (s.id === 'nVal') nVal = v;
+        if (s.id === 'nVal') {
+          nVal = v;
+          const kEl = document.getElementById('s_kVal');
+          if (kEl) {
+            kEl.max = nVal;
+            if (kVal > nVal) {
+              kVal = nVal;
+              kEl.value = kVal;
+              document.getElementById('v_kVal').textContent = kVal.toFixed(0);
+            }
+          }
+        }
         if (s.id === 'kVal') kVal = v;
       });
     });
