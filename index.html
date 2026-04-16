@@ -2,10 +2,25 @@
 <html lang="pl">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Wizualizacja Matematyki — Podstawa Programowa</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
-    <script type="module" crossorigin src="/assets/index-DLwRfzCb.js"></script>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        padding: 0;
+        overflow-x: hidden;
+        width: 100%;
+      }
+      #root {
+        overflow-x: hidden;
+        width: 100%;
+      }
+      /* Prevent KaTeX display-mode equations from overflowing on narrow screens */
+      .katex-display { overflow-x: auto; overflow-y: hidden; }
+    </style>
+    <script type="module" crossorigin src="/assets/index-333X_flY.js"></script>
   </head>
   <body>
     <div id="root"></div>
