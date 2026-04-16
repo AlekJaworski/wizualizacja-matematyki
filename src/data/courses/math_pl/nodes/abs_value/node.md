@@ -9,7 +9,7 @@ y: 310
 resources:
   - "interactive|resources/abs_value/abs-value-explorer.html|Absolute Value Explorer|Wartosc bezwzgledna — odleglosc od zera"
 ---
-Wartość bezwzględna $|x|$ to odległość liczby $x$ od zera na osi liczbowej. Zawsze $|x| \geq 0$. Definicja: $|x| = x$ gdy $x \geq 0$, $|x| = -x$ gdy $x < 0$. Równanie $|x| = a$ ma dwa rozwiązania: $x = a$ i $x = -a$ (dla $a > 0$). Nierówność $|x| < a$ oznacza $-a < x < a$. Uogólnienie: $|x - c|$ to odległość od $c$.
+Wartość bezwzględna mierzy odległość liczby od zera na osi liczbowej — niezależnie od znaku, zawsze dostajemy wynik nieujemny.<br><br>Definicja: $|x| = x$ gdy $x \geq 0$, oraz $|x| = -x$ gdy $x < 0$. Zawsze zachodzi $|x| \geq 0$.<br><br>Równanie $|x| = a$ (dla $a > 0$) ma dwa rozwiązania: $x = a$ i $x = -a$. Nierówność $|x| < a$ oznacza $-a < x < a$. Uogólnienie: $|x - c|$ to odległość od punktu $c$.
 
 <!-- example -->
-Na przykład: $|-5| = 5$, bo $-5$ jest w odległości 5 od zera. Równanie $|x| = 3$ daje $x = 3$ lub $x = -3$. Nierówność $|x - 2| < 3$ oznacza $-1 < x < 5$, czyli wszystkie punkty bliżej niż 3 od punktu 2.
+Na przykład: $|-5| = 5$, bo $-5$ jest w odległości 5 od zera.<br><br>Równanie $|x| = 3$ daje $x = 3$ lub $x = -3$.<br><br>Nierówność $|x - 2| < 3$ oznacza $-1 < x < 5$, czyli wszystkie punkty bliżej niż 3 od punktu 2.
