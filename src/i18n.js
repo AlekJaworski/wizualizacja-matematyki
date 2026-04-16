@@ -180,6 +180,8 @@ const STRINGS = {
   quizQuestion:   { pl: "Pytanie",            en: "Question" },
   quizClassified: { pl: "zbadane",            en: "classified" },
   quizAccuracy:   { pl: "trafność",           en: "accuracy" },
+  quizOf:         { pl: "pytań",               en: "questions" },
+  quizCorrectShort:{ pl: "poprawnych",        en: "correct" },
   quizCheck:      { pl: "Sprawdź",            en: "Check" },
   quizContinue:   { pl: "Dalej",              en: "Continue" },
   quizProcessing: { pl: "Analizuję wyniki…",     en: "Analyzing results…" },

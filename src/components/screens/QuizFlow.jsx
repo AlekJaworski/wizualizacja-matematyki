@@ -204,11 +204,8 @@ export function QuizFlow({ RAW_NODES, RAW_EDGES, QUESTION_BANK, lang, quizPreset
   }
 
   // ── Progress ──────────────────────────────────────────────────
-  const known = Object.values(belief).filter(v => v === "known").length;
-  const unknown = Object.values(belief).filter(v => v === "unknown").length;
-  const classified = known + unknown;
-  const total = allNodeIds.length;
-  const progressPct = total > 0 ? Math.round((classified / total) * 100) : 0;
+  const maxQ = presetConfig.maxQuestions;
+  const progressPct = maxQ > 0 ? Math.min(100, Math.round((stats.questionsAnswered / maxQ) * 100)) : 0;
 
   return (
     <div style={{
@@ -265,8 +262,8 @@ export function QuizFlow({ RAW_NODES, RAW_EDGES, QUESTION_BANK, lang, quizPreset
           display: "flex", justifyContent: "space-between",
           marginTop: 6, fontSize: 10, color: COLORS.textFaint,
         }}>
-          <span>{classified}/{total} {t("quizClassified", lang)}</span>
-          <span>{Math.round(pCorrect * 100)}% {t("quizAccuracy", lang)}</span>
+          <span>{stats.questionsAnswered} / {maxQ} {t("quizOf", lang)}</span>
+          <span>{stats.correct} {t("quizCorrectShort", lang)}</span>
         </div>
       </div>
 
