@@ -138,8 +138,8 @@
     {
       title: () => T('Iloczyn dwóch funkcji', 'Product of two functions'),
       desc: () => T(
-        'Mamy dwie funkcje: f(x) = x+1 i g(x) = x². Ich iloczyn h(x) = f(x)·g(x) to pole prostokąta o bokach f i g. Jak szybko rośnie to pole, gdy x się zmienia?',
-        'Two functions: f(x) = x+1 and g(x) = x². Their product h(x) = f(x)·g(x) is the area of a rectangle with sides f and g. How fast does this area grow when x changes?'
+        'Prostokąt o bokach f(x) i g(x) ma pole f·g. Gdy x rośnie, oba boki się zmieniają — prostokąt rośnie na trzy sposoby: staje się wyższy (f rośnie), szerszy (g rośnie), i pojawia się mały narożnik. Przesuń Δx i obserwuj, jak te trzy kawałki składają się na całkowity przyrost.',
+        'A rectangle with sides f(x) and g(x) has area f·g. As x grows, both sides change — the rectangle grows in three ways: it gets taller (f grows), wider (g grows), and a tiny corner appears. Move Δx and watch how these three pieces make up the total growth.'
       ),
       sliders: [
         { id: 'x0', lbl: 'x', color: '#fff', min: 0.5, max: 4, step: 0.5, val: 2 },
@@ -177,8 +177,8 @@
     {
       title: () => T('Dzielimy przez Δx', 'Divide by Δx'),
       desc: () => T(
-        'Zmiana pola = Δf·g + f·Δg + Δf·Δg. Dzielimy przez Δx: (Δf/Δx)·g + f·(Δg/Δx) + (Δf·Δg/Δx). Pierwsze dwa wyrazy to f\'·g + f·g\'. Trzeci? Δf·Δg/Δx = f\'·g\'·Δx — ma jeszcze Δx, więc znika gdy Δx→0!',
-        'Area change = Δf·g + f·Δg + Δf·Δg. Divide by Δx: (Δf/Δx)·g + f·(Δg/Δx) + (Δf·Δg/Δx). First two = f\'g + fg\'. Third = f\'·g\'·Δx — still has Δx, so it vanishes as Δx→0!'
+        'Dzielimy zmianę pola przez Δx, żeby uzyskać tempo wzrostu. Dwa duże paski (Δf·g i f·Δg) dają liniowe tempo. A narożnik Δf·Δg? Jest proporcjonalny do (Δx)² — gdy Δx maleje, znika jeszcze szybciej. Dlatego w granicy zostaje f\'·g + f·g\'.',
+        'Divide the area change by Δx to get the rate of growth. The two big strips (Δf·g and f·Δg) give linear rates. The corner Δf·Δg? It\u2019s proportional to (Δx)\u00B2 — when Δx shrinks, it vanishes even faster. So in the limit, only f\u2032·g + f·g\u2032 survives.'
       ),
       sliders: [
         { id: 'x0', lbl: 'x', color: '#fff', min: 0.5, max: 4, step: 0.5, val: 2 },

@@ -151,8 +151,8 @@ const { cx, W, H } = VizCore.init({
     {
       title: () => T('Wyznaczanie elementów trójkąta', 'Solving a triangle'),
       desc:  () => T(
-        'Znając dwa boki i kąt między nimi (SAS) wyznaczamy trzeci bok z tw. cosinusów, potem kąty z tw. sinusów.',
-        'Knowing two sides and included angle (SAS), find third side from cosine law, then angles from sine law.'
+        'Masz dwa boki i kąt między nimi (SAS — Side-Angle-Side). To wystarczy, żeby odtworzyć cały trójkąt! Krok 1: twierdzenie cosinusów daje trzeci bok. Krok 2: twierdzenie sinusów daje pozostałe kąty. Każdy krok odpowiada na jedno pytanie o trójkącie.',
+        'You have two sides and the angle between them (SAS — Side-Angle-Side). That\'s enough to reconstruct the whole triangle! Step 1: cosine law finds the third side. Step 2: sine law finds the remaining angles. Each step answers one question about the triangle.'
       ),
       sliders: [
         { id: 'step', lbl: 'krok', color: COLORS.CYAN, min: 0, max: 3, step: 1, val: 0 },

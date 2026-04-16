@@ -211,8 +211,8 @@
     {
       title: () => T('Zysk na złotówkę: dzielimy przez Δx', 'Profit per zloty: divide by Δx'),
       desc: () => T(
-        'Chcemy wiedzieć ile zysku daje JEDNA złotówka, więc dzielimy zmianę przez Δx. Wychodzi: (2x·Δx + Δx²) / Δx = 2x + Δx. Zmniejsz Δx — im mniejszy krok, tym dokładniejsza odpowiedź. Zauważ: Δx² po podzieleniu zostawia Δx, który znika!',
-        'We want profit PER zloty, so divide the change by Δx. Result: (2x·Δx + Δx²) / Δx = 2x + Δx. Shrink Δx — the smaller the step, the more precise. Notice: Δx² divided by Δx leaves Δx, which vanishes!'
+        'Dzielimy zmianę pola przez Δx, żeby uzyskać tempo wzrostu. Dwa duże paski (x·Δx + x·Δx) dają liniowe tempo 2x. A narożnik Δx²? Jest proporcjonalny do (Δx)² — gdy Δx maleje, znika jeszcze szybciej. Dlatego w granicy zostaje 2x.',
+        'Divide the area change by Δx to get the rate of growth. The two big strips (x·Δx + x·Δx) give a linear rate of 2x. The corner Δx²? It\u2019s proportional to (Δx)\u00B2 — when Δx shrinks, it vanishes even faster. So in the limit, only 2x survives.'
       ),
       sliders: [
         { id: 'x0', lbl: 'x', color: COL_CURVE, min: 1, max: 5, step: 0.5, val: 3 },

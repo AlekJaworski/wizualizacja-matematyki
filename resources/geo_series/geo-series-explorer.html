@@ -147,8 +147,8 @@
     {
       title: function() { return T('Polowki kwadratu', 'Halves of a square'); },
       desc: function() { return T(
-        '1/2 + 1/4 + 1/8 + 1/16 + ... = 1. Zacieniaj polowe tego, co zostalo. Kawalekami wypelniasz caly kwadrat! Nigdy nie wyjdziesz poza 1.',
-        '1/2 + 1/4 + 1/8 + 1/16 + ... = 1. Shade half of what remains. The pieces fill the entire square! You never exceed 1.'
+        'Oto paradoks: dodajesz niesko\u0144czenie wiele kawa\u0142k\u00F3w, a suma nigdy nie przekroczy 1. Dlaczego? Bo ka\u017Cdy kolejny kawa\u0142ek to po\u0142owa tego, co zosta\u0142o \u2014 zawsze jest miejsce na nast\u0119pny. Zacieniaj kolejne po\u0142\u00F3wki i obserwuj, jak suma zbli\u017Ca si\u0119 do 1, ale nigdy jej nie przekracza.',
+        'Here\u2019s the paradox: infinitely many pieces, yet the sum never exceeds 1. Why? Each piece is half the remaining space \u2014 there\u2019s always room for the next. Shade the halves and watch the sum approach 1 without ever crossing it.'
       ); },
       sliders: [
         { id: 'nterms', lbl: 'n', color: COL_CYA, min: 1, max: 15, step: 1, get: function() { return nTerms; }, set: function(v) { nTerms = v; } },
