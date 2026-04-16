@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Permutacje — Permutations Explorer</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+  #qf { margin: 0 0 5px; font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  #qd { margin: 0 0 10px; font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); min-height: 48px; }
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 36px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+  .nav { display: flex; align-items: center; justify-content: space-between; }
+  button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  button:hover { background: rgba(255,255,255,.08); }
+  button:disabled { opacity: .3; cursor: default; }
+  #qdots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.18); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  #sliders-wrap { min-height: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="310"></canvas>
+  <div class="panel">
+    <p id="qf"></p>
+    <p id="qd"></p>
+    <div id="sliders-wrap"></div>
+    <div class="nav">
+      <button id="qprev">&larr;</button>
+      <div id="qdots"></div>
+      <button id="qnext">&rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const cv = document.getElementById('cv');
+  const cx = cv.getContext('2d');
+  const W = 600, H = 310;
+
+  const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
+  const T = (pl, en) => LANG === 'pl' ? pl : en;
+
+  const COL_A = '#4a9eff';
+  const COL_B = '#FF6B35';
+  const COL_C = '#83C167';
+  const COL_D = '#E07090';
+  const COL_E = '#FFD166';
+  const COL_F = '#B07AFF';
+  const ITEM_COLORS = [COL_A, COL_B, COL_C, COL_D, COL_E, COL_F];
+  const COL_HL = '#58C4DD';
+
+  let stage = 0;
+  let nVal = 3;
+  let kVal = 2;
+
+  function clear() { cx.fillStyle = '#0e0e12'; cx.fillRect(0, 0, W, H); }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath();
+  }
+
+  function infoBox(text, sx, sy, col) {
+    cx.save(); cx.font = '12px monospace';
+    const w = cx.measureText(text).width + 14;
+    cx.fillStyle = 'rgba(14,14,18,0.85)'; cx.strokeStyle = col + '40'; cx.lineWidth = 1;
+    roundRect(cx, sx - w/2, sy - 10, w, 22, 4); cx.fill(); cx.stroke();
+    cx.fillStyle = col; cx.textAlign = 'center'; cx.fillText(text, sx, sy + 4); cx.restore();
+  }
+
+  function factorial(n) { let r = 1; for (let i = 2; i <= n; i++) r *= i; return r; }
+
+  function getPerms(items) {
+    if (items.length <= 1) return [items.slice()];
+    const result = [];
+    for (let i = 0; i < items.length; i++) {
+      const rest = items.slice(0,i).concat(items.slice(i+1));
+      for (const p of getPerms(rest)) { result.push([items[i], ...p]); }
+    }
+    return result;
+  }
+
+  function getKPerms(items, k) {
+    if (k === 0) return [[]];
+    const result = [];
+    for (let i = 0; i < items.length; i++) {
+      const rest = items.slice(0,i).concat(items.slice(i+1));
+      for (const p of getKPerms(rest, k - 1)) { result.push([items[i], ...p]); }
+    }
+    return result;
+  }
+
+  function getUniquePerms(word) {
+    if (word.length <= 1) return [word];
+    const result = new Set();
+    for (let i = 0; i < word.length; i++) {
+      const rest = word.slice(0,i) + word.slice(i+1);
+      for (const p of getUniquePerms(rest)) result.add(word[i] + p);
+    }
+    return [...result];
+  }
+
+  function drawItemBox(letter, x, y, col, size) {
+    const s = size || 22;
+    cx.fillStyle = col + '20'; cx.strokeStyle = col + '60'; cx.lineWidth = 1;
+    roundRect(cx, x - s/2, y - s/2, s, s, 4); cx.fill(); cx.stroke();
+    cx.fillStyle = col; cx.font = (s * 0.55) + 'px monospace'; cx.textAlign = 'center';
+    cx.fillText(letter, x, y + s * 0.18);
+  }
+
+  const stages = [
+    {
+      title: () => T('Wszystkie ustawienia 3 element\u00F3w', 'All orderings of 3 items'),
+      desc: () => T(
+        'Permutacja to UPORZ\u0104DKOWANIE. Dla 3 element\u00F3w (A,B,C) mamy 3! = 6 mo\u017Cliwych ustawie\u0144. Ka\u017Cde u\u017Cywa ka\u017Cdego elementu dok\u0142adnie raz.',
+        'A permutation is an ORDERING. For 3 items (A,B,C) there are 3! = 6 possible orderings. Each uses every item exactly once.'
+      ),
+      sliders: [],
+      draw() {
+        const items = ['A','B','C'];
+        const perms = getPerms(items);
+
+        // Show items at top
+        for (let i = 0; i < 3; i++) {
+          drawItemBox(items[i], W/2 - 40 + i * 40, 30, ITEM_COLORS[i], 28);
+        }
+
+        // Show all 6 permutations in a 3x2 grid
+        const cols = 3, gapX = 160, gapY = 55;
+        const startX = W/2 - gapX;
+        const startY = 80;
+        perms.forEach((p, idx) => {
+          const col = idx % cols;
+          const row = Math.floor(idx / cols);
+          const bx = startX + col * gapX;
+          const by = startY + row * gapY;
+          p.forEach((letter, li) => {
+            const ci = items.indexOf(letter);
+            drawItemBox(letter, bx + li * 30 - 15, by, ITEM_COLORS[ci], 22);
+          });
+          cx.fillStyle = 'rgba(255,255,255,0.2)'; cx.font = '9px monospace'; cx.textAlign = 'left';
+          cx.fillText('#' + (idx+1), bx - 30, by + 4);
+        });
+
+        infoBox('3! = 3\u00D72\u00D71 = 6 ' + T('permutacji','permutations'), W/2, H - 20, COL_HL);
+      }
+    },
+    {
+      title: () => T('Drzewo decyzji', 'Decision tree'),
+      desc: () => T(
+        'Pierwszy element: 3 wybory. Potem 2. Potem 1. Ka\u017Cdy li\u015B\u0107 to jedno ustawienie. Razem: 3\u00D72\u00D71 = 6 li\u015Bci.',
+        'First item: 3 choices. Then 2. Then 1. Each leaf is one ordering. Total: 3\u00D72\u00D71 = 6 leaves.'
+      ),
+      sliders: [],
+      draw() {
+        const items = ['A','B','C'];
+        // level 0: root
+        // level 1: 3 nodes
+        // level 2: 6 nodes
+        // level 3: 6 leaves
+        const levels = [
+          [{ lbl: '\u2022', children: [0,1,2] }],
+          [
+            { lbl: 'A', children: [0,1] },
+            { lbl: 'B', children: [2,3] },
+            { lbl: 'C', children: [4,5] },
+          ],
+          [
+            { lbl: 'B', children: [0] }, { lbl: 'C', children: [1] },
+            { lbl: 'A', children: [2] }, { lbl: 'C', children: [3] },
+            { lbl: 'A', children: [4] }, { lbl: 'B', children: [5] },
+          ],
+          [
+            { lbl: 'C' }, { lbl: 'B' },
+            { lbl: 'C' }, { lbl: 'A' },
+            { lbl: 'B' }, { lbl: 'A' },
+          ]
+        ];
+        const results = ['ABC','ACB','BAC','BCA','CAB','CBA'];
+        const yStep = 65;
+        const yStart = 25;
+
+        for (let lv = 0; lv < levels.length; lv++) {
+          const nodes = levels[lv];
+          const n = nodes.length;
+          const y = yStart + lv * yStep;
+          nodes.forEach((node, i) => {
+            const x = W * (i + 0.5) / n;
+            const ci = items.indexOf(node.lbl);
+            const col = ci >= 0 ? ITEM_COLORS[ci] : 'rgba(255,255,255,0.4)';
+            if (ci >= 0) drawItemBox(node.lbl, x, y, col, 20);
+            else { cx.fillStyle = col; cx.font = '14px monospace'; cx.textAlign = 'center'; cx.fillText(node.lbl, x, y + 5); }
+
+            // lines to children
+            if (node.children) {
+              const nextN = levels[lv+1].length;
+              const ny = yStart + (lv+1) * yStep;
+              node.children.forEach(ci2 => {
+                const nx = W * (ci2 + 0.5) / nextN;
+                cx.strokeStyle = 'rgba(255,255,255,0.12)'; cx.lineWidth = 1;
+                cx.beginPath(); cx.moveTo(x, y + 12); cx.lineTo(nx, ny - 12); cx.stroke();
+              });
+            }
+
+            // leaf labels
+            if (lv === 3) {
+              cx.fillStyle = COL_HL; cx.font = '9px monospace'; cx.textAlign = 'center';
+              cx.fillText(results[i], x, y + 18);
+            }
+          });
+        }
+
+        // labels for branching factor
+        cx.fillStyle = 'rgba(255,255,255,0.3)'; cx.font = '10px monospace'; cx.textAlign = 'right';
+        cx.fillText('3 ' + T('wybory','choices'), 35, yStart + 0.5 * yStep);
+        cx.fillText('2 ' + T('wybory','choices'), 35, yStart + 1.5 * yStep);
+        cx.fillText('1 ' + T('wyb\u00F3r','choice'), 35, yStart + 2.5 * yStep);
+      }
+    },
+    {
+      title: () => T('n! ro\u015Bnie szybko', 'n! grows fast'),
+      desc: () => T(
+        'Przesu\u0144 n od 2 do 6. Liczba permutacji ro\u015Bnie gwa\u0142townie: 2!=2, 3!=6, 4!=24, 5!=120, 6!=720. Silnia eksploduje!',
+        'Slide n from 2 to 6. The count of permutations grows explosively: 2!=2, 3!=6, 4!=24, 5!=120, 6!=720. Factorial explodes!'
+      ),
+      sliders: [
+        { id: 'nVal', lbl: 'n', color: COL_HL, min: 2, max: 6, step: 1, val: () => nVal },
+      ],
+      draw() {
+        const items = 'ABCDEF'.split('').slice(0, nVal);
+        const nf = factorial(nVal);
+
+        // bar chart of factorials
+        const barW = 50, gap = 15;
+        const maxH = 200;
+        const maxFact = 720;
+        const startX = 40;
+        for (let n = 2; n <= 6; n++) {
+          const f = factorial(n);
+          const bh = (f / maxFact) * maxH;
+          const bx = startX + (n - 2) * (barW + gap);
+          const by = H - 30 - bh;
+          const isActive = n === nVal;
+          cx.fillStyle = isActive ? COL_HL + '50' : 'rgba(255,255,255,0.06)';
+          cx.strokeStyle = isActive ? COL_HL : 'rgba(255,255,255,0.15)';
+          cx.lineWidth = isActive ? 2 : 1;
+          roundRect(cx, bx, by, barW, bh, 3); cx.fill(); cx.stroke();
+          cx.fillStyle = isActive ? COL_HL : 'rgba(255,255,255,0.4)';
+          cx.font = '11px monospace'; cx.textAlign = 'center';
+          cx.fillText(n + '!=' + f, bx + barW/2, by - 8);
+          cx.fillText('n=' + n, bx + barW/2, H - 14);
+        }
+
+        // show items
+        const rightX = 360;
+        cx.fillStyle = COL_HL; cx.font = '12px monospace'; cx.textAlign = 'left';
+        cx.fillText(T('Elementy: ','Items: ') + items.join(', '), rightX, 22);
+
+        // show some permutations
+        if (nVal <= 4) {
+          const perms = getPerms(items);
+          const maxShow = Math.min(perms.length, 24);
+          const cols = nVal <= 3 ? 3 : 4;
+          const gx = (W - rightX) / cols;
+          const gy = 20;
+          for (let i = 0; i < maxShow; i++) {
+            const col = i % cols;
+            const row = Math.floor(i / cols);
+            cx.fillStyle = 'rgba(255,255,255,0.5)'; cx.font = '10px monospace'; cx.textAlign = 'left';
+            cx.fillText(perms[i].join(''), rightX + col * gx, 44 + row * gy);
+          }
+        } else {
+          cx.fillStyle = 'rgba(255,255,255,0.35)'; cx.font = '11px monospace'; cx.textAlign = 'left';
+          cx.fillText(nf + ' ' + T('ustawie\u0144 \u2014 za du\u017Co','orderings \u2014 too many'), rightX, 50);
+          cx.fillText(T('by je wszystkie pokaza\u0107!','to show them all!'), rightX, 66);
+        }
+
+        infoBox(nVal + '! = ' + nf + ' ' + T('permutacji','permutations'), W/2, H - 20, COL_HL);
+      }
+    },
+    {
+      title: () => T('Permutacje z powt\u00F3rzeniami', 'Permutations with repetition'),
+      desc: () => T(
+        'S\u0142owo "MAMA" ma 4 litery, ale M i A powtarzaj\u0105 si\u0119 po 2 razy. Odr\u00F3\u017Cnialne ustawienia: 4!/(2!\u00B72!) = 6. Powtarzaj\u0105ce si\u0119 litery zmniejszaj\u0105 liczb\u0119.',
+        '"MAMA" has 4 letters but M and A repeat twice each. Distinct orderings: 4!/(2!\u00B72!) = 6. Repeated letters reduce the count.'
+      ),
+      sliders: [],
+      draw() {
+        const word = 'MAMA';
+        const perms = getUniquePerms(word);
+        const letterColors = { M: COL_A, A: COL_B };
+
+        // show the word
+        for (let i = 0; i < word.length; i++) {
+          drawItemBox(word[i], W/2 - 45 + i * 30, 28, letterColors[word[i]], 26);
+        }
+
+        // formula
+        infoBox('4! / (2!\u00B72!) = 24/4 = 6', W/2, 62, COL_HL);
+
+        // show all 6 distinct permutations
+        const cols = 3, gapX = 160, gapY = 45;
+        const startX = W/2 - gapX;
+        const startY = 95;
+        perms.forEach((p, idx) => {
+          const col = idx % cols;
+          const row = Math.floor(idx / cols);
+          const bx = startX + col * gapX;
+          const by = startY + row * gapY;
+          for (let i = 0; i < p.length; i++) {
+            drawItemBox(p[i], bx + i * 28 - 28, by, letterColors[p[i]], 22);
+          }
+          cx.fillStyle = 'rgba(255,255,255,0.2)'; cx.font = '9px monospace'; cx.textAlign = 'left';
+          cx.fillText('#' + (idx+1), bx - 50, by + 4);
+        });
+
+        // explanation
+        cx.fillStyle = 'rgba(255,255,255,0.35)'; cx.font = '10px monospace'; cx.textAlign = 'center';
+        cx.fillText(T('Bez powtorze\u0144: 4!=24. Z powtorzeniami: 24/4=6','Without repetition: 4!=24. With repetition: 24/4=6'), W/2, H - 16);
+      }
+    },
+    {
+      title: () => T('k-permutacje z n', 'k-permutations from n'),
+      desc: () => T(
+        'Wybierz k element\u00F3w z n I ustaw je w kolejno\u015Bci. P(n,k) = n!/(n\u2212k)!. Np. P(5,2) = 5!/3! = 20.',
+        'Choose k items from n AND arrange them in order. P(n,k) = n!/(n\u2212k)!. E.g. P(5,2) = 5!/3! = 20.'
+      ),
+      sliders: [
+        { id: 'nVal', lbl: 'n', color: COL_HL, min: 2, max: 6, step: 1, val: () => nVal },
+        { id: 'kVal', lbl: 'k', color: COL_B, min: 1, max: 6, step: 1, val: () => kVal },
+      ],
+      draw() {
+        const k = Math.min(kVal, nVal);
+        const items = 'ABCDEF'.split('').slice(0, nVal);
+        const pnk = factorial(nVal) / factorial(nVal - k);
+
+        // items
+        for (let i = 0; i < nVal; i++) {
+          drawItemBox(items[i], 30 + i * 32, 28, ITEM_COLORS[i], 24);
+        }
+
+        // formula
+        infoBox('P(' + nVal + ',' + k + ') = ' + nVal + '!/(' + nVal + '\u2212' + k + ')! = ' + pnk, W/2, 62, COL_HL);
+
+        // show the factor chain
+        cx.fillStyle = 'rgba(255,255,255,0.45)'; cx.font = '11px monospace'; cx.textAlign = 'center';
+        let chain = '';
+        for (let i = 0; i < k; i++) {
+          if (i > 0) chain += ' \u00D7 ';
+          chain += (nVal - i);
+        }
+        chain += ' = ' + pnk;
+        cx.fillText(chain, W/2, 88);
+
+        // show k-perms for small cases
+        if (pnk <= 60) {
+          const perms = getKPerms(items, k);
+          const cols = Math.min(6, Math.ceil(Math.sqrt(pnk)));
+          const gx = Math.min(120, (W - 20) / cols);
+          const gy = 20;
+          const startY = 110;
+          const maxShow = Math.min(perms.length, 60);
+          for (let i = 0; i < maxShow; i++) {
+            const col = i % cols;
+            const row = Math.floor(i / cols);
+            cx.fillStyle = 'rgba(255,255,255,0.5)'; cx.font = '10px monospace'; cx.textAlign = 'left';
+            cx.fillText(perms[i].join(''), 20 + col * gx, startY + row * gy);
+          }
+        } else {
+          cx.fillStyle = 'rgba(255,255,255,0.35)'; cx.font = '11px monospace'; cx.textAlign = 'center';
+          cx.fillText(pnk + ' ' + T('ustawie\u0144','orderings'), W/2, 120);
+        }
+      }
+    },
+  ];
+
+  // ── Slider management ────────────────────────────────────────
+  const slWrap = document.getElementById('sliders-wrap');
+
+  function buildSliders(defs) {
+    let html = '<div class="sliders">';
+    defs.forEach(s => {
+      const v = typeof s.val === 'function' ? s.val() : s.val;
+      html += `<div class="slider-row">
+        <span class="lbl" style="color:${s.color}">${s.lbl} =</span>
+        <input type="range" id="s_${s.id}" min="${s.min}" max="${s.max}" step="${s.step}" value="${v}">
+        <span class="val" id="v_${s.id}" style="color:${s.color}"></span>
+      </div>`;
+    });
+    html += '</div>';
+    slWrap.innerHTML = html;
+
+    defs.forEach(s => {
+      const el = document.getElementById('s_' + s.id);
+      document.getElementById('v_' + s.id).textContent = (+el.value).toFixed(s.step < 1 ? 1 : 0);
+      el.addEventListener('input', function() {
+        const v = +this.value;
+        document.getElementById('v_' + s.id).textContent = v.toFixed(s.step < 1 ? 1 : 0);
+        if (s.id === 'nVal') nVal = v;
+        if (s.id === 'kVal') kVal = v;
+      });
+    });
+  }
+
+  // ── Navigation ───────────────────────────────────────────────
+  const prevBtn = document.getElementById('qprev');
+  const nextBtn = document.getElementById('qnext');
+  const dotsEl  = document.getElementById('qdots');
+  const titleEl = document.getElementById('qf');
+  const descEl  = document.getElementById('qd');
+
+  function goTo(idx) {
+    stage = Math.max(0, Math.min(stages.length - 1, idx));
+    const s = stages[stage];
+    titleEl.textContent = s.title();
+    descEl.textContent = s.desc();
+    if (s.sliders && s.sliders.length) buildSliders(s.sliders);
+    else slWrap.innerHTML = '';
+    prevBtn.disabled = stage === 0;
+    nextBtn.disabled = stage === stages.length - 1;
+    renderDots();
+  }
+
+  function renderDots() {
+    dotsEl.innerHTML = stages.map((_, i) =>
+      `<span class="dot${i === stage ? ' active' : ''}" data-i="${i}"></span>`
+    ).join('');
+    dotsEl.querySelectorAll('.dot').forEach(d =>
+      d.addEventListener('click', () => goTo(+d.dataset.i))
+    );
+  }
+
+  prevBtn.addEventListener('click', () => goTo(stage - 1));
+  nextBtn.addEventListener('click', () => goTo(stage + 1));
+
+  function tick() {
+    clear(); stages[stage].draw();
+    requestAnimationFrame(tick);
+  }
+
+  goTo(0);
+  tick();
+})();
+</script>
+</body>
+</html>
