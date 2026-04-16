@@ -9,7 +9,7 @@ y: 360
 resources:
   - "interactive|bayes-explorer.html|Bayes' Theorem — Rare Disease Test Paradox|Twierdzenie Bayesa — paradoks testu na rzadką chorobę"
 ---
-Prawdopodobieństwo warunkowe P(A|B) = P(A∩B)/P(B) — prawdopodobieństwo A, gdy wiemy że zaszło B. Twierdzenie Bayesa: P(A|B) = P(B|A)·P(A)/P(B). Wzór na prawdopodobieństwo całkowite: P(B) = Σ P(B|Aᵢ)·P(Aᵢ). Drzewo decyzyjne pomaga organizować obliczenia.
+Prawdopodobieństwo warunkowe $P(A|B) = \frac{P(A \cap B)}{P(B)}$ — prawdopodobieństwo A, gdy wiemy że zaszło B. Twierdzenie Bayesa: $P(A|B) = \frac{P(B|A) \cdot P(A)}{P(B)}$. Wzór na prawdopodobieństwo całkowite: $P(B) = \sum P(B|A_i) \cdot P(A_i)$. Drzewo decyzyjne pomaga organizować obliczenia.
 
 <!-- example -->
-Na przykład: w klasie 30 osób, 12 gra w piłkę nożną, 8 gra w piłkę i koszykówkę. P(koszykówka | piłka) = 8/12 = 2/3. Wiemy że ktoś gra w piłkę — jakie szanse że gra też w kosza?
+Na przykład: w klasie 30 osób, 12 gra w piłkę nożną, 8 gra w piłkę i koszykówkę. $P(\text{koszykówka} | \text{piłka}) = \frac{8}{12} = \frac{2}{3}$. Wiemy że ktoś gra w piłkę — jakie szanse że gra też w kosza?
