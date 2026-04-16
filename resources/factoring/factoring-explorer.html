@@ -31,7 +31,7 @@
 </head>
 <body>
 <div class="wrap">
-  <canvas id="cv" width="600" height="310"></canvas>
+  <canvas id="cv" width="600" height="420"></canvas>
   <div class="panel">
     <p id="qf"></p>
     <p id="qd"></p>
@@ -48,7 +48,7 @@
 (function(){
   const cv = document.getElementById('cv');
   const cx = cv.getContext('2d');
-  const W = 600, H = 310;
+  const W = 600, H = 420;
 
   const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
   const T = (pl, en) => LANG === 'pl' ? pl : en;
@@ -61,7 +61,7 @@
   const COL_CURSOR = 'rgba(255,255,255,0.25)';
 
   // Coordinate system
-  const OX = W / 2, OY = H / 2, SC = 40;
+  const OX = W / 2, OY = Math.round(H * 0.45), SC = 40;
   function px(x) { return OX + x * SC; }
   function py(y) { return OY - y * SC; }
 
@@ -84,7 +84,7 @@
     for (let x = -7; x <= 7; x++) {
       cx.beginPath(); cx.moveTo(px(x), 0); cx.lineTo(px(x), H); cx.stroke();
     }
-    for (let y = -4; y <= 4; y++) {
+    for (let y = -6; y <= 5; y++) {
       cx.beginPath(); cx.moveTo(0, py(y)); cx.lineTo(W, py(y)); cx.stroke();
     }
   }
@@ -103,7 +103,7 @@
       cx.fillText(x, px(x), py(0) + 13);
     }
     cx.textAlign = 'right';
-    for (let y = -3; y <= 3; y++) {
+    for (let y = -5; y <= 4; y++) {
       if (y === 0) continue;
       cx.fillText(y, px(0) - 6, py(y) + 3);
     }
