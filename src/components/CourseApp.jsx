@@ -1,7 +1,8 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { COURSES, DEFAULT_COURSE_ID } from "../data/courses/index.js";
 import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import { applyTheme } from "../styles/tokens.js";
+import { encodeBelief, decodeBelief } from "../utils/shareCode.js";
 import CurriculumGraph from "./CurriculumGraph.jsx";
 import { HeroScreen } from "./screens/HeroScreen.jsx";
 import { QuizFlow } from "./screens/QuizFlow.jsx";
@@ -15,7 +16,23 @@ import { ResultsScreen } from "./screens/ResultsScreen.jsx";
  *   "quiz"    → Full-screen diagnostic quiz
  *   "results" → Summary + "see your map"
  *   "map"     → CurriculumGraph (with optional pre-loaded belief)
+ *
+ * URL hash routing:
+ *   #/results/<code>  → shared results (62-char belief encoding)
+ *   #/map/<code>      → shared map view
+ *   #/topic/<id>      → topic detail (with belief if code present)
+ *   (anything else)   → hero
  */
+
+function parseHash() {
+  const hash = window.location.hash.replace(/^#\/?/, "");
+  const parts = hash.split("/");
+  if (parts[0] === "results" && parts[1]) return { phase: "results", code: parts[1] };
+  if (parts[0] === "map" && parts[1]) return { phase: "map", code: parts[1], node: parts[2] || null };
+  if (parts[0] === "map") return { phase: "map" };
+  return null;
+}
+
 export default function CourseApp() {
   const courseId = DEFAULT_COURSE_ID;
   const course = COURSES[courseId];
@@ -25,21 +42,39 @@ export default function CourseApp() {
     && window.matchMedia?.("(prefers-color-scheme: light)").matches
     ? "bright" : "midnight";
   const [themeId, setThemeId] = useLocalStorage("theme", systemPrefers);
-  const [phase, setPhase] = useState("hero");
-  const [initialSelectedNode, setInitialSelectedNode] = useState(null);
 
-  // Apply theme on mount and change
+  // Check URL hash for shared state on mount
+  const initialHash = parseHash();
+  const initialBelief = initialHash?.code ? decodeBelief(initialHash.code) : null;
+
+  const [phase, setPhase] = useState(initialHash?.phase ?? "hero");
+  const [initialSelectedNode, setInitialSelectedNode] = useState(initialHash?.node ?? null);
+  const [quizBelief, setQuizBelief] = useState(initialBelief);
+  const [quizStats, setQuizStats] = useState(initialBelief ? { correct: 0, incorrect: 0, questionsAnswered: 0 } : null);
+  const [quizEvidence, setQuizEvidence] = useState(null);
+  const [quizPreset, setQuizPreset] = useState("standard");
+
+  // Apply theme
   const handleThemeChange = useCallback((id) => {
     applyTheme(id);
     setThemeId(id);
   }, [setThemeId]);
-
-  // Apply saved theme on mount
   applyTheme(themeId);
-  const [quizBelief, setQuizBelief] = useState(null);
-  const [quizStats, setQuizStats] = useState(null);
-  const [quizEvidence, setQuizEvidence] = useState(null);
-  const [quizPreset, setQuizPreset] = useState("standard");
+
+  // Sync phase → URL hash
+  useEffect(() => {
+    let hash = "";
+    if (phase === "results" && quizBelief) {
+      hash = `#/results/${encodeBelief(quizBelief)}`;
+    } else if (phase === "map" && quizBelief) {
+      hash = `#/map/${encodeBelief(quizBelief)}`;
+    }
+    if (hash && window.location.hash !== hash) {
+      window.history.replaceState(null, "", hash);
+    } else if (!hash && window.location.hash) {
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, [phase, quizBelief]);
 
   const handleStartQuiz = useCallback((preset = "standard") => {
     setQuizPreset(preset);

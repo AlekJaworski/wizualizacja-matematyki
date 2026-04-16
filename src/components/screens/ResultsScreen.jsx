@@ -3,6 +3,7 @@ import { FONT, COLORS } from "../../styles/tokens.js";
 import { t } from "../../i18n.js";
 import { buildAdjacency } from "../../engine/adjacency.js";
 import { computeFrontier } from "../../engine/belief.js";
+import { encodeBelief } from "../../utils/shareCode.js";
 
 /**
  * Results screen shown after quiz completion.
@@ -199,14 +200,15 @@ export function ResultsScreen({
           {/* Share */}
           <button
             onClick={() => {
+              const code = belief ? encodeBelief(belief) : "";
+              const shareUrl = `https://oczochodzi.pl/#/results/${code}`;
               const text = lang === "pl"
-                ? `Sprawdziłem swoją wiedzę z matmy na oczochodzi.pl — ${known.length}/${total} tematów znanych! Sprawdź się też:`
-                : `I tested my math knowledge on oczochodzi.pl — ${known.length}/${total} topics known! Try it:`;
-              const url = "https://oczochodzi.pl";
+                ? `Sprawdziłem swoją wiedzę z matmy — ${known.length}/${total} tematów znanych! Sprawdź się:`
+                : `I tested my math knowledge — ${known.length}/${total} topics known! Try it:`;
               if (navigator.share) {
-                navigator.share({ title: "oczochodzi.pl", text, url }).catch(() => {});
+                navigator.share({ title: "oczochodzi.pl", text, url: shareUrl }).catch(() => {});
               } else {
-                navigator.clipboard.writeText(`${text} ${url}`).then(() => {
+                navigator.clipboard.writeText(`${text} ${shareUrl}`).then(() => {
                   alert(lang === "pl" ? "Skopiowano do schowka!" : "Copied to clipboard!");
                 });
               }
