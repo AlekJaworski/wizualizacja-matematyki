@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wzory Viète'a — Eksplorator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+  #qf { margin: 0 0 5px; font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  #qd { margin: 0 0 10px; font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); min-height: 48px; }
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 36px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+  .nav { display: flex; align-items: center; justify-content: space-between; }
+  button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  button:hover { background: rgba(255,255,255,.08); }
+  button:disabled { opacity: .3; cursor: default; }
+  #qdots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.18); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  #sliders-wrap { min-height: 0; }
+  .eq-line { margin: 4px 0; font-size: 13px; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="310"></canvas>
+  <div class="panel">
+    <p id="qf"></p>
+    <p id="qd"></p>
+    <div id="sliders-wrap"></div>
+    <div class="nav">
+      <button id="qprev">&larr;</button>
+      <div id="qdots"></div>
+      <button id="qnext">&rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const cv = document.getElementById('cv');
+  const cx = cv.getContext('2d');
+  const W = 600, H = 310;
+
+  const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
+  const T = (pl, en) => LANG === 'pl' ? pl : en;
+
+  // Colors
+  const COL_PAR = '#58C4DD';   // parabola
+  const COL_R1  = '#FF6B6B';   // root 1
+  const COL_R2  = '#4ECDC4';   // root 2
+  const COL_SUM = '#FFD166';   // sum highlight
+  const COL_PRD = '#C78DFF';   // product highlight
+  const COL_SYM = '#FF9F43';   // axis of symmetry
+  const COL_EQ  = '#83C167';   // equation text
+
+  // Coordinate system: OX centered, OY at ~55% height
+  const OX = W / 2, OY = H * 0.55, SC = 50;
+  function px(x) { return OX + x * SC; }
+  function py(y) { return OY - y * SC; }
+
+  // State
+  let r1 = 1, r2 = 3;  // roots (stages 1-3)
+  let b = -4, c = 3;    // coefficients (stages 4-5)
+  let stage = 0;
+
+  // ── Drawing helpers ──────────────────────────────────────────
+  function clear() {
+    cx.fillStyle = '#0e0e12';
+    cx.fillRect(0, 0, W, H);
+  }
+
+  function drawGrid() {
+    cx.strokeStyle = 'rgba(255,255,255,0.04)';
+    cx.lineWidth = 0.7;
+    for (let x = -7; x <= 7; x++) {
+      cx.beginPath(); cx.moveTo(px(x), 0); cx.lineTo(px(x), H); cx.stroke();
+    }
+    for (let y = -4; y <= 6; y++) {
+      cx.beginPath(); cx.moveTo(0, py(y)); cx.lineTo(W, py(y)); cx.stroke();
+    }
+  }
+
+  function drawAxes() {
+    cx.strokeStyle = 'rgba(255,255,255,0.2)';
+    cx.lineWidth = 1;
+    // X axis
+    cx.beginPath(); cx.moveTo(0, py(0)); cx.lineTo(W, py(0)); cx.stroke();
+    // Y axis
+    cx.beginPath(); cx.moveTo(px(0), 0); cx.lineTo(px(0), H); cx.stroke();
+
+    cx.fillStyle = 'rgba(255,255,255,0.25)';
+    cx.font = '9px monospace';
+    cx.textAlign = 'center';
+    for (let x = -5; x <= 5; x++) {
+      if (x === 0) continue;
+      cx.fillText(x, px(x), py(0) + 13);
+    }
+    cx.textAlign = 'right';
+    for (let y = -3; y <= 5; y++) {
+      if (y === 0) continue;
+      cx.fillText(y, px(0) - 6, py(y) + 3);
+    }
+  }
+
+  function plotParabola(a, bCoef, cCoef, color, alpha, dash) {
+    cx.save();
+    cx.strokeStyle = color;
+    cx.globalAlpha = alpha;
+    cx.lineWidth = 2.5;
+    if (dash) cx.setLineDash(dash);
+    cx.beginPath();
+    let started = false;
+    for (let sx = 0; sx <= W; sx += 2) {
+      const x = (sx - OX) / SC;
+      const y = a * x * x + bCoef * x + cCoef;
+      const sy = py(y);
+      if (sy < -100 || sy > H + 100) { started = false; continue; }
+      if (!started) { cx.moveTo(sx, sy); started = true; }
+      else cx.lineTo(sx, sy);
+    }
+    cx.stroke();
+    cx.restore();
+  }
+
+  function plotParabolaFromRoots(root1, root2, color, alpha) {
+    plotParabola(1, -(root1 + root2), root1 * root2, color, alpha);
+  }
+
+  function gdot(x, y, r, col) {
+    cx.beginPath();
+    cx.arc(px(x), py(y), r, 0, Math.PI * 2);
+    cx.fillStyle = col;
+    cx.shadowColor = col;
+    cx.shadowBlur = 12;
+    cx.fill();
+    cx.shadowBlur = 0;
+  }
+
+  function label(text, x, y, col, align, size) {
+    cx.save();
+    cx.font = (size || 11) + 'px monospace';
+    cx.fillStyle = col;
+    cx.textAlign = align || 'left';
+    cx.fillText(text, px(x), py(y));
+    cx.restore();
+  }
+
+  function infoBox(text, sx, sy, col, alpha) {
+    cx.save();
+    cx.font = '12px monospace';
+    if (alpha !== undefined) cx.globalAlpha = alpha;
+    const w = cx.measureText(text).width + 14;
+    cx.fillStyle = 'rgba(14,14,18,0.88)';
+    cx.strokeStyle = col + '50';
+    cx.lineWidth = 1;
+    roundRect(cx, sx - w/2, sy - 11, w, 22, 4);
+    cx.fill(); cx.stroke();
+    cx.fillStyle = col;
+    cx.textAlign = 'center';
+    cx.fillText(text, sx, sy + 4);
+    cx.restore();
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+    ctx.closePath();
+  }
+
+  function drawDashedLine(x1, y1, x2, y2, col, alpha, dashPat) {
+    cx.save();
+    cx.strokeStyle = col;
+    cx.globalAlpha = alpha || 0.6;
+    cx.lineWidth = 1.5;
+    cx.setLineDash(dashPat || [5, 4]);
+    cx.beginPath();
+    cx.moveTo(px(x1), py(y1));
+    cx.lineTo(px(x2), py(y2));
+    cx.stroke();
+    cx.setLineDash([]);
+    cx.restore();
+  }
+
+  function drawBrace(sx1, sy, sx2, col, belowY) {
+    // Horizontal bracket under the axis
+    const my = belowY || sy + 18;
+    cx.save();
+    cx.strokeStyle = col;
+    cx.globalAlpha = 0.5;
+    cx.lineWidth = 1.5;
+    cx.beginPath();
+    cx.moveTo(sx1, sy); cx.lineTo(sx1, my);
+    cx.lineTo(sx2, my); cx.lineTo(sx2, sy);
+    cx.stroke();
+    cx.restore();
+  }
+
+  function fmt(v) {
+    if (Math.abs(v - Math.round(v)) < 0.01) return Math.round(v).toString();
+    return v.toFixed(2);
+  }
+
+  function fmtCoef(v, varName, isFirst) {
+    if (v === 0) return '';
+    const av = Math.abs(v);
+    let coefStr = '';
+    if (av !== 1 || !varName) coefStr = fmt(av);
+    let result = coefStr + varName;
+    if (isFirst) {
+      return v < 0 ? '-' + result : result;
+    }
+    return v < 0 ? ' - ' + result : ' + ' + result;
+  }
+
+  function buildEqString(a, bv, cv) {
+    let parts = [];
+    // x^2 term
+    if (a === 1) parts.push('x\u00B2');
+    else if (a === -1) parts.push('-x\u00B2');
+    else parts.push(fmt(a) + 'x\u00B2');
+    // x term
+    if (bv !== 0) {
+      const abv = Math.abs(bv);
+      const sign = bv > 0 ? ' + ' : ' \u2212 ';
+      const coef = abv === 1 ? '' : fmt(abv);
+      parts.push(sign + coef + 'x');
+    }
+    // constant
+    if (cv !== 0) {
+      const acv = Math.abs(cv);
+      const sign = cv > 0 ? ' + ' : ' \u2212 ';
+      parts.push(sign + fmt(acv));
+    }
+    return parts.join('');
+  }
+
+  // ── Stages ───────────────────────────────────────────────────
+  const stages = [
+    // Stage 1: Roots define the parabola
+    {
+      title: () => T('Pierwiastki definiuj\u0105 parabol\u0119', 'Roots define the parabola'),
+      desc: () => T(
+        'Przeci\u0105gnij pierwiastki r\u2081 i r\u2082. R\u00F3wnanie x\u00B2 \u2212 (r\u2081+r\u2082)x + r\u2081\u00B7r\u2082 aktualizuje si\u0119 w czasie rzeczywistym. Przesuwanie pierwiastk\u00F3w zmienia wsp\u00F3\u0142czynniki \u2014 w konkretny spos\u00F3b.',
+        'Drag roots r\u2081 and r\u2082. The equation x\u00B2 \u2212 (r\u2081+r\u2082)x + r\u2081\u00B7r\u2082 updates in real time. Moving the roots changes the coefficients \u2014 in a specific way.'
+      ),
+      sliders: [
+        { id: 'r1', lbl: 'r\u2081', color: COL_R1, min: -4, max: 4, step: 0.5, get: () => r1, set: v => r1 = v },
+        { id: 'r2', lbl: 'r\u2082', color: COL_R2, min: -4, max: 4, step: 0.5, get: () => r2, set: v => r2 = v },
+      ],
+      draw() {
+        const s = r1 + r2;
+        const p = r1 * r2;
+        plotParabolaFromRoots(r1, r2, COL_PAR, 0.85);
+        // Root dots
+        gdot(r1, 0, 6, COL_R1);
+        gdot(r2, 0, 6, COL_R2);
+        // Root labels
+        label('r\u2081=' + fmt(r1), r1, 0.4, COL_R1, 'center', 11);
+        label('r\u2082=' + fmt(r2), r2, 0.4, COL_R2, 'center', 11);
+        // Equation in canvas
+        const eq = buildEqString(1, -s, p);
+        infoBox('f(x) = ' + eq, W/2, 22, COL_PAR);
+      }
+    },
+    // Stage 2: Sum of roots
+    {
+      title: () => T('Suma pierwiastk\u00F3w', 'Sum of roots'),
+      desc: () => T(
+        'r\u2081 + r\u2082 = \u2212b/a. Suma okre\u015Bla, GDZIE parabola le\u017Cy: \u015Brodek pierwiastk\u00F3w to o\u015B symetrii x = (r\u2081+r\u2082)/2. Wi\u0119ksza suma \u2014 parabola przesuwa si\u0119 w prawo.',
+        'r\u2081 + r\u2082 = \u2212b/a. The sum determines WHERE the parabola sits: the midpoint of roots is the axis of symmetry x = (r\u2081+r\u2082)/2. Larger sum \u2014 parabola shifts right.'
+      ),
+      sliders: [
+        { id: 'r1', lbl: 'r\u2081', color: COL_R1, min: -4, max: 4, step: 0.5, get: () => r1, set: v => r1 = v },
+        { id: 'r2', lbl: 'r\u2082', color: COL_R2, min: -4, max: 4, step: 0.5, get: () => r2, set: v => r2 = v },
+      ],
+      draw() {
+        const s = r1 + r2;
+        const p = r1 * r2;
+        const mid = s / 2;
+
+        plotParabolaFromRoots(r1, r2, COL_PAR, 0.7);
+
+        // Axis of symmetry
+        drawDashedLine(mid, -4, mid, 6, COL_SYM, 0.7, [6, 4]);
+        label(T('o\u015B symetrii', 'axis'), mid + 0.15, 4.3, COL_SYM, 'left', 10);
+        label('x = ' + fmt(mid), mid + 0.15, 3.8, COL_SYM, 'left', 10);
+
+        // Vertex dot
+        const vY = -(r1 - r2) * (r1 - r2) / 4;
+        gdot(mid, vY, 4, COL_SYM);
+
+        // Bracket showing sum on x-axis
+        const lx = Math.min(r1, r2);
+        const rx = Math.max(r1, r2);
+        drawBrace(px(lx), py(0) + 4, px(rx), COL_SUM, py(0) + 22);
+        infoBox('r\u2081 + r\u2082 = ' + fmt(s) + ' = \u2212b/a', (px(lx) + px(rx)) / 2, py(0) + 38, COL_SUM);
+
+        // Midpoint dot
+        gdot(mid, 0, 4, COL_SUM);
+
+        // Root dots
+        gdot(r1, 0, 6, COL_R1);
+        gdot(r2, 0, 6, COL_R2);
+        label('r\u2081', r1, 0.4, COL_R1, 'center', 11);
+        label('r\u2082', r2, 0.4, COL_R2, 'center', 11);
+
+        // Equation
+        const eq = buildEqString(1, -s, p);
+        infoBox('f(x) = ' + eq + '   \u2192   \u2212b = ' + fmt(s), W/2, 22, COL_SUM);
+      }
+    },
+    // Stage 3: Product of roots
+    {
+      title: () => T('Iloczyn pierwiastk\u00F3w', 'Product of roots'),
+      desc: () => T(
+        'r\u2081 \u00B7 r\u2082 = c/a. Dla a=1: iloczyn = c = f(0), czyli punkt przeci\u0119cia z osi\u0105 Y. Dodatni iloczyn \u2192 pierwiastki tego samego znaku. Ujemny \u2192 r\u00F3\u017Cnych. Zero \u2192 jeden pierwiastek w 0.',
+        'r\u2081 \u00B7 r\u2082 = c/a. For a=1: product = c = f(0), the y-intercept. Positive product \u2192 roots same sign. Negative \u2192 opposite signs. Zero \u2192 one root at origin.'
+      ),
+      sliders: [
+        { id: 'r1', lbl: 'r\u2081', color: COL_R1, min: -4, max: 4, step: 0.5, get: () => r1, set: v => r1 = v },
+        { id: 'r2', lbl: 'r\u2082', color: COL_R2, min: -4, max: 4, step: 0.5, get: () => r2, set: v => r2 = v },
+      ],
+      draw() {
+        const s = r1 + r2;
+        const p = r1 * r2;
+
+        plotParabolaFromRoots(r1, r2, COL_PAR, 0.7);
+
+        // y-intercept highlight
+        gdot(0, p, 7, COL_PRD);
+
+        // Dashed line from y-intercept to axis label
+        drawDashedLine(0, p, 0, 0, COL_PRD, 0.3, [3, 3]);
+
+        // y-intercept label
+        infoBox('f(0) = r\u2081\u00B7r\u2082 = ' + fmt(p), px(0) + 80, py(p), COL_PRD);
+
+        // Sign indicator
+        let signMsg;
+        if (Math.abs(p) < 0.01) {
+          signMsg = T('iloczyn = 0 \u2192 pierwiastek w zerze', 'product = 0 \u2192 root at origin');
+        } else if (p > 0) {
+          if (r1 > 0 && r2 > 0) signMsg = T('iloczyn > 0: oba dodatnie', 'product > 0: both positive');
+          else signMsg = T('iloczyn > 0: oba ujemne', 'product > 0: both negative');
+        } else {
+          signMsg = T('iloczyn < 0: r\u00F3\u017Cne znaki', 'product < 0: opposite signs');
+        }
+        infoBox(signMsg, W/2, H - 18, COL_PRD, 0.8);
+
+        // Root dots
+        gdot(r1, 0, 6, COL_R1);
+        gdot(r2, 0, 6, COL_R2);
+        label('r\u2081', r1, 0.4, COL_R1, 'center', 11);
+        label('r\u2082', r2, 0.4, COL_R2, 'center', 11);
+
+        // Equation
+        const eq = buildEqString(1, -s, p);
+        infoBox('f(x) = ' + eq + '   \u2192   c = ' + fmt(p), W/2, 22, COL_PRD);
+      }
+    },
+    // Stage 4: From equation to roots — without solving
+    {
+      title: () => T('Od r\u00F3wnania do pierwiastk\u00F3w \u2014 bez rozwi\u0105zywania', 'From equation to roots \u2014 without solving'),
+      desc: () => T(
+        'Masz x\u00B2 + bx + c = 0 (a=1). Od razu wiesz: suma = \u2212b, iloczyn = c. Znasz sum\u0119 i iloczyn ZANIM znajdziesz konkretne pierwiastki. Przesuwaj b i c.',
+        'Given x\u00B2 + bx + c = 0 (a=1). You immediately know: sum = \u2212b, product = c. You know the sum and product BEFORE finding the actual roots. Move b and c.'
+      ),
+      sliders: [
+        { id: 'b', lbl: 'b', color: COL_SUM, min: -6, max: 6, step: 0.5, get: () => b, set: v => b = v },
+        { id: 'c', lbl: 'c', color: COL_PRD, min: -6, max: 6, step: 0.5, get: () => c, set: v => c = v },
+      ],
+      draw() {
+        const sum = -b;
+        const prod = c;
+        const disc = b * b - 4 * c;
+        const hasRoots = disc >= 0;
+
+        plotParabola(1, b, c, COL_PAR, 0.7);
+
+        // Sum / product info boxes at top
+        infoBox(T('suma', 'sum') + ' = \u2212b = ' + fmt(sum), W * 0.3, 22, COL_SUM);
+        infoBox(T('iloczyn', 'product') + ' = c = ' + fmt(prod), W * 0.7, 22, COL_PRD);
+
+        // Axis of symmetry
+        const mid = sum / 2;
+        drawDashedLine(mid, -4, mid, 6, COL_SYM, 0.4, [6, 4]);
+
+        // y-intercept
+        gdot(0, prod, 5, COL_PRD);
+
+        if (hasRoots) {
+          const sqD = Math.sqrt(disc);
+          const x1 = (-b - sqD) / 2;
+          const x2 = (-b + sqD) / 2;
+
+          gdot(x1, 0, 6, COL_R1);
+          gdot(x2, 0, 6, COL_R2);
+          label('x\u2081=' + fmt(x1), x1, 0.4, COL_R1, 'center', 10);
+          label('x\u2082=' + fmt(x2), x2, 0.4, COL_R2, 'center', 10);
+
+          // Show equation
+          const eq = buildEqString(1, b, c);
+          infoBox('f(x) = ' + eq, W/2, H - 18, COL_PAR);
+        } else {
+          // No real roots
+          infoBox(T('\u0394 < 0 \u2014 brak pierwiastk\u00F3w rzeczywistych', '\u0394 < 0 \u2014 no real roots'), W/2, py(0) - 20, '#e74c3c');
+          const eq = buildEqString(1, b, c);
+          infoBox('f(x) = ' + eq, W/2, H - 18, COL_PAR);
+        }
+      }
+    },
+    // Stage 5: Symmetric expressions
+    {
+      title: () => T('Wyra\u017Cenia symetryczne', 'Symmetric expressions'),
+      desc: () => T(
+        'x\u2081\u00B2 + x\u2082\u00B2 = (x\u2081+x\u2082)\u00B2 \u2212 2x\u2081x\u2082 = b\u00B2 \u2212 2c. Oblicz bez znajdowania pierwiastk\u00F3w! Przydatny trik maturalny. Przesuwaj b i c.',
+        'x\u2081\u00B2 + x\u2082\u00B2 = (x\u2081+x\u2082)\u00B2 \u2212 2x\u2081x\u2082 = b\u00B2 \u2212 2c. Compute without finding roots! A useful matura trick. Move b and c.'
+      ),
+      sliders: [
+        { id: 'b', lbl: 'b', color: COL_SUM, min: -6, max: 6, step: 0.5, get: () => b, set: v => b = v },
+        { id: 'c', lbl: 'c', color: COL_PRD, min: -6, max: 6, step: 0.5, get: () => c, set: v => c = v },
+      ],
+      draw() {
+        const sum = -b;        // x1 + x2
+        const prod = c;        // x1 * x2
+        const disc = b * b - 4 * c;
+        const hasRoots = disc >= 0;
+
+        const sumSq = sum * sum - 2 * prod; // x1^2 + x2^2 = (x1+x2)^2 - 2*x1*x2 = b^2 - 2c
+
+        plotParabola(1, b, c, COL_PAR, 0.5);
+
+        // Computation chain — displayed on canvas
+        const yTop = 18;
+        infoBox(T('suma', 'sum') + ' = \u2212b = ' + fmt(sum), W * 0.28, yTop, COL_SUM);
+        infoBox(T('iloczyn', 'product') + ' = c = ' + fmt(prod), W * 0.72, yTop, COL_PRD);
+
+        // The main formula
+        const formulaStr = 'x\u2081\u00B2+x\u2082\u00B2 = (' + fmt(sum) + ')\u00B2 \u2212 2\u00B7(' + fmt(prod) + ') = ' + fmt(sumSq);
+        infoBox(formulaStr, W/2, yTop + 30, COL_EQ);
+
+        // Also show sum of cubes as bonus
+        const sumCube = sum * sum * sum - 3 * sum * prod; // x1^3+x2^3 = (x1+x2)^3 - 3*x1*x2*(x1+x2)
+        const cubeFStr = 'x\u2081\u00B3+x\u2082\u00B3 = (' + fmt(sum) + ')\u00B3 \u2212 3\u00B7(' + fmt(prod) + ')\u00B7(' + fmt(sum) + ') = ' + fmt(sumCube);
+        infoBox(cubeFStr, W/2, yTop + 58, 'rgba(255,255,255,0.5)');
+
+        if (hasRoots) {
+          const sqD = Math.sqrt(disc);
+          const x1 = (-b - sqD) / 2;
+          const x2 = (-b + sqD) / 2;
+          gdot(x1, 0, 6, COL_R1);
+          gdot(x2, 0, 6, COL_R2);
+
+          // Show x1^2 and x2^2 as vertical bars
+          const x1sq = x1 * x1;
+          const x2sq = x2 * x2;
+
+          // Vertical segments at roots going up to x^2 value (scaled down for visibility)
+          const scaleY = Math.max(1, Math.max(x1sq, x2sq) / 3);
+          const y1 = x1sq / scaleY;
+          const y2 = x2sq / scaleY;
+
+          // Draw x1^2 bar
+          cx.save();
+          cx.strokeStyle = COL_R1;
+          cx.globalAlpha = 0.5;
+          cx.lineWidth = 4;
+          cx.beginPath();
+          cx.moveTo(px(x1), py(0));
+          cx.lineTo(px(x1), py(y1));
+          cx.stroke();
+          cx.restore();
+
+          // Draw x2^2 bar
+          cx.save();
+          cx.strokeStyle = COL_R2;
+          cx.globalAlpha = 0.5;
+          cx.lineWidth = 4;
+          cx.beginPath();
+          cx.moveTo(px(x2), py(0));
+          cx.lineTo(px(x2), py(y2));
+          cx.stroke();
+          cx.restore();
+
+          label('x\u2081\u00B2=' + fmt(x1sq), x1, y1 + 0.4, COL_R1, 'center', 10);
+          label('x\u2082\u00B2=' + fmt(x2sq), x2, y2 + 0.4, COL_R2, 'center', 10);
+
+          // Verification
+          infoBox(T('sprawdzenie', 'check') + ': ' + fmt(x1sq) + ' + ' + fmt(x2sq) + ' = ' + fmt(x1sq + x2sq), W/2, H - 18, COL_EQ);
+        } else {
+          infoBox(T('\u0394 < 0 \u2014 ale wyra\u017Cenia symetryczne nadal dzia\u0142aj\u0105!', '\u0394 < 0 \u2014 but symmetric expressions still work!'), W/2, H - 18, '#e74c3c');
+        }
+      }
+    },
+  ];
+
+  // ── Slider management ────────────────────────────────────────
+  const slWrap = document.getElementById('sliders-wrap');
+
+  function buildSliders(defs) {
+    let html = '<div class="sliders">';
+    defs.forEach(s => {
+      const v = s.get();
+      html += '<div class="slider-row">' +
+        '<span class="lbl" style="color:' + s.color + '">' + s.lbl + ' =</span>' +
+        '<input type="range" id="s_' + s.id + '" min="' + s.min + '" max="' + s.max + '" step="' + s.step + '" value="' + v + '">' +
+        '<span class="val" id="v_' + s.id + '" style="color:' + s.color + '"></span>' +
+      '</div>';
+    });
+    html += '</div>';
+    slWrap.innerHTML = html;
+
+    defs.forEach(s => {
+      const el = document.getElementById('s_' + s.id);
+      const valEl = document.getElementById('v_' + s.id);
+      valEl.textContent = fmtSlider(+el.value, s.step);
+      el.addEventListener('input', function() {
+        const v = +this.value;
+        valEl.textContent = fmtSlider(v, s.step);
+        s.set(v);
+      });
+    });
+  }
+
+  function fmtSlider(v, step) {
+    return step < 1 ? v.toFixed(1) : v.toFixed(0);
+  }
+
+  // ── Navigation ───────────────────────────────────────────────
+  const prevBtn = document.getElementById('qprev');
+  const nextBtn = document.getElementById('qnext');
+  const dotsEl  = document.getElementById('qdots');
+  const titleEl = document.getElementById('qf');
+  const descEl  = document.getElementById('qd');
+
+  function goTo(idx) {
+    stage = Math.max(0, Math.min(stages.length - 1, idx));
+    const s = stages[stage];
+    titleEl.textContent = s.title();
+    descEl.textContent = s.desc();
+
+    if (s.sliders) {
+      buildSliders(s.sliders);
+    } else {
+      slWrap.innerHTML = '';
+    }
+
+    prevBtn.disabled = stage === 0;
+    nextBtn.disabled = stage === stages.length - 1;
+    renderDots();
+  }
+
+  function renderDots() {
+    dotsEl.innerHTML = stages.map(function(_, i) {
+      return '<span class="dot' + (i === stage ? ' active' : '') + '" data-i="' + i + '"></span>';
+    }).join('');
+    dotsEl.querySelectorAll('.dot').forEach(function(d) {
+      d.addEventListener('click', function() { goTo(+d.dataset.i); });
+    });
+  }
+
+  prevBtn.addEventListener('click', function() { goTo(stage - 1); });
+  nextBtn.addEventListener('click', function() { goTo(stage + 1); });
+
+  // ── Render loop ──────────────────────────────────────────────
+  function tick() {
+    clear();
+    drawGrid();
+    drawAxes();
+    stages[stage].draw();
+    requestAnimationFrame(tick);
+  }
+
+  goTo(0);
+  tick();
+})();
+</script>
+</body>
+</html>

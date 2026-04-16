@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kombinacje — dlaczego dzielimy przez k!?</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+  #qf { margin: 0 0 5px; font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  #qd { margin: 0 0 10px; font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); min-height: 48px; }
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 36px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+  .nav { display: flex; align-items: center; justify-content: space-between; }
+  button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  button:hover { background: rgba(255,255,255,.08); }
+  button:disabled { opacity: .3; cursor: default; }
+  #qdots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.18); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  #sliders-wrap { min-height: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="310"></canvas>
+  <div class="panel">
+    <p id="qf"></p>
+    <p id="qd"></p>
+    <div id="sliders-wrap"></div>
+    <div class="nav">
+      <button id="qprev">&larr;</button>
+      <div id="qdots"></div>
+      <button id="qnext">&rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const cv = document.getElementById('cv');
+  const cx = cv.getContext('2d');
+  const W = 600, H = 310;
+
+  const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
+  const T = (pl, en) => LANG === 'pl' ? pl : en;
+
+  // Colors
+  const COL_ACC   = '#58C4DD';
+  const COL_RED   = '#FF6B6B';
+  const COL_BLUE  = '#4a9eff';
+  const COL_GREEN = '#83C167';
+  const COL_GOLD  = '#FFD166';
+  const COL_PURP  = '#C77DFF';
+  const COL_DIM   = 'rgba(255,255,255,.35)';
+
+  // Person colors for circles
+  const PERSON_COLS = ['#FF6B6B','#4a9eff','#83C167','#FFD166','#C77DFF','#FF9F43'];
+  const LABELS = ['A','B','C','D','E','F'];
+
+  // State
+  let stage = 0;
+  let sN = 4, sK = 2;
+
+  // ── Math helpers ────────────────────────────────────────────
+  function factorial(n) { let r = 1; for (let i = 2; i <= n; i++) r *= i; return r; }
+  function C(n, k) { if (k < 0 || k > n) return 0; return factorial(n) / (factorial(k) * factorial(n - k)); }
+  function P(n, k) { return factorial(n) / factorial(n - k); }
+
+  // Generate ordered pairs (permutations)
+  function permutations(n, k) {
+    const items = LABELS.slice(0, n);
+    const results = [];
+    function pick(chosen, remaining) {
+      if (chosen.length === k) { results.push([...chosen]); return; }
+      for (let i = 0; i < remaining.length; i++) {
+        chosen.push(remaining[i]);
+        pick(chosen, [...remaining.slice(0,i), ...remaining.slice(i+1)]);
+        chosen.pop();
+      }
+    }
+    pick([], items);
+    return results;
+  }
+
+  // Generate combinations (unordered)
+  function combinations(n, k) {
+    const items = LABELS.slice(0, n);
+    const results = [];
+    function pick(start, chosen) {
+      if (chosen.length === k) { results.push([...chosen]); return; }
+      for (let i = start; i < items.length; i++) {
+        chosen.push(items[i]);
+        pick(i + 1, chosen);
+        chosen.pop();
+      }
+    }
+    pick(0, []);
+    return results;
+  }
+
+  // ── Drawing helpers ─────────────────────────────────────────
+  function clear() {
+    cx.fillStyle = '#0e0e12';
+    cx.fillRect(0, 0, W, H);
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+    ctx.closePath();
+  }
+
+  function drawPersonCircle(x, y, r, label, idx, dimmed) {
+    const col = PERSON_COLS[idx % PERSON_COLS.length];
+    cx.save();
+    cx.globalAlpha = dimmed ? 0.3 : 1;
+    cx.beginPath();
+    cx.arc(x, y, r, 0, Math.PI * 2);
+    cx.fillStyle = col + '30';
+    cx.fill();
+    cx.strokeStyle = col;
+    cx.lineWidth = 2;
+    cx.stroke();
+    cx.fillStyle = '#fff';
+    cx.font = 'bold ' + Math.round(r * 0.9) + 'px monospace';
+    cx.textAlign = 'center';
+    cx.textBaseline = 'middle';
+    cx.fillText(label, x, y + 1);
+    cx.restore();
+  }
+
+  // Lay out n person circles in a row
+  function personPositions(n, cy, radius, totalWidth) {
+    const positions = [];
+    const startX = (W - totalWidth) / 2 + radius;
+    const gap = n > 1 ? (totalWidth - 2 * radius) / (n - 1) : 0;
+    for (let i = 0; i < n; i++) {
+      positions.push({ x: startX + i * gap, y: cy });
+    }
+    return positions;
+  }
+
+  function drawArrow(x1, y1, x2, y2, col, alpha) {
+    cx.save();
+    cx.globalAlpha = alpha || 0.7;
+    cx.strokeStyle = col;
+    cx.lineWidth = 1.5;
+    cx.beginPath();
+    cx.moveTo(x1, y1);
+    cx.lineTo(x2, y2);
+    cx.stroke();
+    // Arrowhead
+    const angle = Math.atan2(y2 - y1, x2 - x1);
+    const hl = 7;
+    cx.beginPath();
+    cx.moveTo(x2, y2);
+    cx.lineTo(x2 - hl * Math.cos(angle - 0.35), y2 - hl * Math.sin(angle - 0.35));
+    cx.lineTo(x2 - hl * Math.cos(angle + 0.35), y2 - hl * Math.sin(angle + 0.35));
+    cx.closePath();
+    cx.fillStyle = col;
+    cx.fill();
+    cx.restore();
+  }
+
+  function drawLine(x1, y1, x2, y2, col, alpha) {
+    cx.save();
+    cx.globalAlpha = alpha || 0.6;
+    cx.strokeStyle = col;
+    cx.lineWidth = 1.5;
+    cx.beginPath();
+    cx.moveTo(x1, y1);
+    cx.lineTo(x2, y2);
+    cx.stroke();
+    cx.restore();
+  }
+
+  function infoBox(text, sx, sy, col) {
+    cx.save();
+    cx.font = '12px monospace';
+    const w = cx.measureText(text).width + 14;
+    cx.fillStyle = 'rgba(14,14,18,0.85)';
+    cx.strokeStyle = col + '40';
+    cx.lineWidth = 1;
+    roundRect(cx, sx - w/2, sy - 10, w, 22, 4);
+    cx.fill(); cx.stroke();
+    cx.fillStyle = col;
+    cx.textAlign = 'center';
+    cx.fillText(text, sx, sy + 4);
+    cx.restore();
+  }
+
+  function drawTextCenter(text, y, col, size) {
+    cx.save();
+    cx.font = (size || 13) + 'px monospace';
+    cx.fillStyle = col || 'rgba(255,255,255,.6)';
+    cx.textAlign = 'center';
+    cx.fillText(text, W / 2, y);
+    cx.restore();
+  }
+
+  function drawCrossOut(x, y, w, h, col) {
+    cx.save();
+    cx.strokeStyle = col || COL_RED;
+    cx.lineWidth = 2;
+    cx.globalAlpha = 0.7;
+    cx.beginPath();
+    cx.moveTo(x - w/2, y - h/2);
+    cx.lineTo(x + w/2, y + h/2);
+    cx.stroke();
+    cx.beginPath();
+    cx.moveTo(x + w/2, y - h/2);
+    cx.lineTo(x - w/2, y + h/2);
+    cx.stroke();
+    cx.restore();
+  }
+
+  // ── Stage 1: Permutations ──────────────────────────────────
+  function drawStage1() {
+    const n = sN, k = sK;
+    const perms = permutations(n, k);
+    const total = perms.length;
+
+    // Draw people at top
+    const radius = 18;
+    const tw = Math.min(W - 60, n * 80);
+    const positions = personPositions(n, 45, radius, tw);
+
+    for (let i = 0; i < n; i++) {
+      drawPersonCircle(positions[i].x, positions[i].y, radius, LABELS[i], i, false);
+    }
+
+    // Draw permutations list below
+    const cols = Math.min(6, Math.ceil(total / Math.max(1, Math.floor((H - 90) / 22))));
+    const rowsPerCol = Math.ceil(total / cols);
+    const colW = W / cols;
+    const startY = 85;
+
+    cx.font = '11px monospace';
+    cx.textAlign = 'center';
+    for (let i = 0; i < total; i++) {
+      const col = Math.floor(i / rowsPerCol);
+      const row = i % rowsPerCol;
+      const px = colW * col + colW / 2;
+      const py = startY + row * 20;
+      if (py > H - 30) continue;
+
+      const perm = perms[i];
+      // Draw with arrow between elements to show order
+      let text = perm.join(' \u2192 ');
+      cx.fillStyle = COL_GOLD;
+      cx.fillText(text, px, py);
+    }
+
+    // Summary
+    const formula = `P(${n},${k}) = ${n}!/${(n-k)}! = ${total}`;
+    infoBox(formula, W / 2, H - 15, COL_GOLD);
+  }
+
+  // ── Stage 2: Combinations — collapse duplicates ────────────
+  function drawStage2() {
+    const n = sN, k = sK;
+    const perms = permutations(n, k);
+    const combs = combinations(n, k);
+    const kFact = factorial(k);
+
+    // Draw people at top
+    const radius = 18;
+    const tw = Math.min(W - 60, n * 80);
+    const positions = personPositions(n, 40, radius, tw);
+    for (let i = 0; i < n; i++) {
+      drawPersonCircle(positions[i].x, positions[i].y, radius, LABELS[i], i, false);
+    }
+
+    // Group permutations by their combination
+    const groups = {};
+    combs.forEach(c => {
+      const key = c.slice().sort().join('');
+      groups[key] = [];
+    });
+    perms.forEach(p => {
+      const key = p.slice().sort().join('');
+      if (groups[key]) groups[key].push(p);
+    });
+
+    // Display: each combination with its duplicate perms crossed out
+    const startY = 78;
+    const groupKeys = Object.keys(groups);
+    const cols = Math.min(6, groupKeys.length);
+    const rowsPerCol = Math.ceil(groupKeys.length / cols);
+    const colW = W / cols;
+
+    cx.font = '11px monospace';
+    for (let gi = 0; gi < groupKeys.length; gi++) {
+      const col = Math.floor(gi / rowsPerCol);
+      const row = gi % rowsPerCol;
+      const gx = colW * col + colW / 2;
+      const gy = startY + row * (kFact <= 2 ? 44 : (kFact <= 6 ? 28 : 22));
+      if (gy > H - 35) continue;
+
+      const key = groupKeys[gi];
+      const permsInGroup = groups[key];
+
+      // Show the surviving combination in green
+      cx.textAlign = 'center';
+      cx.fillStyle = COL_GREEN;
+      const combText = '{' + combs[gi].join(',') + '}';
+      cx.fillText(combText, gx, gy);
+
+      // Show crossed-out duplicates below
+      for (let pi = 0; pi < permsInGroup.length; pi++) {
+        const ppx = gx;
+        const ppy = gy + 14 + pi * 13;
+        if (ppy > H - 35) continue;
+        const pText = permsInGroup[pi].join('');
+        if (pi === 0) {
+          // First one is the "keeper"
+          cx.fillStyle = 'rgba(255,255,255,.4)';
+          cx.fillText(pText, ppx, ppy);
+        } else {
+          // Crossed out
+          cx.fillStyle = 'rgba(255,255,255,.2)';
+          cx.fillText(pText, ppx, ppy);
+          const tw = cx.measureText(pText).width;
+          drawCrossOut(ppx, ppy - 4, tw + 4, 10, COL_RED);
+        }
+      }
+    }
+
+    // Summary
+    const formula = `${P(n,k)} / ${kFact}! = ${P(n,k)} / ${kFact} = ${combs.length}`;
+    infoBox(formula, W / 2, H - 15, COL_GREEN);
+  }
+
+  // ── Stage 3: Why divide by k!? ─────────────────────────────
+  function drawStage3() {
+    const n = sN, k = sK;
+    const combs = combinations(n, k);
+    const kFact = factorial(k);
+
+    // Pick one combination to expand
+    const highlightIdx = 0;
+    const highlighted = combs[highlightIdx];
+
+    // Draw people at top
+    const radius = 18;
+    const tw = Math.min(W - 60, n * 80);
+    const positions = personPositions(n, 40, radius, tw);
+    for (let i = 0; i < n; i++) {
+      const inHighlight = highlighted.includes(LABELS[i]);
+      drawPersonCircle(positions[i].x, positions[i].y, radius, LABELS[i], i, !inHighlight);
+    }
+
+    // Title for the highlighted combination
+    drawTextCenter(
+      T('Kombinacja', 'Combination') + ' {' + highlighted.join(',') + '} ' + T('generuje', 'generates') + ' ' + kFact + ' ' + T('permutacji', 'permutations') + ':',
+      78, COL_ACC, 13
+    );
+
+    // Generate all permutations of the highlighted set
+    const hPerms = permutations(k, k).map(p => p.map((_,i) => highlighted[LABELS.indexOf(p[i])] || highlighted[i]));
+    // Actually, let's just permute the highlighted array directly
+    function permuteArr(arr) {
+      if (arr.length <= 1) return [arr];
+      const result = [];
+      for (let i = 0; i < arr.length; i++) {
+        const rest = [...arr.slice(0,i), ...arr.slice(i+1)];
+        for (const p of permuteArr(rest)) {
+          result.push([arr[i], ...p]);
+        }
+      }
+      return result;
+    }
+    const expandedPerms = permuteArr(highlighted);
+
+    // Draw all permutations of this combination spread out
+    const permY = 105;
+    const permCols = Math.min(expandedPerms.length, 6);
+    const permColW = Math.min(100, (W - 40) / permCols);
+    const permStartX = (W - permCols * permColW) / 2 + permColW / 2;
+    const permRowH = 20;
+
+    cx.font = '12px monospace';
+    cx.textAlign = 'center';
+    for (let i = 0; i < expandedPerms.length; i++) {
+      const col = i % permCols;
+      const row = Math.floor(i / permCols);
+      const ppx = permStartX + col * permColW;
+      const ppy = permY + row * permRowH;
+      if (ppy > H - 80) continue;
+      const text = expandedPerms[i].join(' \u2192 ');
+      cx.fillStyle = COL_GOLD;
+      cx.fillText(text, ppx, ppy);
+    }
+
+    // Arrow pointing down to the single combination
+    const arrowY = Math.min(permY + Math.ceil(expandedPerms.length / permCols) * permRowH + 5, H - 65);
+    cx.save();
+    cx.strokeStyle = COL_ACC;
+    cx.lineWidth = 1.5;
+    cx.globalAlpha = 0.5;
+    cx.setLineDash([4, 4]);
+    cx.beginPath();
+    cx.moveTo(W/2, arrowY);
+    cx.lineTo(W/2, arrowY + 20);
+    cx.stroke();
+    cx.setLineDash([]);
+    cx.restore();
+
+    // The single combination
+    drawTextCenter(
+      '{' + highlighted.join(',') + '}',
+      arrowY + 38, COL_GREEN, 16
+    );
+
+    // Explanation
+    drawTextCenter(
+      kFact + ' ' + T('permutacji', 'permutations') + ' = ' + k + '! = ' + kFact + '  \u2192  ' + T('dzielimy przez', 'divide by') + ' ' + k + '!',
+      arrowY + 58, COL_ACC, 12
+    );
+
+    // Show all combinations summary
+    const cCount = combs.length;
+    infoBox(
+      'C(' + n + ',' + k + ') = ' + P(n,k) + ' / ' + kFact + ' = ' + cCount,
+      W / 2, H - 15, COL_GREEN
+    );
+  }
+
+  // ── Stage 4: Formula breakdown ─────────────────────────────
+  function drawStage4() {
+    const n = sN, k = sK;
+    const nFact = factorial(n);
+    const kFact = factorial(k);
+    const nkFact = factorial(n - k);
+    const result = C(n, k);
+
+    // Title
+    drawTextCenter(T('Wzor na kombinacje', 'Combination formula'), 30, COL_ACC, 15);
+
+    // Big formula with colored parts
+    const formulaY = 70;
+    cx.font = '18px monospace';
+    cx.textAlign = 'center';
+
+    // C(n,k) =
+    cx.fillStyle = '#fff';
+    cx.fillText('C(' + n + ',' + k + ')  =', 100, formulaY);
+
+    // Fraction: n! / (k! x (n-k)!)
+    // Numerator
+    cx.fillStyle = COL_RED;
+    cx.fillText(n + '!', 260, formulaY - 12);
+
+    // Fraction line
+    cx.save();
+    cx.strokeStyle = 'rgba(255,255,255,.4)';
+    cx.lineWidth = 1.5;
+    cx.beginPath();
+    cx.moveTo(195, formulaY);
+    cx.lineTo(330, formulaY);
+    cx.stroke();
+    cx.restore();
+
+    // Denominator
+    cx.fillStyle = COL_BLUE;
+    cx.fillText(k + '!', 235, formulaY + 18);
+    cx.fillStyle = 'rgba(255,255,255,.4)';
+    cx.fillText('\u00d7', 268, formulaY + 18);
+    cx.fillStyle = COL_GREEN;
+    cx.fillText((n-k) + '!', 303, formulaY + 18);
+
+    // = result
+    cx.fillStyle = '#fff';
+    cx.font = '18px monospace';
+    cx.fillText('=', 365, formulaY);
+
+    // Numbers
+    cx.fillStyle = COL_RED;
+    cx.fillText(nFact, 420, formulaY - 12);
+
+    cx.save();
+    cx.strokeStyle = 'rgba(255,255,255,.4)';
+    cx.lineWidth = 1.5;
+    cx.beginPath();
+    cx.moveTo(385, formulaY);
+    cx.lineTo(470, formulaY);
+    cx.stroke();
+    cx.restore();
+
+    cx.fillStyle = COL_BLUE;
+    cx.fillText(kFact, 410, formulaY + 18);
+    cx.fillStyle = 'rgba(255,255,255,.4)';
+    cx.fillText('\u00d7', 433, formulaY + 18);
+    cx.fillStyle = COL_GREEN;
+    cx.fillText(nkFact, 457, formulaY + 18);
+
+    cx.fillStyle = '#fff';
+    cx.fillText('=  ' + result, 530, formulaY);
+
+    // Color legend
+    const legY = 130;
+    cx.font = '12px monospace';
+    cx.textAlign = 'left';
+
+    cx.fillStyle = COL_RED;
+    cx.fillText('\u25cf ' + n + '! = ' + nFact, 60, legY);
+    cx.fillStyle = 'rgba(255,255,255,.5)';
+    cx.fillText(T('wszystkie ustawienia ' + n + ' elementow', 'all arrangements of ' + n + ' elements'), 60 + cx.measureText('\u25cf ' + n + '! = ' + nFact + '  ').width, legY);
+
+    cx.fillStyle = COL_BLUE;
+    cx.fillText('\u25cf ' + k + '! = ' + kFact, 60, legY + 22);
+    cx.fillStyle = 'rgba(255,255,255,.5)';
+    cx.fillText(T('ustawienia wybranych ' + k, 'orderings of chosen ' + k), 60 + cx.measureText('\u25cf ' + k + '! = ' + kFact + '  ').width, legY + 22);
+
+    cx.fillStyle = COL_GREEN;
+    cx.fillText('\u25cf ' + (n-k) + '! = ' + nkFact, 60, legY + 44);
+    cx.fillStyle = 'rgba(255,255,255,.5)';
+    cx.fillText(T('ustawienia pozostalych ' + (n-k), 'orderings of remaining ' + (n-k)), 60 + cx.measureText('\u25cf ' + (n-k) + '! = ' + nkFact + '  ').width, legY + 44);
+
+    // Visual: draw people as chosen/unchosen
+    const radius = 16;
+    const gapX = 42;
+    const groupY = 240;
+    const totalPeopleW = n * gapX;
+    const groupStartX = (W - totalPeopleW) / 2 + gapX / 2;
+
+    // Bracket for chosen
+    cx.save();
+    cx.strokeStyle = COL_BLUE;
+    cx.lineWidth = 1.5;
+    cx.globalAlpha = 0.6;
+    const chosenLeft = groupStartX - radius - 6;
+    const chosenRight = groupStartX + (k - 1) * gapX + radius + 6;
+    cx.beginPath();
+    cx.moveTo(chosenLeft, groupY - radius - 12);
+    cx.lineTo(chosenLeft, groupY - radius - 6);
+    cx.lineTo(chosenRight, groupY - radius - 6);
+    cx.lineTo(chosenRight, groupY - radius - 12);
+    cx.stroke();
+    cx.restore();
+
+    cx.font = '10px monospace';
+    cx.textAlign = 'center';
+    cx.fillStyle = COL_BLUE;
+    cx.fillText(T('wybrane k=' + k, 'chosen k=' + k), (chosenLeft + chosenRight) / 2, groupY - radius - 16);
+
+    // Bracket for unchosen
+    if (n - k > 0) {
+      cx.save();
+      cx.strokeStyle = COL_GREEN;
+      cx.lineWidth = 1.5;
+      cx.globalAlpha = 0.6;
+      const uncLeft = groupStartX + k * gapX - radius - 6;
+      const uncRight = groupStartX + (n - 1) * gapX + radius + 6;
+      cx.beginPath();
+      cx.moveTo(uncLeft, groupY - radius - 12);
+      cx.lineTo(uncLeft, groupY - radius - 6);
+      cx.lineTo(uncRight, groupY - radius - 6);
+      cx.lineTo(uncRight, groupY - radius - 12);
+      cx.stroke();
+      cx.restore();
+
+      cx.fillStyle = COL_GREEN;
+      cx.fillText(T('pozostale n-k=' + (n-k), 'remaining n-k=' + (n-k)), (uncLeft + uncRight) / 2, groupY - radius - 16);
+    }
+
+    for (let i = 0; i < n; i++) {
+      const isChosen = i < k;
+      drawPersonCircle(groupStartX + i * gapX, groupY, radius, LABELS[i], i, !isChosen);
+    }
+
+    infoBox(
+      'C(' + n + ',' + k + ') = ' + result,
+      W / 2, H - 15, COL_ACC
+    );
+  }
+
+  // ── Stage 5: Pascal's Triangle ─────────────────────────────
+  function drawStage5() {
+    const n = sN, k = Math.min(sK, sN);
+    const maxRow = 7;
+
+    drawTextCenter(T('Trojkat Pascala', "Pascal's Triangle"), 22, COL_ACC, 14);
+
+    // Build triangle
+    const tri = [];
+    for (let r = 0; r <= maxRow; r++) {
+      tri[r] = [];
+      for (let c = 0; c <= r; c++) {
+        tri[r][c] = C(r, c);
+      }
+    }
+
+    const cellW = 48;
+    const cellH = 32;
+    const startY = 42;
+
+    for (let r = 0; r <= maxRow; r++) {
+      const rowW = (r + 1) * cellW;
+      const rowStartX = (W - rowW) / 2 + cellW / 2;
+      for (let c = 0; c <= r; c++) {
+        const px = rowStartX + c * cellW;
+        const py = startY + r * cellH;
+        const val = tri[r][c];
+
+        const isHighlighted = (r === n && c === k);
+        const isParent1 = (r === n - 1 && c === k - 1 && n >= 1 && k >= 1);
+        const isParent2 = (r === n - 1 && c === k && n >= 1);
+
+        // Draw cell background
+        if (isHighlighted) {
+          cx.save();
+          cx.beginPath();
+          cx.arc(px, py, 16, 0, Math.PI * 2);
+          cx.fillStyle = COL_ACC + '30';
+          cx.fill();
+          cx.strokeStyle = COL_ACC;
+          cx.lineWidth = 2;
+          cx.stroke();
+          cx.restore();
+        } else if (isParent1 || isParent2) {
+          cx.save();
+          cx.beginPath();
+          cx.arc(px, py, 14, 0, Math.PI * 2);
+          cx.fillStyle = COL_GOLD + '20';
+          cx.fill();
+          cx.strokeStyle = COL_GOLD;
+          cx.lineWidth = 1.5;
+          cx.stroke();
+          cx.restore();
+        }
+
+        // Draw lines from parents to highlighted
+        if (isHighlighted && n >= 1) {
+          // Line from parent1
+          if (k >= 1) {
+            const p1Row = n - 1;
+            const p1Col = k - 1;
+            const p1RowW = (p1Row + 1) * cellW;
+            const p1StartX = (W - p1RowW) / 2 + cellW / 2;
+            const p1x = p1StartX + p1Col * cellW;
+            const p1y = startY + p1Row * cellH;
+            cx.save();
+            cx.strokeStyle = COL_GOLD;
+            cx.lineWidth = 1;
+            cx.globalAlpha = 0.4;
+            cx.setLineDash([3, 3]);
+            cx.beginPath();
+            cx.moveTo(p1x, p1y + 14);
+            cx.lineTo(px, py - 16);
+            cx.stroke();
+            cx.setLineDash([]);
+            cx.restore();
+          }
+          // Line from parent2
+          if (k <= n - 1) {
+            const p2Row = n - 1;
+            const p2Col = k;
+            const p2RowW = (p2Row + 1) * cellW;
+            const p2StartX = (W - p2RowW) / 2 + cellW / 2;
+            const p2x = p2StartX + p2Col * cellW;
+            const p2y = startY + p2Row * cellH;
+            cx.save();
+            cx.strokeStyle = COL_GOLD;
+            cx.lineWidth = 1;
+            cx.globalAlpha = 0.4;
+            cx.setLineDash([3, 3]);
+            cx.beginPath();
+            cx.moveTo(p2x, p2y + 14);
+            cx.lineTo(px, py - 16);
+            cx.stroke();
+            cx.setLineDash([]);
+            cx.restore();
+          }
+        }
+
+        // Draw number
+        cx.save();
+        cx.font = (isHighlighted ? 'bold 14' : '12') + 'px monospace';
+        cx.textAlign = 'center';
+        cx.textBaseline = 'middle';
+        if (isHighlighted) cx.fillStyle = COL_ACC;
+        else if (isParent1 || isParent2) cx.fillStyle = COL_GOLD;
+        else cx.fillStyle = 'rgba(255,255,255,.55)';
+        cx.fillText(val, px, py + 1);
+        cx.restore();
+      }
+    }
+
+    // Rule annotation at bottom
+    const ruleY = H - 38;
+    if (n >= 1 && k >= 1 && k <= n) {
+      const parent1 = (k >= 1 && n >= 1) ? C(n-1, k-1) : 0;
+      const parent2 = (k <= n-1) ? C(n-1, k) : 0;
+      drawTextCenter(
+        'C(' + n + ',' + k + ') = C(' + (n-1) + ',' + (k-1) + ') + C(' + (n-1) + ',' + k + ') = ' + parent1 + ' + ' + parent2 + ' = ' + C(n,k),
+        ruleY, COL_ACC, 12
+      );
+    }
+
+    // Binomial theorem teaser
+    drawTextCenter(
+      T('Wspolczynniki rozwinieicia (a+b)^n', 'Coefficients of (a+b)^n'),
+      H - 16, 'rgba(255,255,255,.35)', 11
+    );
+  }
+
+  // ── Stages definition ──────────────────────────────────────
+  const stages = [
+    {
+      title: () => T('Permutacje \u2014 kolejnosc ma znaczenie', 'Permutations \u2014 order matters'),
+      desc: () => T(
+        'Wybieramy k osob z n. W permutacjach kolejnosc ma znaczenie: AB \u2260 BA. Przesuwaj n i k, by zobaczyc wszystkie uporzadkowane wybory.',
+        'Choose k people from n. In permutations, order matters: AB \u2260 BA. Move n and k to see all ordered selections.'
+      ),
+      sliders: [
+        { id: 'n', lbl: 'n', color: COL_ACC, min: 3, max: 6, step: 1, val: 4 },
+        { id: 'k', lbl: 'k', color: COL_GOLD, min: 2, max: 3, step: 1, val: 2 },
+      ],
+      draw: drawStage1
+    },
+    {
+      title: () => T('Kombinacje \u2014 kolejnosc NIE ma znaczenia', 'Combinations \u2014 order does NOT matter'),
+      desc: () => T(
+        'Teraz kolejnosc nie gra roli: druzyna {A,B} = {B,A}. Duplikaty zostaja skresllone. Permutacje / duplikaty = kombinacje.',
+        'Now order doesn\u2019t matter: team {A,B} = {B,A}. Duplicates get crossed out. Permutations / duplicates = combinations.'
+      ),
+      sliders: [
+        { id: 'n', lbl: 'n', color: COL_ACC, min: 3, max: 6, step: 1, val: 4 },
+        { id: 'k', lbl: 'k', color: COL_GOLD, min: 2, max: 3, step: 1, val: 2 },
+      ],
+      draw: drawStage2
+    },
+    {
+      title: () => T('Dlaczego dzielimy przez k!?', 'Why divide by k!?'),
+      desc: () => T(
+        'Kazda kombinacja generuje dokladnie k! permutacji (wszystkie ustawienia wybranych elementow). Dlatego P(n,k) / k! = C(n,k).',
+        'Each combination generates exactly k! permutations (all orderings of chosen items). So P(n,k) / k! = C(n,k).'
+      ),
+      sliders: [
+        { id: 'n', lbl: 'n', color: COL_ACC, min: 3, max: 6, step: 1, val: 4 },
+        { id: 'k', lbl: 'k', color: COL_GOLD, min: 2, max: 3, step: 1, val: 2 },
+      ],
+      draw: drawStage3
+    },
+    {
+      title: () => T('Wzor: C(n,k) = n! / (k!(n\u2212k)!)', 'Formula: C(n,k) = n! / (k!(n\u2212k)!)'),
+      desc: () => T(
+        'Kazda czesc wzoru ma znaczenie. n! = wszystkie ustawienia. k! = ustawienia wybranych (dzielimy). (n\u2212k)! = ustawienia pozostalych (dzielimy).',
+        'Every part of the formula matters. n! = all arrangements. k! = orderings of chosen (divide). (n\u2212k)! = orderings of remaining (divide).'
+      ),
+      sliders: [
+        { id: 'n', lbl: 'n', color: COL_ACC, min: 2, max: 7, step: 1, val: 4 },
+        { id: 'k', lbl: 'k', color: COL_GOLD, min: 0, max: 7, step: 1, val: 2 },
+      ],
+      draw: drawStage4
+    },
+    {
+      title: () => T('Trojkat Pascala', "Pascal's Triangle"),
+      desc: () => T(
+        'C(n,k) = C(n\u22121,k\u22121) + C(n\u22121,k). Kazda liczba to suma dwoch nad nia. To wspolczynniki rozwinieicia dwumianu (a+b)^n.',
+        'C(n,k) = C(n\u22121,k\u22121) + C(n\u22121,k). Each number is the sum of the two above it. These are the coefficients of (a+b)^n.'
+      ),
+      sliders: [
+        { id: 'n', lbl: 'n', color: COL_ACC, min: 0, max: 7, step: 1, val: 4 },
+        { id: 'k', lbl: 'k', color: COL_GOLD, min: 0, max: 7, step: 1, val: 2 },
+      ],
+      draw: drawStage5
+    },
+  ];
+
+  // ── Slider management ──────────────────────────────────────
+  const slWrap = document.getElementById('sliders-wrap');
+
+  function clampK() {
+    if (sK > sN) sK = sN;
+    if (sK < 0) sK = 0;
+  }
+
+  function buildSliders(defs) {
+    // Clamp k to n for safety
+    clampK();
+    let html = '<div class="sliders">';
+    defs.forEach(s => {
+      // Dynamically adjust k max to n
+      let max = s.max;
+      if (s.id === 'k' && stage < 4) max = sN;
+      if (s.id === 'k' && stage === 4) max = sN;
+      let val = s.id === 'n' ? sN : s.id === 'k' ? sK : s.val;
+      if (s.id === 'k' && val > max) val = max;
+      html += `<div class="slider-row">
+        <span class="lbl" style="color:${s.color}">${s.lbl} =</span>
+        <input type="range" id="s_${s.id}" min="${s.min}" max="${max}" step="${s.step}" value="${val}">
+        <span class="val" id="v_${s.id}" style="color:${s.color}"></span>
+      </div>`;
+    });
+    html += '</div>';
+    slWrap.innerHTML = html;
+
+    defs.forEach(s => {
+      const el = document.getElementById('s_' + s.id);
+      if (!el) return;
+      document.getElementById('v_' + s.id).textContent = el.value;
+      el.addEventListener('input', function() {
+        const v = +this.value;
+        document.getElementById('v_' + s.id).textContent = v;
+        if (s.id === 'n') {
+          sN = v;
+          // Clamp k
+          if (sK > sN) {
+            sK = sN;
+          }
+          // Rebuild sliders to update k max
+          buildSliders(defs);
+        }
+        if (s.id === 'k') sK = v;
+      });
+    });
+  }
+
+  // ── Navigation ─────────────────────────────────────────────
+  const prevBtn = document.getElementById('qprev');
+  const nextBtn = document.getElementById('qnext');
+  const dotsEl  = document.getElementById('qdots');
+  const titleEl = document.getElementById('qf');
+  const descEl  = document.getElementById('qd');
+
+  function goTo(idx) {
+    stage = Math.max(0, Math.min(stages.length - 1, idx));
+    const s = stages[stage];
+    titleEl.textContent = s.title();
+    descEl.textContent = s.desc();
+
+    if (s.sliders) {
+      buildSliders(s.sliders);
+    } else {
+      slWrap.innerHTML = '';
+    }
+
+    prevBtn.disabled = stage === 0;
+    nextBtn.disabled = stage === stages.length - 1;
+    renderDots();
+  }
+
+  function renderDots() {
+    dotsEl.innerHTML = stages.map((_, i) =>
+      `<span class="dot${i === stage ? ' active' : ''}" data-i="${i}"></span>`
+    ).join('');
+    dotsEl.querySelectorAll('.dot').forEach(d =>
+      d.addEventListener('click', () => goTo(+d.dataset.i))
+    );
+  }
+
+  prevBtn.addEventListener('click', () => goTo(stage - 1));
+  nextBtn.addEventListener('click', () => goTo(stage + 1));
+
+  // ── Render loop ────────────────────────────────────────────
+  function tick() {
+    clear();
+    stages[stage].draw();
+    requestAnimationFrame(tick);
+  }
+
+  goTo(0);
+  tick();
+})();
+</script>
+</body>
+</html>
