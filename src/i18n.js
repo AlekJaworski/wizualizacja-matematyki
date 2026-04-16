@@ -222,6 +222,7 @@ const STRINGS = {
   // ── Topic view ───────────────────────────────────────────────────
   topicBack:         { pl: "Wróć do mapy",                en: "Back to map" },
   topicLearnPath:    { pl: "Ścieżka do tego tematu",     en: "Path to this topic" },
+  topicQuizMe:       { pl: "Sprawdź się z tego tematu",  en: "Quiz me on this topic" },
 
   // ── Learning path ────────────────────────────────────────────────
   pathLabel:         { pl: "Ścieżka nauki",              en: "Learning path" },

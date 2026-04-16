@@ -459,7 +459,6 @@ export default function CurriculumGraph({
               highlightedIds={diagMode ? null : highlightedIds}
               selected={selected}
               onSelect={id => {
-                if (diagMode) { handleDiagClick(id, false); return; }
                 setOpenResourceIdx(null);
                 setSelected(id === selected ? null : id);
               }}
@@ -474,15 +473,17 @@ export default function CurriculumGraph({
         </svg>
 
         {/* Topic detail view — full overlay when a node is selected */}
-        {selected && !diagMode && !pathGoal && (
+        {selected && !pathGoal && (
           <TopicView
             nodeId={selected} nodes={nodes} adjacency={adjacency} lang={lang}
             SCOPE_COLORS={SCOPE_COLORS} SCOPE_LABELS={SCOPE_LABELS} SECTIONS={SECTIONS}
             belief={effectiveBelief}
             evidence={initialEvidence}
+            QUESTION_BANK={QUESTION_BANK}
             onClose={() => setSelected(null)}
             onNavigate={(id) => setSelected(id)}
             onShowPath={(id) => { setSelected(null); setPathGoal(id); }}
+            onQuizMe={(id) => { setSelected(null); setDiagMode(true); setMode("quick"); setQuizNode(id); }}
           />
         )}
 

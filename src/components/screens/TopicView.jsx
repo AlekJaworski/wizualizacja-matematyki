@@ -18,7 +18,7 @@ import { ResourcePanel } from "../panels/ResourcePanel.jsx";
 export function TopicView({
   nodeId, nodes, adjacency, lang,
   SCOPE_COLORS, SCOPE_LABELS, SECTIONS,
-  belief, evidence, onClose, onNavigate, onShowPath,
+  belief, evidence, onClose, onNavigate, onShowPath, onQuizMe, QUESTION_BANK,
 }) {
   const [openResourceIdx, setOpenResourceIdx] = useState(null);
 
@@ -130,6 +130,27 @@ export function TopicView({
 
         {/* ── Description + "nie kumam" example ─────────────────── */}
         {node.body && <NodeDescription body={node.body} lang={lang} />}
+
+        {/* ── Quiz me button ─────────────────────────────────────── */}
+        {onQuizMe && QUESTION_BANK?.[nodeId]?.length > 0 && (
+          <button
+            onClick={() => onQuizMe(nodeId)}
+            style={{
+              width: "100%", padding: "12px 16px", marginBottom: 20,
+              fontSize: 13, fontWeight: 600, fontFamily: FONT,
+              borderRadius: 8,
+              border: `1px solid ${color}40`,
+              background: `${color}10`,
+              color: color,
+              cursor: "pointer",
+              transition: "background 0.15s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = `${color}20`; }}
+            onMouseLeave={e => { e.currentTarget.style.background = `${color}10`; }}
+          >
+            {t("topicQuizMe", lang)}
+          </button>
+        )}
 
         {/* ── Prerequisites ──────────────────────────────────────── */}
         <Section title={t("prerequisites", lang)} color="#4a9eff" empty={prereqs.length === 0} emptyText={t("noPrereqs", lang)}>
