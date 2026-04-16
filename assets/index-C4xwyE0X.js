@@ -251,6 +251,8 @@ section: SP8
 level: 1
 x: 160
 y: 450
+resources:
+  - "interactive|function-explorer.html|Function Concept — The Machine|Pojęcie funkcji — maszyna, która przetwarza liczby"
 ---
 Funkcja przypisuje każdemu $x$ dokładnie jedną wartość $y = f(x)$. Dziedzina: zbiór $x$-ów, dla których funkcja jest określona. Zbiór wartości: zbiór $y$-ów, które funkcja przyjmuje. Wykres: zbiór punktów $(x, f(x))$ na płaszczyźnie.
 

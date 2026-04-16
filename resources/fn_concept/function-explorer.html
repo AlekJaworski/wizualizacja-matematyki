@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pojęcie funkcji — Maszyna, która przetwarza liczby</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+  #qf { margin: 0 0 5px; font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  #qd { margin: 0 0 10px; font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); min-height: 48px; }
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 36px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+  .nav { display: flex; align-items: center; justify-content: space-between; }
+  button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  button:hover { background: rgba(255,255,255,.08); }
+  button:disabled { opacity: .3; cursor: default; }
+  #qdots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.18); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  #sliders-wrap { min-height: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="310"></canvas>
+  <div class="panel">
+    <p id="qf"></p>
+    <p id="qd"></p>
+    <div id="sliders-wrap"></div>
+    <div class="nav">
+      <button id="qprev">&larr;</button>
+      <div id="qdots"></div>
+      <button id="qnext">&rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const cv = document.getElementById('cv');
+  const cx = cv.getContext('2d');
+  const W = 600, H = 310;
+
+  const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
+  const T = (pl, en) => LANG === 'pl' ? pl : en;
+
+  const COL_IN  = '#4a9eff';  // input
+  const COL_OUT = '#83C167';  // output
+  const COL_BOX = '#FFD166';  // machine
+  const COL_BAD = '#E07090';  // not a function
+  const COL_DOM = '#FF6B35';  // domain
+  const COL_RNG = '#58C4DD';  // range
+
+  let x0 = 3;
+  let fnType = 0; // 0: 2x+1, 1: x², 2: |x|
+  let stage = 0;
+
+  const FNS = [
+    { label: '2x + 1',  fn: x => 2*x + 1,   labelShort: 'f(x) = 2x+1' },
+    { label: 'x²',      fn: x => x*x,        labelShort: 'f(x) = x²' },
+    { label: '|x|',     fn: x => Math.abs(x), labelShort: 'f(x) = |x|' },
+  ];
+
+  function f(x) { return FNS[fnType].fn(x); }
+
+  function clear() { cx.fillStyle = '#0e0e12'; cx.fillRect(0, 0, W, H); }
+
+  function roundRect(x, y, w, h, r) {
+    cx.beginPath();
+    cx.moveTo(x+r,y); cx.lineTo(x+w-r,y); cx.quadraticCurveTo(x+w,y,x+w,y+r);
+    cx.lineTo(x+w,y+h-r); cx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    cx.lineTo(x+r,y+h); cx.quadraticCurveTo(x,y+h,x,y+h-r);
+    cx.lineTo(x,y+r); cx.quadraticCurveTo(x,y,x+r,y);
+    cx.closePath();
+  }
+
+  function gdot(sx, sy, r, col) {
+    cx.beginPath(); cx.arc(sx, sy, r, 0, Math.PI*2);
+    cx.fillStyle = col; cx.shadowColor = col; cx.shadowBlur = 10; cx.fill(); cx.shadowBlur = 0;
+  }
+
+  // Graph coords
+  const GOX = W/2, GOY = H*0.55, GSC = 30;
+  function gx(x) { return GOX + x * GSC; }
+  function gy(y) { return GOY - y * GSC; }
+
+  function drawGrid() {
+    cx.strokeStyle = 'rgba(255,255,255,0.04)'; cx.lineWidth = 0.7;
+    for (let x=-10;x<=10;x++){cx.beginPath();cx.moveTo(gx(x),0);cx.lineTo(gx(x),H);cx.stroke();}
+    for (let y=-5;y<=10;y++){cx.beginPath();cx.moveTo(0,gy(y));cx.lineTo(W,gy(y));cx.stroke();}
+  }
+  function drawAxes() {
+    cx.strokeStyle = 'rgba(255,255,255,0.2)'; cx.lineWidth = 1;
+    cx.beginPath();cx.moveTo(0,gy(0));cx.lineTo(W,gy(0));cx.stroke();
+    cx.beginPath();cx.moveTo(gx(0),0);cx.lineTo(gx(0),H);cx.stroke();
+    cx.fillStyle='rgba(255,255,255,0.2)';cx.font='9px monospace';cx.textAlign='center';
+    for(let x=-9;x<=9;x++){if(x===0)continue;cx.fillText(x,gx(x),gy(0)+12);}
+  }
+
+  function plotFn(fn, col, alpha) {
+    cx.save(); cx.strokeStyle=col; cx.globalAlpha=alpha; cx.lineWidth=2;
+    cx.beginPath(); let s=false;
+    for(let sx=0;sx<=W;sx+=2){
+      const x=(sx-GOX)/GSC, y=fn(x), sy=gy(y);
+      if(sy<-50||sy>H+50){s=false;continue;}
+      if(!s){cx.moveTo(sx,sy);s=true;}else cx.lineTo(sx,sy);
+    }
+    cx.stroke(); cx.restore();
+  }
+
+  // ── Stages ───────────────────────────────────────────────────
+  const stages = [
+    {
+      title: () => T('Funkcja to maszyna', 'A function is a machine'),
+      desc: () => T(
+        'Wrzucasz liczbę (wejście x), maszyna coś z nią robi, wypluwa wynik (wyjście y). Dla każdego x dostajesz dokładnie jedno y. Przesuń x i patrz, co wychodzi.',
+        'You feed in a number (input x), the machine processes it, spits out a result (output y). For each x you get exactly one y. Move x and watch the output.'
+      ),
+      sliders: [
+        { id: 'x0', lbl: 'x', color: COL_IN, min: -5, max: 5, step: 0.5, val: 3 },
+      ],
+      draw() {
+        const y = f(x0);
+        const mX = W/2, mY = H/2;
+        const mW = 120, mH = 70;
+
+        // Machine box
+        roundRect(mX-mW/2, mY-mH/2, mW, mH, 10);
+        cx.fillStyle = COL_BOX + '18'; cx.fill();
+        cx.strokeStyle = COL_BOX + '60'; cx.lineWidth = 2; cx.stroke();
+        cx.font = '14px monospace'; cx.textAlign = 'center'; cx.fillStyle = COL_BOX;
+        cx.fillText(FNS[fnType].labelShort, mX, mY + 5);
+
+        // Input arrow
+        cx.strokeStyle = COL_IN + '80'; cx.lineWidth = 2;
+        cx.beginPath(); cx.moveTo(mX - mW/2 - 100, mY); cx.lineTo(mX - mW/2 - 10, mY); cx.stroke();
+        cx.beginPath(); cx.moveTo(mX-mW/2-10,mY-6); cx.lineTo(mX-mW/2,mY); cx.lineTo(mX-mW/2-10,mY+6); cx.fill();
+
+        // Input value
+        gdot(mX - mW/2 - 100, mY, 18, COL_IN + '30');
+        cx.font = '16px monospace'; cx.fillStyle = COL_IN; cx.textAlign = 'center';
+        cx.fillText(x0.toFixed(1), mX - mW/2 - 100, mY + 6);
+        cx.font = '10px monospace'; cx.fillStyle = 'rgba(255,255,255,0.4)';
+        cx.fillText(T('wejście', 'input'), mX - mW/2 - 100, mY + 24);
+
+        // Output arrow
+        cx.strokeStyle = COL_OUT + '80'; cx.lineWidth = 2;
+        cx.beginPath(); cx.moveTo(mX + mW/2, mY); cx.lineTo(mX + mW/2 + 90, mY); cx.stroke();
+        cx.beginPath(); cx.moveTo(mX+mW/2+80,mY-6); cx.lineTo(mX+mW/2+90,mY); cx.lineTo(mX+mW/2+80,mY+6); cx.fillStyle=COL_OUT; cx.fill();
+
+        // Output value
+        gdot(mX + mW/2 + 100, mY, 18, COL_OUT + '30');
+        cx.font = '16px monospace'; cx.fillStyle = COL_OUT; cx.textAlign = 'center';
+        cx.fillText(y.toFixed(1), mX + mW/2 + 100, mY + 6);
+        cx.font = '10px monospace'; cx.fillStyle = 'rgba(255,255,255,0.4)';
+        cx.fillText(T('wyjście', 'output'), mX + mW/2 + 100, mY + 24);
+
+        // Top label
+        cx.font = '11px monospace'; cx.fillStyle = 'rgba(255,255,255,0.5)'; cx.textAlign = 'center';
+        cx.fillText('x = ' + x0.toFixed(1) + '  →  f(x) = ' + y.toFixed(1), W/2, 28);
+      }
+    },
+    {
+      title: () => T('Wykres — wszystkie wejścia i wyjścia naraz', 'Graph — all inputs and outputs at once'),
+      desc: () => T(
+        'Zamiast sprawdzać po jednym x, narysuj WSZYSTKIE pary (x, f(x)). To jest wykres funkcji — krzywa, która pokazuje wyjście dla każdego wejścia. Przesuń x i zobacz, jak punkt wędruje po wykresie.',
+        'Instead of checking one x at a time, draw ALL pairs (x, f(x)). This is the function\'s graph — a curve showing output for every input. Move x and see the point travel along.'
+      ),
+      sliders: [
+        { id: 'x0', lbl: 'x', color: COL_IN, min: -5, max: 5, step: 0.2, val: x0 },
+        { id: 'fn', lbl: 'f', color: COL_BOX, min: 0, max: 2, step: 1, val: fnType },
+      ],
+      draw() {
+        drawGrid(); drawAxes();
+        plotFn(FNS[fnType].fn, COL_OUT, 0.7);
+
+        const y = f(x0);
+
+        // Dashed lines to axes
+        cx.strokeStyle = 'rgba(255,255,255,0.15)'; cx.lineWidth = 1; cx.setLineDash([4,4]);
+        cx.beginPath(); cx.moveTo(gx(x0), gy(0)); cx.lineTo(gx(x0), gy(y)); cx.stroke();
+        cx.beginPath(); cx.moveTo(gx(0), gy(y)); cx.lineTo(gx(x0), gy(y)); cx.stroke();
+        cx.setLineDash([]);
+
+        // Point
+        gdot(gx(x0), gy(y), 6, COL_OUT);
+
+        // Labels
+        cx.font = '11px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COL_IN; cx.fillText('x = ' + x0.toFixed(1), gx(x0) + 10, gy(0) + 14);
+        cx.fillStyle = COL_OUT; cx.fillText('f(x) = ' + y.toFixed(1), gx(0) + 8, gy(y) - 6);
+
+        cx.font = '12px monospace'; cx.textAlign = 'center'; cx.fillStyle = COL_BOX;
+        cx.fillText(FNS[fnType].labelShort, W/2, 20);
+      }
+    },
+    {
+      title: () => T('Dziedzina i zbiór wartości', 'Domain and range'),
+      desc: () => T(
+        'Dziedzina = jakie x-y możesz wrzucić. Zbiór wartości = jakie y-ki mogą wyjść. Dla f(x) = x²: dziedzina to wszystkie liczby, ale zbiór wartości to tylko y ≥ 0 (kwadrat nigdy nie jest ujemny!).',
+        'Domain = which x values you can input. Range = which y values can come out. For f(x) = x²: domain is all numbers, but range is only y ≥ 0 (a square is never negative!).'
+      ),
+      sliders: [
+        { id: 'x0', lbl: 'x', color: COL_IN, min: -5, max: 5, step: 0.2, val: x0 },
+      ],
+      draw() {
+        fnType = 1; // x²
+        drawGrid(); drawAxes();
+        plotFn(x => x*x, COL_OUT, 0.6);
+
+        // Highlight domain (x-axis)
+        cx.strokeStyle = COL_DOM; cx.lineWidth = 3; cx.globalAlpha = 0.4;
+        cx.beginPath(); cx.moveTo(0, gy(0)); cx.lineTo(W, gy(0)); cx.stroke();
+        cx.globalAlpha = 1;
+
+        // Highlight range (y-axis, y>=0 only)
+        cx.strokeStyle = COL_RNG; cx.lineWidth = 3; cx.globalAlpha = 0.4;
+        cx.beginPath(); cx.moveTo(gx(0), gy(0)); cx.lineTo(gx(0), 0); cx.stroke();
+        cx.globalAlpha = 1;
+
+        const y = x0 * x0;
+        gdot(gx(x0), gy(y), 5, COL_OUT);
+
+        // Labels
+        cx.font = '11px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COL_DOM; cx.fillText(T('dziedzina: wszystkie x', 'domain: all x'), 10, H - 20);
+        cx.fillStyle = COL_RNG; cx.fillText(T('zbiór wartości: y ≥ 0', 'range: y ≥ 0'), 10, H - 6);
+
+        cx.font = '12px monospace'; cx.textAlign = 'center'; cx.fillStyle = COL_BOX;
+        cx.fillText('f(x) = x²', W/2, 20);
+      }
+    },
+    {
+      title: () => T('Co NIE jest funkcją?', 'What is NOT a function?'),
+      desc: () => T(
+        'Kluczowa zasada: dla każdego x dokładnie JEDNO y. Jeśli dla jednego x maszyna daje dwa wyniki — to NIE jest funkcja. Okrąg x² + y² = 9 nie jest funkcją, bo np. dla x=0 mamy y=3 ALBO y=−3.',
+        'Key rule: for each x exactly ONE y. If one x gives two results — it\'s NOT a function. The circle x²+y²=9 is not a function because for x=0 we get y=3 OR y=−3.'
+      ),
+      sliders: [
+        { id: 'x0', lbl: 'x', color: COL_IN, min: -2.9, max: 2.9, step: 0.1, val: 0 },
+      ],
+      draw() {
+        drawGrid(); drawAxes();
+
+        // Draw circle x²+y²=9
+        cx.strokeStyle = COL_BAD; cx.lineWidth = 2; cx.globalAlpha = 0.7;
+        cx.beginPath(); cx.arc(gx(0), gy(0), 3*GSC, 0, Math.PI*2); cx.stroke();
+        cx.globalAlpha = 1;
+
+        // Vertical line test
+        cx.strokeStyle = COL_IN + '40'; cx.lineWidth = 1; cx.setLineDash([4,4]);
+        cx.beginPath(); cx.moveTo(gx(x0), 0); cx.lineTo(gx(x0), H); cx.stroke();
+        cx.setLineDash([]);
+
+        // Two intersection points (if |x0| < 3)
+        const r2 = 9 - x0*x0;
+        if (r2 > 0) {
+          const y1 = Math.sqrt(r2);
+          const y2 = -Math.sqrt(r2);
+          gdot(gx(x0), gy(y1), 6, COL_BAD);
+          gdot(gx(x0), gy(y2), 6, COL_BAD);
+
+          cx.font = '11px monospace'; cx.textAlign = 'left';
+          cx.fillStyle = COL_BAD;
+          cx.fillText('y = ' + y1.toFixed(1), gx(x0) + 10, gy(y1));
+          cx.fillText('y = ' + y2.toFixed(1), gx(x0) + 10, gy(y2));
+
+          // "TWO outputs!" label
+          cx.font = '13px monospace'; cx.textAlign = 'center'; cx.fillStyle = COL_BAD;
+          cx.fillText(T('DWA wyjścia! → to NIE jest funkcja', 'TWO outputs! → NOT a function'), W/2, 22);
+        }
+
+        cx.font = '11px monospace'; cx.textAlign = 'center'; cx.fillStyle = 'rgba(255,255,255,0.4)';
+        cx.fillText('x² + y² = 9', W/2, H - 8);
+      }
+    },
+    {
+      title: () => T('Test pionowej prostej', 'Vertical line test'),
+      desc: () => T(
+        'Szybki sposób: przesuń pionową prostą po wykresie. Jeśli gdziekolwiek przecina krzywą w WIĘCEJ niż jednym punkcie — to nie jest funkcja. Jeśli zawsze w dokładnie jednym — jest. Porównaj parabolę z okręgiem.',
+        'Quick check: slide a vertical line across the graph. If it ever crosses the curve at MORE than one point — not a function. Always one point — it\'s a function. Compare parabola vs circle.'
+      ),
+      sliders: [
+        { id: 'x0', lbl: 'x', color: COL_IN, min: -4, max: 4, step: 0.1, val: 1 },
+      ],
+      draw() {
+        drawGrid(); drawAxes();
+
+        // Parabola (left half)
+        cx.save(); cx.rect(0, 0, W/2 - 10, H); cx.clip();
+        plotFn(x => x*x, COL_OUT, 0.6);
+        cx.restore();
+
+        // Circle (right half)
+        cx.save(); cx.rect(W/2 + 10, 0, W/2, H); cx.clip();
+        cx.strokeStyle = COL_BAD; cx.lineWidth = 2; cx.globalAlpha = 0.6;
+        cx.beginPath(); cx.arc(gx(0), gy(0), 3*GSC, 0, Math.PI*2); cx.stroke();
+        cx.globalAlpha = 1;
+        cx.restore();
+
+        // Divider
+        cx.strokeStyle = 'rgba(255,255,255,0.1)'; cx.lineWidth = 1;
+        cx.beginPath(); cx.moveTo(W/2, 0); cx.lineTo(W/2, H); cx.stroke();
+
+        // Labels
+        cx.font = '13px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = COL_OUT; cx.fillText(T('✓ funkcja', '✓ function'), W*0.25, 22);
+        cx.fillStyle = COL_BAD; cx.fillText(T('✗ nie funkcja', '✗ not function'), W*0.75, 22);
+
+        // Vertical test line on both
+        cx.strokeStyle = COL_IN + '50'; cx.lineWidth = 1.5; cx.setLineDash([4,4]);
+        cx.beginPath(); cx.moveTo(gx(x0), 0); cx.lineTo(gx(x0), H); cx.stroke();
+        cx.setLineDash([]);
+
+        // Parabola intersection (1 point)
+        const py = x0*x0;
+        if (gx(x0) < W/2) {
+          gdot(gx(x0), gy(py), 5, COL_OUT);
+          cx.font='10px monospace'; cx.fillStyle=COL_OUT; cx.textAlign='left';
+          cx.fillText(T('1 punkt ✓','1 point ✓'), gx(x0)+8, gy(py)-8);
+        }
+
+        // Circle intersections (0 or 2)
+        const r2 = 9 - x0*x0;
+        if (r2 > 0 && gx(x0) > W/2) {
+          const y1 = Math.sqrt(r2), y2 = -Math.sqrt(r2);
+          gdot(gx(x0), gy(y1), 5, COL_BAD);
+          gdot(gx(x0), gy(y2), 5, COL_BAD);
+          cx.font='10px monospace'; cx.fillStyle=COL_BAD; cx.textAlign='left';
+          cx.fillText(T('2 punkty ✗','2 points ✗'), gx(x0)+8, gy(y1)-8);
+        }
+      }
+    },
+  ];
+
+  // ── Slider management ────────────────────────────────────────
+  const slWrap = document.getElementById('sliders-wrap');
+  function buildSliders(defs) {
+    let html = '<div class="sliders">';
+    defs.forEach(s => {
+      const display = s.id === 'fn' ? FNS[+s.val].label : (+s.val).toFixed(s.step < 1 ? 1 : 0);
+      html += `<div class="slider-row">
+        <span class="lbl" style="color:${s.color}">${s.lbl} =</span>
+        <input type="range" id="s_${s.id}" min="${s.min}" max="${s.max}" step="${s.step}" value="${s.val}">
+        <span class="val" id="v_${s.id}" style="color:${s.color}">${display}</span>
+      </div>`;
+    });
+    html += '</div>';
+    slWrap.innerHTML = html;
+    defs.forEach(s => {
+      const el = document.getElementById('s_' + s.id);
+      el.addEventListener('input', function() {
+        const v = +this.value;
+        if (s.id === 'x0') x0 = v;
+        if (s.id === 'fn') fnType = Math.round(v);
+        document.getElementById('v_' + s.id).textContent =
+          s.id === 'fn' ? FNS[Math.round(v)].label : v.toFixed(s.step < 1 ? 1 : 0);
+      });
+    });
+  }
+
+  // ── Navigation ───────────────────────────────────────────────
+  const prevBtn = document.getElementById('qprev');
+  const nextBtn = document.getElementById('qnext');
+  const dotsEl = document.getElementById('qdots');
+  const titleEl = document.getElementById('qf');
+  const descEl = document.getElementById('qd');
+
+  function goTo(idx) {
+    stage = Math.max(0, Math.min(stages.length - 1, idx));
+    const s = stages[stage];
+    titleEl.textContent = s.title();
+    descEl.textContent = s.desc();
+    if (s.sliders) {
+      s.sliders.forEach(sl => { if (sl.id === 'x0') sl.val = x0; if (sl.id === 'fn') sl.val = fnType; });
+      buildSliders(s.sliders);
+    } else { slWrap.innerHTML = ''; }
+    prevBtn.disabled = stage === 0;
+    nextBtn.disabled = stage === stages.length - 1;
+    renderDots();
+  }
+
+  function renderDots() {
+    dotsEl.innerHTML = stages.map((_, i) =>
+      `<span class="dot${i === stage ? ' active' : ''}" data-i="${i}"></span>`
+    ).join('');
+    dotsEl.querySelectorAll('.dot').forEach(d =>
+      d.addEventListener('click', () => goTo(+d.dataset.i))
+    );
+  }
+
+  prevBtn.addEventListener('click', () => goTo(stage - 1));
+  nextBtn.addEventListener('click', () => goTo(stage + 1));
+
+  function tick() { clear(); stages[stage].draw(); requestAnimationFrame(tick); }
+  goTo(0);
+  tick();
+})();
+</script>
+</body>
+</html>
