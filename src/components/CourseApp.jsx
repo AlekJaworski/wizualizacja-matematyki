@@ -6,22 +6,22 @@ import { encodeBelief, decodeBelief } from "../utils/shareCode.js";
 import CurriculumGraph from "./CurriculumGraph.jsx";
 import { HeroScreen } from "./screens/HeroScreen.jsx";
 import { QuizFlow } from "./screens/QuizFlow.jsx";
+import { GoalQuizFlow } from "./screens/GoalQuizFlow.jsx";
 import { ResultsScreen } from "./screens/ResultsScreen.jsx";
+import { LearningPath } from "./screens/LearningPath.jsx";
+import { GoalSelectionModal } from "./ui/GoalSelectionModal.jsx";
 
 /**
  * CourseApp — top-level flow controller.
  *
  * Phases:
- *   "hero"    → Landing screen with CTA
- *   "quiz"    → Full-screen diagnostic quiz
- *   "results" → Summary + "see your map"
- *   "map"     → CurriculumGraph (with optional pre-loaded belief)
- *
- * URL hash routing:
- *   #/results/<code>  → shared results (62-char belief encoding)
- *   #/map/<code>      → shared map view
- *   #/topic/<id>      → topic detail (with belief if code present)
- *   (anything else)   → hero
+ *   "hero"      → Landing screen with CTAs
+ *   "quiz"      → Full-screen diagnostic quiz
+ *   "goalPick"  → Goal selection modal
+ *   "goalQuiz"  → Goal-scoped quiz
+ *   "goalPath"  → Learning path after goal quiz
+ *   "results"   → Summary + "see your map"
+ *   "map"       → CurriculumGraph
  */
 
 function parseHash() {
@@ -43,7 +43,6 @@ export default function CourseApp() {
     ? "bright" : "midnight";
   const [themeId, setThemeId] = useLocalStorage("theme", systemPrefers);
 
-  // Check URL hash for shared state on mount
   const initialHash = parseHash();
   const initialBelief = initialHash?.code ? decodeBelief(initialHash.code) : null;
 
@@ -53,8 +52,8 @@ export default function CourseApp() {
   const [quizStats, setQuizStats] = useState(initialBelief ? { correct: 0, incorrect: 0, questionsAnswered: 0 } : null);
   const [quizEvidence, setQuizEvidence] = useState(null);
   const [quizPreset, setQuizPreset] = useState("standard");
+  const [goalId, setGoalId] = useState(null);
 
-  // Apply theme
   const handleThemeChange = useCallback((id) => {
     applyTheme(id);
     setThemeId(id);
@@ -91,6 +90,26 @@ export default function CourseApp() {
     setPhase("results");
   }, []);
 
+  const handleStartGoalQuiz = useCallback(() => {
+    setPhase("goalPick");
+  }, []);
+
+  const handleGoalSelected = useCallback((nodeId) => {
+    setGoalId(nodeId);
+    setQuizBelief(null);
+    setQuizStats(null);
+    setQuizEvidence(null);
+    setPhase("goalQuiz");
+  }, []);
+
+  const handleGoalQuizComplete = useCallback((gId, belief, stats, evidence) => {
+    setGoalId(gId);
+    setQuizBelief(belief);
+    setQuizStats(stats);
+    setQuizEvidence(evidence ?? {});
+    setPhase("goalPath");
+  }, []);
+
   const handleSeeMap = useCallback((selectedNodeId) => {
     setInitialSelectedNode(selectedNodeId ?? null);
     setPhase("map");
@@ -118,6 +137,7 @@ export default function CourseApp() {
           themeId={themeId}
           onThemeChange={handleThemeChange}
           onStartQuiz={handleStartQuiz}
+          onStartGoalQuiz={handleStartGoalQuiz}
           onBrowseMap={handleBrowseMap}
         />
       );
@@ -132,6 +152,49 @@ export default function CourseApp() {
           quizPreset={quizPreset}
           onComplete={handleQuizComplete}
           onExit={handleBackToHero}
+        />
+      );
+
+    case "goalPick":
+      return (
+        <GoalSelectionModal
+          isOpen
+          nodes={course.RAW_NODES}
+          lang={lang}
+          SECTIONS={course.SECTIONS}
+          SCOPE_COLORS={course.SCOPE_COLORS}
+          onSelect={handleGoalSelected}
+          onClose={handleBackToHero}
+        />
+      );
+
+    case "goalQuiz":
+      return (
+        <GoalQuizFlow
+          goalId={goalId}
+          RAW_NODES={course.RAW_NODES}
+          RAW_EDGES={course.RAW_EDGES}
+          QUESTION_BANK={course.QUESTION_BANK}
+          lang={lang}
+          onComplete={handleGoalQuizComplete}
+          onExit={handleBackToHero}
+        />
+      );
+
+    case "goalPath":
+      return (
+        <LearningPath
+          goalId={goalId}
+          RAW_NODES={course.RAW_NODES}
+          RAW_EDGES={course.RAW_EDGES}
+          SCOPE_COLORS={course.SCOPE_COLORS}
+          SCOPE_LABELS={course.SCOPE_LABELS}
+          SECTIONS={course.SECTIONS}
+          belief={quizBelief}
+          evidence={quizEvidence}
+          lang={lang}
+          onSelectTopic={(id) => handleSeeMap(id)}
+          onClose={handleBackToHero}
         />
       );
 

@@ -229,6 +229,20 @@ const STRINGS = {
   pathKnown:         { pl: "znasz",                      en: "known" },
   pathToStudy:       { pl: "do nauki",                   en: "to study" },
   pathGoal:          { pl: "— cel",                      en: "— goal" },
+  pathStartHere:     { pl: "zacznij tutaj",              en: "start here" },
+
+  // ── Goal quiz ────────────────────────────────────────────────────
+  heroGoal:          { pl: "Wybierz cel i sprawdź gotowość",
+                       en: "Pick a goal & test readiness" },
+  heroExplore:       { pl: "Eksploruj mapę bez testu →",  en: "Explore the map without a test →" },
+  goalQuizTitle:     { pl: "Szczegółowa analiza",        en: "Deep analysis" },
+  goalQuizSub:       { pl: "Sprawdzamy wymagania wstępne dla:",
+                       en: "Testing prerequisites for:" },
+  goalQuizTopics:    { pl: "tematów do zbadania",        en: "topics to assess" },
+  goalQuizDone:      { pl: "Analiza zakończona",         en: "Analysis complete" },
+  goalQuizSeeMap:    { pl: "Zobacz na mapie",            en: "See on map" },
+  goalQuizRetake:    { pl: "Powtórz analizę",            en: "Retake analysis" },
+  goalQuizBackHero:  { pl: "Wróć na start",              en: "Back to start" },
 };
 
 /**

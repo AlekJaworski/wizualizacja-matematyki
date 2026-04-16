@@ -8,7 +8,7 @@ import { QUIZ_PRESETS } from "../../engine/belief.js";
  * One clear purpose: start the diagnostic quiz.
  * Secondary: browse the map directly.
  */
-export function HeroScreen({ lang, setLang, themeId, onThemeChange, onStartQuiz, onBrowseMap }) {
+export function HeroScreen({ lang, setLang, themeId, onThemeChange, onStartQuiz, onStartGoalQuiz, onBrowseMap }) {
   const [preset, setPreset] = useState("standard");
   return (
     <div style={{
@@ -174,24 +174,52 @@ export function HeroScreen({ lang, setLang, themeId, onThemeChange, onStartQuiz,
           </select>
         </div>
 
-        {/* Secondary */}
+        {/* Goal quiz */}
+        {onStartGoalQuiz && (
+          <button
+            onClick={onStartGoalQuiz}
+            style={{
+              width: "100%", maxWidth: 320,
+              padding: "12px 24px",
+              fontSize: 13, fontFamily: FONT,
+              borderRadius: 8,
+              border: `1px solid ${COLORS.border}`,
+              background: "transparent",
+              color: COLORS.textBody,
+              cursor: "pointer",
+              transition: "background 0.15s, border-color 0.15s",
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = "#8e44ad14";
+              e.currentTarget.style.borderColor = "#8e44ad50";
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.borderColor = COLORS.border;
+            }}
+          >
+            {t("heroGoal", lang)}
+          </button>
+        )}
+
+        {/* Explore without quiz */}
         <button
           onClick={onBrowseMap}
           style={{
             padding: "12px 24px",
-            fontSize: 13,
+            fontSize: 12,
             fontFamily: FONT,
             borderRadius: 8,
             border: "none",
             background: "transparent",
-            color: COLORS.textDim,
+            color: COLORS.textFaint,
             cursor: "pointer",
             transition: "color 0.15s",
           }}
-          onMouseEnter={e => { e.currentTarget.style.color = COLORS.textBody; }}
-          onMouseLeave={e => { e.currentTarget.style.color = COLORS.textDim; }}
+          onMouseEnter={e => { e.currentTarget.style.color = COLORS.textDim; }}
+          onMouseLeave={e => { e.currentTarget.style.color = COLORS.textFaint; }}
         >
-          {t("heroBrowse", lang)}
+          {t("heroExplore", lang)}
         </button>
 
         {/* How it works */}

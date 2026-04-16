@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zasady liczenia — Eksplorator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+  #qf { margin: 0 0 5px; font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  #qd { margin: 0 0 10px; font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); min-height: 48px; white-space: pre-line; }
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 70px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+  .nav { display: flex; align-items: center; justify-content: space-between; }
+  button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  button:hover { background: rgba(255,255,255,.08); }
+  button:disabled { opacity: .3; cursor: default; }
+  #qdots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.18); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  #sliders-wrap { min-height: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="310"></canvas>
+  <div class="panel">
+    <p id="qf"></p>
+    <p id="qd"></p>
+    <div id="sliders-wrap"></div>
+    <div class="nav">
+      <button id="qprev">&larr;</button>
+      <div id="qdots"></div>
+      <button id="qnext">&rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const cv = document.getElementById('cv');
+  const cx = cv.getContext('2d');
+  const W = 600, H = 310;
+
+  const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
+  const T = (pl, en) => LANG === 'pl' ? pl : en;
+
+  // Colors
+  const COL_ACCENT = '#58C4DD';
+  const COL_SHIRTS = '#e74c3c';
+  const COL_PANTS  = '#3498db';
+  const COL_SHOES  = '#2ecc71';
+  const COL_BUS    = '#e67e22';
+  const COL_TRAM   = '#9b59b6';
+  const COL_LEAF   = '#FFD166';
+  const COL_LINE   = 'rgba(255,255,255,0.25)';
+
+  // State
+  let nShirts = 3, nPants = 4, nShoes = 3;
+  let nBus = 3, nTram = 5;
+  let andOr = 0; // 0 = AND (multiply), 1 = OR (add)
+  let stage = 0;
+
+  // Animation
+  let animProgress = 0;
+  let animating = false;
+  let animStartTime = 0;
+  const ANIM_DURATION = 1500;
+
+  function clear() { cx.fillStyle = '#0e0e12'; cx.fillRect(0, 0, W, H); }
+
+  // ── Tree drawing helpers ──────────────────────────────────────
+
+  function drawTreeNode(x, y, r, color, label, labelBelow) {
+    cx.beginPath();
+    cx.arc(x, y, r, 0, Math.PI * 2);
+    cx.fillStyle = color;
+    cx.shadowColor = color;
+    cx.shadowBlur = 8;
+    cx.fill();
+    cx.shadowBlur = 0;
+    if (label) {
+      cx.font = '9px monospace';
+      cx.fillStyle = 'rgba(255,255,255,0.7)';
+      cx.textAlign = 'center';
+      cx.fillText(label, x, labelBelow ? y + r + 12 : y - r - 5);
+    }
+  }
+
+  function drawEdge(x1, y1, x2, y2, color, alpha) {
+    cx.save();
+    cx.globalAlpha = alpha || 0.4;
+    cx.strokeStyle = color || COL_LINE;
+    cx.lineWidth = 1.2;
+    cx.beginPath();
+    cx.moveTo(x1, y1);
+    cx.lineTo(x2, y2);
+    cx.stroke();
+    cx.restore();
+  }
+
+  // Lay out a multiplication tree with given branching factors
+  // Returns { levels: [[{x,y},...], ...], leaves: count }
+  function layoutTree(branches, startX, startY, treeWidth, treeHeight, maxLeaves) {
+    const levels = [];
+    const depth = branches.length;
+
+    // root
+    levels.push([{ x: startX + treeWidth / 2, y: startY }]);
+
+    for (let d = 0; d < depth; d++) {
+      const parentLevel = levels[d];
+      const childLevel = [];
+      const b = branches[d];
+      const nextY = startY + (d + 1) * (treeHeight / depth);
+
+      // Total nodes at this level
+      let totalNodes = 1;
+      for (let i = 0; i <= d; i++) totalNodes *= branches[i];
+
+      // Spread evenly across treeWidth
+      const spacing = treeWidth / (totalNodes + 1);
+
+      let idx = 0;
+      for (let p = 0; p < parentLevel.length; p++) {
+        for (let c = 0; c < b; c++) {
+          childLevel.push({
+            x: startX + (idx + 1) * spacing,
+            y: nextY,
+            parentIdx: p
+          });
+          idx++;
+        }
+      }
+      levels.push(childLevel);
+    }
+    return { levels, leaves: levels[levels.length - 1].length };
+  }
+
+  function drawTree(branches, colors, labels, startX, startY, treeWidth, treeHeight, highlightLevel, animProg) {
+    const layout = layoutTree(branches, startX, startY, treeWidth, treeHeight);
+    const prog = animProg !== undefined ? animProg : 1;
+
+    // Draw root
+    drawTreeNode(layout.levels[0][0].x, layout.levels[0][0].y, 5, 'rgba(255,255,255,0.6)');
+
+    for (let d = 0; d < branches.length; d++) {
+      const parentLevel = layout.levels[d];
+      const childLevel = layout.levels[d + 1];
+      const color = colors[d] || '#fff';
+      const levelProg = Math.max(0, Math.min(1, prog * branches.length - d));
+
+      if (levelProg <= 0) continue;
+
+      for (let c = 0; c < childLevel.length; c++) {
+        const child = childLevel[c];
+        const parent = parentLevel[child.parentIdx];
+        const alpha = Math.min(1, levelProg) * 0.5;
+
+        drawEdge(parent.x, parent.y, child.x, child.y, color, alpha);
+
+        const isLeaf = d === branches.length - 1;
+        const nodeR = isLeaf ? 4 : 3.5;
+        const nodeAlpha = Math.min(1, levelProg);
+
+        cx.save();
+        cx.globalAlpha = nodeAlpha;
+        drawTreeNode(child.x, child.y, nodeR, color);
+        cx.restore();
+
+        // Highlight border for highlighted level
+        if (highlightLevel === d) {
+          cx.save();
+          cx.globalAlpha = 0.3 + 0.3 * Math.sin(Date.now() / 300);
+          cx.strokeStyle = '#fff';
+          cx.lineWidth = 2;
+          cx.beginPath();
+          cx.arc(child.x, child.y, nodeR + 3, 0, Math.PI * 2);
+          cx.stroke();
+          cx.restore();
+        }
+      }
+    }
+
+    return layout;
+  }
+
+  // Count label with glow
+  function drawCount(text, x, y, color) {
+    cx.save();
+    cx.font = 'bold 22px monospace';
+    cx.textAlign = 'center';
+    cx.fillStyle = color || COL_LEAF;
+    cx.shadowColor = color || COL_LEAF;
+    cx.shadowBlur = 15;
+    cx.fillText(text, x, y);
+    cx.shadowBlur = 0;
+    cx.restore();
+  }
+
+  function drawFormula(text, x, y, color) {
+    cx.save();
+    cx.font = '14px monospace';
+    cx.textAlign = 'center';
+    cx.fillStyle = color || 'rgba(255,255,255,0.7)';
+    cx.fillText(text, x, y);
+    cx.restore();
+  }
+
+  function drawLegend(items, x, y) {
+    cx.save();
+    cx.font = '11px monospace';
+    cx.textAlign = 'left';
+    items.forEach((item, i) => {
+      const ix = x + i * 130;
+      cx.beginPath();
+      cx.arc(ix, y - 3, 5, 0, Math.PI * 2);
+      cx.fillStyle = item.color;
+      cx.fill();
+      cx.fillStyle = 'rgba(255,255,255,0.55)';
+      cx.fillText(item.label, ix + 10, y);
+    });
+    cx.restore();
+  }
+
+  // ── Stages ──────────────────────────────────────────────────
+
+  const stages_def = [
+    // Stage 1: Multiplication rule — tree
+    {
+      title: () => T('Reguła mnożenia — drzewo', 'Multiplication rule — tree'),
+      desc: () => T(
+        'Masz do wyboru koszulki i spodnie. Każdy zestaw to para (koszulka, spodnie). Drzewo pokazuje WSZYSTKIE kombinacje — liście = wynik mnożenia.',
+        'You choose shirts and pants. Each outfit is a pair (shirt, pants). The tree shows ALL combinations — leaves = the product.'
+      ),
+      sliders: [
+        { id: 'nShirts', lbl: T('koszulki','shirts'), color: COL_SHIRTS, min: 2, max: 5, step: 1, val: () => nShirts },
+        { id: 'nPants', lbl: T('spodnie','pants'), color: COL_PANTS, min: 2, max: 5, step: 1, val: () => nPants },
+      ],
+      draw() {
+        const total = nShirts * nPants;
+        const layout = drawTree(
+          [nShirts, nPants],
+          [COL_SHIRTS, COL_PANTS],
+          [T('koszulki','shirts'), T('spodnie','pants')],
+          30, 30, W - 60, 200
+        );
+
+        // Legend
+        drawLegend([
+          { color: COL_SHIRTS, label: T('koszulki','shirts') },
+          { color: COL_PANTS, label: T('spodnie','pants') },
+        ], 60, 260);
+
+        // Count
+        drawFormula(nShirts + ' \u00D7 ' + nPants + ' = ' + total, W / 2, 280);
+        drawCount(total + ' ' + T('zestawów','outfits'), W / 2, 305, COL_LEAF);
+      }
+    },
+
+    // Stage 2: Why multiply?
+    {
+      title: () => T('Dlaczego mnożymy?', 'Why multiply?'),
+      desc: () => T(
+        'Dla KAŻDEJ koszulki mamy ' + nPants + ' spodni. Słowo „KAŻDEJ" to klucz — to dlatego mnożymy, a nie dodajemy. Obserwuj, jak drzewo rośnie poziom po poziomie.',
+        'For EACH shirt there are ' + nPants + ' pants. The word "EACH" is key — that\'s why we multiply, not add. Watch the tree grow level by level.'
+      ),
+      sliders: [
+        { id: 'nShirts', lbl: T('koszulki','shirts'), color: COL_SHIRTS, min: 2, max: 5, step: 1, val: () => nShirts },
+        { id: 'nPants', lbl: T('spodnie','pants'), color: COL_PANTS, min: 2, max: 5, step: 1, val: () => nPants },
+      ],
+      draw() {
+        const total = nShirts * nPants;
+        // Animated fill
+        const elapsed = Date.now() - animStartTime;
+        const prog = Math.min(1, elapsed / ANIM_DURATION);
+
+        drawTree(
+          [nShirts, nPants],
+          [COL_SHIRTS, COL_PANTS],
+          [T('koszulki','shirts'), T('spodnie','pants')],
+          30, 30, W - 60, 190,
+          -1, prog
+        );
+
+        // Highlight "EACH" concept
+        const layout = layoutTree([nShirts, nPants], 30, 30, W - 60, 190);
+
+        // Draw bracket for one shirt showing its pants
+        if (prog > 0.5) {
+          const highlightParent = 0;
+          const parent = layout.levels[0][0];
+          const firstChild = layout.levels[1][highlightParent];
+
+          // "for EACH" annotation
+          cx.save();
+          cx.font = 'bold 12px monospace';
+          cx.textAlign = 'left';
+          cx.fillStyle = COL_ACCENT;
+          const pulseAlpha = 0.6 + 0.4 * Math.sin(Date.now() / 400);
+          cx.globalAlpha = pulseAlpha;
+          cx.fillText(T('dla KAŻDEJ koszulki →', 'for EACH shirt →'), 20, 145);
+          cx.fillText(nPants + T(' wybory spodni', ' pants choices'), 20, 162);
+          cx.restore();
+        }
+
+        drawFormula(nShirts + ' \u00D7 ' + nPants + ' = ' + total, W / 2, 260);
+
+        // Visual emphasis
+        cx.save();
+        cx.font = '11px monospace';
+        cx.textAlign = 'center';
+        cx.fillStyle = 'rgba(255,255,255,0.4)';
+        cx.fillText(T('"KAŻDY" → mnożenie', '"EACH" → multiplication'), W / 2, 282);
+        cx.restore();
+
+        drawCount(total + ' ' + T('zestawów','outfits'), W / 2, 305, COL_LEAF);
+      }
+    },
+
+    // Stage 3: Three choices
+    {
+      title: () => T('Trzy wybory', 'Three choices'),
+      desc: () => T(
+        'Dodajemy trzeci poziom: buty. Drzewo rośnie BARDZO szybko — to potęga mnożenia. Każdy nowy wybór mnoży liczbę zestawów.',
+        'Add a third level: shoes. The tree grows VERY fast — that\'s the power of multiplication. Each new choice multiplies the outfit count.'
+      ),
+      sliders: [
+        { id: 'nShirts', lbl: T('koszulki','shirts'), color: COL_SHIRTS, min: 2, max: 5, step: 1, val: () => nShirts },
+        { id: 'nPants', lbl: T('spodnie','pants'), color: COL_PANTS, min: 2, max: 5, step: 1, val: () => nPants },
+        { id: 'nShoes', lbl: T('buty','shoes'), color: COL_SHOES, min: 2, max: 4, step: 1, val: () => nShoes },
+      ],
+      draw() {
+        const total = nShirts * nPants * nShoes;
+
+        // Cap the tree rendering if it'd be too crowded
+        const cappedShirts = nShirts;
+        const cappedPants = nPants;
+        const cappedShoes = nShoes;
+
+        drawTree(
+          [cappedShirts, cappedPants, cappedShoes],
+          [COL_SHIRTS, COL_PANTS, COL_SHOES],
+          [],
+          15, 20, W - 30, 220
+        );
+
+        drawLegend([
+          { color: COL_SHIRTS, label: T('koszulki','shirts') },
+          { color: COL_PANTS, label: T('spodnie','pants') },
+          { color: COL_SHOES, label: T('buty','shoes') },
+        ], 40, 262);
+
+        drawFormula(nShirts + ' \u00D7 ' + nPants + ' \u00D7 ' + nShoes + ' = ' + total, W / 2, 282);
+        drawCount(total + ' ' + T('zestawów','outfits'), W / 2, 305, COL_LEAF);
+      }
+    },
+
+    // Stage 4: Addition rule
+    {
+      title: () => T('Reguła dodawania', 'Addition rule'),
+      desc: () => T(
+        'Do szkoły możesz jechać autobusem LUB tramwajem. To OSOBNE sytuacje — nie łączą się. Liczymy każdą osobno i SUMUJEMY.',
+        'You can go to school by bus OR tram. These are SEPARATE situations — they don\'t connect. Count each separately and ADD.'
+      ),
+      sliders: [
+        { id: 'nBus', lbl: T('autobusy','buses'), color: COL_BUS, min: 1, max: 6, step: 1, val: () => nBus },
+        { id: 'nTram', lbl: T('tramwaje','trams'), color: COL_TRAM, min: 1, max: 6, step: 1, val: () => nTram },
+      ],
+      draw() {
+        const total = nBus + nTram;
+        const halfW = W / 2 - 30;
+
+        // LEFT tree: buses
+        cx.save();
+        cx.font = 'bold 12px monospace';
+        cx.textAlign = 'center';
+        cx.fillStyle = COL_BUS;
+        cx.fillText(T('Autobus', 'Bus'), W * 0.25, 25);
+        cx.restore();
+
+        const busLayout = layoutTree([nBus], 20, 40, halfW, 120);
+        // Draw root
+        drawTreeNode(busLayout.levels[0][0].x, busLayout.levels[0][0].y, 5, 'rgba(255,255,255,0.6)');
+        for (let c = 0; c < busLayout.levels[1].length; c++) {
+          const child = busLayout.levels[1][c];
+          const parent = busLayout.levels[0][child.parentIdx];
+          drawEdge(parent.x, parent.y, child.x, child.y, COL_BUS, 0.5);
+          drawTreeNode(child.x, child.y, 6, COL_BUS);
+        }
+
+        // RIGHT tree: trams
+        cx.save();
+        cx.font = 'bold 12px monospace';
+        cx.textAlign = 'center';
+        cx.fillStyle = COL_TRAM;
+        cx.fillText(T('Tramwaj', 'Tram'), W * 0.75, 25);
+        cx.restore();
+
+        const tramLayout = layoutTree([nTram], W / 2 + 10, 40, halfW, 120);
+        drawTreeNode(tramLayout.levels[0][0].x, tramLayout.levels[0][0].y, 5, 'rgba(255,255,255,0.6)');
+        for (let c = 0; c < tramLayout.levels[1].length; c++) {
+          const child = tramLayout.levels[1][c];
+          const parent = tramLayout.levels[0][child.parentIdx];
+          drawEdge(parent.x, parent.y, child.x, child.y, COL_TRAM, 0.5);
+          drawTreeNode(child.x, child.y, 6, COL_TRAM);
+        }
+
+        // Separator — dashed line
+        cx.save();
+        cx.strokeStyle = 'rgba(255,255,255,0.12)';
+        cx.setLineDash([4, 4]);
+        cx.lineWidth = 1;
+        cx.beginPath();
+        cx.moveTo(W / 2, 20);
+        cx.lineTo(W / 2, 200);
+        cx.stroke();
+        cx.setLineDash([]);
+        cx.restore();
+
+        // "LUB" / "OR" label
+        cx.save();
+        cx.font = 'bold 16px monospace';
+        cx.textAlign = 'center';
+        cx.fillStyle = COL_ACCENT;
+        const pulseAlpha = 0.6 + 0.4 * Math.sin(Date.now() / 400);
+        cx.globalAlpha = pulseAlpha;
+        cx.fillText(T('LUB', 'OR'), W / 2, 110);
+        cx.restore();
+
+        // Explanation
+        cx.save();
+        cx.font = '11px monospace';
+        cx.textAlign = 'center';
+        cx.fillStyle = 'rgba(255,255,255,0.4)';
+        cx.fillText(T('Osobne sytuacje — NIE łączą się', 'Separate situations — DON\'T connect'), W / 2, 210);
+        cx.restore();
+
+        // Counts
+        cx.save();
+        cx.font = '13px monospace';
+        cx.textAlign = 'center';
+        cx.fillStyle = COL_BUS;
+        cx.fillText(nBus + T(' linii', ' routes'), W * 0.25, 195);
+        cx.fillStyle = COL_TRAM;
+        cx.fillText(nTram + T(' linii', ' routes'), W * 0.75, 195);
+        cx.restore();
+
+        // Formula
+        drawFormula(nBus + ' + ' + nTram + ' = ' + total, W / 2, 255);
+        drawCount(total + ' ' + T('opcji', 'options'), W / 2, 280, COL_LEAF);
+
+        // Contrast note
+        cx.save();
+        cx.font = '10px monospace';
+        cx.textAlign = 'center';
+        cx.fillStyle = 'rgba(255,255,255,0.3)';
+        cx.fillText(T('Gdyby się łączyły (np. przesiadka): ' + nBus + ' \u00D7 ' + nTram + ' = ' + (nBus * nTram), 'If connected (e.g. transfer): ' + nBus + ' \u00D7 ' + nTram + ' = ' + (nBus * nTram)), W / 2, 300);
+        cx.restore();
+      }
+    },
+
+    // Stage 5: When to multiply, when to add?
+    {
+      title: () => T('Kiedy mnożyć, kiedy dodawać?', 'When to multiply, when to add?'),
+      desc: () => T(
+        andOr === 0
+          ? '„I" (AND) → mnożenie. KAŻDY wybór A łączy się z KAŻDYM wyborem B. Drzewo jest POŁĄCZONE — gałęzie rosną dalej.'
+          : '„LUB" (OR) → dodawanie. Wybierasz A ALBO B. Drzewa są OSOBNE — nie łączą się.',
+        andOr === 0
+          ? '"AND" → multiplication. EACH choice A connects to EACH choice B. The tree is CONNECTED — branches keep growing.'
+          : '"OR" → addition. You choose A OR B. Trees are SEPARATE — they don\'t connect.'
+      ),
+      sliders: [
+        { id: 'andOr', lbl: T('i / lub','and / or'), color: COL_ACCENT, min: 0, max: 1, step: 1, val: () => andOr },
+      ],
+      draw() {
+        if (andOr === 0) {
+          // AND — connected tree
+          cx.save();
+          cx.font = 'bold 16px monospace';
+          cx.textAlign = 'center';
+          cx.fillStyle = COL_ACCENT;
+          cx.fillText(T('\"I\" (AND) → MNOŻENIE', '"AND" → MULTIPLICATION'), W / 2, 28);
+          cx.restore();
+
+          drawTree(
+            [3, 4],
+            [COL_SHIRTS, COL_PANTS],
+            [],
+            80, 45, W - 160, 160
+          );
+
+          // Labels
+          cx.save();
+          cx.font = '11px monospace';
+          cx.fillStyle = COL_SHIRTS;
+          cx.textAlign = 'right';
+          cx.fillText(T('3 koszulki', '3 shirts'), 70, 105);
+          cx.fillStyle = COL_PANTS;
+          cx.fillText(T('4 spodnie', '4 pants'), 70, 185);
+          cx.restore();
+
+          // "EACH" arrows
+          cx.save();
+          cx.font = 'bold 11px monospace';
+          cx.textAlign = 'center';
+          cx.fillStyle = '#fff';
+          const pulseAlpha = 0.5 + 0.5 * Math.sin(Date.now() / 350);
+          cx.globalAlpha = pulseAlpha;
+          cx.fillText(T('KAŻDA → KAŻDE', 'EACH → EACH'), W / 2, 140);
+          cx.restore();
+
+          drawFormula('3 \u00D7 4 = 12', W / 2, 240);
+          drawCount('12 ' + T('kombinacji', 'combinations'), W / 2, 268, COL_LEAF);
+
+          cx.save();
+          cx.font = '10px monospace';
+          cx.textAlign = 'center';
+          cx.fillStyle = 'rgba(255,255,255,0.35)';
+          cx.fillText(T('Drzewo POŁĄCZONE — gałęzie rosną dalej', 'CONNECTED tree — branches keep growing'), W / 2, 295);
+          cx.restore();
+
+        } else {
+          // OR — disconnected trees
+          cx.save();
+          cx.font = 'bold 16px monospace';
+          cx.textAlign = 'center';
+          cx.fillStyle = COL_ACCENT;
+          cx.fillText(T('\"LUB\" (OR) → DODAWANIE', '"OR" → ADDITION'), W / 2, 28);
+          cx.restore();
+
+          const halfW = W / 2 - 40;
+
+          // Left group
+          cx.save();
+          cx.font = 'bold 11px monospace';
+          cx.textAlign = 'center';
+          cx.fillStyle = COL_BUS;
+          cx.fillText(T('Grupa A: 3', 'Group A: 3'), W * 0.25, 55);
+          cx.restore();
+
+          const leftLayout = layoutTree([3], 30, 65, halfW, 100);
+          drawTreeNode(leftLayout.levels[0][0].x, leftLayout.levels[0][0].y, 5, 'rgba(255,255,255,0.6)');
+          for (let c = 0; c < leftLayout.levels[1].length; c++) {
+            const child = leftLayout.levels[1][c];
+            const parent = leftLayout.levels[0][child.parentIdx];
+            drawEdge(parent.x, parent.y, child.x, child.y, COL_BUS, 0.5);
+            drawTreeNode(child.x, child.y, 6, COL_BUS);
+          }
+
+          // Right group
+          cx.save();
+          cx.font = 'bold 11px monospace';
+          cx.textAlign = 'center';
+          cx.fillStyle = COL_TRAM;
+          cx.fillText(T('Grupa B: 5', 'Group B: 5'), W * 0.75, 55);
+          cx.restore();
+
+          const rightLayout = layoutTree([5], W / 2 + 10, 65, halfW, 100);
+          drawTreeNode(rightLayout.levels[0][0].x, rightLayout.levels[0][0].y, 5, 'rgba(255,255,255,0.6)');
+          for (let c = 0; c < rightLayout.levels[1].length; c++) {
+            const child = rightLayout.levels[1][c];
+            const parent = rightLayout.levels[0][child.parentIdx];
+            drawEdge(parent.x, parent.y, child.x, child.y, COL_TRAM, 0.5);
+            drawTreeNode(child.x, child.y, 6, COL_TRAM);
+          }
+
+          // Separator
+          cx.save();
+          cx.strokeStyle = 'rgba(255,255,255,0.12)';
+          cx.setLineDash([4, 4]);
+          cx.lineWidth = 1;
+          cx.beginPath();
+          cx.moveTo(W / 2, 45);
+          cx.lineTo(W / 2, 195);
+          cx.stroke();
+          cx.setLineDash([]);
+          cx.restore();
+
+          // "LUB" pulse
+          cx.save();
+          cx.font = 'bold 14px monospace';
+          cx.textAlign = 'center';
+          cx.fillStyle = COL_ACCENT;
+          const pulseAlpha = 0.5 + 0.5 * Math.sin(Date.now() / 350);
+          cx.globalAlpha = pulseAlpha;
+          cx.fillText(T('ALBO', 'OR'), W / 2, 125);
+          cx.restore();
+
+          drawFormula('3 + 5 = 8', W / 2, 220);
+          drawCount('8 ' + T('opcji', 'options'), W / 2, 248, COL_LEAF);
+
+          cx.save();
+          cx.font = '10px monospace';
+          cx.textAlign = 'center';
+          cx.fillStyle = 'rgba(255,255,255,0.35)';
+          cx.fillText(T('Drzewa OSOBNE — NIE łączą się', 'SEPARATE trees — DON\'T connect'), W / 2, 278);
+          cx.restore();
+        }
+      }
+    },
+  ];
+
+  // ── Slider management ─────────────────────────────────────────
+  const slWrap = document.getElementById('sliders-wrap');
+
+  function buildSliders(defs) {
+    let html = '<div class="sliders">';
+    defs.forEach(s => {
+      const v = typeof s.val === 'function' ? s.val() : s.val;
+      html += `<div class="slider-row">
+        <span class="lbl" style="color:${s.color}">${s.lbl} =</span>
+        <input type="range" id="s_${s.id}" min="${s.min}" max="${s.max}" step="${s.step}" value="${v}">
+        <span class="val" id="v_${s.id}" style="color:${s.color}"></span>
+      </div>`;
+    });
+    html += '</div>';
+    slWrap.innerHTML = html;
+
+    defs.forEach(s => {
+      const el = document.getElementById('s_' + s.id);
+      function displayVal(v) {
+        if (s.id === 'andOr') return v === 0 ? T('I (AND)', 'AND') : T('LUB (OR)', 'OR');
+        return (+v).toFixed(0);
+      }
+      document.getElementById('v_' + s.id).textContent = displayVal(el.value);
+      el.addEventListener('input', function() {
+        const v = +this.value;
+        if (s.id === 'nShirts') nShirts = v;
+        if (s.id === 'nPants') nPants = v;
+        if (s.id === 'nShoes') nShoes = v;
+        if (s.id === 'nBus') nBus = v;
+        if (s.id === 'nTram') nTram = v;
+        if (s.id === 'andOr') andOr = v;
+        document.getElementById('v_' + s.id).textContent = displayVal(v);
+        // Update description dynamically for stages with variable text
+        if (stage === 1 || stage === 4) {
+          descEl.textContent = stages_def[stage].desc();
+        }
+      });
+    });
+  }
+
+  // ── Navigation ────────────────────────────────────────────────
+  const prevBtn = document.getElementById('qprev');
+  const nextBtn = document.getElementById('qnext');
+  const dotsEl = document.getElementById('qdots');
+  const titleEl = document.getElementById('qf');
+  const descEl = document.getElementById('qd');
+
+  function goTo(idx) {
+    stage = Math.max(0, Math.min(stages_def.length - 1, idx));
+    const s = stages_def[stage];
+    titleEl.textContent = s.title();
+    descEl.textContent = s.desc();
+    animStartTime = Date.now();
+    if (s.sliders) {
+      const resolved = s.sliders.map(sl => ({
+        ...sl,
+        val: typeof sl.val === 'function' ? sl.val() : sl.val
+      }));
+      buildSliders(resolved);
+    } else {
+      slWrap.innerHTML = '';
+    }
+    prevBtn.disabled = stage === 0;
+    nextBtn.disabled = stage === stages_def.length - 1;
+    renderDots();
+  }
+
+  function renderDots() {
+    dotsEl.innerHTML = stages_def.map((_, i) =>
+      `<span class="dot${i === stage ? ' active' : ''}" data-i="${i}"></span>`
+    ).join('');
+    dotsEl.querySelectorAll('.dot').forEach(d =>
+      d.addEventListener('click', () => goTo(+d.dataset.i))
+    );
+  }
+
+  prevBtn.addEventListener('click', () => goTo(stage - 1));
+  nextBtn.addEventListener('click', () => goTo(stage + 1));
+
+  function tick() { clear(); stages_def[stage].draw(); requestAnimationFrame(tick); }
+  goTo(0);
+  tick();
+})();
+</script>
+</body>
+</html>
