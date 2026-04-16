@@ -284,7 +284,7 @@ function drawRightTriangle(ang){
 }
 
 function drawSineGraph(ang){
-  const gx=310, gy=40, gw=270, gh=120;
+  const gx=310, gy=95, gw=270, gh=120;
   const gcx_=gx, gcy=gy+gh/2;
 
   // graph background
@@ -334,10 +334,17 @@ function drawSineGraph(ang){
 
   // unit circle on left, smaller
   drawUnitCircle(145,155,110,ang,true);
+
+  // connecting dashed line from circle point to graph point (same y)
+  const rad_=ang*DEG;
+  const circleY=155-110*Math.sin(rad_);
+  cx.setLineDash([4,4]);cx.strokeStyle='rgba(88,196,221,.3)';cx.lineWidth=1;
+  cx.beginPath();cx.moveTo(145+110*Math.cos(rad_),circleY);cx.lineTo(sx,sy);cx.stroke();
+  cx.setLineDash([]);
 }
 
 function drawCosineGraph(ang){
-  const gx=310, gy=40, gw=270, gh=120;
+  const gx=310, gy=95, gw=270, gh=120;
   const gcy=gy+gh/2;
 
   cx.fillStyle='rgba(22,22,26,.6)';
@@ -393,6 +400,13 @@ function drawCosineGraph(ang){
   cx.fillText('sin(x)',gx+gw*0.27,gy-3);
 
   drawUnitCircle(145,155,110,ang,true);
+
+  // connecting dashed line from circle point to graph point
+  const rad_=ang*DEG;
+  const circleY=155-110*Math.sin(rad_);
+  cx.setLineDash([4,4]);cx.strokeStyle='rgba(255,154,60,.3)';cx.lineWidth=1;
+  cx.beginPath();cx.moveTo(145+110*Math.cos(rad_),circleY);cx.lineTo(sx,sy);cx.stroke();
+  cx.setLineDash([]);
 }
 
 function drawKeyAngles(){
