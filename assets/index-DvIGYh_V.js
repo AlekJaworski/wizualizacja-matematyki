@@ -208,6 +208,7 @@ y: 800
 resources:
   - "interactive|derivative-explorer.html|Derivative Explorer|Eksplorator pochodnej"
   - "interactive|product-rule-explorer.html|Product Rule — Why d/dx[x²] = 2x|Reguła iloczynu — dlaczego pochodna x² to 2x"
+  - "interactive|product-rule-general.html|🧩 Dla ciekawych: General Product Rule (f·g)' = f'g + fg'|🧩 Dla ciekawych: Ogólna reguła iloczynu (f·g)' = f'g + fg'"
 ---
 `,_h=`---
 label: "Distributions"
