@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Potegi — Skad biora sie reguly?</title>
+<title>Potęgi — Skąd biorą się reguły?</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
@@ -157,9 +157,9 @@
   const stages = [
     // Stage 1: What is a power?
     {
-      title: () => T('Czym jest potega?', 'What is a power?'),
+      title: () => T('Czym jest potęga?', 'What is a power?'),
       desc: () => T(
-        'Potega a^n oznacza: pomnoz a przez siebie n razy. Zmien podstawe (a) i wykladnik (n), zeby zobaczyc jak rosnie wynik.',
+        'Potęga a^n oznacza: pomnóż a przez siebie n razy. Zmień podstawę (a) i wykładnik (n), żeby zobaczyć jak rośnie wynik.',
         'Power a^n means: multiply a by itself n times. Change the base (a) and exponent (n) to see how the result grows.'
       ),
       sliders: [
@@ -233,9 +233,9 @@
 
     // Stage 2: Multiplying powers
     {
-      title: () => T('Mnozenie poteg: a^m * a^n = a^(m+n)', 'Multiplying powers: a^m * a^n = a^(m+n)'),
+      title: () => T('Mnożenie potęg: a^m * a^n = a^(m+n)', 'Multiplying powers: a^m * a^n = a^(m+n)'),
       desc: () => T(
-        'Mnozysz dwie potegi o tej samej podstawie? Po prostu zlacz grupy razem. m sztuk a razy n sztuk a = m+n sztuk a.',
+        'Mnożysz dwie potęgi o tej samej podstawie? Po prostu złącz grupy razem. m sztuk a razy n sztuk a = m+n sztuk a.',
         'Multiplying two powers with the same base? Just join the groups. m copies of a times n copies of a = m+n copies of a.'
       ),
       sliders: [
@@ -327,9 +327,9 @@
 
     // Stage 3: Dividing powers
     {
-      title: () => T('Dzielenie poteg: a^m / a^n = a^(m-n)', 'Dividing powers: a^m / a^n = a^(m-n)'),
+      title: () => T('Dzielenie potęg: a^m / a^n = a^(m-n)', 'Dividing powers: a^m / a^n = a^(m-n)'),
       desc: () => T(
-        'Dzielisz potegi? Skracasz wspolne czynniki. Kazdy czynnik na dole "kasuje" jeden na gorze. Zostaje m-n sztuk.',
+        'Dzielisz potęgi? Skracasz wspólne czynniki. Każdy czynnik na dole „kasuje" jeden na górze. Zostaje m-n sztuk.',
         'Dividing powers? Cancel common factors. Each factor on the bottom cancels one on top. You are left with m-n copies.'
       ),
       sliders: [
@@ -415,9 +415,9 @@
 
     // Stage 4: Power of a power
     {
-      title: () => T('Potega potegi: (a^m)^n = a^(mn)', 'Power of a power: (a^m)^n = a^(mn)'),
+      title: () => T('Potęga potęgi: (a^m)^n = a^(mn)', 'Power of a power: (a^m)^n = a^(mn)'),
       desc: () => T(
-        '(a^m)^n to n grup po m blokow. Razem m*n blokow. Dlatego wykladniki sie mnoza.',
+        '(a^m)^n to n grup po m bloków. Razem m*n bloków. Dlatego wykładniki się mnożą.',
         '(a^m)^n means n groups of m blocks each. Total: m*n blocks. That is why exponents multiply.'
       ),
       sliders: [
@@ -522,7 +522,7 @@
     {
       title: () => T('Potega zerowa i ujemna', 'Zero and negative exponents'),
       desc: () => T(
-        'Kazde dzielenie przez a zmniejsza wykladnik o 1. Kontynuuj pattern: a^1, a^0 = 1, a^(-1) = 1/a... Widzisz, skad sie bierze a^0 = 1?',
+        'Każde dzielenie przez a zmniejsza wykładnik o 1. Kontynuuj wzorzec: a^1, a^0 = 1, a^(-1) = 1/a... Widzisz, skąd się bierze a^0 = 1?',
         'Each division by a decreases the exponent by 1. Continue the pattern: a^1, a^0 = 1, a^(-1) = 1/a... See where a^0 = 1 comes from?'
       ),
       sliders: [
@@ -552,9 +552,9 @@
         cx.font = '11px monospace';
         cx.fillStyle = 'rgba(255,255,255,.35)';
         cx.textAlign = 'center';
-        cx.fillText(T('potega', 'power'), colExp, startY);
+        cx.fillText(T('potęga', 'power'), colExp, startY);
         cx.fillText('=', (colExp + colVal) / 2, startY);
-        cx.fillText(T('wartosc', 'value'), colVal, startY);
+        cx.fillText(T('wartość', 'value'), colVal, startY);
         cx.restore();
 
         for (let i = 0; i < entries.length; i++) {
