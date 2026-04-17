@@ -132,6 +132,47 @@
     cx.restore();
   }
 
+  // Crisp check / cross drawn as canvas paths (avoids Unicode font fallback)
+  function drawCheck(x, y, size, color) {
+    cx.save();
+    cx.strokeStyle = color;
+    cx.lineWidth = Math.max(2, size / 5);
+    cx.lineCap = 'round';
+    cx.lineJoin = 'round';
+    cx.beginPath();
+    cx.moveTo(x - size * 0.45, y + size * 0.05);
+    cx.lineTo(x - size * 0.10, y + size * 0.38);
+    cx.lineTo(x + size * 0.48, y - size * 0.38);
+    cx.stroke();
+    cx.restore();
+  }
+
+  function drawCross(x, y, size, color) {
+    cx.save();
+    cx.strokeStyle = color;
+    cx.lineWidth = Math.max(1.5, size / 6);
+    cx.lineCap = 'round';
+    cx.beginPath();
+    cx.moveTo(x - size * 0.38, y - size * 0.38);
+    cx.lineTo(x + size * 0.38, y + size * 0.38);
+    cx.moveTo(x + size * 0.38, y - size * 0.38);
+    cx.lineTo(x - size * 0.38, y + size * 0.38);
+    cx.stroke();
+    cx.restore();
+  }
+
+  function drawBadge(x, y, pass, size) {
+    cx.save();
+    // filled circle background
+    cx.beginPath();
+    cx.arc(x, y, size, 0, Math.PI * 2);
+    cx.fillStyle = pass ? 'rgba(131,193,103,0.9)' : 'rgba(80,80,90,0.5)';
+    cx.fill();
+    cx.restore();
+    if (pass) drawCheck(x, y, size * 1.2, '#0e0e12');
+    else      drawCross(x, y, size * 1.1, 'rgba(255,255,255,0.55)');
+  }
+
   // ── Stage 0: Number Line ─────────────────────────────────────
 
   function drawNumberLine() {
@@ -275,34 +316,12 @@
     drawTextC(T('naturalne', 'naturals'), W / 2 + 95, ly, '11px monospace', 'rgba(255,255,255,0.5)', 'left');
   }
 
-  // ── Stage 1: Divisibility Rules ──────────────────────────────
+  // ── Stage 1: Divisibility Rules — Basic (licealne) ───────────
 
-  function drawDivisibility() {
-    const n = divN;
-    const digits = String(n).split('').map(Number);
-    const lastDigit = digits[digits.length - 1];
-    const lastTwo = n % 100;
-    const dSum = digitSum(n);
-
-    // Number at top
-    drawGlow(String(n), W / 2, 35, 'bold 28px monospace', CYAN);
-
-    const rules = [
-      { d: 2,  pass: n % 2 === 0,  rule: T('ostatnia cyfra parzysta', 'last digit even'),          detail: T('ostatnia: ' + lastDigit, 'last: ' + lastDigit) },
-      { d: 3,  pass: n % 3 === 0,  rule: T('suma cyfr \u00F7 3', 'digit sum \u00F7 3'),            detail: digits.join('+') + ' = ' + dSum + (n % 3 === 0 ? ' \u2713' : '') },
-      { d: 4,  pass: n % 4 === 0,  rule: T('ostatnie 2 cyfry \u00F7 4', 'last 2 digits \u00F7 4'), detail: (n >= 100 ? '...' : '') + String(lastTwo).padStart(2, '0') + ' \u00F7 4 = ' + (lastTwo / 4).toFixed(lastTwo % 4 === 0 ? 0 : 1) },
-      { d: 5,  pass: n % 5 === 0,  rule: T('ostatnia 0 lub 5', 'last digit 0 or 5'),               detail: T('ostatnia: ' + lastDigit, 'last: ' + lastDigit) },
-      { d: 6,  pass: n % 6 === 0,  rule: T('\u00F7 2 i \u00F7 3', '\u00F7 2 and \u00F7 3'),       detail: (n % 2 === 0 ? '\u27132' : '\u27172') + ' ' + (n % 3 === 0 ? '\u27133' : '\u27173') },
-      { d: 8,  pass: n % 8 === 0,  rule: T('ostatnie 3 cyfry \u00F7 8', 'last 3 digits \u00F7 8'), detail: String(n % 1000) + ' \u00F7 8 = ' + (n % 1000 / 8).toFixed(n % 8 === 0 ? 0 : 1) },
-      { d: 9,  pass: n % 9 === 0,  rule: T('suma cyfr \u00F7 9', 'digit sum \u00F7 9'),            detail: digits.join('+') + ' = ' + dSum + (n % 9 === 0 ? ' \u2713' : '') },
-      { d: 10, pass: n % 10 === 0, rule: T('ostatnia cyfra 0', 'last digit 0'),                     detail: T('ostatnia: ' + lastDigit, 'last: ' + lastDigit) },
-    ];
-
-    const cols = 2;
-    const rows = 4;
+  function drawDivisibilityGrid(rules, cols) {
     const cellW = (W - 40) / cols;
-    const cellH = 72;
-    const startY = 65;
+    const cellH = 82;
+    const startY = 46;
     const startX = 20;
 
     rules.forEach((r, i) => {
@@ -311,40 +330,176 @@
       const x = startX + col * cellW;
       const y = startY + row * cellH;
 
-      // Background
-      cx.fillStyle = r.pass ? 'rgba(131,193,103,0.08)' : 'rgba(255,255,255,0.02)';
+      // Background — stronger fill for "easy" divisors that pass
+      cx.fillStyle = r.pass
+        ? (r.easy ? 'rgba(131,193,103,0.14)' : 'rgba(131,193,103,0.08)')
+        : 'rgba(255,255,255,0.025)';
       cx.beginPath();
-      cx.roundRect(x + 2, y + 2, cellW - 4, cellH - 6, 6);
+      cx.roundRect(x + 3, y + 2, cellW - 6, cellH - 6, 7);
       cx.fill();
 
-      // Border
-      cx.strokeStyle = r.pass ? 'rgba(131,193,103,0.3)' : 'rgba(255,255,255,0.06)';
+      cx.strokeStyle = r.pass
+        ? (r.easy ? 'rgba(131,193,103,0.5)' : 'rgba(131,193,103,0.3)')
+        : 'rgba(255,255,255,0.08)';
       cx.lineWidth = 1;
       cx.beginPath();
-      cx.roundRect(x + 2, y + 2, cellW - 4, cellH - 6, 6);
+      cx.roundRect(x + 3, y + 2, cellW - 6, cellH - 6, 7);
       cx.stroke();
 
-      // Divisor and check/cross
-      const mark = r.pass ? '\u2713' : '\u2717';
-      const markColor = r.pass ? GREEN : 'rgba(255,255,255,0.2)';
-      const textColor = r.pass ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.25)';
+      const textColor = r.pass ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)';
 
-      drawTextC('\u00F7' + r.d, x + 28, y + 20, 'bold 15px monospace', textColor);
-      drawTextC(mark, x + cellW - 25, y + 20, 'bold 16px monospace', markColor);
+      // Divisor label (left) — stars for "easy" rules
+      const dLabel = '\u00F7' + r.d + (r.easy ? ' \u2605' : '');
+      drawTextC(dLabel, x + 16, y + 18, 'bold 15px monospace', textColor, 'left');
 
-      // Rule description
-      drawTextC(r.rule, x + cellW / 2, y + 40, '10px monospace', r.pass ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.18)', 'center');
+      // Check/cross badge (right) — drawn as canvas path for reliable rendering
+      drawBadge(x + cellW - 22, y + 18, r.pass, 9);
 
-      // Detail
-      drawTextC(r.detail, x + cellW / 2, y + 56, '10px monospace', r.pass ? YELLOW : 'rgba(255,255,255,0.13)', 'center');
+      // Rule (small dim)
+      drawTextC(r.rule, x + cellW / 2, y + 36, '10px monospace',
+        r.pass ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.22)', 'center');
+
+      // Detail — the actual computation for this n (prominent)
+      drawTextC(r.detail, x + cellW / 2, y + 52, 'bold 11px monospace',
+        r.pass ? YELLOW : 'rgba(255,255,255,0.18)', 'center');
+
+      // Why — the proof principle (separated, clearly visible)
+      cx.save();
+      cx.fillStyle = r.pass ? 'rgba(192,128,255,0.1)' : 'rgba(255,255,255,0.02)';
+      cx.fillRect(x + 8, y + 62, cellW - 16, 14);
+      cx.restore();
+      drawTextC(r.why, x + cellW / 2, y + 69, 'bold 10px monospace',
+        r.pass ? '#C080FF' : 'rgba(255,255,255,0.18)', 'center');
     });
-
-    // Digits breakdown at bottom
-    const bottomY = H - 20;
-    drawTextC(T('Cyfry: ', 'Digits: ') + digits.join(', ') + '   |   ' + T('Suma cyfr: ', 'Digit sum: ') + dSum, W / 2, bottomY, '11px monospace', 'rgba(255,255,255,0.4)');
   }
 
-  // ── Stage 2: Prime Factorization Tree ────────────────────────
+  function drawDivisibility() {
+    const n = divN;
+    const digits = String(n).split('').map(Number);
+    const lastDigit = digits[digits.length - 1];
+    const lastTwo = n % 100;
+    const dSum = digitSum(n);
+    const altSum = digits.slice().reverse().reduce((s, d, i) => s + d * (i % 2 === 0 ? 1 : -1), 0);
+    const a7 = Math.floor(n / 10);
+    const b7 = lastDigit;
+    const val7 = a7 - 2 * b7;
+
+    drawGlow(String(n), W / 2, 28, 'bold 24px monospace', CYAN);
+
+    const rules = [
+      { d: 2,  easy: true,  pass: n % 2 === 0, rule: T('ostatnia cyfra parzysta', 'last digit even'),
+        detail: T('ostatnia: ' + lastDigit, 'last: ' + lastDigit),
+        why: T('bo 10 \u2261 0 (mod 2)', 'because 10 \u2261 0 (mod 2)') },
+      { d: 3,  easy: true,  pass: n % 3 === 0, rule: T('suma cyfr \u00F7 3', 'digit sum \u00F7 3'),
+        detail: digits.join('+') + ' = ' + dSum + (n % 3 === 0 ? ' \u2713' : ''),
+        why: T('bo 10 \u2261 1 (mod 3)', 'because 10 \u2261 1 (mod 3)') },
+      { d: 4,  easy: false, pass: n % 4 === 0, rule: T('ostatnie 2 cyfry \u00F7 4', 'last 2 digits \u00F7 4'),
+        detail: (n >= 100 ? '...' : '') + String(lastTwo).padStart(2, '0') + ' \u00F7 4 = ' + (lastTwo / 4).toFixed(lastTwo % 4 === 0 ? 0 : 1),
+        why: T('bo 100 \u2261 0 (mod 4)', 'because 100 \u2261 0 (mod 4)') },
+      { d: 5,  easy: true,  pass: n % 5 === 0, rule: T('ostatnia 0 lub 5', 'last digit 0 or 5'),
+        detail: T('ostatnia: ' + lastDigit, 'last: ' + lastDigit),
+        why: T('bo 10 \u2261 0 (mod 5)', 'because 10 \u2261 0 (mod 5)') },
+      { d: 7,  easy: false, pass: n % 7 === 0, rule: T('|a\u22122b| \u00F7 7 (a=reszta, b=ost.)', '|a\u22122b| \u00F7 7 (a=rest, b=last)'),
+        detail: a7 + '\u22122\u00B7' + b7 + ' = ' + val7 + (n % 7 === 0 ? ' \u2713' : ''),
+        why: T('bo 21 = 3\u00B77', 'because 21 = 3\u00B77') },
+      { d: 9,  easy: true,  pass: n % 9 === 0, rule: T('suma cyfr \u00F7 9', 'digit sum \u00F7 9'),
+        detail: digits.join('+') + ' = ' + dSum + (n % 9 === 0 ? ' \u2713' : ''),
+        why: T('bo 10 \u2261 1 (mod 9)', 'because 10 \u2261 1 (mod 9)') },
+      { d: 11, easy: true,  pass: n % 11 === 0, rule: T('suma naprzemienna \u00F7 11', 'alt. digit sum \u00F7 11'),
+        detail: 'alt = ' + altSum + (n % 11 === 0 ? ' \u2713' : ''),
+        why: T('bo 10 \u2261 \u22121 (mod 11)', 'because 10 \u2261 \u22121 (mod 11)') },
+    ];
+
+    drawDivisibilityGrid(rules, 2);
+
+    drawTextC(T('\u2605 najprostsze: 2, 3, 5, 9, 11', '\u2605 easiest: 2, 3, 5, 9, 11') + '   \u2014   ' + T('Cyfry: ', 'Digits: ') + digits.join(', '),
+      W / 2, H - 12, '10px monospace', 'rgba(255,255,255,0.5)');
+  }
+
+  // ── Stage 2: Divisibility Rules — Additional ─────────────────
+
+  function drawDivisibilityExtra() {
+    const n = divN;
+    const digits = String(n).split('').map(Number);
+    const lastDigit = digits[digits.length - 1];
+    const lastThree = n % 1000;
+
+    drawGlow(String(n), W / 2, 28, 'bold 24px monospace', CYAN);
+
+    const rules = [
+      { d: 6,  easy: false, pass: n % 6 === 0, rule: T('\u00F7 2 i \u00F7 3', '\u00F7 2 and \u00F7 3'),
+        detail: (n % 2 === 0 ? '\u27132' : '\u27172') + '  ' + (n % 3 === 0 ? '\u27133' : '\u27173'),
+        why: T('bo 6=2\u00B73, NWD(2,3)=1', 'because 6=2\u00B73, gcd(2,3)=1') },
+      { d: 8,  easy: false, pass: n % 8 === 0, rule: T('ostatnie 3 cyfry \u00F7 8', 'last 3 digits \u00F7 8'),
+        detail: String(lastThree) + ' \u00F7 8 = ' + (lastThree / 8).toFixed(n % 8 === 0 ? 0 : 1),
+        why: T('bo 1000 \u2261 0 (mod 8)', 'because 1000 \u2261 0 (mod 8)') },
+      { d: 10, easy: false, pass: n % 10 === 0, rule: T('ostatnia cyfra 0', 'last digit 0'),
+        detail: T('ostatnia: ' + lastDigit, 'last: ' + lastDigit),
+        why: T('bo 10 \u2261 0 (mod 10)', 'because 10 \u2261 0 (mod 10)') },
+    ];
+
+    // Wide horizontal cells: 3 cols × 1 row
+    const cellW = (W - 40) / 3;
+    const cellH = 170;
+    const startY = 60;
+    const startX = 20;
+
+    rules.forEach((r, i) => {
+      const x = startX + i * cellW;
+      const y = startY;
+
+      cx.fillStyle = r.pass ? 'rgba(131,193,103,0.12)' : 'rgba(255,255,255,0.03)';
+      cx.beginPath();
+      cx.roundRect(x + 6, y + 4, cellW - 12, cellH - 8, 10);
+      cx.fill();
+
+      cx.strokeStyle = r.pass ? 'rgba(131,193,103,0.45)' : 'rgba(255,255,255,0.08)';
+      cx.lineWidth = 1;
+      cx.beginPath();
+      cx.roundRect(x + 6, y + 4, cellW - 12, cellH - 8, 10);
+      cx.stroke();
+
+      const textColor = r.pass ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)';
+
+      // Big divisor number centered at top
+      drawTextC('\u00F7' + r.d, x + cellW / 2, y + 30, 'bold 26px monospace', textColor);
+
+      // Badge in top-right corner (drawn, not Unicode)
+      drawBadge(x + cellW - 22, y + 22, r.pass, 11);
+
+      // Rule (headline)
+      drawTextC(r.rule, x + cellW / 2, y + 70, 'bold 11px monospace',
+        r.pass ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.22)', 'center');
+
+      // Detail — the computation
+      drawTextC(r.detail, x + cellW / 2, y + 100, 'bold 12px monospace',
+        r.pass ? YELLOW : 'rgba(255,255,255,0.18)', 'center');
+
+      // Why — proof principle in a highlighted box
+      cx.save();
+      cx.fillStyle = r.pass ? 'rgba(192,128,255,0.12)' : 'rgba(255,255,255,0.02)';
+      cx.fillRect(x + 12, y + 128, cellW - 24, 28);
+      cx.strokeStyle = r.pass ? 'rgba(192,128,255,0.35)' : 'rgba(255,255,255,0.05)';
+      cx.lineWidth = 0.5;
+      cx.strokeRect(x + 12, y + 128, cellW - 24, 28);
+      cx.restore();
+
+      drawTextC(T('DLACZEGO', 'WHY'), x + cellW / 2, y + 136, 'bold 8px monospace',
+        r.pass ? 'rgba(192,128,255,0.6)' : 'rgba(255,255,255,0.15)', 'center');
+      drawTextC(r.why, x + cellW / 2, y + 150, 'bold 11px monospace',
+        r.pass ? '#C080FF' : 'rgba(255,255,255,0.18)', 'center');
+    });
+
+    // Footer note
+    drawTextC(T('\u00BB Te cechy wywodz\u0105 si\u0119 z podstawowych \u2014 osobny modu\u0142 arytmetyki modulo rozwija to.', '\u00BB These derive from basic rules \u2014 see the modular arithmetic module.'),
+      W / 2, 255, '11px monospace', 'rgba(255,255,255,0.55)');
+    drawTextC(T('6 = 2\u00B73 (wzgl. pierwsze)  \u2022  8 = 2\u00B3 \u2192 potrzeba 10\u00B3  \u2022  10 = 2\u00B75', '6 = 2\u00B73 (coprime)  \u2022  8 = 2\u00B3 \u2192 need 10\u00B3  \u2022  10 = 2\u00B75'),
+      W / 2, 275, '10px monospace', 'rgba(192,128,255,0.75)');
+
+    drawTextC(T('Cyfry: ', 'Digits: ') + digits.join(', '), W / 2, H - 12, '10px monospace', 'rgba(255,255,255,0.45)');
+  }
+
+  // ── Stage 3: Prime Factorization Tree ────────────────────────
 
   function drawFactorTree() {
     const n = factN;
@@ -726,15 +881,26 @@
       draw: drawNumberLine
     },
     {
-      title: () => T('Cechy podzielnosci', 'Divisibility Rules'),
+      title: () => T('Cechy podzielnosci (licealne)', 'Divisibility Rules (school)'),
       desc: () => T(
-        'Kazda liczba niesie ukryte informacje o swoich dzielnikach. Zmien liczbe suwakiem i sprawdz, ktore cechy podzielnosci spelnia \u2014 i DLACZEGO.',
-        'Every number carries hidden info about its divisors. Change the number and check which divisibility rules it satisfies \u2014 and WHY.'
+        'Klasyczne cechy dla 2, 3, 4, 5, 7, 9, 11. Gwiazdka \u2605 oznacza najprostsze (2, 3, 5, 9, 11). Ka\u017Cda kafelka poda DLACZEGO regu\u0142a dzia\u0142a \u2014 kluczem jest 10 mod m.',
+        'Classic rules for 2, 3, 4, 5, 7, 9, 11. Star \u2605 marks the easiest (2, 3, 5, 9, 11). Each card shows WHY the rule works \u2014 the key is 10 mod m.'
       ),
       sliders: [
         { id: 'divN', lbl: 'n', color: CYAN, min: 2, max: 999, step: 1, val: () => divN },
       ],
       draw: drawDivisibility
+    },
+    {
+      title: () => T('Cechy dodatkowe (6, 8, 10)', 'Additional Rules (6, 8, 10)'),
+      desc: () => T(
+        'Cechy \u201Ewywodz\u0105ce si\u0119\u201D z podstawowych: 6 = 2\u00B73, 8 potrzebuje 10\u00B3, 10 to po prostu ostatnia cyfra. Zobacz, jak sk\u0142adaj\u0105 si\u0119 z prostszych cech.',
+        'Rules derived from the basics: 6 = 2\u00B73, 8 needs 10\u00B3, 10 is just the last digit. See how they compose from simpler rules.'
+      ),
+      sliders: [
+        { id: 'divN', lbl: 'n', color: CYAN, min: 2, max: 999, step: 1, val: () => divN },
+      ],
+      draw: drawDivisibilityExtra
     },
     {
       title: () => T('Rozklad na czynniki pierwsze', 'Prime Factorization'),

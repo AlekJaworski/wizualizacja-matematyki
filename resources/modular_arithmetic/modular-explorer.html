@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arytmetyka modulo — Eksplorator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+  #qf { margin: 0 0 5px; font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  #qd { margin: 0 0 10px; font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); min-height: 48px; white-space: pre-line; }
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 70px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+  .nav { display: flex; align-items: center; justify-content: space-between; }
+  button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  button:hover { background: rgba(255,255,255,.08); }
+  button:disabled { opacity: .3; cursor: default; }
+  #qdots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.18); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  #sliders-wrap { min-height: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="400"></canvas>
+  <div class="panel">
+    <p id="qf"></p>
+    <p id="qd"></p>
+    <div id="sliders-wrap"></div>
+    <div class="nav">
+      <button id="qprev">&larr;</button>
+      <div id="qdots"></div>
+      <button id="qnext">&rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const cv = document.getElementById('cv');
+  const cx = cv.getContext('2d');
+  const W = 600, H = 400;
+
+  const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
+  const T = (pl, en) => LANG === 'pl' ? pl : en;
+
+  // Colors
+  const CYAN   = '#58C4DD';
+  const ORANGE = '#FF6B35';
+  const GREEN  = '#83C167';
+  const YELLOW = '#FFD166';
+  const PINK   = '#E07090';
+  const PURPLE = '#C080FF';
+  const DIM    = 'rgba(255,255,255,0.2)';
+
+  // Class color palette for residues
+  const CLASS_COLORS = ['#58C4DD', '#FF6B35', '#83C167', '#FFD166', '#E07090', '#C080FF', '#99DDFF', '#FF9999', '#DDFF99', '#FFCC99', '#CC99FF', '#99FFDD', '#FFDD99'];
+
+  // State
+  let clockM = 12;   // modulo for clock stage
+  let clockN = 17;   // number to place on clock
+  let tableM = 11;   // modulo for 10^k table
+  let stage = 0;
+
+  function clear() { cx.fillStyle = '#0e0e12'; cx.fillRect(0, 0, W, H); }
+
+  // ── Drawing helpers ──────────────────────────────────────────
+
+  function drawTextC(text, x, y, font, color, align) {
+    cx.save();
+    cx.font = font || '13px monospace';
+    cx.fillStyle = color || 'rgba(255,255,255,0.7)';
+    cx.textAlign = align || 'center';
+    cx.textBaseline = 'middle';
+    cx.fillText(text, x, y);
+    cx.restore();
+  }
+
+  function drawGlow(text, x, y, font, color) {
+    cx.save();
+    cx.font = font || 'bold 22px monospace';
+    cx.textAlign = 'center';
+    cx.textBaseline = 'middle';
+    cx.fillStyle = color || YELLOW;
+    cx.shadowColor = color || YELLOW;
+    cx.shadowBlur = 15;
+    cx.fillText(text, x, y);
+    cx.shadowBlur = 0;
+    cx.restore();
+  }
+
+  // positive modulo
+  function mod(n, m) { return ((n % m) + m) % m; }
+
+  // ── Stage 0: Clock (Zegar modulo) ────────────────────────────
+
+  function drawClock() {
+    const m = clockM;
+    const n = clockN;
+    const r = mod(n, m);
+    const q = Math.floor(n / m);
+
+    // Title
+    drawTextC(T('Zegar modulo ' + m, 'Clock modulo ' + m), W / 2, 22, 'bold 14px monospace', CYAN);
+
+    // Clock face
+    const cxC = 200, cyC = 215, R = 130;
+
+    // Outer ring
+    cx.save();
+    cx.strokeStyle = 'rgba(255,255,255,0.25)';
+    cx.lineWidth = 2;
+    cx.beginPath();
+    cx.arc(cxC, cyC, R, 0, Math.PI * 2);
+    cx.stroke();
+    cx.restore();
+
+    // Tick marks and labels for positions 0..m-1
+    for (let k = 0; k < m; k++) {
+      const angle = -Math.PI / 2 + (k / m) * 2 * Math.PI;
+      const tx = cxC + Math.cos(angle) * R;
+      const ty = cyC + Math.sin(angle) * R;
+      const lx = cxC + Math.cos(angle) * (R + 18);
+      const ly = cyC + Math.sin(angle) * (R + 18);
+      const isResidue = k === r;
+
+      // Tick
+      cx.save();
+      cx.strokeStyle = isResidue ? GREEN : 'rgba(255,255,255,0.35)';
+      cx.lineWidth = isResidue ? 3 : 1;
+      const inner = isResidue ? R - 14 : R - 8;
+      cx.beginPath();
+      cx.moveTo(cxC + Math.cos(angle) * inner, cyC + Math.sin(angle) * inner);
+      cx.lineTo(tx, ty);
+      cx.stroke();
+      cx.restore();
+
+      // Dot
+      cx.beginPath();
+      cx.arc(tx, ty, isResidue ? 7 : 3, 0, Math.PI * 2);
+      cx.fillStyle = isResidue ? GREEN : 'rgba(255,255,255,0.4)';
+      if (isResidue) { cx.shadowColor = GREEN; cx.shadowBlur = 12; }
+      cx.fill();
+      cx.shadowBlur = 0;
+
+      // Label
+      drawTextC(String(k), lx, ly, isResidue ? 'bold 13px monospace' : '11px monospace',
+        isResidue ? GREEN : 'rgba(255,255,255,0.55)');
+    }
+
+    // Spiral path from 0 up to n (shows how n "wraps around")
+    if (n > 0 && n <= 150) {
+      cx.save();
+      cx.strokeStyle = 'rgba(88,196,221,0.35)';
+      cx.lineWidth = 1.5;
+      cx.beginPath();
+      for (let k = 0; k <= n; k++) {
+        const angle = -Math.PI / 2 + (k / m) * 2 * Math.PI;
+        const rk = R - 14 - Math.min(q, 5) * 3 + (k / n) * Math.min(q, 5) * 3;
+        const px = cxC + Math.cos(angle) * rk;
+        const py = cyC + Math.sin(angle) * rk;
+        if (k === 0) cx.moveTo(px, py);
+        else cx.lineTo(px, py);
+      }
+      cx.stroke();
+      cx.restore();
+    }
+
+    // Center label
+    drawGlow(String(n), cxC, cyC - 18, 'bold 32px monospace', CYAN);
+    drawTextC(T('\u2261 ' + r + ' (mod ' + m + ')', '\u2261 ' + r + ' (mod ' + m + ')'),
+      cxC, cyC + 12, 'bold 14px monospace', GREEN);
+    drawTextC(n + ' = ' + q + '\u00B7' + m + ' + ' + r, cxC, cyC + 34, '12px monospace', YELLOW);
+
+    // Side panel with explanation
+    const panelX = 370;
+    cx.save();
+    cx.fillStyle = 'rgba(255,255,255,0.03)';
+    cx.fillRect(panelX, 60, 210, 310);
+    cx.strokeStyle = 'rgba(255,255,255,0.1)';
+    cx.strokeRect(panelX, 60, 210, 310);
+    cx.restore();
+
+    drawTextC(T('Definicja', 'Definition'), panelX + 105, 80, 'bold 12px monospace', PURPLE);
+    drawTextC('a \u2261 b (mod m)', panelX + 105, 102, 'bold 14px monospace', 'rgba(255,255,255,0.9)');
+    drawTextC(T('gdy m | (a \u2212 b)', 'iff m | (a \u2212 b)'), panelX + 105, 122, '11px monospace', 'rgba(255,255,255,0.6)');
+
+    // Separator
+    cx.strokeStyle = 'rgba(255,255,255,0.1)';
+    cx.lineWidth = 0.5;
+    cx.beginPath();
+    cx.moveTo(panelX + 15, 140); cx.lineTo(panelX + 195, 140);
+    cx.stroke();
+
+    drawTextC(T('Przyk\u0142ad zegara', 'Clock example'), panelX + 105, 160, 'bold 11px monospace', 'rgba(255,255,255,0.55)');
+    drawTextC(T('13:00 \u2261 1:00 (mod 12)', '13:00 \u2261 1:00 (mod 12)'), panelX + 105, 180, '11px monospace', 'rgba(255,255,255,0.7)');
+    drawTextC(T('25:00 \u2261 1:00 (mod 12)', '25:00 \u2261 1:00 (mod 12)'), panelX + 105, 198, '11px monospace', 'rgba(255,255,255,0.7)');
+
+    cx.beginPath();
+    cx.moveTo(panelX + 15, 218); cx.lineTo(panelX + 195, 218);
+    cx.stroke();
+
+    // Current computation
+    drawTextC(T('Dla Twoich warto\u015Bci:', 'For your values:'), panelX + 105, 238, 'bold 11px monospace', 'rgba(255,255,255,0.55)');
+    drawTextC('n = ' + n, panelX + 25, 258, '12px monospace', CYAN, 'left');
+    drawTextC('m = ' + m, panelX + 25, 276, '12px monospace', ORANGE, 'left');
+    drawTextC('n \u00F7 m:', panelX + 25, 298, '11px monospace', 'rgba(255,255,255,0.6)', 'left');
+    drawTextC(T('iloraz q = ' + q, 'quotient q = ' + q), panelX + 35, 316, '11px monospace', YELLOW, 'left');
+    drawTextC(T('reszta r = ' + r, 'remainder r = ' + r), panelX + 35, 334, 'bold 11px monospace', GREEN, 'left');
+    drawTextC(T('\u2192 n \u2261 ' + r + ' (mod ' + m + ')', '\u2192 n \u2261 ' + r + ' (mod ' + m + ')'), panelX + 105, 356, 'bold 11px monospace', PURPLE);
+  }
+
+  // ── Stage 1: 10^k mod m table ────────────────────────────────
+
+  function drawPowerTable() {
+    const m = tableM;
+    const K = 8;  // number of powers to show
+
+    // Compute 10^k mod m (canonical 0..m-1, plus signed version -m/2..m/2)
+    const pows = [];
+    const signed = [];
+    for (let k = 0; k < K; k++) {
+      const v = mod(Math.pow(10, k), m);
+      pows.push(v);
+      // pick signed representation closer to 0
+      signed.push(v > m / 2 ? v - m : v);
+    }
+
+    // Detect cycle length
+    let cycleLen = 0;
+    for (let len = 1; len <= K - 1; len++) {
+      let ok = true;
+      for (let j = len; j < K; j++) {
+        if (pows[j] !== pows[j - len]) { ok = false; break; }
+      }
+      if (ok) { cycleLen = len; break; }
+    }
+
+    // Title
+    drawTextC(T('Klucz cech podzielno\u015Bci: 10\u1D4F mod ' + m, 'Divisibility key: 10\u1D4F mod ' + m),
+      W / 2, 22, 'bold 14px monospace', CYAN);
+
+    // Explanation
+    drawTextC(T('Ka\u017Cda cyfra d\u1D62 z pozycji 10\u1D62 wnosi d\u1D62 \u00B7 (10\u1D62 mod m) do n mod m.', 'Each digit d\u1D62 at position 10\u1D62 contributes d\u1D62 \u00B7 (10\u1D62 mod m) to n mod m.'),
+      W / 2, 42, '11px monospace', 'rgba(255,255,255,0.6)');
+
+    // Draw the power sequence as boxes
+    const boxW = 58;
+    const boxH = 58;
+    const startX = (W - K * boxW) / 2;
+    const startY = 70;
+
+    for (let k = 0; k < K; k++) {
+      const x = startX + k * boxW;
+      const v = pows[k];
+      const sv = signed[k];
+      const inCycle = cycleLen > 0 && k >= cycleLen;
+
+      // Color code
+      let color = 'rgba(255,255,255,0.5)';
+      if (v === 0) color = GREEN;
+      else if (v === 1) color = CYAN;
+      else if (sv === -1) color = PINK;
+      else color = YELLOW;
+
+      // Background
+      cx.save();
+      cx.fillStyle = inCycle ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)';
+      cx.fillRect(x + 3, startY + 3, boxW - 6, boxH - 6);
+      cx.strokeStyle = inCycle ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.2)';
+      cx.lineWidth = 1;
+      cx.strokeRect(x + 3, startY + 3, boxW - 6, boxH - 6);
+      cx.restore();
+
+      // Power label (10^k)
+      drawTextC('10' + (k === 0 ? '\u2070' : k === 1 ? '\u00B9' : k === 2 ? '\u00B2' : k === 3 ? '\u00B3' : '\u207' + (k - 0)),
+        x + boxW / 2, startY + 14, '11px monospace', 'rgba(255,255,255,0.55)');
+
+      // Value mod m — prominent
+      const displayText = (Math.abs(sv) < v) ? (sv < 0 ? '\u2212' + Math.abs(sv) : String(sv)) : String(v);
+      drawTextC(displayText, x + boxW / 2, startY + 36, 'bold 20px monospace', color);
+
+      // Show actual value below if using signed form
+      if (Math.abs(sv) < v && sv !== v) {
+        drawTextC('(= ' + v + ')', x + boxW / 2, startY + 50, '9px monospace', 'rgba(255,255,255,0.4)');
+      }
+    }
+
+    // Cycle indicator
+    if (cycleLen > 0 && cycleLen < K) {
+      const cycY = startY + boxH + 6;
+      const cycX1 = startX + 3;
+      const cycX2 = startX + cycleLen * boxW - 3;
+      cx.save();
+      cx.strokeStyle = PURPLE;
+      cx.lineWidth = 1.5;
+      cx.setLineDash([4, 3]);
+      cx.beginPath();
+      cx.moveTo(cycX1, cycY);
+      cx.lineTo(cycX1, cycY + 6);
+      cx.lineTo(cycX2, cycY + 6);
+      cx.lineTo(cycX2, cycY);
+      cx.stroke();
+      cx.setLineDash([]);
+      cx.restore();
+      drawTextC(T('cykl d\u0142. ' + cycleLen, 'cycle len ' + cycleLen), (cycX1 + cycX2) / 2, cycY + 18,
+        'bold 10px monospace', PURPLE);
+    }
+
+    // Conclusion box — the "cecha" derived
+    const concY = 200;
+    cx.save();
+    cx.fillStyle = 'rgba(192,128,255,0.08)';
+    cx.fillRect(30, concY, W - 60, 80);
+    cx.strokeStyle = 'rgba(192,128,255,0.3)';
+    cx.lineWidth = 1;
+    cx.strokeRect(30, concY, W - 60, 80);
+    cx.restore();
+
+    drawTextC(T('Cecha podzielno\u015Bci przez ' + m, 'Divisibility rule for ' + m), W / 2, concY + 15, 'bold 12px monospace', PURPLE);
+
+    // Determine the rule type
+    let ruleText;
+    const p1 = pows[1], p2 = pows[2], p3 = pows[3];
+    if (p1 === 0) {
+      ruleText = T('\u2192 ostatnia cyfra wystarczy (10 \u2261 0)', '\u2192 last digit suffices (10 \u2261 0)');
+    } else if (p2 === 0 && p1 !== 0) {
+      ruleText = T('\u2192 ostatnie 2 cyfry wystarcz\u0105 (100 \u2261 0)', '\u2192 last 2 digits suffice (100 \u2261 0)');
+    } else if (p3 === 0) {
+      ruleText = T('\u2192 ostatnie 3 cyfry wystarcz\u0105 (1000 \u2261 0)', '\u2192 last 3 digits suffice (1000 \u2261 0)');
+    } else if (p1 === 1) {
+      ruleText = T('\u2192 suma cyfr (wszystkie 10\u1D4F \u2261 1)', '\u2192 digit sum (all 10\u1D4F \u2261 1)');
+    } else if (signed[1] === -1) {
+      ruleText = T('\u2192 suma naprzemienna (10 \u2261 \u22121)', '\u2192 alternating sum (10 \u2261 \u22121)');
+    } else {
+      ruleText = T('\u2192 brak prostej cechy (z\u0142o\u017Cony cykl)', '\u2192 no simple rule (complex cycle)');
+    }
+    drawTextC(ruleText, W / 2, concY + 38, 'bold 14px monospace', 'rgba(255,255,255,0.9)');
+
+    // Why explanation
+    drawTextC(T('n mod ' + m + ' = \u03A3 d\u1D62 \u00B7 (10\u1D62 mod ' + m + ')', 'n mod ' + m + ' = \u03A3 d\u1D62 \u00B7 (10\u1D62 mod ' + m + ')'),
+      W / 2, concY + 62, '11px monospace', YELLOW);
+
+    // Legend
+    const legY = H - 70;
+    cx.save();
+    cx.fillStyle = 'rgba(255,255,255,0.02)';
+    cx.fillRect(30, legY - 18, W - 60, 60);
+    cx.restore();
+    drawTextC(T('Legenda kolor\u00F3w:', 'Color legend:'), W / 2, legY - 5, 'bold 10px monospace', 'rgba(255,255,255,0.5)');
+
+    const lxs = [70, 210, 350, 490];
+    const ls = [
+      { c: GREEN,  t: T('0 \u2192 cyfry znikaj\u0105', '0 \u2192 digits vanish') },
+      { c: CYAN,   t: T('1 \u2192 suma cyfr',          '1 \u2192 digit sum') },
+      { c: PINK,   t: T('\u22121 \u2192 naprzemienna', '\u22121 \u2192 alternating') },
+      { c: YELLOW, t: T('inne \u2192 cykl',            'other \u2192 cycle') },
+    ];
+    ls.forEach((l, i) => {
+      cx.beginPath();
+      cx.arc(lxs[i] - 40, legY + 15, 5, 0, Math.PI * 2);
+      cx.fillStyle = l.c; cx.fill();
+      drawTextC(l.t, lxs[i] - 30, legY + 15, '10px monospace', 'rgba(255,255,255,0.6)', 'left');
+    });
+  }
+
+  // ── Stage 2: Worked proof (384 mod 11) ──────────────────────
+
+  function drawWorkedProof() {
+    // Title
+    drawTextC(T('Dow\u00F3d: 384 mod 11, krok po kroku', 'Proof: 384 mod 11, step-by-step'),
+      W / 2, 22, 'bold 14px monospace', CYAN);
+
+    // Setup reminder
+    drawTextC(T('Poniewa\u017C 10 \u2261 \u22121 (mod 11), mamy 10\u1D4F \u2261 (\u22121)\u1D4F.', 'Since 10 \u2261 \u22121 (mod 11), we have 10\u1D4F \u2261 (\u22121)\u1D4F.'),
+      W / 2, 44, '11px monospace', 'rgba(255,255,255,0.65)');
+
+    // Step 1: write out 384
+    const y1 = 80;
+    drawTextC('1.', 50, y1, 'bold 12px monospace', 'rgba(255,255,255,0.35)', 'center');
+    drawTextC('384 = 3\u00B7100 + 8\u00B710 + 4\u00B71', 75, y1, 'bold 14px monospace', 'rgba(255,255,255,0.9)', 'left');
+
+    // Step 2: replace powers with (-1)^k
+    const y2 = 115;
+    drawTextC('2.', 50, y2, 'bold 12px monospace', 'rgba(255,255,255,0.35)');
+    drawTextC(T('Zamie\u0144  10\u1D4F \u2192 (\u22121)\u1D4F:', 'Replace 10\u1D4F \u2192 (\u22121)\u1D4F:'),
+      75, y2, '11px monospace', 'rgba(255,255,255,0.55)', 'left');
+
+    const y2b = 142;
+    cx.save();
+    cx.font = 'bold 15px monospace';
+    cx.textAlign = 'left';
+    cx.textBaseline = 'middle';
+    let tx = 75;
+    cx.fillStyle = 'rgba(255,255,255,0.9)';
+    cx.fillText('384 \u2261 ', tx, y2b); tx += cx.measureText('384 \u2261 ').width;
+    cx.fillStyle = 'rgba(255,255,255,0.9)'; cx.fillText('3', tx, y2b); tx += cx.measureText('3').width;
+    cx.fillStyle = 'rgba(255,255,255,0.5)'; cx.fillText('\u00B7', tx, y2b); tx += cx.measureText('\u00B7').width;
+    cx.fillStyle = PINK; cx.fillText('1', tx, y2b); tx += cx.measureText('1').width;
+    cx.fillStyle = 'rgba(255,255,255,0.5)'; cx.fillText(' + ', tx, y2b); tx += cx.measureText(' + ').width;
+    cx.fillStyle = 'rgba(255,255,255,0.9)'; cx.fillText('8', tx, y2b); tx += cx.measureText('8').width;
+    cx.fillStyle = 'rgba(255,255,255,0.5)'; cx.fillText('\u00B7', tx, y2b); tx += cx.measureText('\u00B7').width;
+    cx.fillStyle = PINK; cx.fillText('(\u22121)', tx, y2b); tx += cx.measureText('(\u22121)').width;
+    cx.fillStyle = 'rgba(255,255,255,0.5)'; cx.fillText(' + ', tx, y2b); tx += cx.measureText(' + ').width;
+    cx.fillStyle = 'rgba(255,255,255,0.9)'; cx.fillText('4', tx, y2b); tx += cx.measureText('4').width;
+    cx.fillStyle = 'rgba(255,255,255,0.5)'; cx.fillText('\u00B7', tx, y2b); tx += cx.measureText('\u00B7').width;
+    cx.fillStyle = PINK; cx.fillText('1', tx, y2b); tx += cx.measureText('1').width;
+    cx.fillStyle = 'rgba(255,255,255,0.5)'; cx.fillText('   (mod 11)', tx, y2b);
+    cx.restore();
+
+    // Step 3: simplify
+    const y3 = 178;
+    drawTextC('3.', 50, y3, 'bold 12px monospace', 'rgba(255,255,255,0.35)');
+    drawTextC(T('Uprasszczaj:', 'Simplify:'), 75, y3, '11px monospace', 'rgba(255,255,255,0.55)', 'left');
+
+    const y3b = 202;
+    drawTextC('384 \u2261 3 \u2212 8 + 4 = \u22121   (mod 11)', 75, y3b, 'bold 15px monospace', YELLOW, 'left');
+
+    // Step 4: interpret
+    const y4 = 236;
+    drawTextC('4.', 50, y4, 'bold 12px monospace', 'rgba(255,255,255,0.35)');
+    drawTextC(T('\u22121 \u2261 10 (mod 11), wi\u0119c reszta = 10.', '\u22121 \u2261 10 (mod 11), so remainder = 10.'),
+      75, y4, '11px monospace', 'rgba(255,255,255,0.55)', 'left');
+
+    // Verification box
+    const vY = 270;
+    cx.save();
+    cx.fillStyle = 'rgba(131,193,103,0.1)';
+    cx.fillRect(30, vY, W - 60, 60);
+    cx.strokeStyle = 'rgba(131,193,103,0.4)';
+    cx.lineWidth = 1;
+    cx.strokeRect(30, vY, W - 60, 60);
+    cx.restore();
+
+    drawTextC(T('Sprawdzenie bezpo\u015Brednie', 'Direct verification'), W / 2, vY + 15, 'bold 11px monospace', GREEN);
+    drawTextC('384 \u00F7 11 = 34, reszta 10', W / 2, vY + 34, 'bold 14px monospace', 'rgba(255,255,255,0.9)');
+    drawTextC(T('(bo 34 \u00B7 11 = 374, a 384 \u2212 374 = 10) \u2713', '(since 34 \u00B7 11 = 374, and 384 \u2212 374 = 10) \u2713'),
+      W / 2, vY + 51, '10px monospace', 'rgba(255,255,255,0.55)');
+
+    // Moral
+    drawTextC(T('Mora\u0142: cecha ",,suma naprzemienna cyfr dzieli si\u0119 przez 11\'\'" wypada automatycznie z 10 \u2261 \u22121.',
+      'Moral: the rule ",,alternating digit sum divisible by 11\'\'" drops out automatically from 10 \u2261 \u22121.'),
+      W / 2, H - 18, 'italic 10px monospace', 'rgba(192,128,255,0.85)');
+  }
+
+  // ── Stages Definition ────────────────────────────────────────
+
+  let animStartTime = 0;
+
+  const stages_def = [
+    {
+      title: () => T('Zegar modulo', 'Modular Clock'),
+      desc: () => T(
+        'Arytmetyka modulo to matematyka "zegarowa". Dla m godzin: 13\u2261 1 (mod 12), 25\u22611 (mod 12). Zmie\u0144 m i n suwakami — sprawd\u017A, gdzie l\u0105duje n na zegarze z m pozycjami.',
+        'Modular arithmetic is "clock" math. For m hours: 13\u22611 (mod 12), 25\u22611 (mod 12). Change m and n with sliders — see where n lands on the m-position clock.'
+      ),
+      sliders: [
+        { id: 'clockM', lbl: 'm', color: ORANGE, min: 2, max: 24, step: 1, val: () => clockM },
+        { id: 'clockN', lbl: 'n', color: CYAN,   min: 0, max: 100, step: 1, val: () => clockN },
+      ],
+      draw: drawClock
+    },
+    {
+      title: () => T('Klucz: 10\u1D4F mod m', 'Key: 10\u1D4F mod m'),
+      desc: () => T(
+        'To jest POW\u00D3D ka\u017Cdej cechy podzielno\u015Bci. Patrz\u0105c na ci\u0105g 10\u1D4F mod m, od razu wida\u0107 jaka cecha obowi\u0105zuje dla danego m. Wybierz m suwakiem.',
+        'This is the REASON behind every divisibility rule. Looking at the sequence 10\u1D4F mod m, you immediately see which rule applies for given m. Select m with the slider.'
+      ),
+      sliders: [
+        { id: 'tableM', lbl: 'm', color: ORANGE, min: 2, max: 25, step: 1, val: () => tableM },
+      ],
+      draw: drawPowerTable
+    },
+    {
+      title: () => T('Dow\u00F3d zastosowany: 384 mod 11', 'Applied proof: 384 mod 11'),
+      desc: () => T(
+        'Po\u0142\u0105czmy wszystko: obliczmy 384 mod 11 u\u017Cywaj\u0105c 10 \u2261 \u22121 (mod 11). To t\u0142umaczy cech\u0119 "suma naprzemienna cyfr".',
+        'Putting it together: compute 384 mod 11 using 10 \u2261 \u22121 (mod 11). This explains the "alternating digit sum" rule.'
+      ),
+      sliders: [],
+      draw: drawWorkedProof
+    },
+  ];
+
+  // ── Slider management ─────────────────────────────────────────
+  const slWrap = document.getElementById('sliders-wrap');
+
+  function buildSliders(defs) {
+    if (defs.length === 0) { slWrap.innerHTML = ''; return; }
+    let html = '<div class="sliders">';
+    defs.forEach(s => {
+      const v = typeof s.val === 'function' ? s.val() : s.val;
+      html += '<div class="slider-row">' +
+        '<span class="lbl" style="color:' + s.color + '">' + s.lbl + ' =</span>' +
+        '<input type="range" id="s_' + s.id + '" min="' + s.min + '" max="' + s.max + '" step="' + s.step + '" value="' + v + '">' +
+        '<span class="val" id="v_' + s.id + '" style="color:' + s.color + '"></span>' +
+        '</div>';
+    });
+    html += '</div>';
+    slWrap.innerHTML = html;
+
+    defs.forEach(s => {
+      const el = document.getElementById('s_' + s.id);
+      document.getElementById('v_' + s.id).textContent = el.value;
+      el.addEventListener('input', function() {
+        const v = +this.value;
+        if (s.id === 'clockM') clockM = v;
+        if (s.id === 'clockN') clockN = v;
+        if (s.id === 'tableM') tableM = v;
+        document.getElementById('v_' + s.id).textContent = v;
+      });
+    });
+  }
+
+  // ── Navigation ────────────────────────────────────────────────
+  const prevBtn = document.getElementById('qprev');
+  const nextBtn = document.getElementById('qnext');
+  const dotsEl = document.getElementById('qdots');
+  const titleEl = document.getElementById('qf');
+  const descEl = document.getElementById('qd');
+
+  function goTo(idx) {
+    stage = Math.max(0, Math.min(stages_def.length - 1, idx));
+    const s = stages_def[stage];
+    titleEl.textContent = s.title();
+    descEl.textContent = s.desc();
+    animStartTime = Date.now();
+    buildSliders(s.sliders || []);
+    prevBtn.disabled = stage === 0;
+    nextBtn.disabled = stage === stages_def.length - 1;
+    renderDots();
+  }
+
+  function renderDots() {
+    dotsEl.innerHTML = stages_def.map((_, i) =>
+      '<span class="dot' + (i === stage ? ' active' : '') + '" data-i="' + i + '"></span>'
+    ).join('');
+    dotsEl.querySelectorAll('.dot').forEach(d =>
+      d.addEventListener('click', () => goTo(+d.dataset.i))
+    );
+  }
+
+  prevBtn.addEventListener('click', () => goTo(stage - 1));
+  nextBtn.addEventListener('click', () => goTo(stage + 1));
+
+  function tick() { clear(); stages_def[stage].draw(); requestAnimationFrame(tick); }
+  goTo(0);
+  tick();
+})();
+</script>
+</body>
+</html>
