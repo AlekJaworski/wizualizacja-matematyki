@@ -2,6 +2,7 @@
 export const RAW_EDGES = [
   // ── SP8 foundations ──────────────────────────────────────────
   ["integers",       "linear_eq"],
+  ["integers",       "modular_arithmetic"],
   ["fractions",      "linear_eq"],
   ["powers",         "linear_eq"],
   ["linear_eq",      "linear_ineq"],
