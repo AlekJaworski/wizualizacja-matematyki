@@ -42,8 +42,9 @@
   </div>
 </div>
 
-<script>
-(function(){
+<script type="module">
+import { GraphView } from '../lib/graph-core.js';
+{
   const cv = document.getElementById('cv');
   const cx = cv.getContext('2d');
   const W = 600, H = 310;
@@ -58,10 +59,14 @@
   const COL_CURSOR = '#ffffff';
   const COL_SOLUTION = '#83C167';
 
-  // Coordinate system
-  const OX = W / 2, OY = H * 0.55, SC = 50;
-  function px(x) { return OX + x * SC; }
-  function py(y) { return OY - y * SC; }
+  // GraphView for coordinate transforms, grid, axes
+  let view;
+  function initView() {
+    view = new GraphView(cx, { rect: [0,0,W,H], xRange: [-6,6], yRange: [-2.79,3.41], scale: 50 });
+  }
+  initView();
+  function px(x) { return view.px(x); }
+  function py(y) { return view.py(y); }
 
   // State
   let r1 = -2, r2 = 3, a = 1, x0 = 0;
@@ -70,45 +75,17 @@
 
   function f(x) { return a * (x - r1) * (x - r2); }
 
-  // ── Drawing helpers ──────────────────────────────────────────
-  function clear() { cx.fillStyle = '#0e0e12'; cx.fillRect(0, 0, W, H); }
+  // ── Drawing helpers (delegated to GraphView) ─────────────────
+  function clear() { initView(); view.clear(); }
 
-  function drawGrid() {
-    cx.strokeStyle = 'rgba(255,255,255,0.04)';
-    cx.lineWidth = 0.7;
-    for (let x = -7; x <= 7; x++) { cx.beginPath(); cx.moveTo(px(x), 0); cx.lineTo(px(x), H); cx.stroke(); }
-    for (let y = -4; y <= 6; y++) { cx.beginPath(); cx.moveTo(0, py(y)); cx.lineTo(W, py(y)); cx.stroke(); }
-  }
+  function drawGrid() { view.drawGrid({ color: 'rgba(255,255,255,0.04)' }); }
 
   function drawAxes() {
-    cx.strokeStyle = 'rgba(255,255,255,0.2)';
-    cx.lineWidth = 1;
-    cx.beginPath(); cx.moveTo(0, py(0)); cx.lineTo(W, py(0)); cx.stroke();
-    cx.beginPath(); cx.moveTo(px(0), 0); cx.lineTo(px(0), H); cx.stroke();
-    cx.fillStyle = 'rgba(255,255,255,0.25)';
-    cx.font = '9px monospace';
-    cx.textAlign = 'center';
-    for (let x = -5; x <= 5; x++) {
-      if (x === 0) continue;
-      cx.fillText(x, px(x), py(0) + 13);
-    }
+    view.drawAxes({ color: 'rgba(255,255,255,0.2)', arrows: false, labels: true, tickSize: 3 });
   }
 
   function plotParabola(alpha) {
-    cx.save();
-    cx.strokeStyle = COL_PARA;
-    cx.globalAlpha = alpha;
-    cx.lineWidth = 2;
-    cx.beginPath();
-    for (let sx = 0; sx <= W; sx += 2) {
-      const x = (sx - OX) / SC;
-      const y = f(x);
-      const sy = py(y);
-      if (sy < -100 || sy > H + 100) { cx.moveTo(sx, sy); continue; }
-      if (sx === 0) cx.moveTo(sx, sy); else cx.lineTo(sx, sy);
-    }
-    cx.stroke();
-    cx.restore();
+    view.plotFn(f, { color: COL_PARA, alpha, lineWidth: 2 });
   }
 
   function shadeSolution(ineq) {
@@ -156,13 +133,7 @@
   }
 
   function gdot(x, y, r, col) {
-    cx.beginPath();
-    cx.arc(px(x), py(y), r, 0, Math.PI * 2);
-    cx.fillStyle = col;
-    cx.shadowColor = col;
-    cx.shadowBlur = 10;
-    cx.fill();
-    cx.shadowBlur = 0;
+    view.dot(x, y, { radius: r, color: col, glow: 10 });
   }
 
   function drawSignChart() {
@@ -449,7 +420,7 @@
   function tick() { clear(); stages[stage].draw(); requestAnimationFrame(tick); }
   goTo(0);
   tick();
-})();
+}
 </script>
 </body>
 </html>

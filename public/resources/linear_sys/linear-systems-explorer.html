@@ -42,8 +42,9 @@
   </div>
 </div>
 
-<script>
-(function(){
+<script type="module">
+import { GraphView } from '../lib/graph-core.js';
+{
   const cv = document.getElementById('cv');
   const cx = cv.getContext('2d');
   const W = 600, H = 310;
@@ -59,93 +60,42 @@
   const COL_INF  = '#C080FF';  // infinite solutions
   const COL_CYA  = '#58C4DD';  // cyan primary
   const COL_YEL  = '#FFD166';  // yellow accent
-  const COL_GRID = 'rgba(255,255,255,0.04)';
-  const COL_AXIS = 'rgba(255,255,255,0.2)';
 
   // Coordinate system
-  const OX = W / 2, OY = H * 0.52, SC = 38;
-  function px(x) { return OX + x * SC; }
-  function py(y) { return OY - y * SC; }
+  const SC = 38;
+  const OY_frac = 0.52;
+  function makeView() {
+    const xHalf = W / (2 * SC);
+    const yTop = (H * OY_frac) / SC;
+    const yBot = -(H * (1 - OY_frac)) / SC;
+    return new GraphView(cx, { xRange: [-xHalf, xHalf], yRange: [yBot, yTop], scale: SC });
+  }
 
   // State
   let m1 = 1, b1 = 1, m2 = -0.5, b2 = 2;
   let stage = 0;
   let animTime = 0;
   let substStep = 0;
+  let view = makeView();  // shared view reference
 
   // ── Drawing helpers ──────────────────────────────────
   function clear() { cx.fillStyle = '#0e0e12'; cx.fillRect(0, 0, W, H); }
-
-  function drawGrid() {
-    cx.strokeStyle = COL_GRID;
-    cx.lineWidth = 0.7;
-    for (let x = -9; x <= 9; x++) {
-      cx.beginPath(); cx.moveTo(px(x), 0); cx.lineTo(px(x), H); cx.stroke();
-    }
-    for (let y = -5; y <= 7; y++) {
-      cx.beginPath(); cx.moveTo(0, py(y)); cx.lineTo(W, py(y)); cx.stroke();
-    }
-  }
-
-  function drawAxes() {
-    cx.strokeStyle = COL_AXIS;
-    cx.lineWidth = 1;
-    cx.beginPath(); cx.moveTo(0, py(0)); cx.lineTo(W, py(0)); cx.stroke();
-    cx.beginPath(); cx.moveTo(px(0), 0); cx.lineTo(px(0), H); cx.stroke();
-    cx.fillStyle = 'rgba(255,255,255,0.25)';
-    cx.font = '9px monospace';
-    cx.textAlign = 'center';
-    for (let x = -7; x <= 7; x++) {
-      if (x === 0) continue;
-      cx.fillText(x, px(x), py(0) + 13);
-    }
-    cx.textAlign = 'right';
-    for (let y = -3; y <= 5; y++) {
-      if (y === 0) continue;
-      cx.fillText(y, px(0) - 6, py(y) + 3);
-    }
-  }
-
-  function plotLine(m, b, color, alpha, width, dash) {
-    cx.save();
-    cx.strokeStyle = color;
-    cx.globalAlpha = alpha || 1;
-    cx.lineWidth = width || 2.5;
-    if (dash) cx.setLineDash(dash);
-    cx.beginPath();
-    const xLeft = (0 - OX) / SC;
-    const xRight = (W - OX) / SC;
-    cx.moveTo(0, py(m * xLeft + b));
-    cx.lineTo(W, py(m * xRight + b));
-    cx.stroke();
-    cx.restore();
-  }
-
-  function gdot(sx, sy, r, col) {
-    cx.beginPath();
-    cx.arc(sx, sy, r, 0, Math.PI * 2);
-    cx.fillStyle = col;
-    cx.shadowColor = col;
-    cx.shadowBlur = 14;
-    cx.fill();
-    cx.shadowBlur = 0;
-  }
 
   function glowDot(x, y, r, col, pulsePhase) {
     const pulse = 1 + 0.25 * Math.sin(pulsePhase);
     const rr = r * pulse;
     // outer glow
     cx.beginPath();
-    cx.arc(px(x), py(y), rr * 2.5, 0, Math.PI * 2);
+    cx.arc(view.px(x), view.py(y), rr * 2.5, 0, Math.PI * 2);
     cx.fillStyle = col.slice(0,7) + '18';
     cx.fill();
     // middle glow
     cx.beginPath();
-    cx.arc(px(x), py(y), rr * 1.5, 0, Math.PI * 2);
+    cx.arc(view.px(x), view.py(y), rr * 1.5, 0, Math.PI * 2);
     cx.fillStyle = col.slice(0,7) + '40';
     cx.fill();
     // core
-    gdot(px(x), py(y), rr, col);
+    view.dot(x, y, { radius: rr, color: col, glow: 14 });
   }
 
   function roundRect(ctx, x, y, w, h, r) {
@@ -245,8 +195,8 @@
         { id: 'b2', lbl: 'b\u2082', color: COL_L2, min: -4, max: 4, step: 0.5, get: function() { return b2; }, set: function(v) { b2 = v; } },
       ],
       draw: function() {
-        plotLine(m1, b1, COL_L1, 0.85);
-        plotLine(m2, b2, COL_L2, 0.85);
+        view.plotFn(function(x) { return m1 * x + b1; }, { color: COL_L1, alpha: 0.85 });
+        view.plotFn(function(x) { return m2 * x + b2; }, { color: COL_L2, alpha: 0.85 });
 
         // Equation labels
         infoBox(fmtEq(m1, b1, 'L\u2081'), W * 0.28, 20, COL_L1);
@@ -276,19 +226,14 @@
         { id: 'b2', lbl: 'b\u2082', color: COL_L2, min: -4, max: 4, step: 0.5, get: function() { return b2; }, set: function(v) { b2 = v; } },
       ],
       draw: function() {
-        plotLine(m1, b1, COL_L1, 0.85);
-        plotLine(m2, b2, COL_L2, 0.85);
+        view.plotFn(function(x) { return m1 * x + b1; }, { color: COL_L1, alpha: 0.85 });
+        view.plotFn(function(x) { return m2 * x + b2; }, { color: COL_L2, alpha: 0.85 });
 
         var pt = getIntersection(m1, b1, m2, b2);
         if (pt) {
           // Dashed drop lines to axes
-          cx.save();
-          cx.setLineDash([4, 4]);
-          cx.strokeStyle = 'rgba(255,255,255,0.2)';
-          cx.lineWidth = 1;
-          cx.beginPath(); cx.moveTo(px(pt.x), py(pt.y)); cx.lineTo(px(pt.x), py(0)); cx.stroke();
-          cx.beginPath(); cx.moveTo(px(pt.x), py(pt.y)); cx.lineTo(px(0), py(pt.y)); cx.stroke();
-          cx.restore();
+          view.segment(pt.x, pt.y, pt.x, 0, { color: 'rgba(255,255,255,0.2)', lineWidth: 1, dash: [4, 4] });
+          view.segment(pt.x, pt.y, 0, pt.y, { color: 'rgba(255,255,255,0.2)', lineWidth: 1, dash: [4, 4] });
 
           glowDot(pt.x, pt.y, 7, COL_INT, animTime * 3);
 
@@ -331,8 +276,8 @@
         // Force same slope
         m2 = m1;
 
-        plotLine(m1, b1, COL_L1, 0.85);
-        plotLine(m2, b2, COL_L2, 0.85);
+        view.plotFn(function(x) { return m1 * x + b1; }, { color: COL_L1, alpha: 0.85 });
+        view.plotFn(function(x) { return m2 * x + b2; }, { color: COL_L2, alpha: 0.85 });
 
         infoBox(fmtEq(m1, b1, 'L\u2081'), W * 0.28, 20, COL_L1);
         infoBox(fmtEq(m2, b2, 'L\u2082'), W * 0.72, 20, COL_L2);
@@ -350,16 +295,7 @@
           for (var xi = -3; xi <= 3; xi += 3) {
             var y1at = m1 * xi + b1;
             var y2at = m2 * xi + b2;
-            cx.save();
-            cx.strokeStyle = COL_ERR;
-            cx.globalAlpha = 0.3 + 0.3 * pulse;
-            cx.lineWidth = 1.5;
-            cx.setLineDash([3, 3]);
-            cx.beginPath();
-            cx.moveTo(px(xi), py(y1at));
-            cx.lineTo(px(xi), py(y2at));
-            cx.stroke();
-            cx.restore();
+            view.segment(xi, y1at, xi, y2at, { color: COL_ERR, lineWidth: 1.5, dash: [3, 3], alpha: 0.3 + 0.3 * pulse });
           }
 
           infoBox('m\u2081 = m\u2082 = ' + fmt(m1) + ',  b\u2081 \u2260 b\u2082', W/2, H - 45, COL_ERR);
@@ -383,29 +319,19 @@
         m2 = m1; b2 = b1;
 
         // Draw thick glowing line
-        cx.save();
-        cx.strokeStyle = COL_INF;
-        cx.globalAlpha = 0.15;
-        cx.lineWidth = 18;
-        var xL = (0 - OX) / SC;
-        var xR = (W - OX) / SC;
-        cx.beginPath();
-        cx.moveTo(0, py(m1 * xL + b1));
-        cx.lineTo(W, py(m1 * xR + b1));
-        cx.stroke();
-        cx.restore();
+        view.plotFn(function(x) { return m1 * x + b1; }, { color: COL_INF, alpha: 0.15, lineWidth: 18 });
 
-        plotLine(m1, b1, COL_INF, 0.9, 2.5);
+        view.plotFn(function(x) { return m1 * x + b1; }, { color: COL_INF, alpha: 0.9 });
 
         // Animated solution dots moving along the line
         for (var i = 0; i < 6; i++) {
           var t = ((animTime * 0.5 + i * 1.1) % 7) - 3.5;
           var xp = t * 2;
           var yp = m1 * xp + b1;
-          if (px(xp) > 10 && px(xp) < W - 10) {
+          if (view.px(xp) > 10 && view.px(xp) < W - 10) {
             var pulseI = 0.4 + 0.6 * Math.abs(Math.sin(animTime * 2 + i));
             cx.beginPath();
-            cx.arc(px(xp), py(yp), 4, 0, Math.PI * 2);
+            cx.arc(view.px(xp), view.py(yp), 4, 0, Math.PI * 2);
             cx.fillStyle = COL_INF;
             cx.globalAlpha = pulseI * 0.7;
             cx.shadowColor = COL_INF;
@@ -442,8 +368,8 @@
       ],
       draw: function() {
         // Show lines dimmed
-        plotLine(m1, b1, COL_L1, 0.35, 1.5);
-        plotLine(m2, b2, COL_L2, 0.35, 1.5);
+        view.plotFn(function(x) { return m1 * x + b1; }, { color: COL_L1, alpha: 0.35, lineWidth: 1.5 });
+        view.plotFn(function(x) { return m2 * x + b2; }, { color: COL_L2, alpha: 0.35, lineWidth: 1.5 });
 
         var pt = getIntersection(m1, b1, m2, b2);
         if (pt) {
@@ -584,15 +510,15 @@
   function tick() {
     animTime += 0.016;
     clear();
-    drawGrid();
-    drawAxes();
+    view.drawGrid();
+    view.drawAxes();
     stages[stage].draw();
     requestAnimationFrame(tick);
   }
 
   goTo(0);
   tick();
-})();
+}
 </script>
 </body>
 </html>

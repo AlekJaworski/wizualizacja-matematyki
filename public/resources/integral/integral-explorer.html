@@ -8,6 +8,7 @@
 <body>
 <script type="module">
 import { VizCore, T, COLORS } from '../lib/viz-core.js';
+import { GraphView } from '../lib/graph-core.js';
 
 const { cx, W, H } = VizCore.init({
   title: T('Całki — Eksplorator', 'Integrals — Explorer'),
@@ -25,37 +26,29 @@ const { cx, W, H } = VizCore.init({
         { id: 'b', lbl: 'b', color: COLORS.GREEN,  min: -1, max: 3,  step: 0.25, val: 2 },
       ],
       draw(cx, W, H, vals) {
-        const OX = W / 2, OY = H * 0.65, SC = 60;
+        const SC = 60;
+        const OY_frac = 0.65;
+        const xHalf = W / (2 * SC);
+        const yTop = (H * OY_frac) / SC;
+        const yBot = -(H * (1 - OY_frac)) / SC;
+        const view = new GraphView(cx, { xRange: [-xHalf, xHalf], yRange: [yBot, yTop], scale: SC });
         const { a, b } = vals;
         const fn = x => x * x;  // f(x) = x²
 
-        drawGrid(cx, OX, OY, SC, W, H);
-        drawAxes(cx, OX, OY, W, H, SC);
+        view.drawGrid();
+        view.drawAxes();
 
         if (a < b) {
-          // Shaded area
-          cx.beginPath();
-          cx.moveTo(OX + a * SC, OY);
-          for (let xi = a; xi <= b; xi += 0.01) {
-            cx.lineTo(OX + xi * SC, OY - fn(xi) * SC);
-          }
-          cx.lineTo(OX + b * SC, OY);
-          cx.closePath();
-          cx.fillStyle = 'rgba(88,196,221,0.2)'; cx.fill();
-          cx.strokeStyle = 'rgba(88,196,221,0.5)'; cx.lineWidth = 1; cx.stroke();
+          view.shadeFnToAxis(fn, a, b, { color: COLORS.CYAN, alpha: 0.2 });
         }
 
         // Curve f(x) = x²
-        plotFn(cx, OX, OY, SC, W, H, fn, COLORS.CYAN, 2.5);
+        view.plotFn(fn, { color: COLORS.CYAN });
 
         // Boundary lines
         [[a, COLORS.ORANGE], [b, COLORS.GREEN]].forEach(([xi, col]) => {
-          const px = OX + xi * SC, py = OY - fn(xi) * SC;
-          cx.beginPath(); cx.moveTo(px, OY); cx.lineTo(px, py);
-          cx.strokeStyle = col; cx.lineWidth = 2;
-          cx.setLineDash([4, 3]); cx.stroke(); cx.setLineDash([]);
-          cx.beginPath(); cx.arc(px, py, 4, 0, Math.PI * 2);
-          cx.fillStyle = col; cx.shadowColor = col; cx.shadowBlur = 8; cx.fill(); cx.shadowBlur = 0;
+          view.segment(xi, 0, xi, fn(xi), { color: col, dash: [4, 3] });
+          view.dot(xi, fn(xi), { color: col, radius: 4, glow: 8 });
         });
 
         // Compute area numerically
@@ -88,13 +81,18 @@ const { cx, W, H } = VizCore.init({
         { id: 'b', lbl: 'b', color: COLORS.GREEN,  min: 1, max: 3,  step: 0.25, val: 2 },
       ],
       draw(cx, W, H, vals) {
-        const OX = W / 2, OY = H * 0.65, SC = 60;
+        const SC = 60;
+        const OY_frac = 0.65;
+        const xHalf = W / (2 * SC);
+        const yTop = (H * OY_frac) / SC;
+        const yBot = -(H * (1 - OY_frac)) / SC;
+        const view = new GraphView(cx, { xRange: [-xHalf, xHalf], yRange: [yBot, yTop], scale: SC });
         const n = Math.round(vals.n);
         const { a, b } = vals;
         const fn = x => x * x;
 
-        drawGrid(cx, OX, OY, SC, W, H);
-        drawAxes(cx, OX, OY, W, H, SC);
+        view.drawGrid();
+        view.drawAxes();
 
         // Riemann rectangles (midpoint rule)
         const dx = (b - a) / n;
@@ -103,20 +101,17 @@ const { cx, W, H } = VizCore.init({
           const xi = a + (i + 0.5) * dx;
           const yi = fn(xi);
           riemannSum += yi * dx;
-          const rx = OX + (a + i * dx) * SC;
-          const rw = dx * SC;
-          const rh = yi * SC;
-          cx.fillStyle = 'rgba(88,196,221,0.2)';
-          cx.fillRect(rx, OY - rh, rw, rh);
+          const xLeft = a + i * dx;
+          view.shadeRect(xLeft, 0, xLeft + dx, yi, { color: COLORS.CYAN, alpha: 0.2 });
           cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 0.5;
-          cx.strokeRect(rx, OY - rh, rw, rh);
+          cx.strokeRect(view.px(xLeft), view.py(yi), dx * SC, yi * SC);
         }
 
         // Exact area
         const exact = (b*b*b - a*a*a) / 3;
         const err = Math.abs(riemannSum - exact);
 
-        plotFn(cx, OX, OY, SC, W, H, fn, COLORS.YELLOW, 2.5);
+        view.plotFn(fn, { color: COLORS.YELLOW });
 
         cx.font = '13px monospace'; cx.textAlign = 'left';
         cx.fillStyle = COLORS.CYAN;
@@ -139,33 +134,30 @@ const { cx, W, H } = VizCore.init({
         { id: 'b', lbl: 'b', color: COLORS.GREEN, min: 0, max: 3, step: 0.1, val: 1.5 },
       ],
       draw(cx, W, H, vals) {
-        const OX = W / 2, OY = H * 0.65, SC = 60;
+        const SC = 60;
+        const OY_frac = 0.65;
+        const xHalf = W / (2 * SC);
+        const yTop = (H * OY_frac) / SC;
+        const yBot = -(H * (1 - OY_frac)) / SC;
+        const view = new GraphView(cx, { xRange: [-xHalf, xHalf], yRange: [yBot, yTop], scale: SC });
         const a = 0, b = vals.b;
         const fn = x => x * x;
         const F  = x => x * x * x / 3;  // antiderivative of x²
 
-        drawGrid(cx, OX, OY, SC, W, H);
-        drawAxes(cx, OX, OY, W, H, SC);
+        view.drawGrid();
+        view.drawAxes();
 
         // Shaded area
-        cx.beginPath(); cx.moveTo(OX + a * SC, OY);
-        for (let xi = a; xi <= b; xi += 0.01) cx.lineTo(OX + xi * SC, OY - fn(xi) * SC);
-        cx.lineTo(OX + b * SC, OY); cx.closePath();
-        cx.fillStyle = 'rgba(131,193,103,0.2)'; cx.fill();
+        view.shadeFnToAxis(fn, a, b, { color: COLORS.GREEN, alpha: 0.2 });
 
-        plotFn(cx, OX, OY, SC, W, H, fn, COLORS.CYAN, 2.5);
-        plotFn(cx, OX, OY, SC, W, H, F,  COLORS.YELLOW, 2, [6, 4]);
+        view.plotFn(fn, { color: COLORS.CYAN });
+        view.plotFn(F, { color: COLORS.YELLOW, lineWidth: 2, dash: [6, 4] });
 
         // Mark F(b) on antiderivative curve
-        const Fbx = OX + b * SC, Fby = OY - F(b) * SC;
-        cx.beginPath(); cx.arc(Fbx, Fby, 5, 0, Math.PI * 2);
-        cx.fillStyle = COLORS.YELLOW; cx.shadowColor = COLORS.YELLOW;
-        cx.shadowBlur = 8; cx.fill(); cx.shadowBlur = 0;
+        view.dot(b, F(b), { color: COLORS.YELLOW, glow: 8 });
 
         // Mark b on axis
-        cx.beginPath(); cx.moveTo(Fbx, OY); cx.lineTo(Fbx, Fby);
-        cx.strokeStyle = 'rgba(131,193,103,0.5)'; cx.lineWidth = 1.5;
-        cx.setLineDash([3, 3]); cx.stroke(); cx.setLineDash([]);
+        view.segment(b, 0, b, F(b), { color: 'rgba(131,193,103,0.5)', lineWidth: 1.5, dash: [3, 3] });
 
         const area = F(b) - F(a);
         cx.font = '13px monospace'; cx.textAlign = 'left';
@@ -191,7 +183,12 @@ const { cx, W, H } = VizCore.init({
         { id: 'b',   lbl: 'b', color: COLORS.GREEN,  min: 0.5, max: 3, step: 0.25, val: 2 },
       ],
       draw(cx, W, H, vals) {
-        const OX = W / 2, OY = H * 0.65, SC = 60;
+        const SC = 60;
+        const OY_frac = 0.65;
+        const xHalf = W / (2 * SC);
+        const yTop = (H * OY_frac) / SC;
+        const yBot = -(H * (1 - OY_frac)) / SC;
+        const view = new GraphView(cx, { xRange: [-xHalf, xHalf], yRange: [yBot, yTop], scale: SC });
         const n = Math.round(vals.n), fnIdx = Math.round(vals.fn);
         const a = 0, b = vals.b;
         const fns = [
@@ -202,21 +199,21 @@ const { cx, W, H } = VizCore.init({
         ];
         const { f: fn, name } = fns[fnIdx];
 
-        drawGrid(cx, OX, OY, SC, W, H);
-        drawAxes(cx, OX, OY, W, H, SC);
+        view.drawGrid();
+        view.drawAxes();
 
         const dx = (b - a) / n;
         let sum = 0;
         for (let i = 0; i < n; i++) {
           const xi = a + (i + 0.5) * dx, yi = Math.max(0, fn(xi));
           sum += fn(xi) * dx;
-          cx.fillStyle = 'rgba(88,196,221,0.2)';
-          cx.fillRect(OX + (a + i * dx) * SC, OY - yi * SC, dx * SC, yi * SC);
+          const xLeft = a + i * dx;
+          view.shadeRect(xLeft, 0, xLeft + dx, yi, { color: COLORS.CYAN, alpha: 0.2 });
           cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 0.5;
-          cx.strokeRect(OX + (a + i * dx) * SC, OY - yi * SC, dx * SC, yi * SC);
+          cx.strokeRect(view.px(xLeft), view.py(yi), dx * SC, yi * SC);
         }
 
-        plotFn(cx, OX, OY, SC, W, H, fn, COLORS.YELLOW, 2.5);
+        view.plotFn(fn, { color: COLORS.YELLOW });
 
         cx.font = '13px monospace'; cx.textAlign = 'left';
         cx.fillStyle = COLORS.YELLOW;
@@ -228,41 +225,6 @@ const { cx, W, H } = VizCore.init({
   ],
 });
 
-// ── Shared drawing helpers ────────────────────────────────────────
-function drawGrid(cx, OX, OY, SC, W, H) {
-  cx.strokeStyle = 'rgba(255,255,255,0.06)'; cx.lineWidth = 1;
-  for (let x = OX % SC; x < W; x += SC) { cx.beginPath(); cx.moveTo(x, 0); cx.lineTo(x, H); cx.stroke(); }
-  for (let y = OY % SC; y < H; y += SC) { cx.beginPath(); cx.moveTo(0, y); cx.lineTo(W, y); cx.stroke(); }
-}
-function drawAxes(cx, OX, OY, W, H, SC) {
-  cx.strokeStyle = 'rgba(255,255,255,0.3)'; cx.lineWidth = 1.5;
-  cx.beginPath(); cx.moveTo(0, OY); cx.lineTo(W, OY); cx.stroke();
-  cx.beginPath(); cx.moveTo(OX, 0); cx.lineTo(OX, H); cx.stroke();
-  cx.font = '10px monospace'; cx.fillStyle = 'rgba(255,255,255,0.25)'; cx.textAlign = 'center';
-  for (let i = -6; i <= 6; i++) {
-    if (i === 0) continue;
-    const x = OX + i * SC, y = OY - i * SC;
-    if (x > 5 && x < W - 5) cx.fillText(i, x, OY + 12);
-    if (y > 5 && y < H - 5) { cx.textAlign = 'right'; cx.fillText(i, OX - 4, y + 3); cx.textAlign = 'center'; }
-  }
-}
-function plotFn(cx, OX, OY, SC, W, H, fn, col, lw, dash = []) {
-  cx.beginPath();
-  let first = true;
-  for (let px = 0; px < W; px += 2) {
-    const x = (px - OX) / SC;
-    try {
-      const y = fn(x);
-      if (!isFinite(y) || Math.abs(y) > 20) { first = true; continue; }
-      const py = OY - y * SC;
-      if (first) { cx.moveTo(px, py); first = false; } else cx.lineTo(px, py);
-    } catch { first = true; }
-  }
-  cx.strokeStyle = col; cx.lineWidth = lw;
-  cx.setLineDash(dash);
-  cx.shadowColor = col; cx.shadowBlur = 4; cx.stroke(); cx.shadowBlur = 0;
-  cx.setLineDash([]);
-}
 </script>
 </body>
 </html>

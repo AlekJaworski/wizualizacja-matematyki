@@ -8,40 +8,10 @@
 <body>
 <script type="module">
 import { VizCore, T, COLORS } from '../lib/viz-core.js';
+import { GraphView } from '../lib/graph-core.js';
 
-const OX = 300, OY = 195, SC = 48;
-const px = x => OX + x * SC;
-const py = y => OY - y * SC;
-
-function drawGrid(cx, W, H) {
-  cx.strokeStyle = 'rgba(255,255,255,0.05)'; cx.lineWidth = 1;
-  for (let x = OX % SC; x < W; x += SC) { cx.beginPath(); cx.moveTo(x, 0); cx.lineTo(x, H); cx.stroke(); }
-  for (let y = OY % SC; y < H; y += SC) { cx.beginPath(); cx.moveTo(0, y); cx.lineTo(W, y); cx.stroke(); }
-}
-function drawAxes(cx, W, H) {
-  cx.strokeStyle = 'rgba(255,255,255,0.3)'; cx.lineWidth = 1.5;
-  cx.beginPath(); cx.moveTo(0, OY); cx.lineTo(W, OY); cx.stroke();
-  cx.beginPath(); cx.moveTo(OX, 0); cx.lineTo(OX, H); cx.stroke();
-  cx.font = '10px monospace'; cx.fillStyle = 'rgba(255,255,255,0.2)'; cx.textAlign = 'center';
-  for (let i = -5; i <= 5; i++) {
-    if (i === 0) continue;
-    const x = OX + i * SC;
-    if (x > 10 && x < W - 10) cx.fillText(i, x, OY + 13);
-  }
-}
-function plotFn(cx, W, fn, col, lw = 2.5) {
-  cx.beginPath(); let first = true;
-  for (let sx = 0; sx < W; sx += 2) {
-    const x = (sx - OX) / SC, y = fn(x);
-    if (!isFinite(y) || y > 6 || y < -6) { first = true; continue; }
-    if (first) { cx.moveTo(sx, py(y)); first = false; } else cx.lineTo(sx, py(y));
-  }
-  cx.strokeStyle = col; cx.lineWidth = lw;
-  cx.shadowColor = col; cx.shadowBlur = 4; cx.stroke(); cx.shadowBlur = 0;
-}
-function gdot(cx, x, y, r, col) {
-  cx.beginPath(); cx.arc(px(x), py(y), r, 0, Math.PI * 2);
-  cx.fillStyle = col; cx.shadowColor = col; cx.shadowBlur = 8; cx.fill(); cx.shadowBlur = 0;
+function gv(cx, W, H) {
+  return new GraphView(cx, { xRange: [-5.5, 5.5], yRange: [-5.5, 5.5], rect: [0, 0, W, H] });
 }
 
 const { cx, W, H } = VizCore.init({
@@ -62,8 +32,9 @@ const { cx, W, H } = VizCore.init({
       draw(cx, W, H, vals) {
         const n = Math.round(vals.n), a = vals.a;
         if (Math.abs(a) < 0.1) return;
-        drawGrid(cx, W, H); drawAxes(cx, W, H);
-        plotFn(cx, W, x => a * Math.pow(x, n), COLORS.CYAN);
+        const v = gv(cx, W, H);
+        v.drawGrid(); v.drawAxes();
+        v.plotFn(x => a * Math.pow(x, n), { color: COLORS.CYAN, glow: 4 });
 
         const even = n % 2 === 0;
         cx.font = '13px monospace'; cx.textAlign = 'left';
@@ -96,14 +67,15 @@ const { cx, W, H } = VizCore.init({
       ],
       draw(cx, W, H, vals) {
         const { r1, r2, r3 } = vals;
-        drawGrid(cx, W, H); drawAxes(cx, W, H);
+        const v = gv(cx, W, H);
+        v.drawGrid(); v.drawAxes();
         const fn = x => (x - r1) * (x - r2) * (x - r3);
-        plotFn(cx, W, fn, COLORS.CYAN);
+        v.plotFn(fn, { color: COLORS.CYAN, glow: 4 });
         // Mark roots
         [[r1, COLORS.CYAN], [r2, COLORS.ORANGE], [r3, COLORS.GREEN]].forEach(([r, col]) => {
-          gdot(cx, r, 0, 7, col);
+          v.dot(r, 0, { radius: 7, color: col });
           cx.font = '11px monospace'; cx.textAlign = 'center';
-          cx.fillStyle = col; cx.fillText('r=' + r, px(r), py(0) + 18);
+          cx.fillStyle = col; cx.fillText('r=' + r, v.px(r), v.py(0) + 18);
         });
         cx.font = '13px monospace'; cx.textAlign = 'left';
         cx.fillStyle = COLORS.CYAN;
@@ -124,19 +96,20 @@ const { cx, W, H } = VizCore.init({
       ],
       draw(cx, W, H, vals) {
         const m1 = Math.round(vals.m1), m2 = Math.round(vals.m2);
-        drawGrid(cx, W, H); drawAxes(cx, W, H);
+        const v = gv(cx, W, H);
+        v.drawGrid(); v.drawAxes();
         const fn = x => Math.pow(x + 1.5, m1) * Math.pow(x - 1.5, m2);
         // Scale to fit
         const maxY = Math.max(...[-3,-2,-1,0,1,2,3].map(x => Math.abs(fn(x))));
         const s = Math.min(1, 4 / maxY);
-        plotFn(cx, W, x => fn(x) * s, COLORS.CYAN);
+        v.plotFn(x => fn(x) * s, { color: COLORS.CYAN, glow: 4 });
 
         [[-1.5, m1, COLORS.CYAN], [1.5, m2, COLORS.ORANGE]].forEach(([r, m, col]) => {
-          gdot(cx, r, 0, 7, col);
+          v.dot(r, 0, { radius: 7, color: col });
           cx.font = '11px monospace'; cx.textAlign = 'center';
           cx.fillStyle = col;
           const type = m % 2 === 0 ? '(dotyka)' : '(przecina)';
-          cx.fillText('k=' + m + ' ' + type, px(r), py(0) + 20);
+          cx.fillText('k=' + m + ' ' + type, v.px(r), v.py(0) + 20);
         });
 
         cx.font = '13px monospace'; cx.textAlign = 'left';
@@ -159,8 +132,9 @@ const { cx, W, H } = VizCore.init({
         const a = vals.a;
         // f(x) = x⁴ − a·x² (two potential extrema depending on a)
         const fn = x => x * x * x * x - a * x * x;
-        drawGrid(cx, W, H); drawAxes(cx, W, H);
-        plotFn(cx, W, fn, COLORS.CYAN);
+        const v = gv(cx, W, H);
+        v.drawGrid(); v.drawAxes();
+        v.plotFn(fn, { color: COLORS.CYAN, glow: 4 });
 
         // Critical points: f'(x) = 4x³ − 2ax = 2x(2x²−a) = 0
         // x=0 always; x = ±√(a/2) if a > 0
@@ -169,12 +143,12 @@ const { cx, W, H } = VizCore.init({
         crits.forEach(xc => {
           const yc = fn(xc);
           if (yc > 6 || yc < -6) return;
-          gdot(cx, xc, yc, 6, COLORS.YELLOW);
+          v.dot(xc, yc, { radius: 6, color: COLORS.YELLOW });
           const d2 = 12 * xc * xc - 2 * a;
           const type = d2 > 0 ? 'min' : d2 < 0 ? 'max' : '?';
           cx.font = '10px monospace'; cx.textAlign = 'center';
           cx.fillStyle = COLORS.YELLOW;
-          cx.fillText(type, px(xc), py(yc) + (d2 > 0 ? 16 : -8));
+          cx.fillText(type, v.px(xc), v.py(yc) + (d2 > 0 ? 16 : -8));
         });
 
         cx.font = '13px monospace'; cx.textAlign = 'left';

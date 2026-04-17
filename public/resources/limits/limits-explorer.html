@@ -44,7 +44,9 @@
   </div>
 </div>
 
-<script>
+<script type="module">
+import { GraphView } from '../lib/graph-core.js';
+
 (function(){
   const cv = document.getElementById('cv');
   const cx = cv.getContext('2d');
@@ -140,76 +142,6 @@
     cx.restore();
   }
 
-  // Draw axes with given coordinate system
-  function drawAxesCustom(ox, oy, scX, scY, xRange, yRange, showLabels) {
-    // Grid
-    cx.strokeStyle = 'rgba(255,255,255,0.04)';
-    cx.lineWidth = 0.7;
-    const xMin = Math.floor(-ox / scX) - 1;
-    const xMax = Math.ceil((W - ox) / scX) + 1;
-    const yMin = Math.floor(-(H - oy) / scY) - 1;
-    const yMax = Math.ceil(oy / scY) + 1;
-    for (let x = xMin; x <= xMax; x++) {
-      const sx = ox + x * scX;
-      if (sx < 0 || sx > W) continue;
-      cx.beginPath(); cx.moveTo(sx, 0); cx.lineTo(sx, H); cx.stroke();
-    }
-    for (let y = yMin; y <= yMax; y++) {
-      const sy = oy - y * scY;
-      if (sy < 0 || sy > H) continue;
-      cx.beginPath(); cx.moveTo(0, sy); cx.lineTo(W, sy); cx.stroke();
-    }
-    // Axes
-    cx.strokeStyle = 'rgba(255,255,255,0.2)';
-    cx.lineWidth = 1;
-    cx.beginPath(); cx.moveTo(0, oy); cx.lineTo(W, oy); cx.stroke();
-    cx.beginPath(); cx.moveTo(ox, 0); cx.lineTo(ox, H); cx.stroke();
-
-    if (showLabels !== false) {
-      cx.fillStyle = 'rgba(255,255,255,0.25)';
-      cx.font = '9px monospace';
-      cx.textAlign = 'center';
-      cx.textBaseline = 'top';
-      for (let x = Math.ceil(xRange[0]); x <= Math.floor(xRange[1]); x++) {
-        if (x === 0) continue;
-        const sx = ox + x * scX;
-        if (sx < 15 || sx > W - 15) continue;
-        cx.fillText(x, sx, oy + 4);
-      }
-      cx.textAlign = 'right';
-      cx.textBaseline = 'middle';
-      for (let y = Math.ceil(yRange[0]); y <= Math.floor(yRange[1]); y++) {
-        if (y === 0) continue;
-        const sy = oy - y * scY;
-        if (sy < 15 || sy > H - 15) continue;
-        cx.fillText(y, ox - 5, sy);
-      }
-    }
-  }
-
-  // Plot a function within pixel range
-  function plotFn(fn, ox, oy, scX, scY, color, alpha, lineW, dash, xSkip) {
-    cx.save();
-    cx.strokeStyle = color;
-    cx.globalAlpha = alpha || 1;
-    cx.lineWidth = lineW || 2.5;
-    if (dash) cx.setLineDash(dash);
-    cx.beginPath();
-    let started = false;
-    for (let sx = 0; sx <= W; sx += 1) {
-      const x = (sx - ox) / scX;
-      if (xSkip && Math.abs(x - xSkip) < 0.03) { started = false; continue; }
-      const y = fn(x);
-      if (!isFinite(y) || Math.abs(y) > 1000) { started = false; continue; }
-      const sy = oy - y * scY;
-      if (sy < -200 || sy > H + 200) { started = false; continue; }
-      if (!started) { cx.moveTo(sx, sy); started = true; }
-      else cx.lineTo(sx, sy);
-    }
-    cx.stroke();
-    cx.restore();
-  }
-
   // Draw a hollow circle (hole in graph)
   function drawHole(sx, sy, r, col) {
     cx.save();
@@ -273,20 +205,20 @@
 
   // ── Stage 1: "Co sie dzieje blisko punktu?" ──────────────
   function drawStage1() {
-    const OX = W * 0.40, OY = H * 0.68;
-    const SCX = 72, SCY = 100;
+    const g = new GraphView(cx, { xRange: [-4, 6], yRange: [-0.4, 1.3], rect: [0, 0, W, H] });
 
     // f(x) = sin(x)/x  (undefined at x=0, limit = 1)
     const fn = function(x) { return Math.sin(x) / x; };
 
-    drawAxesCustom(OX, OY, SCX, SCY, [-4, 6], [-0.4, 1.3]);
+    g.drawGrid();
+    g.drawAxes();
 
     // Plot sin(x)/x (skip x=0)
-    plotFn(fn, OX, OY, SCX, SCY, COL_CYAN, 0.85, 2.5, null, 0);
+    g.plotFn(fn, { color: COL_CYAN, alpha: 0.85 });
 
     // Draw the hole at (0, 1)
-    const holeSX = OX;
-    const holeSY = OY - 1 * SCY;
+    const holeSX = g.px(0);
+    const holeSY = g.py(1);
     drawHole(holeSX, holeSY, 7, COL_CYAN);
 
     // Formula at top
@@ -297,19 +229,19 @@
 
     const xR = dist;
     const yR = fn(xR);
-    const sxR = OX + xR * SCX;
-    const syR = OY - yR * SCY;
+    const sxR = g.px(xR);
+    const syR = g.py(yR);
 
     const xL = -dist;
     const yL = fn(xL);
-    const sxL = OX + xL * SCX;
-    const syL = OY - yL * SCY;
+    const sxL = g.px(xL);
+    const syL = g.py(yL);
 
     // Glowing trail from right
     const trailR = [];
     for (let i = 0; i < 12; i++) {
       const td = dist + (1.5 - dist) * (i / 11) * 0.85;
-      trailR.push([OX + td * SCX, OY - fn(td) * SCY]);
+      trailR.push([g.px(td), g.py(fn(td))]);
     }
     drawTrail(trailR, COL_YELLOW);
 
@@ -317,7 +249,7 @@
     const trailL = [];
     for (let i = 0; i < 12; i++) {
       const td = dist + (1.5 - dist) * (i / 11) * 0.85;
-      trailL.push([OX - td * SCX, OY - fn(-td) * SCY]);
+      trailL.push([g.px(-td), g.py(fn(-td))]);
     }
     drawTrail(trailL, COL_ORANGE);
 
@@ -372,7 +304,7 @@
 
     infoBox('x=' + fmt(xR, 4) + '  f=' + fmt(yR, 4), sxR + 5, syR - 16, COL_YELLOW, 0.8, 9);
     infoBox('x=' + fmt(xL, 4) + '  f=' + fmt(yL, 4), sxL - 5, syL + 18, COL_ORANGE, 0.8, 9);
-    infoBox('y = 1', OX - 50, holeSY, COL_YELLOW, 0.5, 10);
+    infoBox('y = 1', g.px(0) - 50, holeSY, COL_YELLOW, 0.5, 10);
   }
 
   // ── Stage 2: "Zbli\u017Camy si\u0119 - z obu stron" ──────────────
@@ -557,61 +489,30 @@
 
     if (!showSin) {
       // f(x) = 1/x near x=0
-      const OX = W * 0.45, OY = H * 0.5;
-      const SCX = 60, SCY = 30;
+      const g = new GraphView(cx, { xRange: [-4, 5], yRange: [-5, 5], rect: [0, 0, W, H] });
 
-      drawAxesCustom(OX, OY, SCX, SCY, [-4, 5], [-5, 5]);
+      g.drawGrid();
+      g.drawAxes();
 
       formulaBox('f(x) = 1/x', W/2, 22, COL_CYAN);
 
-      // Plot 1/x (two branches)
+      // Plot 1/x — two colored branches
       const fn = function(x) { return 1/x; };
-      // Right branch (positive)
-      cx.save();
-      cx.strokeStyle = COL_YELLOW;
-      cx.lineWidth = 2.5;
-      cx.beginPath();
-      let started = false;
-      for (let sx = OX + 3; sx <= W; sx += 1) {
-        const x = (sx - OX) / SCX;
-        const y = fn(x);
-        if (!isFinite(y) || y > 12 || y < -12) { started = false; continue; }
-        const sy = OY - y * SCY;
-        if (!started) { cx.moveTo(sx, sy); started = true; }
-        else cx.lineTo(sx, sy);
-      }
-      cx.stroke();
-      cx.restore();
-
-      // Left branch (negative)
-      cx.save();
-      cx.strokeStyle = COL_ORANGE;
-      cx.lineWidth = 2.5;
-      cx.beginPath();
-      started = false;
-      for (let sx = 0; sx < OX - 3; sx += 1) {
-        const x = (sx - OX) / SCX;
-        const y = fn(x);
-        if (!isFinite(y) || y > 12 || y < -12) { started = false; continue; }
-        const sy = OY - y * SCY;
-        if (!started) { cx.moveTo(sx, sy); started = true; }
-        else cx.lineTo(sx, sy);
-      }
-      cx.stroke();
-      cx.restore();
+      g.plotFn(x => x > 0.05 ? fn(x) : NaN, { color: COL_YELLOW });
+      g.plotFn(x => x < -0.05 ? fn(x) : NaN, { color: COL_ORANGE });
 
       // Vertical asymptote
-      dashedLine(OX, 0, OX, H, COL_PINK, 0.3, [6, 4]);
+      dashedLine(g.px(0), 0, g.px(0), H, COL_PINK, 0.3, [6, 4]);
 
       // Animated arrows showing divergence
       const t = (animT * 0.5) % 1;
-      const arrowYR = OY - lerp(1, 8, ease(t)) * SCY;
-      const arrowYL = OY - lerp(-1, -8, ease(t)) * SCY;
+      const arrowYR = g.py(lerp(1, 8, ease(t)));
+      const arrowYL = g.py(lerp(-1, -8, ease(t)));
 
       // Right arrow going up
-      gdot(OX + 8, clamp(arrowYR, 5, H - 5), 4, COL_YELLOW, 15);
+      gdot(g.px(0) + 8, clamp(arrowYR, 5, H - 5), 4, COL_YELLOW, 15);
       // Left arrow going down
-      gdot(OX - 8, clamp(arrowYL, 5, H - 5), 4, COL_ORANGE, 15);
+      gdot(g.px(0) - 8, clamp(arrowYL, 5, H - 5), 4, COL_ORANGE, 15);
 
       // Labels
       infoBox(T('x \u2192 0\u207A: f(x) \u2192 +\u221E', 'x \u2192 0\u207A: f(x) \u2192 +\u221E'), W * 0.75, H * 0.15, COL_YELLOW, 0.9);
@@ -622,61 +523,34 @@
 
     } else {
       // f(x) = sin(1/x) near x=0
-      const OX = W * 0.45, OY = H * 0.5;
-      const SCX = 120, SCY = 80;
+      const g = new GraphView(cx, { xRange: [-2, 3], yRange: [-2, 2], rect: [0, 0, W, H] });
 
-      drawAxesCustom(OX, OY, SCX, SCY, [-2, 3], [-2, 2]);
+      g.drawGrid();
+      g.drawAxes();
 
       formulaBox('f(x) = sin(1/x)', W/2, 22, COL_PURPLE);
 
       // Plot sin(1/x) with high resolution near 0
       const fn = function(x) { return Math.sin(1/x); };
-      cx.save();
-      cx.strokeStyle = COL_PURPLE;
-      cx.lineWidth = 1.5;
-      cx.globalAlpha = 0.85;
-      cx.beginPath();
-      let started = false;
-      // Right of 0
-      for (let sx = OX + 2; sx <= W; sx += 0.5) {
-        const x = (sx - OX) / SCX;
-        if (x < 0.003) continue;
-        const y = fn(x);
-        const sy = OY - y * SCY;
-        if (!started) { cx.moveTo(sx, sy); started = true; }
-        else cx.lineTo(sx, sy);
-      }
-      cx.stroke();
-
-      // Left of 0
-      cx.beginPath();
-      started = false;
-      for (let sx = OX - 2; sx >= 0; sx -= 0.5) {
-        const x = (sx - OX) / SCX;
-        if (x > -0.003) continue;
-        const y = fn(x);
-        const sy = OY - y * SCY;
-        if (!started) { cx.moveTo(sx, sy); started = true; }
-        else cx.lineTo(sx, sy);
-      }
-      cx.stroke();
-      cx.restore();
+      g.plotFn(x => x > 0.003 ? fn(x) : NaN, { color: COL_PURPLE, lineWidth: 1.5, alpha: 0.85, resolution: 1200 });
+      g.plotFn(x => x < -0.003 ? fn(x) : NaN, { color: COL_PURPLE, lineWidth: 1.5, alpha: 0.85, resolution: 1200 });
 
       // Oscillation band
-      drawBand(OX - 5, OY - 1 * SCY, OX + 5, OY + 1 * SCY, COL_PURPLE, 0.08);
+      drawBand(g.px(0) - 5, g.py(1), g.px(0) + 5, g.py(-1), COL_PURPLE, 0.08);
 
       // Vertical asymptote area
-      dashedLine(OX, 0, OX, H, COL_PINK, 0.2, [4, 3]);
+      dashedLine(g.px(0), 0, g.px(0), H, COL_PINK, 0.2, [4, 3]);
 
       // y=1 and y=-1 bounds
-      dashedLine(0, OY - SCY, W, OY - SCY, 'rgba(255,255,255,0.15)', 0.3, [3, 5]);
-      dashedLine(0, OY + SCY, W, OY + SCY, 'rgba(255,255,255,0.15)', 0.3, [3, 5]);
+      dashedLine(0, g.py(1), W, g.py(1), 'rgba(255,255,255,0.15)', 0.3, [3, 5]);
+      dashedLine(0, g.py(-1), W, g.py(-1), 'rgba(255,255,255,0.15)', 0.3, [3, 5]);
 
       // Animated dot oscillating wildly
-      const osc = Math.sin(1 / (0.005 + 0.1 * (1 - ease((animT * 0.3) % 1))));
-      const oscX = OX + (0.005 + 0.1 * (1 - ease((animT * 0.3) % 1))) * SCX;
-      const oscY = OY - osc * SCY;
-      gdot(clamp(oscX, OX + 2, W - 10), clamp(oscY, 10, H - 10), 4, COL_PURPLE, 18);
+      const oscXWorld = 0.005 + 0.1 * (1 - ease((animT * 0.3) % 1));
+      const osc = Math.sin(1 / oscXWorld);
+      const oscSX = g.px(oscXWorld);
+      const oscSY = g.py(osc);
+      gdot(clamp(oscSX, g.px(0) + 2, W - 10), clamp(oscSY, 10, H - 10), 4, COL_PURPLE, 18);
 
       infoBox(T('Oscyluje mi\u0119dzy -1 a 1 \u2014 nie zbli\u017Ca si\u0119 do niczego!',
                'Oscillates between -1 and 1 \u2014 never settles!'), W/2, H * 0.18, COL_PURPLE, 0.8, 10);
@@ -686,8 +560,7 @@
 
   // ── Stage 4: "Epsilon-delta" ─────────────────────────────
   function drawStage4() {
-    const OX = W * 0.45, OY = H * 0.7;
-    const SCX = 80, SCY = 120;
+    const g = new GraphView(cx, { xRange: [-3.5, 4], yRange: [-0.5, 1.5], rect: [0, 0, W, H] });
 
     const fn = function(x) { return Math.sin(x) / x; };
     const limitX = 0;
@@ -696,22 +569,22 @@
     // |sin(x)/x - 1| ≈ x²/6 for small x, so delta = sqrt(6·eps)
     const delta = Math.min(2.5, Math.sqrt(6 * eps));
 
-    drawAxesCustom(OX, OY, SCX, SCY, [-3.5, 4], [-0.5, 1.5]);
+    g.drawGrid();
+    g.drawAxes();
 
     // Formula at top
     formulaBox('f(x) = sin(x)/x        lim(x\u21920) = 1', W/2, 22, COL_CYAN, 14);
 
-    // Epsilon band (horizontal around y=2)
-    const epsTop = OY - (limitY + eps) * SCY;
-    const epsBot = OY - (limitY - eps) * SCY;
+    // Epsilon band (horizontal around y=1)
+    const epsTop = g.py(limitY + eps);
+    const epsBot = g.py(limitY - eps);
     drawBand(0, epsTop, W, epsBot, COL_YELLOW, 0.12);
-    // Epsilon band borders
     dashedLine(0, epsTop, W, epsTop, COL_YELLOW, 0.5, [4, 3]);
     dashedLine(0, epsBot, W, epsBot, COL_YELLOW, 0.5, [4, 3]);
 
-    // Delta band (vertical around x=1)
-    const deltaLeft = OX + (limitX - delta) * SCX;
-    const deltaRight = OX + (limitX + delta) * SCX;
+    // Delta band (vertical around x=0)
+    const deltaLeft = g.px(limitX - delta);
+    const deltaRight = g.px(limitX + delta);
     drawBand(deltaLeft, 0, deltaRight, H, COL_ORANGE, 0.1);
     dashedLine(deltaLeft, 0, deltaLeft, H, COL_ORANGE, 0.4, [4, 3]);
     dashedLine(deltaRight, 0, deltaRight, H, COL_ORANGE, 0.4, [4, 3]);
@@ -723,12 +596,12 @@
     cx.fillRect(deltaLeft, epsTop, deltaRight - deltaLeft, epsBot - epsTop);
     cx.restore();
 
-    // Plot sin(x)/x (skip x=0)
-    plotFn(fn, OX, OY, SCX, SCY, COL_CYAN, 0.85, 2.5, null, 0);
+    // Plot sin(x)/x
+    g.plotFn(fn, { color: COL_CYAN, alpha: 0.85 });
 
     // Draw the hole at (0, 1)
-    const holeSX = OX + limitX * SCX;
-    const holeSY = OY - limitY * SCY;
+    const holeSX = g.px(limitX);
+    const holeSY = g.py(limitY);
     drawHole(holeSX, holeSY, 6, COL_CYAN);
 
     // Limit point crosshair
@@ -741,7 +614,6 @@
     cx.fillStyle = COL_YELLOW;
     cx.textAlign = 'left';
     const eMidY = (epsTop + holeSY) / 2;
-    // Epsilon arrow
     cx.strokeStyle = COL_YELLOW;
     cx.lineWidth = 1;
     cx.globalAlpha = 0.7;
@@ -758,7 +630,6 @@
     cx.fillStyle = COL_ORANGE;
     cx.textAlign = 'center';
     const dMidX = (holeSX + deltaRight) / 2;
-    // Delta arrow
     cx.strokeStyle = COL_ORANGE;
     cx.lineWidth = 1;
     cx.globalAlpha = 0.7;
@@ -775,8 +646,8 @@
     const testDist = delta * 0.8 * Math.sin(animT * 1.7);
     const testX = limitX + testDist;
     const testY = fn(testX);
-    const testSX = OX + testX * SCX;
-    const testSY = OY - testY * SCY;
+    const testSX = g.px(testX);
+    const testSY = g.py(testY);
 
     gdot(testSX, testSY, 5, COL_GREEN, 16);
 
@@ -794,40 +665,37 @@
   // ── Stage 5: "Granica w niesko\u0144czono\u015Bci" ──────────────────
   function drawStage5() {
     const xR = s5_xRange; // 2 to 50
-    const OX = W * 0.08, OY = H * 0.45;
-    const SCX = (W - 80) / xR;
-    const SCY = H * 0.16;
-
-    // Determine y range
     const yMin = -0.5;
     const yMax = 3;
 
-    drawAxesCustom(OX, OY, SCX, SCY, [0, xR], [yMin, yMax], true);
+    const g = new GraphView(cx, { xRange: [0, xR], yRange: [yMin, yMax], rect: [0, 0, W, H] });
+
+    g.drawGrid();
+    g.drawAxes();
 
     // Formula at top
     formulaBox(T('Granica w niesko\u0144czono\u015Bci: x \u2192 \u221E', 'Limit at infinity: x \u2192 \u221E'), W/2, 22, COL_CYAN, 13);
 
     // f(x) = 1/x
     const fn1 = function(x) { return 1/x; };
-    plotFn(fn1, OX, OY, SCX, SCY, COL_YELLOW, 0.8, 2.5, null, 0);
+    g.plotFn(fn1, { color: COL_YELLOW, alpha: 0.8 });
 
     // f(x) = 2*(1 - (1/2)^x)  — partial sum of geometric series 1 + 1/2 + 1/4 + ...
     const fn2 = function(x) { return 2 * (1 - Math.pow(0.5, x)); };
-    plotFn(fn2, OX, OY, SCX, SCY, COL_PURPLE, 0.8, 2.5);
+    g.plotFn(fn2, { color: COL_PURPLE, alpha: 0.8 });
 
     // Asymptote y=0 for 1/x
-    dashedLine(0, OY, W, OY, COL_YELLOW, 0.25, [6, 4]);
-    infoBox('y = 0', W - 35, OY + 12, COL_YELLOW, 0.5, 9);
+    dashedLine(0, g.py(0), W, g.py(0), COL_YELLOW, 0.25, [6, 4]);
+    infoBox('y = 0', W - 35, g.py(0) + 12, COL_YELLOW, 0.5, 9);
 
-    // Asymptote y=2 for (2x+1)/(x+1)
-    const asy2Y = OY - 2 * SCY;
-    dashedLine(0, asy2Y, W, asy2Y, COL_PURPLE, 0.25, [6, 4]);
-    infoBox('y = 2', W - 35, asy2Y - 12, COL_PURPLE, 0.5, 9);
+    // Asymptote y=2
+    dashedLine(0, g.py(2), W, g.py(2), COL_PURPLE, 0.25, [6, 4]);
+    infoBox('y = 2', W - 35, g.py(2) - 12, COL_PURPLE, 0.5, 9);
 
     // Epsilon band around y=0 for 1/x
     const epsSmall = 0.3;
-    const epsTopY = OY - epsSmall * SCY;
-    const epsBotY = OY + epsSmall * SCY;
+    const epsTopY = g.py(epsSmall);
+    const epsBotY = g.py(-epsSmall);
     drawBand(0, epsTopY, W, epsBotY, COL_YELLOW, 0.06);
     dashedLine(0, epsTopY, W, epsTopY, COL_YELLOW, 0.15, [2, 3]);
     dashedLine(0, epsBotY, W, epsBotY, COL_YELLOW, 0.15, [2, 3]);
@@ -835,7 +703,7 @@
     // Show where 1/x enters the epsilon band
     const enterX = 1 / epsSmall;
     if (enterX < xR) {
-      const enterSX = OX + enterX * SCX;
+      const enterSX = g.px(enterX);
       dashedLine(enterSX, epsTopY, enterSX, epsBotY, COL_GREEN, 0.4, [3, 3]);
       infoBox('x > ' + fmt(enterX, 1) + ': |f(x)| < \u03B5', enterSX, epsBotY + 15, COL_GREEN, 0.7, 9);
     }
@@ -844,18 +712,18 @@
     const dotT = (animT * 0.15) % 1;
     const dotX1 = lerp(0.5, xR * 0.9, ease(dotT));
     const dotY1 = fn1(dotX1);
-    const dotSX1 = OX + dotX1 * SCX;
-    const dotSY1 = OY - dotY1 * SCY;
-    if (dotSX1 > OX && dotSX1 < W) {
+    const dotSX1 = g.px(dotX1);
+    const dotSY1 = g.py(dotY1);
+    if (dotSX1 > g.px(0) && dotSX1 < W) {
       gdot(dotSX1, dotSY1, 4, COL_YELLOW, 14);
     }
 
-    // Animated dot on (2x+1)/(x+1)
+    // Animated dot on geometric series
     const dotX2 = lerp(0.2, xR * 0.9, ease(dotT));
     const dotY2 = fn2(dotX2);
-    const dotSX2 = OX + dotX2 * SCX;
-    const dotSY2 = OY - dotY2 * SCY;
-    if (dotSX2 > OX && dotSX2 < W) {
+    const dotSX2 = g.px(dotX2);
+    const dotSY2 = g.py(dotY2);
+    if (dotSX2 > g.px(0) && dotSX2 < W) {
       gdot(dotSX2, dotSY2, 4, COL_PURPLE, 14);
     }
 

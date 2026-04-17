@@ -156,7 +156,8 @@
   </div>
 </div>
 
-<script>
+<script type="module">
+import { GraphView } from '../lib/graph-core.js';
 (function(){
 const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
 const T = (pl, en) => LANG === 'pl' ? pl : en;
@@ -178,36 +179,17 @@ const stages=[
   {id:'lincomb', f:'w = au + bv', d:T('Każdy punkt płaszczyzny można osiągnąć jako kombinację liniową dwóch nierównoległych wektorów.','Any point in the plane can be reached as a linear combination of two non-parallel vectors.')},
 ];
 
-// ── Drawing helpers ──────────────────────────────────────────
+// ── GraphView for grid/axes ──────────────────────────────────
+const gv = new GraphView(cx, { rect: [0, 0, W, H], xRange: [-7.5, 7.5], yRange: [-3.875, 3.875], scale: SC });
 
-function drawGrid(){
-  cx.strokeStyle='rgba(255,255,255,.05)';cx.lineWidth=.7;
-  for(let x=-8;x<=8;x++){cx.beginPath();cx.moveTo(px(x),0);cx.lineTo(px(x),H);cx.stroke();}
-  for(let y=-5;y<=5;y++){cx.beginPath();cx.moveTo(0,py(y));cx.lineTo(W,py(y));cx.stroke();}
-}
-
-function drawAxes(){
-  cx.strokeStyle='rgba(255,255,255,.38)';cx.lineWidth=1.5;
-  cx.beginPath();cx.moveTo(0,py(0));cx.lineTo(W-8,py(0));cx.stroke();
-  cx.beginPath();cx.moveTo(px(0),H);cx.lineTo(px(0),7);cx.stroke();
-  cx.fillStyle='rgba(255,255,255,.38)';
-  cx.beginPath();cx.moveTo(W,py(0));cx.lineTo(W-9,py(0)-4);cx.lineTo(W-9,py(0)+4);cx.closePath();cx.fill();
-  cx.beginPath();cx.moveTo(px(0),0);cx.lineTo(px(0)-4,9);cx.lineTo(px(0)+4,9);cx.closePath();cx.fill();
-  for(let x=-7;x<=7;x++){
-    if(!x)continue;
-    cx.strokeStyle='rgba(255,255,255,.18)';cx.lineWidth=1;
-    cx.beginPath();cx.moveTo(px(x),py(0)-3);cx.lineTo(px(x),py(0)+3);cx.stroke();
-    cx.fillStyle='rgba(255,255,255,.25)';cx.font='10px sans-serif';cx.textAlign='center';cx.fillText(x,px(x),py(0)+13);
-  }
-  for(let y=-3;y<=3;y++){
-    if(!y)continue;
-    cx.strokeStyle='rgba(255,255,255,.18)';cx.lineWidth=1;
-    cx.beginPath();cx.moveTo(px(0)-3,py(y));cx.lineTo(px(0)+3,py(y));cx.stroke();
-    cx.fillStyle='rgba(255,255,255,.25)';cx.textAlign='right';cx.font='10px sans-serif';cx.fillText(y,px(0)-7,py(y)+4);
-  }
+function drawGridAndAxes(){
+  gv.drawGrid();
+  gv.drawAxes({ color: 'rgba(255,255,255,.38)' });
   cx.fillStyle='rgba(255,255,255,.4)';cx.font='12px sans-serif';
   cx.textAlign='center';cx.fillText('x',W-4,py(0)+5);cx.fillText('y',px(0),11);
 }
+
+// ── Drawing helpers ──────────────────────────────────────────
 
 function drawArrow(x0,y0,x1,y1,col,lw,alpha){
   cx.save();
@@ -242,8 +224,7 @@ function drawDashedLine(x0,y0,x1,y1,col,alpha){
 }
 
 function gdot(xx,yy,r,col){
-  cx.beginPath();cx.arc(xx,yy,r,0,Math.PI*2);cx.fillStyle=col;
-  cx.shadowColor=col;cx.shadowBlur=12;cx.fill();cx.shadowBlur=0;
+  gv.dotScreen(xx,yy,{radius:r,color:col});
 }
 
 function labelVec(name,ox,oy,vx,vy,col){
@@ -510,7 +491,7 @@ allSliders.forEach(s=>s.addEventListener('input',()=>{})); // trigger repaint vi
 
 function tick(){
   cx.fillStyle='#0e0e12';cx.fillRect(0,0,W,H);
-  drawGrid();drawAxes();
+  drawGridAndAxes();
   switch(stage){
     case 0:renderBasics();break;
     case 1:renderAddition();break;

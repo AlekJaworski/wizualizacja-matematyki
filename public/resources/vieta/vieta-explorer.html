@@ -43,8 +43,9 @@
   </div>
 </div>
 
-<script>
-(function(){
+<script type="module">
+import { GraphView } from '../lib/graph-core.js';
+{
   const cv = document.getElementById('cv');
   const cx = cv.getContext('2d');
   const W = 600, H = 310;
@@ -61,73 +62,31 @@
   const COL_SYM = '#FF9F43';   // axis of symmetry
   const COL_EQ  = '#83C167';   // equation text
 
-  // Coordinate system: OX centered, OY at ~55% height
-  const OX = W / 2, OY = H * 0.55, SC = 50;
-  function px(x) { return OX + x * SC; }
-  function py(y) { return OY - y * SC; }
+  // GraphView for coordinate transforms, grid, axes
+  let view;
+  function initView() {
+    view = new GraphView(cx, { rect: [0,0,W,H], xRange: [-6,6], yRange: [-3.19,3.81], scale: 50 });
+  }
+  initView();
+  function px(x) { return view.px(x); }
+  function py(y) { return view.py(y); }
 
   // State
   let r1 = 1, r2 = 3;  // roots (stages 1-3)
   let b = -4, c = 3;    // coefficients (stages 4-5)
   let stage = 0;
 
-  // ── Drawing helpers ──────────────────────────────────────────
-  function clear() {
-    cx.fillStyle = '#0e0e12';
-    cx.fillRect(0, 0, W, H);
-  }
+  // ── Drawing helpers (delegated to GraphView) ─────────────────
+  function clear() { initView(); view.clear(); }
 
-  function drawGrid() {
-    cx.strokeStyle = 'rgba(255,255,255,0.04)';
-    cx.lineWidth = 0.7;
-    for (let x = -7; x <= 7; x++) {
-      cx.beginPath(); cx.moveTo(px(x), 0); cx.lineTo(px(x), H); cx.stroke();
-    }
-    for (let y = -4; y <= 6; y++) {
-      cx.beginPath(); cx.moveTo(0, py(y)); cx.lineTo(W, py(y)); cx.stroke();
-    }
-  }
+  function drawGrid() { view.drawGrid({ color: 'rgba(255,255,255,0.04)' }); }
 
   function drawAxes() {
-    cx.strokeStyle = 'rgba(255,255,255,0.2)';
-    cx.lineWidth = 1;
-    // X axis
-    cx.beginPath(); cx.moveTo(0, py(0)); cx.lineTo(W, py(0)); cx.stroke();
-    // Y axis
-    cx.beginPath(); cx.moveTo(px(0), 0); cx.lineTo(px(0), H); cx.stroke();
-
-    cx.fillStyle = 'rgba(255,255,255,0.25)';
-    cx.font = '9px monospace';
-    cx.textAlign = 'center';
-    for (let x = -5; x <= 5; x++) {
-      if (x === 0) continue;
-      cx.fillText(x, px(x), py(0) + 13);
-    }
-    cx.textAlign = 'right';
-    for (let y = -3; y <= 5; y++) {
-      if (y === 0) continue;
-      cx.fillText(y, px(0) - 6, py(y) + 3);
-    }
+    view.drawAxes({ color: 'rgba(255,255,255,0.2)', arrows: false, labels: true, tickSize: 3 });
   }
 
   function plotParabola(a, bCoef, cCoef, color, alpha, dash) {
-    cx.save();
-    cx.strokeStyle = color;
-    cx.globalAlpha = alpha;
-    cx.lineWidth = 2.5;
-    if (dash) cx.setLineDash(dash);
-    cx.beginPath();
-    let started = false;
-    for (let sx = 0; sx <= W; sx += 2) {
-      const x = (sx - OX) / SC;
-      const y = a * x * x + bCoef * x + cCoef;
-      const sy = py(y);
-      if (sy < -100 || sy > H + 100) { started = false; continue; }
-      if (!started) { cx.moveTo(sx, sy); started = true; }
-      else cx.lineTo(sx, sy);
-    }
-    cx.stroke();
-    cx.restore();
+    view.plotFn(x => a * x * x + bCoef * x + cCoef, { color, alpha, dash, lineWidth: 2.5 });
   }
 
   function plotParabolaFromRoots(root1, root2, color, alpha) {
@@ -135,22 +94,11 @@
   }
 
   function gdot(x, y, r, col) {
-    cx.beginPath();
-    cx.arc(px(x), py(y), r, 0, Math.PI * 2);
-    cx.fillStyle = col;
-    cx.shadowColor = col;
-    cx.shadowBlur = 12;
-    cx.fill();
-    cx.shadowBlur = 0;
+    view.dot(x, y, { radius: r, color: col });
   }
 
   function label(text, x, y, col, align, size) {
-    cx.save();
-    cx.font = (size || 11) + 'px monospace';
-    cx.fillStyle = col;
-    cx.textAlign = align || 'left';
-    cx.fillText(text, px(x), py(y));
-    cx.restore();
+    view.label(text, x, y, { color: col, align: align || 'left', font: (size || 11) + 'px monospace' });
   }
 
   function infoBox(text, sx, sy, col, alpha) {
@@ -179,17 +127,7 @@
   }
 
   function drawDashedLine(x1, y1, x2, y2, col, alpha, dashPat) {
-    cx.save();
-    cx.strokeStyle = col;
-    cx.globalAlpha = alpha || 0.6;
-    cx.lineWidth = 1.5;
-    cx.setLineDash(dashPat || [5, 4]);
-    cx.beginPath();
-    cx.moveTo(px(x1), py(y1));
-    cx.lineTo(px(x2), py(y2));
-    cx.stroke();
-    cx.setLineDash([]);
-    cx.restore();
+    view.segment(x1, y1, x2, y2, { color: col, alpha: alpha || 0.6, lineWidth: 1.5, dash: dashPat || [5, 4] });
   }
 
   function drawBrace(sx1, sy, sx2, col, belowY) {
@@ -695,7 +633,7 @@
 
   goTo(0);
   tick();
-})();
+}
 </script>
 </body>
 </html>

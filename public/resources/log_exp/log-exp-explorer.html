@@ -44,7 +44,9 @@
   </div>
 </div>
 
-<script>
+<script type="module">
+import { GraphView } from '../lib/graph-core.js';
+
 (function(){
   const cv = document.getElementById('cv');
   const cx = cv.getContext('2d');
@@ -62,12 +64,6 @@
   const COL_PURP  = '#C080FF';  // purple
   const COL_BLUE  = '#4a9eff';  // blue
 
-  // Coordinate system
-  let OX, OY, SC;
-  function setCoords(ox, oy, sc) { OX = ox; OY = oy; SC = sc; }
-  function px(x) { return OX + x * SC; }
-  function py(y) { return OY - y * SC; }
-
   // State
   let stage = 0;
   let targetVal = 8;
@@ -83,66 +79,6 @@
   function clear() {
     cx.fillStyle = '#0e0e12';
     cx.fillRect(0, 0, W, H);
-  }
-
-  function drawGrid(xMin, xMax, yMin, yMax) {
-    cx.strokeStyle = 'rgba(255,255,255,0.04)';
-    cx.lineWidth = 0.7;
-    for (let x = Math.ceil(xMin); x <= Math.floor(xMax); x++) {
-      cx.beginPath(); cx.moveTo(px(x), 0); cx.lineTo(px(x), H); cx.stroke();
-    }
-    for (let y = Math.ceil(yMin); y <= Math.floor(yMax); y++) {
-      cx.beginPath(); cx.moveTo(0, py(y)); cx.lineTo(W, py(y)); cx.stroke();
-    }
-  }
-
-  function drawAxes(xMin, xMax, yMin, yMax) {
-    cx.strokeStyle = 'rgba(255,255,255,0.2)';
-    cx.lineWidth = 1;
-    cx.beginPath(); cx.moveTo(0, py(0)); cx.lineTo(W, py(0)); cx.stroke();
-    cx.beginPath(); cx.moveTo(px(0), 0); cx.lineTo(px(0), H); cx.stroke();
-
-    cx.fillStyle = 'rgba(255,255,255,0.25)';
-    cx.font = '9px monospace';
-    cx.textAlign = 'center';
-    for (let x = Math.ceil(xMin); x <= Math.floor(xMax); x++) {
-      if (x === 0) continue;
-      cx.fillText(x, px(x), py(0) + 13);
-    }
-    cx.textAlign = 'right';
-    for (let y = Math.ceil(yMin); y <= Math.floor(yMax); y++) {
-      if (y === 0) continue;
-      cx.fillText(y, px(0) - 6, py(y) + 3);
-    }
-  }
-
-  function gdot(sx, sy, r, col) {
-    cx.beginPath(); cx.arc(sx, sy, r, 0, Math.PI * 2);
-    cx.fillStyle = col; cx.shadowColor = col; cx.shadowBlur = 12;
-    cx.fill(); cx.shadowBlur = 0;
-  }
-
-  function plotFn(fn, color, alpha, dash, xMinPx, xMaxPx) {
-    cx.save();
-    cx.strokeStyle = color;
-    cx.globalAlpha = alpha || 1;
-    cx.lineWidth = 2.5;
-    if (dash) cx.setLineDash(dash);
-    cx.beginPath();
-    let started = false;
-    const x0 = xMinPx !== undefined ? xMinPx : 0;
-    const x1 = xMaxPx !== undefined ? xMaxPx : W;
-    for (let sx = x0; sx <= x1; sx += 1.5) {
-      const x = (sx - OX) / SC;
-      const y = fn(x);
-      if (!isFinite(y) || isNaN(y)) { started = false; continue; }
-      const sy = py(y);
-      if (sy < -200 || sy > H + 200) { started = false; continue; }
-      if (!started) { cx.moveTo(sx, sy); started = true; }
-      else cx.lineTo(sx, sy);
-    }
-    cx.stroke();
-    cx.restore();
   }
 
   function infoBox(text, sx, sy, col, alpha) {
@@ -201,7 +137,6 @@
         { id: 'target', lbl: T('cel','target'), color: COL_EXP, min: 1, max: 64, step: 1, get: () => targetVal, set: v => targetVal = v },
       ],
       draw() {
-        setCoords(50, H * 0.75, 1);
         const blockW = 50;
         const blockH = 28;
         const gap = 8;
@@ -282,54 +217,37 @@
         { id: 'base', lbl: T('baza','base'), color: COL_EXP, min: 1.5, max: 10, step: 0.5, get: () => base, set: v => base = v },
       ],
       draw() {
-        setCoords(W * 0.25, H * 0.7, 34);
+        const g = new GraphView(cx, { xRange: [-3, 10], yRange: [-3, 8], rect: [0, 0, W, H] });
 
-        drawGrid(-3, 10, -3, 8);
-        drawAxes(-3, 10, -3, 8);
+        g.drawGrid();
+        g.drawAxes();
 
         // Mirror line y = x (dashed)
-        plotFn(x => x, COL_MIRR, 0.35, [6, 4]);
-        cx.save();
-        cx.font = '10px monospace';
-        cx.fillStyle = COL_MIRR;
-        cx.globalAlpha = 0.6;
-        cx.textAlign = 'left';
-        cx.fillText('y = x', px(5.5), py(5.5) - 6);
-        cx.restore();
+        g.plotFn(x => x, { color: COL_MIRR, alpha: 0.35, dash: [6, 4] });
+        g.label('y = x', 5.5, 5.5, { color: COL_MIRR, font: '10px monospace', offsetY: -6, alpha: 0.6 });
 
         // Exponential: y = base^x
-        plotFn(x => Math.pow(base, x), COL_EXP, 0.9);
+        g.plotFn(x => Math.pow(base, x), { color: COL_EXP, alpha: 0.9 });
 
         // Logarithm: y = log_base(x)
-        plotFn(x => x > 0 ? logBase(base, x) : NaN, COL_LOG, 0.9);
+        g.plotFn(x => x > 0 ? logBase(base, x) : NaN, { color: COL_LOG, alpha: 0.9 });
 
         // Animated reflection point
         const t = (animT % 200) / 200;
         const xAnim = -1 + t * 6;
         const yExp = Math.pow(base, xAnim);
-        const yLog = logBase(base, yExp);
 
         if (yExp < 8 && yExp > -3) {
           // Point on exp curve
-          const expPx = px(xAnim), expPy = py(yExp);
-          gdot(expPx, expPy, 5, COL_EXP);
+          g.dot(xAnim, yExp, { radius: 5, color: COL_EXP });
 
           // Mirror point on log curve (swap x,y)
-          const logPx = px(yExp), logPy = py(xAnim);
+          const logPx = g.px(yExp), logPy = g.py(xAnim);
           if (logPx > 0 && logPx < W && logPy > 0 && logPy < H) {
-            gdot(logPx, logPy, 5, COL_LOG);
+            g.dot(yExp, xAnim, { radius: 5, color: COL_LOG });
 
             // Reflection line through y=x
-            cx.save();
-            cx.strokeStyle = COL_MIRR;
-            cx.globalAlpha = 0.25;
-            cx.lineWidth = 1;
-            cx.setLineDash([3, 3]);
-            cx.beginPath();
-            cx.moveTo(expPx, expPy);
-            cx.lineTo(logPx, logPy);
-            cx.stroke();
-            cx.restore();
+            g.segment(xAnim, yExp, yExp, xAnim, { color: COL_MIRR, alpha: 0.25, lineWidth: 1, dash: [3, 3] });
           }
         }
 
@@ -338,23 +256,23 @@
         infoBox('y = log_' + fmt(base) + '(x)', W * 0.8, 48, COL_LOG);
 
         // Mark (1, 0) on log
-        gdot(px(1), py(0), 4, COL_LOG);
+        g.dot(1, 0, { radius: 4, color: COL_LOG });
         cx.save();
         cx.font = '9px monospace';
         cx.fillStyle = COL_LOG;
         cx.globalAlpha = 0.7;
         cx.textAlign = 'left';
-        cx.fillText('(1, 0)', px(1) + 6, py(0) - 6);
+        cx.fillText('(1, 0)', g.px(1) + 6, g.py(0) - 6);
         cx.restore();
 
         // Mark (0, 1) on exp
-        gdot(px(0), py(1), 4, COL_EXP);
+        g.dot(0, 1, { radius: 4, color: COL_EXP });
         cx.save();
         cx.font = '9px monospace';
         cx.fillStyle = COL_EXP;
         cx.globalAlpha = 0.7;
         cx.textAlign = 'right';
-        cx.fillText('(0, 1)', px(0) - 6, py(1) - 6);
+        cx.fillText('(0, 1)', g.px(0) - 6, g.py(1) - 6);
         cx.restore();
       }
     },
@@ -370,8 +288,6 @@
         { id: 'xslow', lbl: 'x', color: COL_LOG, min: 1, max: 1024, step: 1, get: () => xSlowVal, set: v => xSlowVal = v },
       ],
       draw() {
-        setCoords(50, H * 0.55, 1);
-
         // Table of x vs log2(x)
         const tableData = [
           [1, 0], [2, 1], [4, 2], [8, 3], [16, 4], [32, 5], [64, 6], [128, 7], [256, 8], [512, 9], [1024, 10]
@@ -626,51 +542,39 @@
         { id: 'basech', lbl: T('baza','base'), color: COL_LOG, min: 1.5, max: 10, step: 0.5, get: () => baseChange, set: v => baseChange = v },
       ],
       draw() {
-        setCoords(W * 0.2, H * 0.75, 50);
+        const g = new GraphView(cx, { xRange: [-1, 10], yRange: [-3, 5], rect: [0, 0, W, H] });
 
-        drawGrid(-1, 10, -3, 5);
-        drawAxes(-1, 10, -3, 5);
+        g.drawGrid();
+        g.drawAxes();
 
         // Draw log base 2 (reference)
-        plotFn(x => x > 0 ? logBase(2, x) : NaN, COL_BLUE, 0.5);
+        g.plotFn(x => x > 0 ? logBase(2, x) : NaN, { color: COL_BLUE, alpha: 0.5 });
         // Draw log base e
-        plotFn(x => x > 0 ? Math.log(x) : NaN, COL_GREEN, 0.5);
+        g.plotFn(x => x > 0 ? Math.log(x) : NaN, { color: COL_GREEN, alpha: 0.5 });
         // Draw log base 10
-        plotFn(x => x > 0 ? Math.log10(x) : NaN, COL_PINK, 0.5);
+        g.plotFn(x => x > 0 ? Math.log10(x) : NaN, { color: COL_PINK, alpha: 0.5 });
         // Draw selected base (bright)
-        plotFn(x => x > 0 ? logBase(baseChange, x) : NaN, COL_LOG, 1.0);
+        g.plotFn(x => x > 0 ? logBase(baseChange, x) : NaN, { color: COL_LOG });
 
         // Labels for each curve
         const labelX = 7;
-        if (labelX * SC + OX < W - 40) {
-          cx.font = '9px monospace';
-          cx.textAlign = 'left';
-
-          cx.fillStyle = COL_BLUE;
-          cx.globalAlpha = 0.6;
+        if (g.px(labelX) < W - 40) {
           const y2 = logBase(2, labelX);
-          if (py(y2) > 10 && py(y2) < H - 10) cx.fillText('log₂', px(labelX) + 4, py(y2) - 4);
-          cx.globalAlpha = 1;
+          if (g.py(y2) > 10 && g.py(y2) < H - 10)
+            g.label('log₂', labelX, y2, { color: COL_BLUE, font: '9px monospace', offsetX: 4, offsetY: -4 });
 
-          cx.fillStyle = COL_GREEN;
-          cx.globalAlpha = 0.6;
           const ye = Math.log(labelX);
-          if (py(ye) > 10 && py(ye) < H - 10) cx.fillText('ln', px(labelX) + 4, py(ye) - 4);
-          cx.globalAlpha = 1;
+          if (g.py(ye) > 10 && g.py(ye) < H - 10)
+            g.label('ln', labelX, ye, { color: COL_GREEN, font: '9px monospace', offsetX: 4, offsetY: -4 });
 
-          cx.fillStyle = COL_PINK;
-          cx.globalAlpha = 0.6;
           const y10 = Math.log10(labelX);
-          if (py(y10) > 10 && py(y10) < H - 10) cx.fillText('log₁₀', px(labelX) + 4, py(y10) - 4);
-          cx.globalAlpha = 1;
+          if (g.py(y10) > 10 && g.py(y10) < H - 10)
+            g.label('log₁₀', labelX, y10, { color: COL_PINK, font: '9px monospace', offsetX: 4, offsetY: -4 });
         }
 
         // Mark (1, 0) — all curves pass through here
-        gdot(px(1), py(0), 6, COL_MIRR);
-        cx.font = '10px monospace';
-        cx.fillStyle = COL_MIRR;
-        cx.textAlign = 'left';
-        cx.fillText(T('(1, 0) — wspólny!', '(1, 0) — shared!'), px(1) + 10, py(0) + 4);
+        g.dot(1, 0, { radius: 6, color: COL_MIRR });
+        g.label(T('(1, 0) — wspólny!', '(1, 0) — shared!'), 1, 0, { color: COL_MIRR, font: '10px monospace', offsetX: 10, offsetY: 4 });
 
         // Show conversion formula
         const convX = 4;
@@ -682,26 +586,17 @@
         infoBox('log_' + fmt(baseChange) + '(' + convX + ') = ' + fmt(log2Val) + ' / ' + fmt(ratio) + ' = ' + fmt(logBVal), W/2, 46, COL_MIRR, 0.8);
 
         // Show the selected point
-        gdot(px(convX), py(logBVal), 5, COL_LOG);
-        gdot(px(convX), py(log2Val), 5, COL_BLUE);
+        g.dot(convX, logBVal, { radius: 5, color: COL_LOG });
+        g.dot(convX, log2Val, { radius: 5, color: COL_BLUE });
 
         // Dashed line between them
-        cx.save();
-        cx.strokeStyle = COL_MIRR;
-        cx.globalAlpha = 0.25;
-        cx.lineWidth = 1;
-        cx.setLineDash([3, 3]);
-        cx.beginPath();
-        cx.moveTo(px(convX), py(logBVal));
-        cx.lineTo(px(convX), py(log2Val));
-        cx.stroke();
-        cx.restore();
+        g.segment(convX, logBVal, convX, log2Val, { color: COL_MIRR, alpha: 0.25, lineWidth: 1, dash: [3, 3] });
 
         cx.font = '9px monospace';
         cx.fillStyle = COL_MIRR;
         cx.globalAlpha = 0.6;
         cx.textAlign = 'left';
-        cx.fillText(T('skalowanie ×' + fmt(1/ratio), 'scaling ×' + fmt(1/ratio)), px(convX) + 8, (py(logBVal) + py(log2Val)) / 2 + 3);
+        cx.fillText(T('skalowanie ×' + fmt(1/ratio), 'scaling ×' + fmt(1/ratio)), g.px(convX) + 8, (g.py(logBVal) + g.py(log2Val)) / 2 + 3);
         cx.globalAlpha = 1;
       }
     },

@@ -51,7 +51,8 @@
   </div>
 </div>
 
-<script>
+<script type="module">
+import { GraphView } from '../lib/graph-core.js';
 (function(){
 const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
 const T = (pl, en) => LANG === 'pl' ? pl : en;
@@ -284,53 +285,38 @@ function drawRightTriangle(ang){
 }
 
 function drawSineGraph(ang){
-  const gx=310, gy=95, gw=270, gh=120;
-  const gcx_=gx, gcy=gy+gh/2;
+  const gv = new GraphView(cx, { rect: [310, 95, 270, 120], xRange: [0, 360], yRange: [-1, 1] });
 
   // graph background
-  cx.fillStyle='rgba(22,22,26,.6)';
-  cx.fillRect(gx-5,gy-10,gw+15,gh+25);
+  gv.clear('rgba(22,22,26,.6)');
 
-  // horizontal axis
-  cx.strokeStyle='rgba(255,255,255,.2)';cx.lineWidth=1;
-  cx.beginPath();cx.moveTo(gx,gcy);cx.lineTo(gx+gw,gcy);cx.stroke();
-  // vertical axis
-  cx.beginPath();cx.moveTo(gx,gy);cx.lineTo(gx,gy+gh);cx.stroke();
+  // axes (no arrows/ticks — custom labels instead)
+  gv.drawAxes({ arrows: false, ticks: false, labels: false, color: 'rgba(255,255,255,.2)', lineWidth: 1 });
 
-  // labels
+  // custom degree labels
   cx.fillStyle='rgba(255,255,255,.3)';cx.font='10px monospace';cx.textAlign='center';
-  cx.fillText('0\u00b0',gx,gcy+14);
-  cx.fillText('180\u00b0',gx+gw/2,gcy+14);
-  cx.fillText('360\u00b0',gx+gw,gcy+14);
+  cx.fillText('0\u00b0',gv.px(0),gv.py(0)+14);
+  cx.fillText('180\u00b0',gv.px(180),gv.py(0)+14);
+  cx.fillText('360\u00b0',gv.px(360),gv.py(0)+14);
   cx.textAlign='right';
-  cx.fillText('1',gx-4,gy+4);
-  cx.fillText('-1',gx-4,gy+gh+4);
+  cx.fillText('1',gv.px(0)-4,gv.py(1)+4);
+  cx.fillText('-1',gv.px(0)-4,gv.py(-1)+4);
 
   // sine curve
-  cx.beginPath();cx.strokeStyle=SIN;cx.lineWidth=2.2;
-  for(let i=0;i<=gw;i++){
-    const a=(i/gw)*360*DEG;
-    const y=gcy-Math.sin(a)*(gh/2-4);
-    if(i===0)cx.moveTo(gx+i,y);else cx.lineTo(gx+i,y);
-  }
-  cx.stroke();
+  gv.plotFn(x => Math.sin(x * DEG), { color: SIN, lineWidth: 2.2 });
 
   // sweeping vertical line
-  const sx=gx+(ang/360)*gw;
-  const sy=gcy-Math.sin(ang*DEG)*(gh/2-4);
-  cx.setLineDash([3,3]);cx.strokeStyle='rgba(255,255,255,.3)';cx.lineWidth=1;
-  cx.beginPath();cx.moveTo(sx,gy);cx.lineTo(sx,gy+gh);cx.stroke();
-  cx.setLineDash([]);
-  gdot(sx,sy,4,SIN);
+  gv.verticalLine(ang, { color: 'rgba(255,255,255,.3)', lineWidth: 1, dash: [3, 3] });
+  gv.dot(ang, Math.sin(ang * DEG), { radius: 4, color: SIN });
 
   // amplitude/period annotations
   cx.fillStyle='rgba(255,255,255,.25)';cx.font='10px monospace';cx.textAlign='left';
-  cx.fillText(T('amplituda','amplitude')+' = 1',gx+gw+4,gy+10);
-  cx.fillText(T('okres','period')+' = 360\u00b0',gx+gw+4,gy+24);
+  cx.fillText(T('amplituda','amplitude')+' = 1',310+270+4,95+10);
+  cx.fillText(T('okres','period')+' = 360\u00b0',310+270+4,95+24);
 
   // title
   cx.fillStyle=SIN;cx.font='13px monospace';cx.textAlign='left';
-  cx.fillText('y = sin(x)',gx,gy-14);
+  cx.fillText('y = sin(x)',310,95-14);
 
   // unit circle on left, smaller
   drawUnitCircle(145,155,110,ang,true);
@@ -338,72 +324,55 @@ function drawSineGraph(ang){
   // connecting dashed line from circle point to graph point (same y)
   const rad_=ang*DEG;
   const circleY=155-110*Math.sin(rad_);
+  const sx=gv.px(ang), sy=gv.py(Math.sin(ang*DEG));
   cx.setLineDash([4,4]);cx.strokeStyle='rgba(88,196,221,.3)';cx.lineWidth=1;
   cx.beginPath();cx.moveTo(145+110*Math.cos(rad_),circleY);cx.lineTo(sx,sy);cx.stroke();
   cx.setLineDash([]);
 }
 
 function drawCosineGraph(ang){
-  const gx=310, gy=95, gw=270, gh=120;
-  const gcy=gy+gh/2;
+  const gv = new GraphView(cx, { rect: [310, 95, 270, 120], xRange: [0, 360], yRange: [-1, 1] });
 
-  cx.fillStyle='rgba(22,22,26,.6)';
-  cx.fillRect(gx-5,gy-10,gw+15,gh+25);
+  gv.clear('rgba(22,22,26,.6)');
 
-  cx.strokeStyle='rgba(255,255,255,.2)';cx.lineWidth=1;
-  cx.beginPath();cx.moveTo(gx,gcy);cx.lineTo(gx+gw,gcy);cx.stroke();
-  cx.beginPath();cx.moveTo(gx,gy);cx.lineTo(gx,gy+gh);cx.stroke();
+  gv.drawAxes({ arrows: false, ticks: false, labels: false, color: 'rgba(255,255,255,.2)', lineWidth: 1 });
 
   cx.fillStyle='rgba(255,255,255,.3)';cx.font='10px monospace';cx.textAlign='center';
-  cx.fillText('0\u00b0',gx,gcy+14);
-  cx.fillText('180\u00b0',gx+gw/2,gcy+14);
-  cx.fillText('360\u00b0',gx+gw,gcy+14);
+  cx.fillText('0\u00b0',gv.px(0),gv.py(0)+14);
+  cx.fillText('180\u00b0',gv.px(180),gv.py(0)+14);
+  cx.fillText('360\u00b0',gv.px(360),gv.py(0)+14);
   cx.textAlign='right';
-  cx.fillText('1',gx-4,gy+4);
-  cx.fillText('-1',gx-4,gy+gh+4);
+  cx.fillText('1',gv.px(0)-4,gv.py(1)+4);
+  cx.fillText('-1',gv.px(0)-4,gv.py(-1)+4);
 
   // cosine curve
-  cx.beginPath();cx.strokeStyle=COS;cx.lineWidth=2.2;
-  for(let i=0;i<=gw;i++){
-    const a=(i/gw)*360*DEG;
-    const y=gcy-Math.cos(a)*(gh/2-4);
-    if(i===0)cx.moveTo(gx+i,y);else cx.lineTo(gx+i,y);
-  }
-  cx.stroke();
+  gv.plotFn(x => Math.cos(x * DEG), { color: COS, lineWidth: 2.2 });
 
-  // also draw faint sine for comparison
-  cx.beginPath();cx.strokeStyle='rgba(88,196,221,.25)';cx.lineWidth=1.2;
-  for(let i=0;i<=gw;i++){
-    const a=(i/gw)*360*DEG;
-    const y=gcy-Math.sin(a)*(gh/2-4);
-    if(i===0)cx.moveTo(gx+i,y);else cx.lineTo(gx+i,y);
-  }
-  cx.stroke();
+  // faint sine for comparison
+  gv.plotFn(x => Math.sin(x * DEG), { color: 'rgba(88,196,221,.25)', lineWidth: 1.2 });
 
-  const sx=gx+(ang/360)*gw;
-  const sy=gcy-Math.cos(ang*DEG)*(gh/2-4);
-  cx.setLineDash([3,3]);cx.strokeStyle='rgba(255,255,255,.3)';cx.lineWidth=1;
-  cx.beginPath();cx.moveTo(sx,gy);cx.lineTo(sx,gy+gh);cx.stroke();
-  cx.setLineDash([]);
-  gdot(sx,sy,4,COS);
+  // sweeping vertical line and dot
+  gv.verticalLine(ang, { color: 'rgba(255,255,255,.3)', lineWidth: 1, dash: [3, 3] });
+  gv.dot(ang, Math.cos(ang * DEG), { radius: 4, color: COS });
 
   // phase shift arrow
   cx.fillStyle='rgba(255,255,255,.25)';cx.font='10px monospace';cx.textAlign='left';
-  cx.fillText('cos(x) = sin(x+90\u00b0)',gx+gw+4,gy+10);
-  cx.fillText(T('przesunięcie fazowe','phase shift')+' = 90\u00b0',gx+gw+4,gy+24);
+  cx.fillText('cos(x) = sin(x+90\u00b0)',310+270+4,95+10);
+  cx.fillText(T('przesunięcie fazowe','phase shift')+' = 90\u00b0',310+270+4,95+24);
 
   cx.fillStyle=COS;cx.font='13px monospace';cx.textAlign='left';
-  cx.fillText('y = cos(x)',gx,gy-14);
+  cx.fillText('y = cos(x)',310,95-14);
 
   // faint sin label
   cx.fillStyle='rgba(88,196,221,.35)';cx.font='10px monospace';
-  cx.fillText('sin(x)',gx+gw*0.27,gy-3);
+  cx.fillText('sin(x)',310+270*0.27,95-3);
 
   drawUnitCircle(145,155,110,ang,true);
 
   // connecting dashed line from circle point to graph point
   const rad_=ang*DEG;
   const circleY=155-110*Math.sin(rad_);
+  const sx=gv.px(ang), sy=gv.py(Math.cos(ang*DEG));
   cx.setLineDash([4,4]);cx.strokeStyle='rgba(255,154,60,.3)';cx.lineWidth=1;
   cx.beginPath();cx.moveTo(145+110*Math.cos(rad_),circleY);cx.lineTo(sx,sy);cx.stroke();
   cx.setLineDash([]);

@@ -8,6 +8,7 @@
 <body>
 <script type="module">
 import { VizCore, T, COLORS } from '../lib/viz-core.js';
+import { GraphView } from '../lib/graph-core.js';
 
 const { cx, W, H } = VizCore.init({
   title: T('Równania trygonometryczne', 'Trigonometric Equations'),
@@ -25,34 +26,31 @@ const { cx, W, H } = VizCore.init({
       ],
       draw(cx, W, H, vals) {
         const k = vals.k;
-        const OX = 80, OY = H / 2 + 20, SC_X = 55, SC_Y = 90;
-        const px = x => OX + x * SC_X, py = y => OY - y * SC_Y;
+        // xRange: roughly -1.5 to 9.5 rad to span the canvas with OX=80, SC_X=55
+        const xMin = -80 / 55, xMax = (W - 80) / 55;
+        const gv = new GraphView(cx, { rect: [0, 0, W, H], xRange: [xMin, xMax], yRange: [-1.8, 1.8] });
 
-        drawAxes(cx, OX, OY, SC_X, W, H);
+        gv.drawGrid({ step: 1 });
+        gv.drawAxes({ tickStep: 1, labels: false });
+
+        // Custom pi-based labels
+        cx.font = '10px monospace'; cx.fillStyle = 'rgba(255,255,255,0.22)'; cx.textAlign = 'center';
+        [[-1,'−π'],[0,'0'],[1,'π'],[2,'2π']].forEach(([k_, lbl]) => {
+          const x = k_ * Math.PI;
+          if (x > xMin && x < xMax) cx.fillText(lbl, gv.px(x), gv.py(0) + 14);
+        });
 
         // Horizontal line y = k
-        cx.beginPath(); cx.moveTo(0, py(k)); cx.lineTo(W, py(k));
-        cx.strokeStyle = COLORS.YELLOW; cx.lineWidth = 1.5;
-        cx.setLineDash([5,4]); cx.stroke(); cx.setLineDash([]);
+        gv.horizontalLine(k, { color: COLORS.YELLOW, lineWidth: 1.5, dash: [5, 4] });
 
         // sin curve
-        cx.beginPath(); let first = true;
-        for (let sx = 0; sx < W; sx += 2) {
-          const x = (sx - OX) / SC_X;
-          const y = Math.sin(x);
-          if (first) { cx.moveTo(sx, py(y)); first = false; } else cx.lineTo(sx, py(y));
-        }
-        cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 2.5;
-        cx.shadowColor = COLORS.CYAN; cx.shadowBlur = 4; cx.stroke(); cx.shadowBlur = 0;
+        gv.plotFn(x => Math.sin(x), { color: COLORS.CYAN, lineWidth: 2.5, glow: 4 });
 
         if (Math.abs(k) <= 1) {
           const x1 = Math.asin(k), x2 = Math.PI - x1;
           [x1, x2].forEach(xi => {
-            cx.beginPath(); cx.moveTo(px(xi), OY); cx.lineTo(px(xi), py(k));
-            cx.strokeStyle = 'rgba(255,209,102,0.5)'; cx.lineWidth = 1.5; cx.setLineDash([3,3]); cx.stroke(); cx.setLineDash([]);
-            cx.beginPath(); cx.arc(px(xi), py(k), 6, 0, Math.PI * 2);
-            cx.fillStyle = COLORS.YELLOW; cx.shadowColor = COLORS.YELLOW;
-            cx.shadowBlur = 8; cx.fill(); cx.shadowBlur = 0;
+            gv.segment(xi, 0, xi, k, { color: 'rgba(255,209,102,0.5)', lineWidth: 1.5, dash: [3, 3] });
+            gv.dot(xi, k, { radius: 6, color: COLORS.YELLOW });
           });
 
           cx.font = '13px monospace'; cx.textAlign = 'left';
@@ -80,30 +78,27 @@ const { cx, W, H } = VizCore.init({
       ],
       draw(cx, W, H, vals) {
         const k = vals.k;
-        const OX = 80, OY = H / 2 + 20, SC_X = 55, SC_Y = 90;
-        const px = x => OX + x * SC_X, py = y => OY - y * SC_Y;
+        const xMin = -80 / 55, xMax = (W - 80) / 55;
+        const gv = new GraphView(cx, { rect: [0, 0, W, H], xRange: [xMin, xMax], yRange: [-1.8, 1.8] });
 
-        drawAxes(cx, OX, OY, SC_X, W, H);
+        gv.drawGrid({ step: 1 });
+        gv.drawAxes({ tickStep: 1, labels: false });
 
-        cx.beginPath(); cx.moveTo(0, py(k)); cx.lineTo(W, py(k));
-        cx.strokeStyle = COLORS.YELLOW; cx.lineWidth = 1.5; cx.setLineDash([5,4]); cx.stroke(); cx.setLineDash([]);
+        cx.font = '10px monospace'; cx.fillStyle = 'rgba(255,255,255,0.22)'; cx.textAlign = 'center';
+        [[-1,'−π'],[0,'0'],[1,'π'],[2,'2π']].forEach(([k_, lbl]) => {
+          const x = k_ * Math.PI;
+          if (x > xMin && x < xMax) cx.fillText(lbl, gv.px(x), gv.py(0) + 14);
+        });
 
-        cx.beginPath(); let first = true;
-        for (let sx = 0; sx < W; sx += 2) {
-          const x = (sx - OX) / SC_X, y = Math.cos(x);
-          if (first) { cx.moveTo(sx, py(y)); first = false; } else cx.lineTo(sx, py(y));
-        }
-        cx.strokeStyle = COLORS.ORANGE; cx.lineWidth = 2.5;
-        cx.shadowColor = COLORS.ORANGE; cx.shadowBlur = 4; cx.stroke(); cx.shadowBlur = 0;
+        gv.horizontalLine(k, { color: COLORS.YELLOW, lineWidth: 1.5, dash: [5, 4] });
+
+        gv.plotFn(x => Math.cos(x), { color: COLORS.ORANGE, lineWidth: 2.5, glow: 4 });
 
         if (Math.abs(k) <= 1) {
           const x1 = Math.acos(k), x2 = -x1;
           [x1, x2].forEach(xi => {
-            cx.beginPath(); cx.moveTo(px(xi), OY); cx.lineTo(px(xi), py(k));
-            cx.strokeStyle = 'rgba(255,209,102,0.5)'; cx.lineWidth = 1.5; cx.setLineDash([3,3]); cx.stroke(); cx.setLineDash([]);
-            cx.beginPath(); cx.arc(px(xi), py(k), 6, 0, Math.PI * 2);
-            cx.fillStyle = COLORS.YELLOW; cx.shadowColor = COLORS.YELLOW;
-            cx.shadowBlur = 8; cx.fill(); cx.shadowBlur = 0;
+            gv.segment(xi, 0, xi, k, { color: 'rgba(255,209,102,0.5)', lineWidth: 1.5, dash: [3, 3] });
+            gv.dot(xi, k, { radius: 6, color: COLORS.YELLOW });
           });
 
           cx.font = '13px monospace'; cx.textAlign = 'left';
@@ -210,16 +205,6 @@ const { cx, W, H } = VizCore.init({
   ],
 });
 
-function drawAxes(cx, OX, OY, SC_X, W, H) {
-  cx.strokeStyle = 'rgba(255,255,255,0.3)'; cx.lineWidth = 1.5;
-  cx.beginPath(); cx.moveTo(0, OY); cx.lineTo(W, OY); cx.stroke();
-  cx.beginPath(); cx.moveTo(OX, 0); cx.lineTo(OX, H); cx.stroke();
-  cx.font = '10px monospace'; cx.fillStyle = 'rgba(255,255,255,0.22)'; cx.textAlign = 'center';
-  [[-1,'−π'],[0,'0'],[1,'π'],[2,'2π']].forEach(([k, lbl]) => {
-    const x = OX + k * Math.PI * SC_X;
-    if (x > 10 && x < W - 10) cx.fillText(lbl, x, OY + 14);
-  });
-}
 </script>
 </body>
 </html>

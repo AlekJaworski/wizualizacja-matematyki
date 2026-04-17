@@ -8,36 +8,16 @@
 <body>
 <script type="module">
 import { VizCore, T, COLORS } from '../lib/viz-core.js';
+import { GraphView } from '../lib/graph-core.js';
 
-const OX = 300, OY = 195, SC = 50;
-const px = x => OX + x * SC;
-const py = y => OY - y * SC;
+const SC = 50;
+const OY_frac = 195 / 360;  // OY = H * OY_frac
 
-function drawGrid(cx, W, H) {
-  cx.strokeStyle = 'rgba(255,255,255,0.05)'; cx.lineWidth = 1;
-  for (let x = OX % SC; x < W; x += SC) { cx.beginPath(); cx.moveTo(x, 0); cx.lineTo(x, H); cx.stroke(); }
-  for (let y = OY % SC; y < H; y += SC) { cx.beginPath(); cx.moveTo(0, y); cx.lineTo(W, y); cx.stroke(); }
-}
-function drawAxes(cx, W, H) {
-  cx.strokeStyle = 'rgba(255,255,255,0.3)'; cx.lineWidth = 1.5;
-  cx.beginPath(); cx.moveTo(0, OY); cx.lineTo(W, OY); cx.stroke();
-  cx.beginPath(); cx.moveTo(OX, 0); cx.lineTo(OX, H); cx.stroke();
-  cx.font = '10px monospace'; cx.fillStyle = 'rgba(255,255,255,0.2)'; cx.textAlign = 'center';
-  for (let i = -5; i <= 5; i++) {
-    if (i === 0) continue;
-    const x = OX + i * SC;
-    if (x > 8 && x < W - 8) cx.fillText(i, x, OY + 13);
-  }
-}
-function plotFn(cx, W, fn, col, lw = 2.5) {
-  cx.beginPath(); let first = true;
-  for (let sx = 0; sx < W; sx += 2) {
-    const x = (sx - OX) / SC, y = fn(x);
-    if (!isFinite(y) || y > 5 || y < -5) { first = true; continue; }
-    if (first) { cx.moveTo(sx, py(y)); first = false; } else cx.lineTo(sx, py(y));
-  }
-  cx.strokeStyle = col; cx.lineWidth = lw;
-  cx.shadowColor = col; cx.shadowBlur = 4; cx.stroke(); cx.shadowBlur = 0;
+function makeView(cx, W, H) {
+  const xHalf = W / (2 * SC);
+  const yTop = (H * OY_frac) / SC;
+  const yBot = -(H * (1 - OY_frac)) / SC;
+  return new GraphView(cx, { xRange: [-xHalf, xHalf], yRange: [yBot, yTop], scale: SC });
 }
 
 const { cx, W, H } = VizCore.init({
@@ -59,16 +39,16 @@ const { cx, W, H } = VizCore.init({
         // f(x) = x³ − x
         const f  = x => x * x * x - x;
         const df = x => 3 * x * x - 1;
-        drawGrid(cx, W, H); drawAxes(cx, W, H);
-        plotFn(cx, W, f, COLORS.CYAN);
+        const view = makeView(cx, W, H);
+        view.drawGrid(); view.drawAxes();
+        view.plotFn(f, { color: COLORS.CYAN });
 
         const fa = f(a), dfa = df(a);
         // Tangent line: y = fa + dfa*(x - a)
-        plotFn(cx, W, x => fa + dfa * (x - a), COLORS.YELLOW, 1.5);
+        view.plotFn(x => fa + dfa * (x - a), { color: COLORS.YELLOW, lineWidth: 1.5 });
 
         // Point of tangency
-        cx.beginPath(); cx.arc(px(a), py(fa), 6, 0, Math.PI * 2);
-        cx.fillStyle = COLORS.YELLOW; cx.shadowColor = COLORS.YELLOW; cx.shadowBlur = 8; cx.fill(); cx.shadowBlur = 0;
+        view.dot(a, fa, { color: COLORS.YELLOW, radius: 6, glow: 8 });
 
         cx.font = '13px monospace'; cx.textAlign = 'left';
         cx.fillStyle = COLORS.CYAN;   cx.fillText('f(x) = x³ − x', 14, 22);
@@ -92,24 +72,24 @@ const { cx, W, H } = VizCore.init({
         // f(x) = (x−a)² + 0.5
         const f  = x => (x - a) * (x - a) + 0.5;
         const df = x => 2 * (x - a);
-        drawGrid(cx, W, H); drawAxes(cx, W, H);
-        plotFn(cx, W, f, COLORS.CYAN);
+        const view = makeView(cx, W, H);
+        view.drawGrid(); view.drawAxes();
+        view.plotFn(f, { color: COLORS.CYAN });
 
         // Colour segments of curve by sign of derivative
         cx.lineWidth = 4;
         for (let sx = 0; sx < W - 2; sx += 3) {
-          const x = (sx - OX) / SC;
+          const x = (sx - view.px(0)) / SC;
           const y = f(x);
           if (!isFinite(y) || y > 5 || y < -5) continue;
           const rising = df(x) > 0;
-          cx.beginPath(); cx.moveTo(sx, py(y)); cx.lineTo(sx + 3, py(f(x + 3/SC)));
+          cx.beginPath(); cx.moveTo(sx, view.py(y)); cx.lineTo(sx + 3, view.py(f(x + 3/SC)));
           cx.strokeStyle = rising ? COLORS.GREEN : COLORS.PINK;
           cx.lineWidth = 3; cx.stroke();
         }
 
         // Minimum point
-        cx.beginPath(); cx.arc(px(a), py(0.5), 7, 0, Math.PI * 2);
-        cx.fillStyle = COLORS.YELLOW; cx.shadowColor = COLORS.YELLOW; cx.shadowBlur = 10; cx.fill(); cx.shadowBlur = 0;
+        view.dot(a, 0.5, { color: COLORS.YELLOW, radius: 7, glow: 10 });
 
         cx.font = '13px monospace'; cx.textAlign = 'left';
         cx.fillStyle = COLORS.CYAN; cx.fillText('f(x) = (x−' + a.toFixed(2) + ')² + 0.5', 14, 22);
@@ -196,14 +176,15 @@ const { cx, W, H } = VizCore.init({
         // f(x) = x² − 2, root = √2 ≈ 1.414
         const f  = x => x * x - 2;
         const df = x => 2 * x;
-        drawGrid(cx, W, H); drawAxes(cx, W, H);
-        plotFn(cx, W, f, COLORS.CYAN);
+        const view = makeView(cx, W, H);
+        view.drawGrid(); view.drawAxes();
+        view.plotFn(f, { color: COLORS.CYAN });
 
         // True root marker
-        cx.beginPath(); cx.moveTo(px(Math.SQRT2), OY - 8); cx.lineTo(px(Math.SQRT2), OY + 8);
+        cx.beginPath(); cx.moveTo(view.px(Math.SQRT2), view.py(0) - 8); cx.lineTo(view.px(Math.SQRT2), view.py(0) + 8);
         cx.strokeStyle = COLORS.GREEN; cx.lineWidth = 2; cx.stroke();
         cx.font = '10px monospace'; cx.textAlign = 'center';
-        cx.fillStyle = COLORS.GREEN; cx.fillText('√2', px(Math.SQRT2), OY + 20);
+        cx.fillStyle = COLORS.GREEN; cx.fillText('√2', view.px(Math.SQRT2), view.py(0) + 20);
 
         // Newton iterations
         let x = vals.x0;
@@ -221,18 +202,13 @@ const { cx, W, H } = VizCore.init({
           if (!isFinite(fi) || fi > 5 || fi < -5) continue;
 
           // Vertical line from x-axis to curve
-          cx.beginPath(); cx.moveTo(px(xi), OY); cx.lineTo(px(xi), py(fi));
-          cx.strokeStyle = 'rgba(255,209,102,0.5)'; cx.lineWidth = 1; cx.setLineDash([3,3]); cx.stroke(); cx.setLineDash([]);
+          view.segment(xi, 0, xi, fi, { color: 'rgba(255,209,102,0.5)', lineWidth: 1, dash: [3, 3] });
 
           // Tangent to x-axis
-          cx.beginPath(); cx.moveTo(px(xi), py(fi)); cx.lineTo(px(xNext), OY);
-          cx.strokeStyle = COLORS.YELLOW; cx.lineWidth = 1.5; cx.stroke();
+          view.segment(xi, fi, xNext, 0, { color: COLORS.YELLOW, lineWidth: 1.5 });
 
-          cx.beginPath(); cx.arc(px(xi), py(fi), 5, 0, Math.PI * 2);
-          cx.fillStyle = COLORS.YELLOW; cx.fill();
-
-          cx.beginPath(); cx.arc(px(xNext), OY, 5, 0, Math.PI * 2);
-          cx.fillStyle = COLORS.ORANGE; cx.fill();
+          view.dot(xi, fi, { color: COLORS.YELLOW, glow: 0 });
+          view.dot(xNext, 0, { color: COLORS.ORANGE, glow: 0 });
         }
 
         cx.font = '13px monospace'; cx.textAlign = 'left';

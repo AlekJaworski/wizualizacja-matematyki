@@ -8,42 +8,10 @@
 <body>
 <script type="module">
 import { VizCore, T, COLORS } from '../lib/viz-core.js';
+import { GraphView } from '../lib/graph-core.js';
 
-const OX = 300, OY = 220, SC = 55;
-const px = x => OX + x * SC;
-const py = y => OY - y * SC;
-
-function drawGrid(cx, W, H) {
-  cx.strokeStyle = 'rgba(255,255,255,0.06)'; cx.lineWidth = 1;
-  for (let x = OX % SC; x < W; x += SC) { cx.beginPath(); cx.moveTo(x, 0); cx.lineTo(x, H); cx.stroke(); }
-  for (let y = OY % SC; y < H; y += SC) { cx.beginPath(); cx.moveTo(0, y); cx.lineTo(W, y); cx.stroke(); }
-}
-function drawAxes(cx, W, H) {
-  cx.strokeStyle = 'rgba(255,255,255,0.3)'; cx.lineWidth = 1.5;
-  cx.beginPath(); cx.moveTo(0, OY); cx.lineTo(W, OY); cx.stroke();
-  cx.beginPath(); cx.moveTo(OX, 0); cx.lineTo(OX, H); cx.stroke();
-  cx.font = '10px monospace'; cx.fillStyle = 'rgba(255,255,255,0.25)'; cx.textAlign = 'center';
-  for (let i = -5; i <= 5; i++) {
-    if (i === 0) continue;
-    const x = OX + i * SC, y = OY - i * SC;
-    if (x > 10 && x < W - 10) cx.fillText(i, x, OY + 13);
-    if (y > 10 && y < H - 10) { cx.textAlign = 'right'; cx.fillText(i, OX - 5, y + 4); cx.textAlign = 'center'; }
-  }
-}
-function plotFn(cx, W, fn, col, lw = 2, dash = []) {
-  cx.beginPath(); let first = true;
-  for (let sx = 0; sx < W; sx += 2) {
-    const x = (sx - OX) / SC;
-    const y = fn(x);
-    if (!isFinite(y) || y > 12 || y < -4) { first = true; continue; }
-    if (first) { cx.moveTo(sx, py(y)); first = false; } else cx.lineTo(sx, py(y));
-  }
-  cx.strokeStyle = col; cx.lineWidth = lw; cx.setLineDash(dash);
-  cx.shadowColor = col; cx.shadowBlur = 4; cx.stroke(); cx.shadowBlur = 0; cx.setLineDash([]);
-}
-function gdot(cx, x, y, r, col) {
-  cx.beginPath(); cx.arc(px(x), py(y), r, 0, Math.PI * 2);
-  cx.fillStyle = col; cx.shadowColor = col; cx.shadowBlur = 10; cx.fill(); cx.shadowBlur = 0;
+function gv(cx, W, H) {
+  return new GraphView(cx, { xRange: [-5, 5], yRange: [-4, 4], rect: [0, 0, W, H] });
 }
 
 const { cx, W, H } = VizCore.init({
@@ -141,18 +109,17 @@ const { cx, W, H } = VizCore.init({
       ],
       draw(cx, W, H, vals) {
         const a = Math.max(0.11, vals.a);
-        drawGrid(cx, W, H); drawAxes(cx, W, H);
-        plotFn(cx, W, x => Math.pow(a, x), COLORS.CYAN, 2.5);
+        const g = gv(cx, W, H);
+        g.drawGrid(); g.drawAxes();
+        g.plotFn(x => Math.pow(a, x), { color: COLORS.CYAN, glow: 4 });
         // Asymptote y=0
-        cx.beginPath(); cx.moveTo(0, OY); cx.lineTo(W, OY);
-        cx.strokeStyle = 'rgba(255,107,53,0.3)'; cx.lineWidth = 1; cx.setLineDash([6,4]); cx.stroke(); cx.setLineDash([]);
+        g.horizontalLine(0, { color: 'rgba(255,107,53,0.3)', lineWidth: 1, dash: [6,4] });
         // Point (0,1)
-        gdot(cx, 0, 1, 6, COLORS.GREEN);
-        cx.font = '12px monospace'; cx.textAlign = 'left';
-        cx.fillStyle = COLORS.GREEN; cx.fillText('(0, 1)', px(0) + 8, py(1) - 8);
+        g.dot(0, 1, { radius: 6, color: COLORS.GREEN });
+        g.label('(0, 1)', 0, 1, { color: COLORS.GREEN, font: '12px monospace', offsetX: 8, offsetY: -8 });
         // Point (1, a)
-        gdot(cx, 1, a, 5, COLORS.YELLOW);
-        cx.fillStyle = COLORS.YELLOW; cx.fillText('(1, ' + a.toFixed(1) + ')', px(1) + 8, py(a) - 8);
+        g.dot(1, a, { radius: 5, color: COLORS.YELLOW });
+        g.label('(1, ' + a.toFixed(1) + ')', 1, a, { color: COLORS.YELLOW, font: '12px monospace', offsetX: 8, offsetY: -8 });
 
         cx.font = '13px monospace'; cx.textAlign = 'left';
         cx.fillStyle = COLORS.CYAN; cx.fillText('f(x) = ' + a.toFixed(1) + 'ˣ', 14, 22);
@@ -175,20 +142,18 @@ const { cx, W, H } = VizCore.init({
       ],
       draw(cx, W, H, vals) {
         const p0 = vals.p0, t = vals.t;
-        drawGrid(cx, W, H); drawAxes(cx, W, H);
-        plotFn(cx, W, x => x >= 0 ? p0 * Math.pow(2, x) : null, COLORS.CYAN, 2.5);
+        const g = gv(cx, W, H);
+        g.drawGrid(); g.drawAxes();
+        g.plotFn(x => x >= 0 ? p0 * Math.pow(2, x) : NaN, { color: COLORS.CYAN, glow: 4 });
 
         // Point at t
         const Pt = p0 * Math.pow(2, t);
         if (Pt <= 12) {
-          cx.beginPath(); cx.moveTo(px(t), OY); cx.lineTo(px(t), py(Pt));
-          cx.strokeStyle = 'rgba(255,209,102,0.5)'; cx.lineWidth = 1.5; cx.setLineDash([3,3]); cx.stroke(); cx.setLineDash([]);
-          cx.beginPath(); cx.moveTo(0, py(Pt)); cx.lineTo(px(t), py(Pt));
-          cx.strokeStyle = 'rgba(255,209,102,0.5)'; cx.lineWidth = 1.5; cx.setLineDash([3,3]); cx.stroke(); cx.setLineDash([]);
-          gdot(cx, t, Pt, 6, COLORS.YELLOW);
-          cx.font = '12px monospace'; cx.textAlign = 'left';
-          cx.fillStyle = COLORS.YELLOW;
-          cx.fillText('P(' + t.toFixed(1) + ') = ' + p0 + '·2^' + t.toFixed(1) + ' = ' + (Math.round(Pt * 100) / 100), px(t) + 8, py(Pt) - 8);
+          g.segment(t, 0, t, Pt, { color: 'rgba(255,209,102,0.5)', lineWidth: 1.5, dash: [3,3] });
+          g.segment(g.xMin, Pt, t, Pt, { color: 'rgba(255,209,102,0.5)', lineWidth: 1.5, dash: [3,3] });
+          g.dot(t, Pt, { radius: 6, color: COLORS.YELLOW });
+          g.label('P(' + t.toFixed(1) + ') = ' + p0 + '·2^' + t.toFixed(1) + ' = ' + (Math.round(Pt * 100) / 100),
+                  t, Pt, { color: COLORS.YELLOW, font: '12px monospace', offsetX: 8, offsetY: -8 });
         }
 
         cx.font = '13px monospace'; cx.textAlign = 'left';
@@ -206,22 +171,22 @@ const { cx, W, H } = VizCore.init({
       ),
       sliders: [],
       draw(cx, W, H) {
-        drawGrid(cx, W, H); drawAxes(cx, W, H);
+        const g = gv(cx, W, H);
+        g.drawGrid(); g.drawAxes();
         const fns = [
           { a: 1.5, col: COLORS.GREEN,  lbl: '1.5ˣ' },
           { a: 2,   col: COLORS.CYAN,   lbl: '2ˣ' },
           { a: Math.E, col: COLORS.YELLOW, lbl: 'eˣ' },
           { a: 3,   col: COLORS.ORANGE, lbl: '3ˣ' },
         ];
-        fns.forEach(({ a, col }) => plotFn(cx, W, x => Math.pow(a, x), col, 2));
+        fns.forEach(({ a, col }) => g.plotFn(x => Math.pow(a, x), { color: col, lineWidth: 2, glow: 4 }));
         cx.font = '12px monospace'; cx.textAlign = 'left';
         fns.forEach(({ a, col, lbl }, i) => {
           cx.fillStyle = col;
           cx.fillText(lbl, W - 60, 22 + i * 18);
         });
-        gdot(cx, 0, 1, 5, 'rgba(255,255,255,0.6)');
-        cx.font = '11px monospace'; cx.fillStyle = 'rgba(255,255,255,0.4)';
-        cx.fillText('Wszystkie przez (0,1)', px(0) + 8, py(1) - 8);
+        g.dot(0, 1, { radius: 5, color: 'rgba(255,255,255,0.6)' });
+        g.label('Wszystkie przez (0,1)', 0, 1, { color: 'rgba(255,255,255,0.4)', font: '11px monospace', offsetX: 8, offsetY: -8 });
       },
     },
 
@@ -236,23 +201,22 @@ const { cx, W, H } = VizCore.init({
         { id: 'T', lbl: 'T½', color: COLORS.PINK, min: 0.5, max: 3, step: 0.1, val: 1.5 },
       ],
       draw(cx, W, H, vals) {
-        const T = vals.T;
-        drawGrid(cx, W, H); drawAxes(cx, W, H);
-        plotFn(cx, W, x => x >= 0 ? Math.pow(0.5, x / T) : null, COLORS.PINK, 2.5);
+        const Thalf = vals.T;
+        const g = gv(cx, W, H);
+        g.drawGrid(); g.drawAxes();
+        g.plotFn(x => x >= 0 ? Math.pow(0.5, x / Thalf) : NaN, { color: COLORS.PINK, glow: 4 });
 
         // Mark half-lives
         for (let k = 1; k <= 4; k++) {
-          const tx = T * k, ty = Math.pow(0.5, k);
+          const tx = Thalf * k, ty = Math.pow(0.5, k);
           if (tx > 4.5) break;
-          cx.beginPath(); cx.moveTo(px(tx), OY); cx.lineTo(px(tx), py(ty));
-          cx.strokeStyle = 'rgba(224,112,144,0.3)'; cx.lineWidth = 1; cx.setLineDash([3,3]); cx.stroke(); cx.setLineDash([]);
-          gdot(cx, tx, ty, 4, COLORS.PINK);
-          cx.font = '10px monospace'; cx.textAlign = 'center';
-          cx.fillStyle = COLORS.PINK; cx.fillText('½' + ['', '²', '³', '⁴'][k - 1], px(tx), py(ty) - 10);
+          g.segment(tx, 0, tx, ty, { color: 'rgba(224,112,144,0.3)', lineWidth: 1, dash: [3,3] });
+          g.dot(tx, ty, { radius: 4, color: COLORS.PINK });
+          g.label('½' + ['', '²', '³', '⁴'][k - 1], tx, ty, { color: COLORS.PINK, font: '10px monospace', align: 'center', offsetY: -10 });
         }
         cx.font = '13px monospace'; cx.textAlign = 'left';
-        cx.fillStyle = COLORS.PINK; cx.fillText('N(t) = (½)^(t/' + T.toFixed(1) + ')', 14, 22);
-        cx.fillStyle = 'rgba(255,255,255,0.45)'; cx.fillText('co ' + T.toFixed(1) + ' jedn. → ½ pozostaje', 14, 40);
+        cx.fillStyle = COLORS.PINK; cx.fillText('N(t) = (½)^(t/' + Thalf.toFixed(1) + ')', 14, 22);
+        cx.fillStyle = 'rgba(255,255,255,0.45)'; cx.fillText('co ' + Thalf.toFixed(1) + ' jedn. → ½ pozostaje', 14, 40);
       },
     },
 

@@ -87,14 +87,22 @@
   </div>
 </div>
 
-<script>
-(function(){
+<script type="module">
+import { GraphView } from '../lib/graph-core.js';
+
 const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
 const T = (pl, en) => LANG === 'pl' ? pl : en;
 
 const cv=document.getElementById('qc'),cx=cv.getContext('2d');
-const W=600,H=310,OX=300,OY=190,SC=48;
-const px=x=>OX+x*SC, py=y=>OY-y*SC;
+const W=600,H=310;
+
+// GraphView instance (recreated each frame, but we keep a module-level ref for helpers)
+let view;
+function initView() {
+  view = new GraphView(cx, { rect: [0,0,W,H], xRange: [-6.25,6.25], yRange: [-2.5,3.96], scale: 48 });
+}
+initView();
+const px=x=>view.px(x), py=y=>view.py(y);
 
 let qsi=0,ik=-2;
 let sa=1,sb=-4,sc=1;
@@ -219,51 +227,15 @@ document.getElementById('qk').addEventListener('input',function(){
   });
 });
 
-function drawGrid(){
-  cx.strokeStyle='rgba(255,255,255,.05)';cx.lineWidth=.7;
-  for(let x=-6;x<=6;x++){cx.beginPath();cx.moveTo(px(x),0);cx.lineTo(px(x),H);cx.stroke();}
-  for(let y=-4;y<=6;y++){cx.beginPath();cx.moveTo(0,py(y));cx.lineTo(W,py(y));cx.stroke();}
-}
-
-function drawAxes(){
-  cx.strokeStyle='rgba(255,255,255,.38)';cx.lineWidth=1.5;
-  cx.beginPath();cx.moveTo(0,py(0));cx.lineTo(W-8,py(0));cx.stroke();
-  cx.beginPath();cx.moveTo(px(0),H);cx.lineTo(px(0),7);cx.stroke();
-  cx.fillStyle='rgba(255,255,255,.38)';
-  cx.beginPath();cx.moveTo(W,py(0));cx.lineTo(W-9,py(0)-4);cx.lineTo(W-9,py(0)+4);cx.closePath();cx.fill();
-  cx.beginPath();cx.moveTo(px(0),0);cx.lineTo(px(0)-4,9);cx.lineTo(px(0)+4,9);cx.closePath();cx.fill();
-  for(let x=-5;x<=5;x++){
-    if(!x)continue;
-    cx.strokeStyle='rgba(255,255,255,.18)';cx.lineWidth=1;
-    cx.beginPath();cx.moveTo(px(x),py(0)-3);cx.lineTo(px(x),py(0)+3);cx.stroke();
-    cx.fillStyle='rgba(255,255,255,.25)';cx.font='11px sans-serif';cx.textAlign='center';cx.fillText(x,px(x),py(0)+14);
-  }
-  for(let y=-2;y<=4;y++){
-    if(!y)continue;
-    cx.strokeStyle='rgba(255,255,255,.18)';cx.lineWidth=1;
-    cx.beginPath();cx.moveTo(px(0)-3,py(y));cx.lineTo(px(0)+3,py(y));cx.stroke();
-    cx.fillStyle='rgba(255,255,255,.25)';cx.textAlign='right';cx.fillText(y,px(0)-7,py(y)+4);
-  }
-  cx.fillStyle='rgba(255,255,255,.4)';cx.font='13px sans-serif';
-  cx.textAlign='center';cx.fillText('x',W-4,py(0)+5);cx.fillText('y',px(0),11);
-}
+// drawGrid and drawAxes delegated to GraphView (see tick())
 
 function drawCurve(a,h,k){
   const noR=-k/a<-0.001;
-  cx.beginPath();cx.strokeStyle=noR?'rgba(220,80,80,.85)':CURVE;cx.lineWidth=2.5;
-  let mv=true;
-  for(let i=0;i<=600;i++){
-    const x=-6+12*i/600,y=a*(x-h)*(x-h)+k;
-    const cpx_=px(x),cpy_=py(y);
-    if(cpy_<-4||cpy_>H+4){mv=true;continue;}
-    if(mv){cx.moveTo(cpx_,cpy_);mv=false;}else cx.lineTo(cpx_,cpy_);
-  }
-  cx.stroke();
+  view.plotFn(x => a*(x-h)*(x-h)+k, { color: noR?'rgba(220,80,80,.85)':CURVE });
 }
 
 function gdot(xx,yy,r,col){
-  cx.beginPath();cx.arc(xx,yy,r,0,Math.PI*2);cx.fillStyle=col;
-  cx.shadowColor=col;cx.shadowBlur=14;cx.fill();cx.shadowBlur=0;
+  view.dotScreen(xx, yy, { radius: r, color: col, glow: 14 });
 }
 
 function drawVertex(h,k){
@@ -499,8 +471,10 @@ function tick(){
     cu.a=fr.a+(to.a-fr.a)*e;cu.h=fr.h+(to.h-fr.h)*e;cu.k=fr.k+(to.k-fr.k)*e;
     if(t>=1&&(stages[qsi]?.show==='k'||stages[qsi]?.show==='abc'))imode=true;
   }
-  cx.fillStyle='#0e0e12';cx.fillRect(0,0,W,H);
-  drawGrid();drawAxes();
+  initView();
+  view.clear();
+  view.drawGrid();
+  view.drawAxes({ color: 'rgba(255,255,255,0.38)' });
   drawCurve(cu.a,cu.h,cu.k);
   drawVertex(cu.h,cu.k);
   drawRoots(cu.a,cu.h,cu.k);
@@ -511,7 +485,6 @@ function tick(){
 document.getElementById('qprev').innerHTML='&larr; '+T('wstecz','prev');
 document.getElementById('qnext').innerHTML=T('dalej','next')+' &rarr;';
 qGo(0);tick();
-})();
 </script>
 </body>
 </html>
