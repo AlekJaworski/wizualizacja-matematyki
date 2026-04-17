@@ -75,6 +75,7 @@
   // Click-to-expand proof state
   let cellRects = [];       // rebuilt every frame on divisibility stages
   let activeProof = null;   // the rule currently shown in full-proof overlay
+  let hoveredRule = null;   // rule under mouse (for highlight + visual affordance)
 
   // Proof content per divisor (displayed in click-to-expand overlay).
   // Each entry is an array of lines. A string is a 12px centered white line;
@@ -469,6 +470,8 @@
       cellRects.push({ x: x + 3, y: y + 2, w: cellW - 6, h: cellH - 6, rule: r });
 
       // Background — stronger fill for "easy" divisors that pass
+      const isHovered = (hoveredRule === r);
+
       cx.fillStyle = r.pass
         ? (r.easy ? 'rgba(131,193,103,0.14)' : 'rgba(131,193,103,0.08)')
         : 'rgba(255,255,255,0.025)';
@@ -476,13 +479,26 @@
       cx.roundRect(x + 3, y + 2, cellW - 6, cellH - 6, 7);
       cx.fill();
 
-      cx.strokeStyle = r.pass
-        ? (r.easy ? 'rgba(131,193,103,0.5)' : 'rgba(131,193,103,0.3)')
-        : 'rgba(255,255,255,0.08)';
-      cx.lineWidth = 1;
-      cx.beginPath();
-      cx.roundRect(x + 3, y + 2, cellW - 6, cellH - 6, 7);
-      cx.stroke();
+      // Hover highlight — brighter border + subtle purple glow on hovered card
+      if (isHovered) {
+        cx.save();
+        cx.shadowColor = '#C080FF';
+        cx.shadowBlur = 8;
+        cx.strokeStyle = 'rgba(192,128,255,0.9)';
+        cx.lineWidth = 1.5;
+        cx.beginPath();
+        cx.roundRect(x + 3, y + 2, cellW - 6, cellH - 6, 7);
+        cx.stroke();
+        cx.restore();
+      } else {
+        cx.strokeStyle = r.pass
+          ? (r.easy ? 'rgba(131,193,103,0.5)' : 'rgba(131,193,103,0.3)')
+          : 'rgba(255,255,255,0.08)';
+        cx.lineWidth = 1;
+        cx.beginPath();
+        cx.roundRect(x + 3, y + 2, cellW - 6, cellH - 6, 7);
+        cx.stroke();
+      }
 
       const textColor = r.pass ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)';
 
@@ -509,10 +525,21 @@
       drawTextC(r.why, x + cellW / 2, y + 69, 'bold 10px monospace',
         r.pass ? '#C080FF' : 'rgba(255,255,255,0.18)', 'center');
 
-      // Click hint
+      // Persistent click affordance — a small "Dow\u00f3d \u2192" pill in the bottom-right.
+      // Visible by default, brighter on hover.
       if (r.proof) {
-        drawTextC(T('kliknij \u2192 dow\u00F3d', 'click \u2192 proof'),
-          x + cellW - 10, y + cellH - 8, '8px monospace', 'rgba(192,128,255,0.45)', 'right');
+        const pillX = x + cellW - 6, pillY = y + cellH - 13;
+        cx.save();
+        cx.fillStyle = isHovered ? 'rgba(192,128,255,0.95)' : 'rgba(192,128,255,0.32)';
+        const label = T('Dow\u00f3d \u203A', 'Proof \u203A');
+        cx.font = 'bold 9px monospace';
+        const w = cx.measureText(label).width;
+        cx.fillRect(pillX - w - 8, pillY - 4, w + 10, 12);
+        cx.fillStyle = isHovered ? '#0e0e12' : '#C080FF';
+        cx.textAlign = 'right';
+        cx.textBaseline = 'middle';
+        cx.fillText(label, pillX - 3, pillY + 2);
+        cx.restore();
       }
     });
   }
@@ -601,16 +628,30 @@
       const y = startY;
       cellRects.push({ x: x + 6, y: y + 4, w: cellW - 12, h: cellH - 8, rule: r });
 
+      const isHovered = (hoveredRule === r);
+
       cx.fillStyle = r.pass ? 'rgba(131,193,103,0.12)' : 'rgba(255,255,255,0.03)';
       cx.beginPath();
       cx.roundRect(x + 6, y + 4, cellW - 12, cellH - 8, 10);
       cx.fill();
 
-      cx.strokeStyle = r.pass ? 'rgba(131,193,103,0.45)' : 'rgba(255,255,255,0.08)';
-      cx.lineWidth = 1;
-      cx.beginPath();
-      cx.roundRect(x + 6, y + 4, cellW - 12, cellH - 8, 10);
-      cx.stroke();
+      if (isHovered) {
+        cx.save();
+        cx.shadowColor = '#C080FF';
+        cx.shadowBlur = 12;
+        cx.strokeStyle = 'rgba(192,128,255,0.95)';
+        cx.lineWidth = 1.7;
+        cx.beginPath();
+        cx.roundRect(x + 6, y + 4, cellW - 12, cellH - 8, 10);
+        cx.stroke();
+        cx.restore();
+      } else {
+        cx.strokeStyle = r.pass ? 'rgba(131,193,103,0.45)' : 'rgba(255,255,255,0.08)';
+        cx.lineWidth = 1;
+        cx.beginPath();
+        cx.roundRect(x + 6, y + 4, cellW - 12, cellH - 8, 10);
+        cx.stroke();
+      }
 
       const textColor = r.pass ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)';
 
@@ -642,10 +683,23 @@
       drawTextC(r.why, x + cellW / 2, y + 172, 'bold 12px monospace',
         r.pass ? '#C080FF' : 'rgba(255,255,255,0.2)', 'center');
 
-      // Click-for-proof hint
+      // Persistent click affordance — centered pill at the bottom of the card
       if (r.proof) {
-        drawTextC(T('kliknij \u2192 pe\u0142ny dow\u00F3d', 'click \u2192 full proof'),
-          x + cellW / 2, y + cellH - 10, '9px monospace', 'rgba(192,128,255,0.55)', 'center');
+        const label = T('Dow\u00f3d \u203A', 'Proof \u203A');
+        cx.save();
+        cx.font = 'bold 11px monospace';
+        const w = cx.measureText(label).width + 14;
+        const pillX = x + cellW / 2 - w / 2;
+        const pillY = y + cellH - 22;
+        cx.fillStyle = isHovered ? 'rgba(192,128,255,0.95)' : 'rgba(192,128,255,0.28)';
+        cx.beginPath();
+        cx.roundRect(pillX, pillY, w, 16, 8);
+        cx.fill();
+        cx.fillStyle = isHovered ? '#0e0e12' : '#C080FF';
+        cx.textAlign = 'center';
+        cx.textBaseline = 'middle';
+        cx.fillText(label, x + cellW / 2, pillY + 8);
+        cx.restore();
       }
     });
 
@@ -1567,22 +1621,24 @@
     if (e.key === 'Escape' && activeProof) activeProof = null;
   });
 
-  // Cursor feedback when hovering over a clickable cell
+  // Cursor + hover-highlight feedback for clickable cells
   cv.style.cursor = 'default';
   cv.addEventListener('mousemove', (e) => {
-    if (activeProof) { cv.style.cursor = 'pointer'; return; }
+    if (activeProof) { cv.style.cursor = 'pointer'; hoveredRule = null; return; }
     const rect = cv.getBoundingClientRect();
     const xC = (e.clientX - rect.left) * (W / rect.width);
     const yC = (e.clientY - rect.top)  * (H / rect.height);
-    let over = false;
+    let newHover = null;
     for (const r of cellRects) {
       if (xC >= r.x && xC <= r.x + r.w && yC >= r.y && yC <= r.y + r.h) {
-        if (r.rule && r.rule.proof) over = true;
+        if (r.rule && r.rule.proof) newHover = r.rule;
         break;
       }
     }
-    cv.style.cursor = over ? 'pointer' : 'default';
+    hoveredRule = newHover;
+    cv.style.cursor = newHover ? 'pointer' : 'default';
   });
+  cv.addEventListener('mouseleave', () => { hoveredRule = null; });
 
   // Reset cellRects when leaving a divisibility stage
   function resetCellsIfNeeded() {
