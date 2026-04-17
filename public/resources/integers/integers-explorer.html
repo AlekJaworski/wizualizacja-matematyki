@@ -813,8 +813,8 @@
     drawTextC(T('Algorytm ÷7 w kodzie', '÷7 algorithm in code'),
       W / 2, 20, 'bold 13px monospace', CYAN);
 
-    // ── Section 1: the naive one-liner ──
-    drawTextC(T('1. Naiwnie (O(1)) \u2014 w praktyce tyle wystarczy:', '1. The naive way (O(1)) \u2014 this is usually all you need:'),
+    // ── Section 1: the one-liner that assumes % exists ──
+    drawTextC(T('1. Wysokopoziomowo  \u2014  zak\u0142ada, \u017Ce runtime ma ju\u017C operator %:', '1. High-level  \u2014  assumes the runtime already has %:'),
       26, 44, '10px monospace', 'rgba(255,255,255,0.65)', 'left');
 
     cx.save();
@@ -838,8 +838,8 @@
       { text: ';', color: OP },
     ], 32, 73, 12);
 
-    // ── Section 2: the rule-based algorithm ──
-    drawTextC(T('2. Z regu\u0142y a\u22122b (O(log n)) \u2014 bez dzielenia, ci\u0105gle u\u017Cyteczne do du\u017Cych liczb:', '2. Using the a\u22122b rule (O(log n)) \u2014 no division, handy for huge numbers:'),
+    // ── Section 2: from-scratch rule-based algorithm ──
+    drawTextC(T('2. Od zera \u2014 tylko manipulacja cyfr\u0105 (\u017Cadnego dzielenia przez 7):', '2. From scratch \u2014 digit-level ops only (no division by 7 anywhere):'),
       26, 104, '10px monospace', PURPLE, 'left');
 
     cx.save();
@@ -955,13 +955,13 @@
     cx.strokeRect(16, bY, W - 32, 55);
     cx.restore();
 
-    drawTextC(T('Szczerze, dla in\u017Cyniera', 'Honest engineering answer'), 26, bY + 12, 'bold 10px monospace', PURPLE, 'left');
-    drawTextC(T('\u2022 W 99% przypadk\u00F3w piszesz Wersj\u0119 1. BigInt te\u017C obs\u0142uguje % dla ogromnych liczb.', '\u2022 In 99% of cases you write Version 1. BigInt handles % for huge numbers too.'),
+    drawTextC(T('Perspektywa informatyki', 'Informatics perspective'), 26, bY + 12, 'bold 10px monospace', PURPLE, 'left');
+    drawTextC(T('\u2022 Wersja 1 zak\u0142ada, \u017Ce KTO\u015A ju\u017C zaimplementowa\u0142 %. CPU, runtime, BigInt \u2014 to oni.', '\u2022 Version 1 assumes SOMEONE already implemented %. The CPU, runtime, BigInt \u2014 that\u2019s them.'),
       W / 2, bY + 26, '10px monospace', 'rgba(255,255,255,0.8)');
-    drawTextC(T('\u2022 Wersja 2 \u2014 ciekawostka. Przydatna gdy: liczba jest stringiem i parsowanie do BigInt ', '\u2022 Version 2 is a curio. Useful when: number is a string and parsing to BigInt '),
+    drawTextC(T('\u2022 Gdy ty jeste\u015B tym kim\u015B (biblioteka BigInt, kompilator, ALU), piszesz Wersj\u0119 2', '\u2022 When YOU are that someone (BigInt lib, compiler, ALU), you write Version 2'),
       W / 2, bY + 40, '10px monospace', 'rgba(255,255,255,0.8)');
-    drawTextC(T('jest drogie; implementujesz arytmetyk\u0119 od zera; uczysz struktury modularnej.', 'is expensive; you\u2019re implementing arithmetic from scratch; or teaching modular structure.'),
-      W / 2, bY + 54, '10px monospace', 'rgba(255,255,255,0.8)');
+    drawTextC(T('\u2014 algorytm operuj\u0105cy na cyfrach w bazie 10, bez \u017Cadnego dzielenia przez 7.', '\u2014 an algorithm working on base-10 digits, with no division by 7 anywhere.'),
+      W / 2, bY + 54, '10px monospace', YELLOW);
   }
 
   // ── Proof overlay ────────────────────────────────────────────
@@ -1428,10 +1428,10 @@
       draw: drawDiv7Demo
     },
     {
-      title: () => T('\u00F77 w kodzie (dla ICT)', '\u00F77 in code (for ICT folks)'),
+      title: () => T('\u00F77 w kodzie (dla ICT \u2014 od zera)', '\u00F77 in code (for ICT \u2014 from scratch)'),
       desc: () => T(
-        'Jak zapisa\u0107 to w j\u0119zyku programowania? Szczerze: w 99% przypadk\u00F3w piszesz n % 7 === 0 i tyle. Ale iteracyjna implementacja pokazuje, \u017Ce regu\u0142\u0119 mo\u017Cna u\u017Cy\u0107 na stringu cyfr bez parsowania do liczby.',
-        'How do you code this? Honestly: 99% of the time you write n % 7 === 0 and you\u2019re done. But the iterative version shows the rule can be applied to a digit string without parsing to a number.'
+        'Wersja 1 zak\u0142ada, \u017Ce %  ju\u017C istnieje. Ale kto\u015B musia\u0142 go zaimplementowa\u0107 \u2014 kompilator, biblioteka BigInt, ALU procesora. Gdy TY jeste\u015B tym kim\u015B, wersja 2 pokazuje, jak zbudowa\u0107 test ÷7 operuj\u0105c tylko na cyfrach w bazie 10.',
+        'Version 1 assumes % already exists. But someone had to implement it \u2014 a compiler, a BigInt lib, a CPU\u2019s ALU. When YOU are that someone, version 2 shows how to build the ÷7 test using only base-10 digit operations.'
       ),
       sliders: [
         { id: 'divN', lbl: 'n', color: CYAN, min: 2, max: 9999, step: 1, val: () => divN },
