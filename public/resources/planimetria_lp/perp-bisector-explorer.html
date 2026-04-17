@@ -4,11 +4,75 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Symetralna odcinka — historia</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<style>
+  /* Proof panel overlay — floats over the left side of the canvas in Stage 2 */
+  .wrap { position: relative; }
+  #proofPanel {
+    position: absolute; top: 56px; left: 14px; width: 264px;
+    background: rgba(22, 22, 26, 0.92);
+    border: 1px solid rgba(192, 128, 255, 0.35);
+    border-radius: 6px; padding: 10px 12px;
+    font-size: 12px; line-height: 1.4; color: rgba(255, 255, 255, 0.85);
+    display: none; pointer-events: none; z-index: 5;
+  }
+  #proofPanel .head    { color: #C080FF; font-weight: bold; margin-bottom: 6px; font-family: monospace; font-size: 11px; }
+  #proofPanel .row     { margin: 2px 0; }
+  #proofPanel .tri-a   { color: #58C4DD; }
+  #proofPanel .tri-b   { color: #FF6B35; }
+  #proofPanel .mid     { color: #FFD166; }
+  #proofPanel .sub     { color: rgba(255,255,255,0.5); font-family: monospace; font-size: 10.5px; margin-left: 12px; }
+  #proofPanel .qed     { color: #83C167; font-weight: bold; margin-top: 8px; }
+  #proofPanel .hint-h  { color: rgba(192,128,255,0.85); font-weight: bold; margin-top: 10px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+  #proofPanel .hint    { color: rgba(192,128,255,0.7); font-style: italic; font-size: 11px; }
+  /* KaTeX tuning inside the panel */
+  #proofPanel .katex   { font-size: 1.02em; }
+</style>
 </head>
 <body>
 <script type="module">
 import { VizCore, T, COLORS } from '../lib/viz-core.js';
 import { GeoScene } from '../lib/geo-engine.js';
+
+// ── Proof panel (DOM overlay with KaTeX-rendered math) ────────
+// Created once. In Stage 2 we populate it and toggle visibility;
+// other stages hide it so it doesn't occlude the canvas.
+const proofPanel = document.createElement('div');
+proofPanel.id = 'proofPanel';
+// The panel gets appended to .wrap once VizCore.init has created it.
+
+function renderMath(tex, displayMode = false) {
+  if (!window.katex) return tex;   // KaTeX not yet loaded — show raw source
+  try {
+    return window.katex.renderToString(tex, { displayMode, throwOnError: false });
+  } catch { return tex; }
+}
+
+// Populate panel once on stage entry (static structure) — spans get
+// live numbers updated each frame to avoid re-parsing LaTeX 60×/s.
+function buildProofPanel() {
+  proofPanel.innerHTML =
+    '<div class="head">' + T('Dow\u00f3d (Pitagoras):', 'Proof (Pythagoras):') + '</div>' +
+    '<div class="row tri-a">' + renderMath('\\triangle PMA:\\ \\ PA^2 = PM^2 + MA^2') + '</div>' +
+    '<div class="sub"><span id="pa_disp"></span>\u00b2 = <span id="pm_disp_1"></span>\u00b2 + <span id="ma_disp"></span>\u00b2</div>' +
+    '<div class="row tri-b">' + renderMath('\\triangle PMB:\\ \\ PB^2 = PM^2 + MB^2') + '</div>' +
+    '<div class="sub"><span id="pb_disp"></span>\u00b2 = <span id="pm_disp_2"></span>\u00b2 + <span id="mb_disp"></span>\u00b2</div>' +
+    '<div class="row mid">' + renderMath('MA = MB') + '  ' +
+      '<span style="font-size:10px;color:rgba(255,255,255,0.55);">(' + T('M to \u015Brodek AB', 'M is midpoint of AB') + ')</span></div>' +
+    '<div class="row qed">' + renderMath('\\Rightarrow\\ PA^2 = PB^2\\ \\Rightarrow\\ PA = PB\\quad\\blacksquare') + '</div>' +
+    '<div class="hint-h">' + T('Intuicja (strona)', 'Side intuition') + '</div>' +
+    '<div class="hint">' + T('Z\u0142\u00f3\u017c kartk\u0119 wzd\u0142u\u017c symetralnej \u2014 punkt A pokrywa si\u0119 z B, wi\u0119c PA = PB. Pitagoras powy\u017cej czyni to \u015Bcis\u0142ym.',
+                              'Fold the page along the bisector \u2014 A lands exactly on B, so PA = PB. Pythagoras above makes it rigorous.') + '</div>';
+}
+
+function updateProofPanel(PA, PB, PM, MA, MB) {
+  const ids = [['pa_disp', PA], ['pb_disp', PB], ['pm_disp_1', PM], ['pm_disp_2', PM], ['ma_disp', MA], ['mb_disp', MB]];
+  for (const [id, val] of ids) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val.toFixed(1);
+  }
+}
 
 // ── House icon (purely cosmetic — not geometry) ─────────────────
 function drawHouse(cx, sx, sy, col) {
@@ -402,30 +466,8 @@ const result = VizCore.init({
         const PA = Math.hypot(pP.wx - pA.wx, pP.wy - pA.wy) * scale;
         const PB = Math.hypot(pP.wx - pB.wx, pP.wy - pB.wy) * scale;
 
-        // ── Side panel: Pythagoras applied to both triangles ──
-        const lx = 16;
-        let ly = 22;
-        cx.textAlign = 'left'; cx.textBaseline = 'alphabetic';
-        cx.font = 'bold 11px monospace'; cx.fillStyle = COLORS.PURPLE;
-        cx.fillText(T('Dow\u00f3d (Pitagoras):', 'Proof (Pythagoras):'), lx, ly); ly += 18;
-
-        cx.font = '11px monospace'; cx.fillStyle = COLORS.CYAN;
-        cx.fillText('\u25B3PMA:  PA\u00b2 = PM\u00b2 + MA\u00b2', lx, ly); ly += 14;
-        cx.fillStyle = 'rgba(255,255,255,0.55)';
-        cx.fillText('  ' + PA.toFixed(1) + '\u00b2 = ' + PM.toFixed(1) + '\u00b2 + ' + MA.toFixed(1) + '\u00b2', lx, ly); ly += 14;
-        cx.fillText('  ' + (PA*PA).toFixed(1) + ' = ' + (PM*PM).toFixed(1) + ' + ' + (MA*MA).toFixed(1), lx, ly); ly += 18;
-
-        cx.fillStyle = COLORS.ORANGE;
-        cx.fillText('\u25B3PMB:  PB\u00b2 = PM\u00b2 + MB\u00b2', lx, ly); ly += 14;
-        cx.fillStyle = 'rgba(255,255,255,0.55)';
-        cx.fillText('  ' + PB.toFixed(1) + '\u00b2 = ' + PM.toFixed(1) + '\u00b2 + ' + MB.toFixed(1) + '\u00b2', lx, ly); ly += 14;
-        cx.fillText('  ' + (PB*PB).toFixed(1) + ' = ' + (PM*PM).toFixed(1) + ' + ' + (MB*MB).toFixed(1), lx, ly); ly += 18;
-
-        cx.fillStyle = COLORS.YELLOW;
-        cx.fillText('MA = MB (' + T('M to \u015Brodek AB', 'M is midpoint of AB') + ')', lx, ly); ly += 18;
-
-        cx.font = 'bold 12px monospace'; cx.fillStyle = COLORS.GREEN;
-        cx.fillText('\u21D2 PA\u00b2 = PB\u00b2  \u21D2  PA = PB   \u220E', lx, ly);
+        // ── Proof panel rendered as real LaTeX via KaTeX (DOM overlay) ──
+        updateProofPanel(PA, PB, PM, MA, MB);
 
         // ── Bottom: live equality check ──
         cx.font = 'bold 13px monospace'; cx.textAlign = 'center';
@@ -652,10 +694,28 @@ const observer = new MutationObserver(() => {
     if (newStage === 0) { P.wx = 1.25; P.wy = 2.25; }
     if (newStage === 1) { P.wx = 0; P.wy = 1.5; }
 
+    // Toggle the KaTeX proof panel — only visible on the Pythagoras stage.
+    // We (re)build it on entry so it picks up the latest LANG.
+    if (newStage === 2) {
+      buildProofPanel();
+      proofPanel.style.display = 'block';
+    } else {
+      proofPanel.style.display = 'none';
+    }
+
     applyStageVisibility(newStage);
   }
 });
 observer.observe(stageTitle, { childList: true, characterData: true, subtree: true });
+
+// Attach proof panel to the wrap (VizCore.init creates it) once
+document.querySelector('.wrap')?.appendChild(proofPanel);
+
+// If KaTeX loads after the first buildProofPanel call, re-render once ready.
+if (!window.katex) {
+  const katexScript = document.querySelector('script[src*="katex"]');
+  katexScript?.addEventListener('load', () => { if (currentStage === 2) buildProofPanel(); });
+}
 
 // Use engine's built-in drag for stages 0, 1, 3
 // For stage 3, the triA/triB/triC points have drag:true.
