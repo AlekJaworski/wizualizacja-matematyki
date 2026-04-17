@@ -74,6 +74,19 @@ import { GraphView } from '../lib/graph-core.js';
 
   function clear() { cx.fillStyle = '#0e0e12'; cx.fillRect(0, 0, W, H); }
 
+  // Glowing dot — small convenience used across stages
+  function gdot(sx, sy, r, col, glow) {
+    cx.save();
+    cx.beginPath();
+    cx.arc(sx, sy, r, 0, Math.PI * 2);
+    cx.fillStyle = col;
+    cx.shadowColor = col;
+    cx.shadowBlur = glow != null ? glow : 10;
+    cx.fill();
+    cx.shadowBlur = 0;
+    cx.restore();
+  }
+
   function roundRect(x, y, w, h, r) {
     cx.beginPath();
     cx.moveTo(x+r,y); cx.lineTo(x+w-r,y); cx.quadraticCurveTo(x+w,y,x+w,y+r);
