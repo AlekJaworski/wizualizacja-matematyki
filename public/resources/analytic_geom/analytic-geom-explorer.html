@@ -187,15 +187,27 @@ const { cv, cx, W, H, getCanvasPos } = VizCore.init({
         cx.beginPath(); cx.moveTo(px(A.x), py(A.y)); cx.lineTo(px(B.x), py(B.y));
         cx.strokeStyle = 'rgba(255,255,255,0.3)'; cx.lineWidth = 1.5; cx.stroke();
 
-        // Perpendicular bisector
+        // Perpendicular bisector — direction (-dy, dx) in world space
         if (Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01) {
-          const pdx = -dy, pdy = dx;  // perpendicular direction
+          const pdx = -dy, pdy = dx;  // perpendicular direction (world space)
           const len = Math.hypot(pdx, pdy);
-          const sx = px(mx) - (pdx / len) * 200, sy = py(my) - (pdy / len) * 200;
-          const ex = px(mx) + (pdx / len) * 200, ey = py(my) + (pdy / len) * 200;
+          // Convert to screen: X same direction, Y inverted
+          const sdx = (pdx / len), sdy = -(pdy / len);
+          const sx = px(mx) - sdx * 200, sy = py(my) - sdy * 200;
+          const ex = px(mx) + sdx * 200, ey = py(my) + sdy * 200;
           cx.beginPath(); cx.moveTo(sx, sy); cx.lineTo(ex, ey);
           cx.strokeStyle = COLORS.GREEN; cx.lineWidth = 2.5;
           cx.shadowColor = COLORS.GREEN; cx.shadowBlur = 5; cx.stroke(); cx.shadowBlur = 0;
+
+          // Right angle marker at midpoint
+          const uABx = dx / Math.hypot(dx, dy), uABy = dy / Math.hypot(dx, dy);
+          const rr = 10;
+          const msx = px(mx), msy = py(my);
+          cx.beginPath();
+          cx.moveTo(msx + uABx * SC * rr / SC, msy - uABy * SC * rr / SC);
+          cx.lineTo(msx + uABx * SC * rr / SC + sdx * rr, msy - uABy * SC * rr / SC + sdy * rr);
+          cx.lineTo(msx + sdx * rr, msy + sdy * rr);
+          cx.strokeStyle = COLORS.GREEN; cx.lineWidth = 1; cx.stroke();
         }
 
         // Highlight a point on bisector showing equal distances
