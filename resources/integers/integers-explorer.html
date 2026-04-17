@@ -658,6 +658,129 @@
     drawTextC(T('Cyfry: ', 'Digits: ') + digits.join(', '), W / 2, H - 12, '10px monospace', 'rgba(255,255,255,0.45)');
   }
 
+  // ── Stage: ÷7 with running monologue ─────────────────────────
+
+  function iterateDiv7(n) {
+    const steps = [];
+    let cur = n;
+    while (cur >= 100 && steps.length < 10) {
+      const b = cur % 10;
+      const a = Math.floor(cur / 10);
+      const raw = a - 2 * b;
+      steps.push({ n: cur, a, b, raw });
+      cur = Math.abs(raw);
+    }
+    return { steps, final: cur };
+  }
+
+  function drawDiv7Demo() {
+    const n = divN;
+    const { steps, final } = iterateDiv7(n);
+    const finalDivisible = final % 7 === 0;
+    const origDivisible = n % 7 === 0;
+    const MULTS = [7, 14, 21, 28, 35, 42, 49, 56, 63, 70, 77, 84, 91, 98];
+
+    // Title
+    drawTextC(T('\u00F77 \u2014 algorytm z wewn\u0119trznym monologiem', '\u00F77 \u2014 algorithm with running monologue'),
+      W / 2, 22, 'bold 13px monospace', CYAN);
+
+    // Left column: computation & narrative (0 to ~380)
+    const leftW = 380;
+    const colR = 400;  // right column start
+
+    // Big n
+    drawGlow(String(n), 100, 60, 'bold 28px monospace', CYAN);
+    drawTextC(T('Czy ' + n + ' dzieli si\u0119 przez 7?', 'Is ' + n + ' divisible by 7?'), 100, 90, 'italic 11px monospace', 'rgba(255,255,255,0.7)');
+
+    // Running monologue area
+    let y = 120;
+    const bubble = (text, color) => {
+      cx.save();
+      cx.fillStyle = 'rgba(192,128,255,0.08)';
+      cx.fillRect(16, y - 10, leftW - 16, 20);
+      cx.strokeStyle = 'rgba(192,128,255,0.2)';
+      cx.lineWidth = 0.5;
+      cx.strokeRect(16, y - 10, leftW - 16, 20);
+      cx.restore();
+      drawTextC(text, 24, y, 'italic 11px monospace', color || PURPLE, 'left');
+      y += 26;
+    };
+
+    if (n < 100) {
+      bubble(T('Ma\u0142a liczba \u2014 sprawd\u017A wprost w tabeli po prawej.', 'Small number \u2014 just look it up in the table on the right.'), PURPLE);
+    } else {
+      bubble(T('Za du\u017Ca, by od razu oceni\u0107. Zastosujmy a \u2212 2b...', 'Too big to eyeball. Apply a \u2212 2b...'), PURPLE);
+    }
+
+    // Iteration chain
+    steps.forEach((s, i) => {
+      cx.save();
+      cx.strokeStyle = 'rgba(255,255,255,0.2)';
+      cx.lineWidth = 0.5;
+      cx.beginPath();
+      cx.moveTo(30, y - 10); cx.lineTo(leftW - 10, y - 10);
+      cx.stroke();
+      cx.restore();
+
+      drawTextC(T('Krok ', 'Step ') + (i + 1) + ':', 24, y + 4, 'bold 10px monospace', ORANGE, 'left');
+      drawTextC(s.n + '  \u2192  a=' + s.a + ',  b=' + s.b, 80, y + 4, '11px monospace', 'rgba(255,255,255,0.85)', 'left');
+      drawTextC('a \u2212 2b = ' + s.a + ' \u2212 2\u00B7' + s.b + ' = ' + s.raw, 80, y + 20, 'bold 11px monospace', YELLOW, 'left');
+      y += 38;
+    });
+
+    // Final check
+    if (steps.length > 0) {
+      bubble(T('Dotar\u0142em do ' + final + '. Zag\u0142\u0105dam do tabeli \u2192', 'Got to ' + final + '. Looking at the table \u2192'), PURPLE);
+    }
+
+    // Conclusion
+    const concColor = origDivisible ? GREEN : PINK;
+    drawTextC(
+      (finalDivisible ? final + ' \u2208 ' + T('tabeli', 'table') + '  \u2192  7 | ' + n + '  \u2713'
+                      : final + ' \u2209 ' + T('tabeli', 'table') + '  \u2192  7 \u2224 ' + n + '  \u2717'),
+      leftW / 2, y + 6, 'bold 13px monospace', concColor);
+
+    // Right column: multiples-of-7 table
+    drawTextC(T('Tabela: ÷7 < 100', 'Table: ÷7 < 100'), colR + 100, 50, 'bold 11px monospace', ORANGE);
+    const tableStartY = 70;
+    const tableCols = 2;
+    MULTS.forEach((m, i) => {
+      const col = i % tableCols;
+      const row = Math.floor(i / tableCols);
+      const mx = colR + 30 + col * 70;
+      const my = tableStartY + row * 20;
+      const highlight = (m === final);
+      if (highlight) {
+        cx.save();
+        cx.fillStyle = finalDivisible ? GREEN : 'rgba(255,255,255,0.05)';
+        cx.fillRect(mx - 22, my - 9, 44, 18);
+        cx.restore();
+      }
+      drawTextC(String(m), mx, my, (highlight ? 'bold ' : '') + '12px monospace',
+        highlight ? (finalDivisible ? '#0e0e12' : PINK) : 'rgba(255,255,255,0.7)');
+    });
+
+    // Show "final" on right if it didn't match
+    if (!finalDivisible && steps.length > 0) {
+      drawTextC('\u21D0 ' + final + ' ' + T('brak', 'missing'), colR + 30, tableStartY + 7 * 20 + 10, '10px monospace', PINK, 'left');
+    }
+
+    // Bottom narrative box — the key observations
+    const bY = H - 88;
+    cx.save();
+    cx.fillStyle = 'rgba(131,193,103,0.07)';
+    cx.fillRect(16, bY, W - 32, 78);
+    cx.strokeStyle = 'rgba(131,193,103,0.3)';
+    cx.lineWidth = 1;
+    cx.strokeRect(16, bY, W - 32, 78);
+    cx.restore();
+
+    drawTextC(T('Dlaczego to dzia\u0142a?', 'Why this works:'), 30, bY + 12, 'bold 10px monospace', GREEN, 'left');
+    drawTextC(T('Je\u015Bli 7 | (a\u22122b), to w to\u017Csamo\u015Bci n = 10(a\u22122b) + 21b  obydwa cz\u0142ony maj\u0105 7 \u21D2 7 | n.', 'If 7 | (a\u22122b), then in  n = 10(a\u22122b) + 21b  both terms carry a 7 \u21D2 7 | n.'), W / 2, bY + 30, '11px monospace', 'rgba(255,255,255,0.85)');
+    drawTextC(T('Ka\u017Cdy krok dzieli liczb\u0119 przez ~10, wi\u0119c dla k-cyfrowej n: co najwy\u017Cej k iteracji.', 'Each step shrinks the number by ~10\u00D7, so for a k-digit n: at most k iterations.'), W / 2, bY + 48, '11px monospace', 'rgba(255,255,255,0.75)');
+    drawTextC(T('Gdy wynik < 100, patrz w tabel\u0119 wielokrotno\u015Bci 7 (14 liczb do zapami\u0119tania).', 'When the result < 100, look it up in the 7-multiples table (just 14 numbers to memorize).'), W / 2, bY + 66, '11px monospace', YELLOW);
+  }
+
   // ── Proof overlay ────────────────────────────────────────────
 
   function drawProofOverlay(rule) {
@@ -1095,20 +1218,31 @@
         'Classic rules for 2, 3, 4, 5, 7, 9, 11. Star \u2605 marks the easiest (2, 3, 5, 9, 11). Each card shows WHY the rule works \u2014 the key is 10 mod m.'
       ),
       sliders: [
-        { id: 'divN', lbl: 'n', color: CYAN, min: 2, max: 999, step: 1, val: () => divN },
+        { id: 'divN', lbl: 'n', color: CYAN, min: 2, max: 9999, step: 1, val: () => divN },
       ],
       draw: drawDivisibility
     },
     {
-      title: () => T('Cechy dodatkowe (6, 8, 10)', 'Additional Rules (6, 8, 10)'),
+      title: () => T('Cechy dodatkowe (6, 8)', 'Additional Rules (6, 8)'),
       desc: () => T(
-        'Cechy \u201Ewywodz\u0105ce si\u0119\u201D z podstawowych: 6 = 2\u00B73, 8 potrzebuje 10\u00B3, 10 to po prostu ostatnia cyfra. Zobacz, jak sk\u0142adaj\u0105 si\u0119 z prostszych cech.',
-        'Rules derived from the basics: 6 = 2\u00B73, 8 needs 10\u00B3, 10 is just the last digit. See how they compose from simpler rules.'
+        'Cechy \u201Ewywodz\u0105ce si\u0119\u201D z podstawowych: 6 = 2\u00B73, 8 potrzebuje 10\u00B3 = 1000. Zobacz, jak sk\u0142adaj\u0105 si\u0119 z prostszych cech.',
+        'Rules derived from the basics: 6 = 2\u00B73, 8 needs 10\u00B3 = 1000. See how they compose from simpler rules.'
       ),
       sliders: [
-        { id: 'divN', lbl: 'n', color: CYAN, min: 2, max: 999, step: 1, val: () => divN },
+        { id: 'divN', lbl: 'n', color: CYAN, min: 2, max: 9999, step: 1, val: () => divN },
       ],
       draw: drawDivisibilityExtra
+    },
+    {
+      title: () => T('\u00F77 \u2014 algorytm z monologiem', '\u00F77 \u2014 algorithm with monologue'),
+      desc: () => T(
+        'Krok po kroku, jak matematyk my\u015Bli o cechie ÷7. Zobacz iteracj\u0119 na \u017Cywo: a\u22122b staje si\u0119 now\u0105 liczb\u0105, powtarzamy, a\u017C z\u0142apiemy co\u015B z tabeli wielokrotno\u015Bci 7 poni\u017Cej 100.',
+        'Step by step, how a mathematician thinks about the ÷7 rule. Watch iteration live: a\u22122b becomes the new number, repeat until we land on a multiple of 7 below 100.'
+      ),
+      sliders: [
+        { id: 'divN', lbl: 'n', color: CYAN, min: 2, max: 9999, step: 1, val: () => divN },
+      ],
+      draw: drawDiv7Demo
     },
     {
       title: () => T('Rozklad na czynniki pierwsze', 'Prime Factorization'),
