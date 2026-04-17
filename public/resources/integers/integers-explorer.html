@@ -781,6 +781,189 @@
     drawTextC(T('Gdy wynik < 100, patrz w tabel\u0119 wielokrotno\u015Bci 7 (14 liczb do zapami\u0119tania).', 'When the result < 100, look it up in the 7-multiples table (just 14 numbers to memorize).'), W / 2, bY + 66, '11px monospace', YELLOW);
   }
 
+  // ── Stage: ÷7 as real code ───────────────────────────────────
+
+  function drawDiv7Code() {
+    const n = divN;
+
+    // Tokenized code — arrays of {text, color} so we can syntax-colour inline.
+    const KW   = CYAN;          // keywords
+    const NUM  = YELLOW;        // numeric literals
+    const STR  = GREEN;
+    const COM  = 'rgba(255,255,255,0.4)';  // comments
+    const FN   = PINK;          // function names
+    const VAR  = 'rgba(255,255,255,0.85)'; // variables / default
+    const OP   = 'rgba(255,255,255,0.55)'; // operators / punctuation
+
+    function drawCodeLine(tokens, x, y, fontSize) {
+      cx.save();
+      cx.font = fontSize + 'px monospace';
+      cx.textBaseline = 'middle';
+      cx.textAlign = 'left';
+      let px = x;
+      tokens.forEach(t => {
+        cx.fillStyle = t.color || VAR;
+        cx.fillText(t.text, px, y);
+        px += cx.measureText(t.text).width;
+      });
+      cx.restore();
+    }
+
+    // Title
+    drawTextC(T('Algorytm ÷7 w kodzie', '÷7 algorithm in code'),
+      W / 2, 20, 'bold 13px monospace', CYAN);
+
+    // ── Section 1: the naive one-liner ──
+    drawTextC(T('1. Naiwnie (O(1)) \u2014 w praktyce tyle wystarczy:', '1. The naive way (O(1)) \u2014 this is usually all you need:'),
+      26, 44, '10px monospace', 'rgba(255,255,255,0.65)', 'left');
+
+    cx.save();
+    cx.fillStyle = 'rgba(255,255,255,0.04)';
+    cx.fillRect(22, 56, W - 44, 34);
+    cx.strokeStyle = 'rgba(255,255,255,0.08)';
+    cx.strokeRect(22, 56, W - 44, 34);
+    cx.restore();
+
+    drawCodeLine([
+      { text: 'const ', color: KW },
+      { text: 'divisibleBy7', color: FN },
+      { text: ' = ', color: OP },
+      { text: 'n ', color: VAR },
+      { text: '=> ', color: KW },
+      { text: 'n ', color: VAR },
+      { text: '% ', color: OP },
+      { text: '7 ', color: NUM },
+      { text: '=== ', color: OP },
+      { text: '0', color: NUM },
+      { text: ';', color: OP },
+    ], 32, 73, 12);
+
+    // ── Section 2: the rule-based algorithm ──
+    drawTextC(T('2. Z regu\u0142y a\u22122b (O(log n)) \u2014 bez dzielenia, ci\u0105gle u\u017Cyteczne do du\u017Cych liczb:', '2. Using the a\u22122b rule (O(log n)) \u2014 no division, handy for huge numbers:'),
+      26, 104, '10px monospace', PURPLE, 'left');
+
+    cx.save();
+    cx.fillStyle = 'rgba(255,255,255,0.04)';
+    cx.fillRect(22, 114, W - 44, 186);
+    cx.strokeStyle = 'rgba(255,255,255,0.08)';
+    cx.strokeRect(22, 114, W - 44, 186);
+    cx.restore();
+
+    const codeLines = [
+      // function div7(n) {
+      [
+        { text: 'function ', color: KW },
+        { text: 'div7', color: FN },
+        { text: '(', color: OP },
+        { text: 'n', color: VAR },
+        { text: ') {', color: OP },
+      ],
+      // ..n = Math.abs(n);
+      [
+        { text: '  n ', color: VAR },
+        { text: '= Math', color: OP },
+        { text: '.abs', color: FN },
+        { text: '(n);', color: OP },
+        { text: '               ' },
+        { text: '// ' + T('|n| \u2014 znak bez znaczenia', '|n| \u2014 sign irrelevant'), color: COM },
+      ],
+      [
+        { text: '  ' },
+        { text: 'while ', color: KW },
+        { text: '(n ', color: OP },
+        { text: '>= ', color: OP },
+        { text: '100', color: NUM },
+        { text: ') {', color: OP },
+        { text: '          ' },
+        { text: '// ' + T('stop, gdy ma\u0142a', '// stop when small'), color: COM },
+      ],
+      [
+        { text: '    ' },
+        { text: 'const ', color: KW },
+        { text: 'b ', color: VAR },
+        { text: '= n ', color: OP },
+        { text: '% ', color: OP },
+        { text: '10', color: NUM },
+        { text: ';', color: OP },
+        { text: '           ' },
+        { text: '// ' + T('ostatnia cyfra', 'last digit'), color: COM },
+      ],
+      [
+        { text: '    ' },
+        { text: 'const ', color: KW },
+        { text: 'a ', color: VAR },
+        { text: '= (n ', color: OP },
+        { text: '- ', color: OP },
+        { text: 'b) ', color: VAR },
+        { text: '/ ', color: OP },
+        { text: '10', color: NUM },
+        { text: ';', color: OP },
+        { text: '       ' },
+        { text: '// ' + T('pozosta\u0142a liczba', 'the rest'), color: COM },
+      ],
+      [
+        { text: '    n ', color: VAR },
+        { text: '= Math', color: OP },
+        { text: '.abs', color: FN },
+        { text: '(a ', color: OP },
+        { text: '- ', color: OP },
+        { text: '2 ', color: NUM },
+        { text: '* ', color: OP },
+        { text: 'b);', color: OP },
+        { text: '      ' },
+        { text: '// ' + T('nowe n = |a\u22122b|', 'new n = |a\u22122b|'), color: COM },
+      ],
+      [ { text: '  }', color: OP } ],
+      // table
+      [
+        { text: '  ' },
+        { text: 'const ', color: KW },
+        { text: 'M ', color: VAR },
+        { text: '= [', color: OP },
+        { text: '0,7,14,21,28,35,42,49,56,63,70,77,84,91,98', color: NUM },
+        { text: '];', color: OP },
+      ],
+      [
+        { text: '  ' },
+        { text: 'return ', color: KW },
+        { text: 'M', color: VAR },
+        { text: '.includes', color: FN },
+        { text: '(n);', color: OP },
+        { text: '               ' },
+        { text: '// ' + T('sprawd\u017A w tabeli', 'table lookup'), color: COM },
+      ],
+      [ { text: '}', color: OP } ],
+    ];
+
+    let cy = 130;
+    codeLines.forEach(line => {
+      drawCodeLine(line, 32, cy, 11);
+      cy += 18;
+    });
+
+    // ── Live trace for current n ──
+    drawTextC(T('Dla n = ', 'For n = ') + n + ':   div7(' + n + ') \u2192 ' + (n % 7 === 0 ? 'true' : 'false'),
+      W / 2, 315, 'bold 12px monospace', (n % 7 === 0) ? GREEN : PINK);
+
+    // ── Practical notes box ──
+    const bY = 335;
+    cx.save();
+    cx.fillStyle = 'rgba(192,128,255,0.07)';
+    cx.fillRect(16, bY, W - 32, 55);
+    cx.strokeStyle = 'rgba(192,128,255,0.3)';
+    cx.lineWidth = 1;
+    cx.strokeRect(16, bY, W - 32, 55);
+    cx.restore();
+
+    drawTextC(T('Szczerze, dla in\u017Cyniera', 'Honest engineering answer'), 26, bY + 12, 'bold 10px monospace', PURPLE, 'left');
+    drawTextC(T('\u2022 W 99% przypadk\u00F3w piszesz Wersj\u0119 1. BigInt te\u017C obs\u0142uguje % dla ogromnych liczb.', '\u2022 In 99% of cases you write Version 1. BigInt handles % for huge numbers too.'),
+      W / 2, bY + 26, '10px monospace', 'rgba(255,255,255,0.8)');
+    drawTextC(T('\u2022 Wersja 2 \u2014 ciekawostka. Przydatna gdy: liczba jest stringiem i parsowanie do BigInt ', '\u2022 Version 2 is a curio. Useful when: number is a string and parsing to BigInt '),
+      W / 2, bY + 40, '10px monospace', 'rgba(255,255,255,0.8)');
+    drawTextC(T('jest drogie; implementujesz arytmetyk\u0119 od zera; uczysz struktury modularnej.', 'is expensive; you\u2019re implementing arithmetic from scratch; or teaching modular structure.'),
+      W / 2, bY + 54, '10px monospace', 'rgba(255,255,255,0.8)');
+  }
+
   // ── Proof overlay ────────────────────────────────────────────
 
   function drawProofOverlay(rule) {
@@ -1243,6 +1426,17 @@
         { id: 'divN', lbl: 'n', color: CYAN, min: 2, max: 9999, step: 1, val: () => divN },
       ],
       draw: drawDiv7Demo
+    },
+    {
+      title: () => T('\u00F77 w kodzie (dla ICT)', '\u00F77 in code (for ICT folks)'),
+      desc: () => T(
+        'Jak zapisa\u0107 to w j\u0119zyku programowania? Szczerze: w 99% przypadk\u00F3w piszesz n % 7 === 0 i tyle. Ale iteracyjna implementacja pokazuje, \u017Ce regu\u0142\u0119 mo\u017Cna u\u017Cy\u0107 na stringu cyfr bez parsowania do liczby.',
+        'How do you code this? Honestly: 99% of the time you write n % 7 === 0 and you\u2019re done. But the iterative version shows the rule can be applied to a digit string without parsing to a number.'
+      ),
+      sliders: [
+        { id: 'divN', lbl: 'n', color: CYAN, min: 2, max: 9999, step: 1, val: () => divN },
+      ],
+      draw: drawDiv7Code
     },
     {
       title: () => T('Rozklad na czynniki pierwsze', 'Prime Factorization'),
