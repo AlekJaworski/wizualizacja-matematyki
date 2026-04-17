@@ -266,7 +266,7 @@ import { GraphView } from '../lib/graph-core.js';
         const maxR = Math.max(r1, r2);
         cx.save();
         cx.globalAlpha = 0.06;
-        cx.fillStyle = '#e74c3c';
+        cx.fillStyle = '#E07090';
         cx.beginPath();
         cx.moveTo(px(minR), py(0));
         for (let x = minR; x <= maxR; x += 0.05) {
@@ -295,7 +295,7 @@ import { GraphView } from '../lib/graph-core.js';
         // Sign labels
         if (r1 !== r2) {
           const midBetween = (minR + maxR) / 2;
-          label('−', midBetween, -0.5, '#e74c3c88', 'center', 14);
+          label('−', midBetween, -0.5, '#E0709088', 'center', 14);
           if (minR > -4.5) label('+', minR - 1.5, 0.5, '#27ae6088', 'center', 14);
           if (maxR < 4.5) label('+', maxR + 1.5, 0.5, '#27ae6088', 'center', 14);
         }

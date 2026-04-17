@@ -55,8 +55,8 @@
   const COL_EDGE   = 'rgba(88,196,221,0.6)';
   const COL_HIDDEN = 'rgba(88,196,221,0.18)';
   const COL_FACE   = 'rgba(88,196,221,0.06)';
-  const COL_DIM    = '#e67e22';
-  const COL_HEIGHT = '#e74c3c';
+  const COL_DIM    = '#FF6B35';
+  const COL_HEIGHT = '#E07090';
   const COL_LEAF   = '#FFD166';
 
   let ba = 4, bb = 3, bh = 5;    // box
@@ -175,7 +175,7 @@
       ),
       sliders: [
         { id: 'ba', lbl: 'a', color: COL_ACCENT, min: 1, max: 8, step: 0.5, val: () => ba },
-        { id: 'bb', lbl: 'b', color: '#e67e22', min: 1, max: 8, step: 0.5, val: () => bb },
+        { id: 'bb', lbl: 'b', color: '#FF6B35', min: 1, max: 8, step: 0.5, val: () => bb },
         { id: 'bh', lbl: 'h', color: COL_HEIGHT, min: 1, max: 8, step: 0.5, val: () => bh },
       ],
       draw() {
@@ -247,7 +247,7 @@
         const p4 = project3D(a, -b, h, angle, cx0, cy0);
 
         drawDimLine(p0.px, p0.py + 15, p1.px, p1.py + 15, 'a=' + ba, COL_ACCENT);
-        drawDimLine(p1.px + 15, p1.py, p2.px + 15, p2.py, 'b=' + bb, '#e67e22', 15);
+        drawDimLine(p1.px + 15, p1.py, p2.px + 15, p2.py, 'b=' + bb, '#FF6B35', 15);
         drawDimLine(p1.px + 20, p1.py, p4.px + 20, p4.py, 'h=' + bh, COL_HEIGHT, 15);
 
         // Formulas
@@ -502,7 +502,7 @@
       sliders: [
         { id: 'cnr', lbl: T('r stożka','cone r'), color: COL_ACCENT, min: 1, max: 6, step: 0.5, val: () => cnr },
         { id: 'cnh', lbl: T('h stożka','cone h'), color: COL_HEIGHT, min: 1, max: 8, step: 0.5, val: () => cnh },
-        { id: 'spr', lbl: T('r kuli','sphere r'), color: '#2ecc71', min: 1, max: 6, step: 0.5, val: () => spr },
+        { id: 'spr', lbl: T('r kuli','sphere r'), color: '#83C167', min: 1, max: 6, step: 0.5, val: () => spr },
       ],
       draw() {
         // LEFT: Cone
@@ -600,7 +600,7 @@
 
         // Main circle
         cx.save();
-        cx.strokeStyle = '#2ecc71';
+        cx.strokeStyle = '#83C167';
         cx.lineWidth = 2;
         cx.beginPath();
         cx.arc(sphX, sphY, sphR, 0, Math.PI * 2);
@@ -616,14 +616,14 @@
 
         // Radius line
         cx.save();
-        cx.strokeStyle = '#2ecc71';
+        cx.strokeStyle = '#83C167';
         cx.lineWidth = 1.5;
         cx.beginPath();
         cx.moveTo(sphX, sphY);
         cx.lineTo(sphX + sphR * 0.7, sphY - sphR * 0.7);
         cx.stroke();
         cx.font = 'bold 10px monospace';
-        cx.fillStyle = '#2ecc71';
+        cx.fillStyle = '#83C167';
         cx.textAlign = 'left';
         cx.fillText('r=' + spr, sphX + sphR * 0.35 + 5, sphY - sphR * 0.35 - 5);
         cx.restore();
@@ -632,12 +632,12 @@
         cx.save();
         cx.beginPath();
         cx.arc(sphX, sphY, 3, 0, Math.PI * 2);
-        cx.fillStyle = '#2ecc71';
+        cx.fillStyle = '#83C167';
         cx.fill();
         cx.restore();
 
         // Sphere label
-        drawLabel(T('KULA', 'SPHERE'), sphX, 30, '#2ecc71', 13);
+        drawLabel(T('KULA', 'SPHERE'), sphX, 30, '#83C167', 13);
 
         // Sphere formulas
         const sV = (4/3) * Math.PI * spr * spr * spr;
