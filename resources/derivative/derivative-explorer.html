@@ -83,7 +83,9 @@
   </div>
 </div>
 
-<script>
+<script type="module">
+import { GraphView } from '../lib/graph-core.js';
+
 (function(){
 const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
 const T = (pl, en) => LANG === 'pl' ? pl : en;
@@ -136,75 +138,15 @@ function goTo(idx){
 document.getElementById('qprev').addEventListener('click',()=>goTo(stage-1));
 document.getElementById('qnext').addEventListener('click',()=>goTo(stage+1));
 
-// ── Drawing helpers ──
-function drawGrid(ox,oy,sc,yStart,yEnd){
-  cx.strokeStyle='rgba(255,255,255,.05)';cx.lineWidth=.7;
-  for(let x=-6;x<=6;x++){const px=ox+x*sc;cx.beginPath();cx.moveTo(px,yStart);cx.lineTo(px,yEnd);cx.stroke();}
-  for(let y=-8;y<=8;y++){const py=oy-y*sc;if(py<yStart||py>yEnd)continue;cx.beginPath();cx.moveTo(0,py);cx.lineTo(W,py);cx.stroke();}
-}
-
-function drawAxes(ox,oy,sc,yStart,yEnd){
-  cx.strokeStyle='rgba(255,255,255,.38)';cx.lineWidth=1.5;
-  // x-axis
-  if(oy>=yStart&&oy<=yEnd){
-    cx.beginPath();cx.moveTo(0,oy);cx.lineTo(W-8,oy);cx.stroke();
-    cx.fillStyle='rgba(255,255,255,.38)';cx.beginPath();cx.moveTo(W,oy);cx.lineTo(W-9,oy-4);cx.lineTo(W-9,oy+4);cx.closePath();cx.fill();
-  }
-  // y-axis
-  cx.beginPath();cx.moveTo(ox,yEnd);cx.lineTo(ox,yStart+7);cx.stroke();
-  cx.fillStyle='rgba(255,255,255,.38)';cx.beginPath();cx.moveTo(ox,yStart);cx.lineTo(ox-4,yStart+9);cx.lineTo(ox+4,yStart+9);cx.closePath();cx.fill();
-  // ticks
-  for(let x=-5;x<=5;x++){
-    if(!x)continue;
-    const px=ox+x*sc;if(px<0||px>W)continue;
-    if(oy>=yStart&&oy<=yEnd){
-      cx.strokeStyle='rgba(255,255,255,.18)';cx.lineWidth=1;
-      cx.beginPath();cx.moveTo(px,oy-3);cx.lineTo(px,oy+3);cx.stroke();
-      cx.fillStyle='rgba(255,255,255,.25)';cx.font='11px sans-serif';cx.textAlign='center';cx.fillText(x,px,oy+14);
-    }
-  }
-  for(let y=-6;y<=6;y++){
-    if(!y)continue;
-    const py=oy-y*sc;if(py<yStart+5||py>yEnd-5)continue;
-    cx.strokeStyle='rgba(255,255,255,.18)';cx.lineWidth=1;
-    cx.beginPath();cx.moveTo(ox-3,py);cx.lineTo(ox+3,py);cx.stroke();
-    cx.fillStyle='rgba(255,255,255,.25)';cx.font='11px sans-serif';cx.textAlign='right';cx.fillText(y,ox-7,py+4);
-  }
-}
-
-function plotCurve(fn,ox,oy,sc,yStart,yEnd,color,lw,xmin,xmax){
-  cx.beginPath();cx.strokeStyle=color;cx.lineWidth=lw||2.5;
-  let mv=true;const steps=600;
-  xmin=xmin||-6;xmax=xmax||6;
-  for(let i=0;i<=steps;i++){
-    const x=xmin+(xmax-xmin)*i/steps;
-    const y=fn(x);
-    const px=ox+x*sc,py=oy-y*sc;
-    if(py<yStart-4||py>yEnd+4){mv=true;continue;}
-    if(mv){cx.moveTo(px,py);mv=false;}else cx.lineTo(px,py);
-  }
-  cx.stroke();
-}
-
-function gdot(xx,yy,r,col){
-  cx.beginPath();cx.arc(xx,yy,r,0,Math.PI*2);cx.fillStyle=col;
-  cx.shadowColor=col;cx.shadowBlur=14;cx.fill();cx.shadowBlur=0;
-}
-
-function drawLine(x1,y1,x2,y2,col,lw){
-  cx.beginPath();cx.strokeStyle=col;cx.lineWidth=lw||1.5;
-  cx.moveTo(x1,y1);cx.lineTo(x2,y2);cx.stroke();
-}
-
 // ── Stage renderers ──
 
 function drawStage0(){
   // Secant to tangent: f(x)=x^2
-  const OX=300,OY=310,SC=50;
-  drawGrid(OX,OY,SC,0,H);
-  drawAxes(OX,OY,SC,0,H);
+  const gv = new GraphView(cx, { rect:[0,0,W,H], xRange:[-6,6], yRange:[-2.6,8.8], scale:50 });
+  gv.drawGrid();
+  gv.drawAxes();
   const f=x=>x*x;
-  plotCurve(f,OX,OY,SC,0,H,CURVE,2.5);
+  gv.plotFn(f, {color:CURVE, lineWidth:2.5});
 
   const x0=1;
   const x1=x0+sDx;
@@ -212,29 +154,21 @@ function drawStage0(){
   const slope=(y1-y0)/(x1-x0);
 
   // Draw secant/tangent line extended
-  const lineXmin=-4,lineXmax=5;
-  const lx1=OX+lineXmin*SC, ly1=OY-(y0+slope*(lineXmin-x0))*SC;
-  const lx2=OX+lineXmax*SC, ly2=OY-(y0+slope*(lineXmax-x0))*SC;
-  cx.save();
-  cx.beginPath();cx.rect(0,0,W,H);cx.clip();
-  drawLine(lx1,ly1,lx2,ly2,sDx<0.1?TANG:'rgba(131,193,103,.6)',2);
-  cx.restore();
+  const lineColor = sDx<0.1 ? TANG : 'rgba(131,193,103,.6)';
+  gv.line(x0, y0, x1, y1, {color:lineColor, lineWidth:2});
 
   // Points
-  gdot(OX+x0*SC,OY-y0*SC,5,CURVE);
-  if(sDx>0.05) gdot(OX+x1*SC,OY-y1*SC,5,'#FF9F43');
+  gv.dot(x0, y0, {radius:5, color:CURVE});
+  if(sDx>0.05) gv.dot(x1, y1, {radius:5, color:'#FF9F43'});
 
   // Delta x bracket
   if(sDx>0.05){
-    const bx0=OX+x0*SC, bx1=OX+x1*SC, by=OY-y0*SC;
-    cx.setLineDash([3,3]);cx.strokeStyle='rgba(255,255,255,.2)';cx.lineWidth=1;
-    cx.beginPath();cx.moveTo(bx0,by);cx.lineTo(bx1,by);cx.stroke();
-    cx.beginPath();cx.moveTo(bx1,by);cx.lineTo(bx1,OY-y1*SC);cx.stroke();
-    cx.setLineDash([]);
+    gv.segment(x0, y0, x1, y0, {color:'rgba(255,255,255,.2)', lineWidth:1, dash:[3,3]});
+    gv.segment(x1, y0, x1, y1, {color:'rgba(255,255,255,.2)', lineWidth:1, dash:[3,3]});
     // labels
     cx.fillStyle='rgba(255,255,255,.5)';cx.font='11px monospace';cx.textAlign='center';
-    cx.fillText('\u0394x='+sDx.toFixed(2),(bx0+bx1)/2,by+14);
-    cx.fillText('\u0394y='+(y1-y0).toFixed(2),bx1+30,(by+OY-y1*SC)/2);
+    cx.fillText('\u0394x='+sDx.toFixed(2), (gv.px(x0)+gv.px(x1))/2, gv.py(y0)+14);
+    cx.fillText('\u0394y='+(y1-y0).toFixed(2), gv.px(x1)+30, (gv.py(y0)+gv.py(y1))/2);
   }
 
   // Slope label
@@ -251,25 +185,20 @@ function drawStage0(){
 
 function drawStage1(){
   // Derivative as slope: f(x)=x^2, movable point
-  const OX=300,OY=310,SC=50;
-  drawGrid(OX,OY,SC,0,H);
-  drawAxes(OX,OY,SC,0,H);
+  const gv = new GraphView(cx, { rect:[0,0,W,H], xRange:[-6,6], yRange:[-2.6,8.8], scale:50 });
+  gv.drawGrid();
+  gv.drawAxes();
   const f=x=>x*x;
-  plotCurve(f,OX,OY,SC,0,H,CURVE,2.5);
+  gv.plotFn(f, {color:CURVE, lineWidth:2.5});
 
   const x0=sX0;
   const y0=f(x0);
   const slope=2*x0;
 
   // Tangent line
-  const lineXmin=-5,lineXmax=5;
-  cx.save();cx.beginPath();cx.rect(0,0,W,H);cx.clip();
-  const lx1=OX+lineXmin*SC, ly1=OY-(y0+slope*(lineXmin-x0))*SC;
-  const lx2=OX+lineXmax*SC, ly2=OY-(y0+slope*(lineXmax-x0))*SC;
-  drawLine(lx1,ly1,lx2,ly2,TANG,2);
-  cx.restore();
+  gv.tangentLine(f, x0, {color:TANG, lineWidth:2, derivFn:x=>2*x});
 
-  gdot(OX+x0*SC,OY-y0*SC,6,CURVE);
+  gv.dot(x0, y0, {radius:6, color:CURVE});
 
   // Labels
   cx.fillStyle=TANG;cx.font='bold 13px monospace';cx.textAlign='left';
@@ -278,124 +207,124 @@ function drawStage1(){
   cx.fillText('f\u2032(x) = 2x',14,42);
 
   // Derivative value bar on right side
-  const barX=W-30, barH=160, barY0=OY, barBot=barY0, barTop=barY0-barH;
+  const barX=W-30, barH=160, barY0=gv.py(0);
   cx.strokeStyle='rgba(255,255,255,.1)';cx.lineWidth=1;
-  cx.beginPath();cx.moveTo(barX,barBot+20);cx.lineTo(barX,barTop);cx.stroke();
+  cx.beginPath();cx.moveTo(barX,barY0+20);cx.lineTo(barX,barY0-barH);cx.stroke();
   // marker
-  const markerY=Math.max(barTop,Math.min(barBot+20,OY-slope*SC/4*2));
+  const markerY=Math.max(barY0-barH,Math.min(barY0+20, gv.py(0)-slope*gv.scale/4*2));
   cx.fillStyle=DERIV;cx.font='11px monospace';cx.textAlign='right';
   cx.fillText('f\u2032='+slope.toFixed(2),barX-6,markerY+4);
-  gdot(barX,markerY,4,DERIV);
+  gv.dotScreen(barX,markerY,{radius:4,color:DERIV});
 
   // Point coordinates
   cx.fillStyle='rgba(255,255,255,.4)';cx.font='11px monospace';cx.textAlign='left';
-  const ptPx=OX+x0*SC,ptPy=OY-y0*SC;
-  cx.fillText('('+x0.toFixed(2)+', '+y0.toFixed(2)+')',ptPx+10,ptPy-8);
+  cx.fillText('('+x0.toFixed(2)+', '+y0.toFixed(2)+')', gv.px(x0)+10, gv.py(y0)-8);
 }
 
 function drawStage2(){
   // f(x) vs f'(x) split view
-  const topH=210,botH=230,gap=20;
-  const OX=300;
-  const SC=45;
-  const OY_top=140,OY_bot=topH+gap+130;
+  const topH=210, gap=20, botTop=topH+gap;
+  const botH=H-botTop;
 
-  // Top: f(x) = x^3 - 3x
-  drawGrid(OX,OY_top,SC,0,topH);
-  drawAxes(OX,OY_top,SC,0,topH);
+  const top = new GraphView(cx, { rect:[0,0,W,topH], xRange:[-3,3], yRange:[-4,4], scale:45 });
+  const bot = new GraphView(cx, { rect:[0,botTop,W,botH], xRange:[-3,3], yRange:[-4,4], scale:45 });
+
   const f=x=>x*x*x-3*x;
-  plotCurve(f,OX,OY_top,SC,0,topH,CURVE,2.5,-3,3);
+  const fp=x=>3*x*x-3;
 
-  // Divider gap
-  cx.fillStyle='rgba(255,255,255,.03)';
-  cx.fillRect(0,topH,W,gap);
+  // Top panel: f(x)
+  top.beginClip();
+  top.drawGrid();
+  top.drawAxes();
+
+  // Shading for sign of f' on top panel
+  cx.globalAlpha=0.06;
+  cx.fillStyle=TANG;
+  // f increasing: x < -1
+  const leftEnd = top.px(-1);
+  if(leftEnd>0){cx.fillRect(0,0,leftEnd,topH);}
+  // f increasing: x > 1
+  const rightStart = top.px(1);
+  if(rightStart<W){cx.fillRect(rightStart,0,W-rightStart,topH);}
+  // f decreasing: -1 < x < 1
+  cx.fillStyle='#FF6B6B';
+  const negL=Math.max(top.px(-1),0), negR=Math.min(top.px(1),W);
+  if(negR>negL){cx.fillRect(negL,0,negR-negL,topH);}
+  cx.globalAlpha=1;
+
+  top.plotFn(f, {color:CURVE, lineWidth:2.5, domain:[-3,3]});
+  top.endClip();
+
+  // Divider
+  GraphView.drawDivider(cx, topH, gap);
   cx.strokeStyle='rgba(255,255,255,.08)';cx.lineWidth=0.5;
   cx.beginPath();cx.moveTo(0,topH);cx.lineTo(W,topH);cx.stroke();
   cx.beginPath();cx.moveTo(0,topH+gap);cx.lineTo(W,topH+gap);cx.stroke();
 
-  // Bottom: f'(x) = 3x^2 - 3
-  drawGrid(OX,OY_bot,SC,topH+gap,H);
-  drawAxes(OX,OY_bot,SC,topH+gap,H);
-  const fp=x=>3*x*x-3;
-  plotCurve(fp,OX,OY_bot,SC,topH+gap,H,DERIV,2.5,-3,3);
-
+  // Bottom panel: f'(x)
+  bot.beginClip();
+  bot.drawGrid();
+  bot.drawAxes();
   // Zero line on bottom
-  cx.setLineDash([4,4]);cx.strokeStyle='rgba(255,255,255,.12)';cx.lineWidth=1;
-  cx.beginPath();cx.moveTo(0,OY_bot);cx.lineTo(W,OY_bot);cx.stroke();
-  cx.setLineDash([]);
+  bot.horizontalLine(0, {color:'rgba(255,255,255,.12)', lineWidth:1, dash:[4,4]});
+  bot.plotFn(fp, {color:DERIV, lineWidth:2.5, domain:[-3,3]});
+  bot.endClip();
 
-  // Synced vertical line
+  // Synced vertical line across both panels
   const x=sXsync;
-  const vpx=OX+x*SC;
   cx.setLineDash([3,3]);cx.strokeStyle='rgba(255,255,255,.25)';cx.lineWidth=1;
+  const vpx=top.px(x);
   cx.beginPath();cx.moveTo(vpx,0);cx.lineTo(vpx,H);cx.stroke();
   cx.setLineDash([]);
 
   // Points on curves
-  const yf=f(x),yfp=fp(x);
-  const ptTopY=OY_top-yf*SC;
-  const ptBotY=OY_bot-yfp*SC;
-  if(ptTopY>0&&ptTopY<topH) gdot(vpx,ptTopY,5,CURVE);
-  if(ptBotY>topH+gap&&ptBotY<H) gdot(vpx,ptBotY,5,DERIV);
-
-  // Shading for sign of f'
-  cx.save();
-  // Positive regions (f increasing): x < -1 and x > 1
-  cx.globalAlpha=0.06;
-  cx.fillStyle=TANG;
-  // left region
-  const leftEnd=Math.min(OX+(-1)*SC,W);
-  if(leftEnd>0){cx.fillRect(0,0,leftEnd,topH);}
-  // right region
-  const rightStart=Math.max(OX+1*SC,0);
-  if(rightStart<W){cx.fillRect(rightStart,0,W-rightStart,topH);}
-  // Negative region (f decreasing): -1 < x < 1
-  cx.fillStyle='#FF6B6B';
-  const negL=Math.max(OX+(-1)*SC,0),negR=Math.min(OX+1*SC,W);
-  if(negR>negL){cx.fillRect(negL,0,negR-negL,topH);}
-  cx.globalAlpha=1;
-  cx.restore();
+  const yf=f(x), yfp=fp(x);
+  const ptTopY=top.py(yf);
+  const ptBotY=bot.py(yfp);
+  if(ptTopY>0&&ptTopY<topH) top.dot(x, yf, {radius:5, color:CURVE});
+  if(ptBotY>botTop&&ptBotY<H) bot.dot(x, yfp, {radius:5, color:DERIV});
 
   // Critical point markers (x = -1, x = 1)
   [-1,1].forEach(cx0=>{
-    const cpx=OX+cx0*SC,cpy_top=OY_top-f(cx0)*SC,cpy_bot=OY_bot;
+    const cpy_top=top.py(f(cx0));
+    const cpx=top.px(cx0);
     if(cpy_top>0&&cpy_top<topH){
-      gdot(cpx,cpy_top,4,ROOT);
+      top.dot(cx0, f(cx0), {radius:4, color:ROOT});
       cx.fillStyle=ROOT;cx.font='10px monospace';cx.textAlign='center';
-      cx.fillText(cx0===-1?T('maks.','max'):T('min.','min'),cpx,cpy_top+(cx0===-1?-10:14));
+      cx.fillText(cx0===-1?T('maks.','max'):T('min.','min'), cpx, cpy_top+(cx0===-1?-10:14));
     }
-    gdot(cpx,cpy_bot,4,ROOT);
+    bot.dot(cx0, 0, {radius:4, color:ROOT});
   });
 
   // Labels
   cx.fillStyle=CURVE;cx.font='bold 12px monospace';cx.textAlign='left';
   cx.fillText('f(x) = x\u00B3 \u2212 3x',10,16);
-  cx.fillStyle=DERIV;cx.fillText('f\u2032(x) = 3x\u00B2 \u2212 3',10,topH+gap+16);
+  cx.fillStyle=DERIV;cx.fillText('f\u2032(x) = 3x\u00B2 \u2212 3',10,botTop+16);
 
   // Values at sync point
   cx.fillStyle='rgba(255,255,255,.5)';cx.font='11px monospace';cx.textAlign='right';
   cx.fillText('f('+x.toFixed(2)+') = '+yf.toFixed(2),W-10,16);
-  cx.fillText('f\u2032('+x.toFixed(2)+') = '+yfp.toFixed(2),W-10,topH+gap+16);
+  cx.fillText('f\u2032('+x.toFixed(2)+') = '+yfp.toFixed(2),W-10,botTop+16);
 
   // Sign indicator
   const sign=yfp>0.01?T('> 0  (rosn\u0105ca)','> 0  (increasing)'):yfp<-0.01?T('< 0  (malej\u0105ca)','< 0  (decreasing)'):T('\u2248 0  (ekstremum)','\u2248 0  (extremum)');
   const signCol=yfp>0.01?TANG:yfp<-0.01?'#FF6B6B':ROOT;
   cx.fillStyle=signCol;cx.font='11px monospace';cx.textAlign='right';
-  cx.fillText('f\u2032 '+sign,W-10,topH+gap+32);
+  cx.fillText('f\u2032 '+sign,W-10,botTop+32);
 }
 
 function drawStage3(){
   // Power rule: f(x) = x^n, f'(x) = nx^(n-1)
-  const OX=300,OY=280,SC=50;
-  drawGrid(OX,OY,SC,0,H);
-  drawAxes(OX,OY,SC,0,H);
+  const gv = new GraphView(cx, { rect:[0,0,W,H], xRange:[-6,6], yRange:[-3.2,8.8], scale:50 });
+  gv.drawGrid();
+  gv.drawAxes();
 
   const n=sN;
   const f=x=>Math.pow(x,n);
   const fp=x=>n*Math.pow(x,n-1);
 
-  plotCurve(f,OX,OY,SC,0,H,CURVE,2.5,-3,3);
-  plotCurve(fp,OX,OY,SC,0,H,DERIV,2,-3,3);
+  gv.plotFn(f, {color:CURVE, lineWidth:2.5, domain:[-3,3]});
+  gv.plotFn(fp, {color:DERIV, lineWidth:2, domain:[-3,3]});
 
   // Labels
   const supN=['\u00B9','\u00B2','\u00B3','\u2074','\u2075'];
@@ -420,24 +349,24 @@ function drawStage3(){
 
   // At x=1 show both values
   const x1=1,y1=f(x1),yp1=fp(x1);
-  gdot(OX+x1*SC,OY-y1*SC,4,CURVE);
-  gdot(OX+x1*SC,OY-yp1*SC,4,DERIV);
+  gv.dot(x1, y1, {radius:4, color:CURVE});
+  gv.dot(x1, yp1, {radius:4, color:DERIV});
   cx.fillStyle='rgba(255,255,255,.4)';cx.font='10px monospace';cx.textAlign='left';
-  cx.fillText('f(1)='+y1.toFixed(0),OX+x1*SC+8,OY-y1*SC-4);
-  cx.fillText('f\u2032(1)='+yp1.toFixed(0),OX+x1*SC+8,OY-yp1*SC+14);
+  cx.fillText('f(1)='+y1.toFixed(0), gv.px(x1)+8, gv.py(y1)-4);
+  cx.fillText('f\u2032(1)='+yp1.toFixed(0), gv.px(x1)+8, gv.py(yp1)+14);
 }
 
 function drawStage4(){
   // Extrema: f(x) = x^3 - 3x + 1
-  const OX=300,OY=280,SC=48;
-  drawGrid(OX,OY,SC,0,H);
-  drawAxes(OX,OY,SC,0,H);
+  const gv = new GraphView(cx, { rect:[0,0,W,H], xRange:[-6.25,6.25], yRange:[-3.3,8.3], scale:48 });
+  gv.drawGrid();
+  gv.drawAxes();
 
   const f=x=>x*x*x-3*x+1;
   const fp=x=>3*x*x-3;
 
-  plotCurve(f,OX,OY,SC,0,H,CURVE,2.5,-3,3);
-  plotCurve(fp,OX,OY,SC,0,H,DERIV,1.8,-3,3);
+  gv.plotFn(f, {color:CURVE, lineWidth:2.5, domain:[-3,3]});
+  gv.plotFn(fp, {color:DERIV, lineWidth:1.8, domain:[-3,3]});
 
   // Critical points: x = -1, x = 1
   const crits=[
@@ -446,21 +375,16 @@ function drawStage4(){
   ];
 
   crits.forEach(cp=>{
-    const cpx=OX+cp.x*SC;
-    const cpy=OY-f(cp.x)*SC;
-    const cpyDer=OY-fp(cp.x)*SC;
-
     // Dashed vertical at critical point
-    cx.setLineDash([3,4]);cx.strokeStyle='rgba(255,209,102,.2)';cx.lineWidth=1;
-    cx.beginPath();cx.moveTo(cpx,0);cx.lineTo(cpx,H);cx.stroke();
-    cx.setLineDash([]);
+    gv.verticalLine(cp.x, {color:'rgba(255,209,102,.2)', lineWidth:1, dash:[3,4]});
 
     // Point on f
-    gdot(cpx,cpy,6,ROOT);
+    gv.dot(cp.x, f(cp.x), {radius:6, color:ROOT});
     // Point on f' (should be at y=0)
-    gdot(cpx,OY,4,DERIV);
+    gv.dot(cp.x, 0, {radius:4, color:DERIV});
 
     // Label
+    const cpx=gv.px(cp.x), cpy=gv.py(f(cp.x));
     cx.fillStyle=ROOT;cx.font='bold 11px monospace';cx.textAlign='center';
     cx.fillText(cp.label,cpx,cpy+cp.yOff);
     cx.fillStyle='rgba(255,255,255,.4)';cx.font='10px monospace';

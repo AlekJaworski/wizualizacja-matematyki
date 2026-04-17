@@ -117,15 +117,15 @@
   </div>
 </div>
 
-<script>
+<script type="module">
+import { GraphView } from '../lib/graph-core.js';
+
 (function(){
 const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
 const T = (pl, en) => LANG === 'pl' ? pl : en;
 
 const cv=document.getElementById('qc'),cx=cv.getContext('2d');
-const W=600,H=310,OX=300,OY=175,SC=40;
-const px=x=>OX+x*SC, py=y=>OY-y*SC;
-const ux=sx=>(sx-OX)/SC, uy=sy=>(OY-sy)/SC;
+const W=600,H=310;
 
 const CYAN='#58C4DD',ORANGE='#FF6B35',GOLD='#FFD166',GREEN='#83C167',PURPLE='#b07cd8';
 
@@ -166,6 +166,11 @@ const stages=[
 ];
 
 function fmtN(v){return v<0?'\u2212'+Math.abs(v).toFixed(1):v.toFixed(1);}
+
+/** Create a standard GraphView for the main canvas area */
+function makeView() {
+  return new GraphView(cx, { rect: [0,0,W,H], xRange: [-7,7], yRange: [-5,5] });
+}
 
 function renderDots(){
   const dc=document.getElementById('qdots');
@@ -214,20 +219,23 @@ bindSlider('s_proof','v_proof',v=>{s_proof=v;});
 // Dragging for stage 2
 cv.addEventListener('mousedown',e=>{
   if(stage!==2)return;
+  const v=makeView();
   const r=cv.getBoundingClientRect(),sx=e.clientX-r.left,sy=e.clientY-r.top;
   const scX=W/r.width,scY=H/r.height;
   const mx=sx*scX,my=sy*scY;
-  const d1=Math.hypot(mx-px(p1.x),my-py(p1.y));
-  const d2=Math.hypot(mx-px(p2.x),my-py(p2.y));
+  const d1=Math.hypot(mx-v.px(p1.x),my-v.py(p1.y));
+  const d2=Math.hypot(mx-v.px(p2.x),my-v.py(p2.y));
   if(d1<18)dragging=p1;
   else if(d2<18)dragging=p2;
 });
 cv.addEventListener('mousemove',e=>{
   if(!dragging)return;
+  const v=makeView();
   const r=cv.getBoundingClientRect(),sx=e.clientX-r.left,sy=e.clientY-r.top;
   const scX=W/r.width,scY=H/r.height;
-  dragging.x=Math.round(ux(sx*scX)*2)/2;
-  dragging.y=Math.round(uy(sy*scY)*2)/2;
+  const w=v.toWorld(sx*scX,sy*scY);
+  dragging.x=Math.round(w.x*2)/2;
+  dragging.y=Math.round(w.y*2)/2;
   dragging.x=Math.max(-6,Math.min(6,dragging.x));
   dragging.y=Math.max(-4,Math.min(4,dragging.y));
 });
@@ -236,12 +244,13 @@ cv.addEventListener('mouseleave',()=>{dragging=null;});
 // Touch support
 cv.addEventListener('touchstart',e=>{
   if(stage!==2)return;
+  const v=makeView();
   const t=e.touches[0];
   const r=cv.getBoundingClientRect(),sx=t.clientX-r.left,sy=t.clientY-r.top;
   const scX=W/r.width,scY=H/r.height;
   const mx=sx*scX,my=sy*scY;
-  const d1=Math.hypot(mx-px(p1.x),my-py(p1.y));
-  const d2=Math.hypot(mx-px(p2.x),my-py(p2.y));
+  const d1=Math.hypot(mx-v.px(p1.x),my-v.py(p1.y));
+  const d2=Math.hypot(mx-v.px(p2.x),my-v.py(p2.y));
   if(d1<25)dragging=p1;
   else if(d2<25)dragging=p2;
   if(dragging)e.preventDefault();
@@ -249,285 +258,288 @@ cv.addEventListener('touchstart',e=>{
 cv.addEventListener('touchmove',e=>{
   if(!dragging)return;
   e.preventDefault();
+  const v=makeView();
   const t=e.touches[0];
   const r=cv.getBoundingClientRect(),sx=t.clientX-r.left,sy=t.clientY-r.top;
   const scX=W/r.width,scY=H/r.height;
-  dragging.x=Math.round(ux(sx*scX)*2)/2;
-  dragging.y=Math.round(uy(sy*scY)*2)/2;
+  const w=v.toWorld(sx*scX,sy*scY);
+  dragging.x=Math.round(w.x*2)/2;
+  dragging.y=Math.round(w.y*2)/2;
   dragging.x=Math.max(-6,Math.min(6,dragging.x));
   dragging.y=Math.max(-4,Math.min(4,dragging.y));
 },{passive:false});
 cv.addEventListener('touchend',()=>{dragging=null;});
 
-// ── Drawing ──
-function drawGrid(){
-  cx.strokeStyle='rgba(255,255,255,.05)';cx.lineWidth=.7;
-  for(let x=-7;x<=7;x++){cx.beginPath();cx.moveTo(px(x),0);cx.lineTo(px(x),H);cx.stroke();}
-  for(let y=-4;y<=6;y++){cx.beginPath();cx.moveTo(0,py(y));cx.lineTo(W,py(y));cx.stroke();}
-}
-
-function drawAxes(){
-  cx.strokeStyle='rgba(255,255,255,.38)';cx.lineWidth=1.5;
-  cx.beginPath();cx.moveTo(0,py(0));cx.lineTo(W-8,py(0));cx.stroke();
-  cx.beginPath();cx.moveTo(px(0),H);cx.lineTo(px(0),7);cx.stroke();
-  cx.fillStyle='rgba(255,255,255,.38)';
-  cx.beginPath();cx.moveTo(W,py(0));cx.lineTo(W-9,py(0)-4);cx.lineTo(W-9,py(0)+4);cx.closePath();cx.fill();
-  cx.beginPath();cx.moveTo(px(0),0);cx.lineTo(px(0)-4,9);cx.lineTo(px(0)+4,9);cx.closePath();cx.fill();
-  for(let x=-6;x<=6;x++){
-    if(!x)continue;
-    cx.strokeStyle='rgba(255,255,255,.18)';cx.lineWidth=1;
-    cx.beginPath();cx.moveTo(px(x),py(0)-3);cx.lineTo(px(x),py(0)+3);cx.stroke();
-    cx.fillStyle='rgba(255,255,255,.25)';cx.font='11px sans-serif';cx.textAlign='center';cx.fillText(x,px(x),py(0)+14);
-  }
-  for(let y=-3;y<=4;y++){
-    if(!y)continue;
-    cx.strokeStyle='rgba(255,255,255,.18)';cx.lineWidth=1;
-    cx.beginPath();cx.moveTo(px(0)-3,py(y));cx.lineTo(px(0)+3,py(y));cx.stroke();
-    cx.fillStyle='rgba(255,255,255,.25)';cx.textAlign='right';cx.font='11px sans-serif';cx.fillText(y,px(0)-7,py(y)+4);
-  }
-  cx.fillStyle='rgba(255,255,255,.4)';cx.font='13px sans-serif';
-  cx.textAlign='center';cx.fillText('x',W-4,py(0)+5);cx.fillText('y',px(0),11);
-}
-
-function drawLine(m,b,col,lw){
-  lw=lw||2.5;
-  cx.beginPath();cx.strokeStyle=col;cx.lineWidth=lw;
-  const x1=-8,x2=8;
-  const y1=m*x1+b,y2=m*x2+b;
-  cx.moveTo(px(x1),py(y1));cx.lineTo(px(x2),py(y2));cx.stroke();
-}
-
-function gdot(xx,yy,r,col){
-  cx.beginPath();cx.arc(xx,yy,r,0,Math.PI*2);cx.fillStyle=col;
-  cx.shadowColor=col;cx.shadowBlur=12;cx.fill();cx.shadowBlur=0;
-}
-
-function drawRiseRun(m,b,baseX){
-  // Triangle from (baseX, m*baseX+b) to (baseX+1, m*baseX+b) to (baseX+1, m*(baseX+1)+b)
-  const x0=baseX,y0=m*x0+b;
-  const x1=baseX+1,y1=y0,y2=m*x1+b;
-  // Check if triangle is visible
-  if(py(y0)<-20||py(y0)>H+20||py(y2)<-20||py(y2)>H+20)return;
-
-  cx.setLineDash([4,3]);
-  cx.strokeStyle='rgba(255,209,102,.5)';cx.lineWidth=1.5;
-  // Run (horizontal)
-  cx.beginPath();cx.moveTo(px(x0),py(y0));cx.lineTo(px(x1),py(y1));cx.stroke();
-  // Rise (vertical)
-  cx.beginPath();cx.moveTo(px(x1),py(y1));cx.lineTo(px(x1),py(y2));cx.stroke();
-  cx.setLineDash([]);
-
-  // Labels
-  cx.font='bold 11px monospace';cx.textAlign='center';
-  cx.fillStyle='rgba(255,209,102,.8)';
-  cx.fillText(T('odcinek','run')+'=1',px(x0+0.5),py(y0)+(m>=0?14:-6));
-  const riseVal=m.toFixed(1);
-  cx.fillText(T('przyrost','rise')+'='+riseVal,px(x1)+(m>=0?30:-30),py((y1+y2)/2)+4);
+// ── Helper: draw an info overlay box with lines of text ──
+function drawOverlay(v, x, y, w, h, lines) {
+  cx.fillStyle='rgba(22,22,26,.88)';
+  cx.strokeStyle='rgba(255,255,255,.10)';
+  cx.lineWidth=.8;
+  cx.beginPath();cx.roundRect(x,y,w,h,6);cx.fill();cx.stroke();
+  lines.forEach(l => {
+    cx.fillStyle=l.color;
+    cx.font=l.font||'bold 13px monospace';
+    cx.textAlign='left';
+    cx.fillText(l.text,l.x,l.y);
+  });
 }
 
 // ── Stage renderers ──
 function drawStage0(){
+  const v=makeView();
+  v.clear(); v.drawGrid(); v.drawAxes();
+
   const m=s0m,b=s0b;
-  drawLine(m,b,CYAN);
+  const fn=x=>m*x+b;
+  v.plotFn(fn, { color: CYAN });
+
   // Y-intercept point
-  gdot(px(0),py(b),6,GOLD);
-  cx.fillStyle=GOLD;cx.font='bold 11px monospace';cx.textAlign='left';
-  cx.fillText('(0, '+b.toFixed(1)+')',px(0)+10,py(b)-4);
+  v.dot(0, b, { color: GOLD });
+  v.label('(0, '+b.toFixed(1)+')', 0, b, { color: GOLD, font: 'bold 11px monospace', offsetX: 10, offsetY: -4 });
+
   // Rise/run triangle
-  if(Math.abs(m)>0.05)drawRiseRun(m,b,0);
+  if(Math.abs(m)>0.05) {
+    v.slopeTriangle(fn, 0, { color: GOLD, run: 1,
+      runLabel: T('odcinek','run')+'=1',
+      riseLabel: T('przyrost','rise')+'='+m.toFixed(1) });
+  }
+
   // Equation overlay
-  cx.fillStyle='rgba(22,22,26,.88)';cx.strokeStyle='rgba(255,255,255,.10)';cx.lineWidth=.8;
-  cx.beginPath();cx.roundRect(8,8,220,34,6);cx.fill();cx.stroke();
-  cx.fillStyle=CYAN;cx.font='bold 13px monospace';cx.textAlign='left';
-  cx.fillText('y = '+fmtN(m)+'x + '+fmtN(b),18,30);
+  drawOverlay(v, 8, 8, 220, 34, [
+    { text: 'y = '+fmtN(m)+'x + '+fmtN(b), color: CYAN, font: 'bold 13px monospace', x: 18, y: 30 }
+  ]);
 }
 
 function drawStage1(){
+  const v=makeView();
+  v.clear(); v.drawGrid(); v.drawAxes();
+
   const m=s1m;
   // Draw ghost lines
   for(let gm=-3;gm<=3;gm+=0.5){
     if(Math.abs(gm-m)<0.05)continue;
-    drawLine(gm,0,'rgba(88,196,221,.06)',1);
+    v.plotFn(x=>gm*x, { color: CYAN, alpha: 0.06, lineWidth: 1 });
   }
-  drawLine(m,0,CYAN,2.5);
-  if(Math.abs(m)>0.05)drawRiseRun(m,0,0);
+  const fn=x=>m*x;
+  v.plotFn(fn, { color: CYAN });
+
+  if(Math.abs(m)>0.05) {
+    v.slopeTriangle(fn, 0, { color: GOLD, run: 1,
+      runLabel: T('odcinek','run')+'=1',
+      riseLabel: T('przyrost','rise')+'='+m.toFixed(1) });
+  }
+
   // Origin dot
-  gdot(px(0),py(0),5,GOLD);
-  // Slope label
-  cx.fillStyle='rgba(22,22,26,.88)';cx.strokeStyle='rgba(255,255,255,.10)';cx.lineWidth=.8;
-  cx.beginPath();cx.roundRect(8,8,250,52,6);cx.fill();cx.stroke();
-  cx.fillStyle=CYAN;cx.font='bold 13px monospace';cx.textAlign='left';
-  cx.fillText('y = '+fmtN(m)+'x',18,28);
+  v.dot(0, 0, { color: GOLD });
+
+  // Slope label overlay
   let label='';
   if(m>0.05)label=T('nachylenie dodatnie \u2014 prosta ro\u015Bnie','positive slope \u2014 line rises');
   else if(m<-0.05)label=T('nachylenie ujemne \u2014 prosta maleje','negative slope \u2014 line falls');
   else label=T('nachylenie zerowe \u2014 prosta pozioma','zero slope \u2014 horizontal line');
-  cx.fillStyle='rgba(255,255,255,.5)';cx.font='12px monospace';
-  cx.fillText(label,18,48);
+
+  drawOverlay(v, 8, 8, 250, 52, [
+    { text: 'y = '+fmtN(m)+'x', color: CYAN, font: 'bold 13px monospace', x: 18, y: 28 },
+    { text: label, color: 'rgba(255,255,255,.5)', font: '12px monospace', x: 18, y: 48 }
+  ]);
 }
 
 function drawStage2(){
+  const v=makeView();
+  v.clear(); v.drawGrid(); v.drawAxes();
+
   const dx=p2.x-p1.x,dy=p2.y-p1.y;
   if(Math.abs(dx)>0.01){
     const m=dy/dx,b=p1.y-m*p1.x;
-    drawLine(m,b,CYAN,2);
+    v.plotFn(x=>m*x+b, { color: CYAN, lineWidth: 2 });
+
     // Rise/run triangle between the two points
-    cx.setLineDash([4,3]);
-    cx.strokeStyle='rgba(255,209,102,.45)';cx.lineWidth=1.5;
-    cx.beginPath();cx.moveTo(px(p1.x),py(p1.y));cx.lineTo(px(p2.x),py(p1.y));cx.stroke();
-    cx.beginPath();cx.moveTo(px(p2.x),py(p1.y));cx.lineTo(px(p2.x),py(p2.y));cx.stroke();
-    cx.setLineDash([]);
+    v.segment(p1.x, p1.y, p2.x, p1.y, { color: GOLD, lineWidth: 1.5, dash: [4,3] });
+    v.segment(p2.x, p1.y, p2.x, p2.y, { color: GOLD, lineWidth: 1.5, dash: [4,3] });
+
     // Labels on triangle
-    cx.font='bold 11px monospace';cx.fillStyle='rgba(255,209,102,.8)';cx.textAlign='center';
-    const midRunY=py(p1.y)+(dy>=0?14:-8);
-    cx.fillText('\u0394x='+dx.toFixed(1),px((p1.x+p2.x)/2),midRunY);
-    cx.textAlign='left';
-    cx.fillText('\u0394y='+dy.toFixed(1),px(p2.x)+6,py((p1.y+p2.y)/2)+4);
+    const midRunOy = dy>=0 ? 14 : -8;
+    v.label('\u0394x='+dx.toFixed(1), (p1.x+p2.x)/2, p1.y,
+      { color: 'rgba(255,209,102,.8)', font: 'bold 11px monospace', align: 'center', offsetY: midRunOy });
+    v.label('\u0394y='+dy.toFixed(1), p2.x, (p1.y+p2.y)/2,
+      { color: 'rgba(255,209,102,.8)', font: 'bold 11px monospace', offsetX: 6, offsetY: 4 });
   } else {
     // Vertical line
-    cx.beginPath();cx.strokeStyle='rgba(220,80,80,.7)';cx.lineWidth=2;
-    cx.moveTo(px(p1.x),0);cx.lineTo(px(p1.x),H);cx.stroke();
+    v.verticalLine(p1.x, { color: 'rgba(220,80,80,.7)', lineWidth: 2, dash: [] });
   }
+
   // Points
-  gdot(px(p1.x),py(p1.y),7,CYAN);
-  gdot(px(p2.x),py(p2.y),7,ORANGE);
-  cx.font='bold 11px monospace';cx.textAlign='left';
-  cx.fillStyle=CYAN;cx.fillText('P\u2081('+p1.x.toFixed(1)+', '+p1.y.toFixed(1)+')',px(p1.x)+10,py(p1.y)-6);
-  cx.fillStyle=ORANGE;cx.fillText('P\u2082('+p2.x.toFixed(1)+', '+p2.y.toFixed(1)+')',px(p2.x)+10,py(p2.y)-6);
+  v.dot(p1.x, p1.y, { color: CYAN, radius: 7 });
+  v.dot(p2.x, p2.y, { color: ORANGE, radius: 7 });
+  v.label('P\u2081('+p1.x.toFixed(1)+', '+p1.y.toFixed(1)+')', p1.x, p1.y,
+    { color: CYAN, font: 'bold 11px monospace', offsetX: 10, offsetY: -6 });
+  v.label('P\u2082('+p2.x.toFixed(1)+', '+p2.y.toFixed(1)+')', p2.x, p2.y,
+    { color: ORANGE, font: 'bold 11px monospace', offsetX: 10, offsetY: -6 });
+
   // Formula overlay
-  cx.fillStyle='rgba(22,22,26,.88)';cx.strokeStyle='rgba(255,255,255,.10)';cx.lineWidth=.8;
-  cx.beginPath();cx.roundRect(8,8,280,52,6);cx.fill();cx.stroke();
-  cx.fillStyle=GOLD;cx.font='bold 13px monospace';cx.textAlign='left';
   if(Math.abs(dx)>0.01){
-    const m=dy/dx;
-    cx.fillText('m = (\u0394y)/(\u0394x) = '+dy.toFixed(1)+'/'+dx.toFixed(1)+' = '+m.toFixed(2),18,28);
-    const b=p1.y-m*p1.x;
-    cx.fillStyle='rgba(255,255,255,.5)';cx.font='12px monospace';
-    cx.fillText('y = '+m.toFixed(2)+'x + '+b.toFixed(2),18,48);
+    const m=dy/dx, b=p1.y-m*p1.x;
+    drawOverlay(v, 8, 8, 280, 52, [
+      { text: 'm = (\u0394y)/(\u0394x) = '+dy.toFixed(1)+'/'+dx.toFixed(1)+' = '+m.toFixed(2),
+        color: GOLD, font: 'bold 13px monospace', x: 18, y: 28 },
+      { text: 'y = '+m.toFixed(2)+'x + '+b.toFixed(2),
+        color: 'rgba(255,255,255,.5)', font: '12px monospace', x: 18, y: 48 }
+    ]);
   } else {
-    cx.fillText(T('m = \u0394y/\u0394x \u2014 nieokre\u015Blone (pionowa)','m = \u0394y/\u0394x \u2014 undefined (vertical)'),18,28);
-    cx.fillStyle='rgba(220,80,80,.7)';cx.font='12px monospace';
-    cx.fillText('x = '+p1.x.toFixed(1)+T(' (nie jest funkcj\u0105)',' (not a function)'),18,48);
+    drawOverlay(v, 8, 8, 280, 52, [
+      { text: T('m = \u0394y/\u0394x \u2014 nieokre\u015Blone (pionowa)','m = \u0394y/\u0394x \u2014 undefined (vertical)'),
+        color: GOLD, font: 'bold 13px monospace', x: 18, y: 28 },
+      { text: 'x = '+p1.x.toFixed(1)+T(' (nie jest funkcj\u0105)',' (not a function)'),
+        color: 'rgba(220,80,80,.7)', font: '12px monospace', x: 18, y: 48 }
+    ]);
   }
 }
 
 function drawStage3(){
+  const v=makeView();
+  v.clear(); v.drawGrid(); v.drawAxes();
+
   const m=s3m,b=s3b;
   // Original line
-  drawLine(m,b,CYAN,2.5);
+  v.plotFn(x=>m*x+b, { color: CYAN });
   // Parallel line (same m, b offset by 2)
   const bPar=b-2;
-  drawLine(m,bPar,'rgba(131,193,103,.7)',2);
+  v.plotFn(x=>m*x+bPar, { color: GREEN, alpha: 0.7, lineWidth: 2 });
+
   // Perpendicular line
   if(Math.abs(m)>0.05){
     const mPerp=-1/m;
-    // Through midpoint of original at x=0
     const bPerp=b;
-    drawLine(mPerp,bPerp,'rgba(176,124,216,.7)',2);
-    // Right angle marker at intersection
-    const ix=0,iy=m*0+b;
+    v.plotFn(x=>mPerp*x+bPerp, { color: PURPLE, alpha: 0.7, lineWidth: 2 });
+
+    // Right angle marker at intersection (0, b)
+    const ix=0,iy=b;
     const len=0.3;
-    // Unit vectors along each line
-    const d1=Math.sqrt(1+m*m),d2=Math.sqrt(1+mPerp*mPerp);
-    const u1x=1/d1,u1y=m/d1,u2x=1/d2,u2y=mPerp/d2;
+    const d1m=Math.sqrt(1+m*m),d2m=Math.sqrt(1+mPerp*mPerp);
+    const u1x=1/d1m,u1y=m/d1m,u2x=1/d2m,u2y=mPerp/d2m;
     cx.strokeStyle='rgba(255,255,255,.3)';cx.lineWidth=1;
     cx.beginPath();
-    cx.moveTo(px(ix+u1x*len),py(iy+u1y*len));
-    cx.lineTo(px(ix+u1x*len+u2x*len),py(iy+u1y*len+u2y*len));
-    cx.lineTo(px(ix+u2x*len),py(iy+u2y*len));
+    cx.moveTo(v.px(ix+u1x*len),v.py(iy+u1y*len));
+    cx.lineTo(v.px(ix+u1x*len+u2x*len),v.py(iy+u1y*len+u2y*len));
+    cx.lineTo(v.px(ix+u2x*len),v.py(iy+u2y*len));
     cx.stroke();
+
     // Perp label
-    cx.fillStyle=PURPLE;cx.font='11px monospace';cx.textAlign='left';
-    cx.fillText('m\u2082 = '+mPerp.toFixed(2),px(2),py(mPerp*2+bPerp)-8);
+    v.label('m\u2082 = '+mPerp.toFixed(2), 2, mPerp*2+bPerp,
+      { color: PURPLE, font: '11px monospace', offsetX: 0, offsetY: -8 });
   } else {
     // m=0: perpendicular is vertical
-    cx.beginPath();cx.strokeStyle='rgba(176,124,216,.7)';cx.lineWidth=2;
-    cx.moveTo(px(0),0);cx.lineTo(px(0),H);cx.stroke();
-    cx.fillStyle=PURPLE;cx.font='11px monospace';cx.textAlign='left';
-    cx.fillText(T('prostopad\u0142a: x = 0','perpendicular: x = 0'),px(0)+8,30);
+    v.verticalLine(0, { color: PURPLE, lineWidth: 2, dash: [], alpha: 0.7 });
+    v.label(T('prostopad\u0142a: x = 0','perpendicular: x = 0'), 0, 0,
+      { color: PURPLE, font: '11px monospace', offsetX: 8, offsetY: -140 });
   }
-  // Labels
-  cx.fillStyle='rgba(22,22,26,.88)';cx.strokeStyle='rgba(255,255,255,.10)';cx.lineWidth=.8;
-  cx.beginPath();cx.roundRect(8,8,265,70,6);cx.fill();cx.stroke();
-  cx.font='bold 12px monospace';cx.textAlign='left';
-  cx.fillStyle=CYAN;cx.fillText('y = '+fmtN(m)+'x + '+fmtN(b),18,26);
-  cx.fillStyle=GREEN;cx.fillText(T('r\u00F3wnoleg\u0142a','parallel')+':  y = '+fmtN(m)+'x + '+fmtN(bPar),18,44);
-  if(Math.abs(m)>0.05){
-    cx.fillStyle=PURPLE;cx.fillText(T('prostopad\u0142a','perpendicular')+':  m\u2082 = '+(-1/m).toFixed(2),18,62);
-  } else {
-    cx.fillStyle=PURPLE;cx.fillText(T('prostopad\u0142a:  prosta pionowa','perpendicular:  vertical line'),18,62);
-  }
+
   // Y-intercept dots
-  gdot(px(0),py(b),5,CYAN);
-  gdot(px(0),py(bPar),5,GREEN);
+  v.dot(0, b, { color: CYAN, radius: 5 });
+  v.dot(0, bPar, { color: GREEN, radius: 5 });
+
+  // Labels overlay
+  const overlayLines = [
+    { text: 'y = '+fmtN(m)+'x + '+fmtN(b), color: CYAN, font: 'bold 12px monospace', x: 18, y: 26 },
+    { text: T('r\u00F3wnoleg\u0142a','parallel')+':  y = '+fmtN(m)+'x + '+fmtN(bPar), color: GREEN, font: 'bold 12px monospace', x: 18, y: 44 },
+  ];
+  if(Math.abs(m)>0.05){
+    overlayLines.push({ text: T('prostopad\u0142a','perpendicular')+':  m\u2082 = '+(-1/m).toFixed(2), color: PURPLE, font: 'bold 12px monospace', x: 18, y: 62 });
+  } else {
+    overlayLines.push({ text: T('prostopad\u0142a:  prosta pionowa','perpendicular:  vertical line'), color: PURPLE, font: 'bold 12px monospace', x: 18, y: 62 });
+  }
+  drawOverlay(v, 8, 8, 265, 70, overlayLines);
 }
 
 function drawStageProof(){
+  // This stage uses a custom scale/origin for the proof diagram
+  const v=new GraphView(cx, { rect: [0,0,W,H], xRange: [-3.5,8], yRange: [-3.5,3.5], scale: 48 });
+  v.clear();
+  v.drawGrid({ color: 'rgba(255,255,255,0.04)' });
+  v.drawAxes({ color: 'rgba(255,255,255,.22)', lineWidth: 1.2, arrows: false });
+
   const m=s_proof;
-  const S=48,OXP=185,OYP=162;
-  const pxp=x=>OXP+x*S, pyp=y=>OYP-y*S;
-  // Grid
-  cx.strokeStyle='rgba(255,255,255,.04)';cx.lineWidth=.6;
-  for(let xi=-3;xi<=4;xi++){cx.beginPath();cx.moveTo(pxp(xi),0);cx.lineTo(pxp(xi),H);cx.stroke();}
-  for(let yi=-3;yi<=3;yi++){cx.beginPath();cx.moveTo(0,pyp(yi));cx.lineTo(W,pyp(yi));cx.stroke();}
-  // Axes
-  cx.strokeStyle='rgba(255,255,255,.22)';cx.lineWidth=1.2;
-  cx.beginPath();cx.moveTo(20,pyp(0));cx.lineTo(W-20,pyp(0));cx.stroke();
-  cx.beginPath();cx.moveTo(pxp(0),5);cx.lineTo(pxp(0),H-5);cx.stroke();
-  // Both lines
-  const ext=3.8;
-  cx.strokeStyle=CYAN+'88';cx.lineWidth=2;
-  cx.beginPath();cx.moveTo(pxp(-ext),pyp(-ext*m));cx.lineTo(pxp(ext),pyp(ext*m));cx.stroke();
   const absM=Math.abs(m);
+  const ext=3.8;
+
+  // Both lines
+  v.plotFn(x=>m*x, { color: CYAN, alpha: 0.53, lineWidth: 2 });
   if(absM>0.15){
     const mp=-1/m;
-    cx.strokeStyle=PURPLE+'88';cx.lineWidth=2;
-    cx.beginPath();cx.moveTo(pxp(-ext),pyp(-ext*mp));cx.lineTo(pxp(ext),pyp(ext*mp));cx.stroke();
+    v.plotFn(x=>mp*x, { color: PURPLE, alpha: 0.53, lineWidth: 2 });
   }
-  // Triangle 1: O(0,0), A(1,0), B(1,m)
+
+  // Triangle 1: O(0,0), A(1,0), B(1,m) -- filled
   cx.fillStyle='rgba(88,196,221,.13)';
-  cx.beginPath();cx.moveTo(pxp(0),pyp(0));cx.lineTo(pxp(1),pyp(0));cx.lineTo(pxp(1),pyp(m));cx.closePath();cx.fill();
-  cx.strokeStyle='rgba(255,209,102,.7)';cx.lineWidth=1.5;cx.setLineDash([4,3]);
-  cx.beginPath();cx.moveTo(pxp(0),pyp(0));cx.lineTo(pxp(1),pyp(0));cx.stroke();
-  cx.beginPath();cx.moveTo(pxp(1),pyp(0));cx.lineTo(pxp(1),pyp(m));cx.stroke();
-  cx.setLineDash([]);
-  cx.strokeStyle=CYAN;cx.lineWidth=2.5;
-  cx.beginPath();cx.moveTo(pxp(0),pyp(0));cx.lineTo(pxp(1),pyp(m));cx.stroke();
+  cx.beginPath();
+  cx.moveTo(v.px(0),v.py(0));
+  cx.lineTo(v.px(1),v.py(0));
+  cx.lineTo(v.px(1),v.py(m));
+  cx.closePath();cx.fill();
+
+  // Triangle 1 dashed legs
+  v.segment(0, 0, 1, 0, { color: GOLD, lineWidth: 1.5, dash: [4,3] });
+  v.segment(1, 0, 1, m, { color: GOLD, lineWidth: 1.5, dash: [4,3] });
+  // Hypotenuse
+  v.segment(0, 0, 1, m, { color: CYAN, lineWidth: 2.5 });
+
+  // Right angle marker T1
   const rz=0.11;
-  cx.strokeStyle='rgba(255,255,255,.3)';cx.lineWidth=1;
   const d1=m>=0?1:-1;
-  cx.beginPath();cx.moveTo(pxp(1-rz),pyp(0));cx.lineTo(pxp(1-rz),pyp(rz*d1));cx.lineTo(pxp(1),pyp(rz*d1));cx.stroke();
-  cx.font='bold 12px monospace';cx.fillStyle=GOLD;cx.textAlign='center';
-  cx.fillText('a=1',pxp(0.5),pyp(0)+(m>=0?14:-7));
-  cx.fillStyle=CYAN;cx.textAlign=m>=0?'left':'right';
-  cx.fillText('b='+m.toFixed(1),pxp(1)+(m>=0?5:-5),pyp(m/2)+4);
+  cx.strokeStyle='rgba(255,255,255,.3)';cx.lineWidth=1;
+  cx.beginPath();
+  cx.moveTo(v.px(1-rz),v.py(0));
+  cx.lineTo(v.px(1-rz),v.py(rz*d1));
+  cx.lineTo(v.px(1),v.py(rz*d1));
+  cx.stroke();
+
+  // Triangle 1 labels
+  v.label('a=1', 0.5, 0, { color: GOLD, font: 'bold 12px monospace', align: 'center', offsetY: m>=0?14:-7 });
+  v.label('b='+m.toFixed(1), 1, m/2,
+    { color: CYAN, font: 'bold 12px monospace', align: m>=0?'left':'right', offsetX: m>=0?5:-5, offsetY: 4 });
+
   if(absM>0.15){
-    // Triangle 2: O(0,0), C(m,0), D(m,-1)
+    const mp=-1/m;
+    // Triangle 2: O(0,0), C(m,0), D(m,-1) -- filled
     cx.fillStyle='rgba(176,124,216,.13)';
-    cx.beginPath();cx.moveTo(pxp(0),pyp(0));cx.lineTo(pxp(m),pyp(0));cx.lineTo(pxp(m),pyp(-1));cx.closePath();cx.fill();
-    cx.strokeStyle='rgba(255,209,102,.7)';cx.lineWidth=1.5;cx.setLineDash([4,3]);
-    cx.beginPath();cx.moveTo(pxp(0),pyp(0));cx.lineTo(pxp(m),pyp(0));cx.stroke();
-    cx.beginPath();cx.moveTo(pxp(m),pyp(0));cx.lineTo(pxp(m),pyp(-1));cx.stroke();
-    cx.setLineDash([]);
-    cx.strokeStyle=PURPLE;cx.lineWidth=2.5;
-    cx.beginPath();cx.moveTo(pxp(0),pyp(0));cx.lineTo(pxp(m),pyp(-1));cx.stroke();
+    cx.beginPath();
+    cx.moveTo(v.px(0),v.py(0));
+    cx.lineTo(v.px(m),v.py(0));
+    cx.lineTo(v.px(m),v.py(-1));
+    cx.closePath();cx.fill();
+
+    // Triangle 2 dashed legs
+    v.segment(0, 0, m, 0, { color: GOLD, lineWidth: 1.5, dash: [4,3] });
+    v.segment(m, 0, m, -1, { color: GOLD, lineWidth: 1.5, dash: [4,3] });
+    // Hypotenuse
+    v.segment(0, 0, m, -1, { color: PURPLE, lineWidth: 2.5 });
+
+    // Right angle marker T2
     const d2=m>=0?-1:1;
     cx.strokeStyle='rgba(255,255,255,.3)';cx.lineWidth=1;
-    cx.beginPath();cx.moveTo(pxp(m+rz*d2),pyp(0));cx.lineTo(pxp(m+rz*d2),pyp(-rz));cx.lineTo(pxp(m),pyp(-rz));cx.stroke();
-    cx.font='bold 12px monospace';cx.fillStyle=GOLD;cx.textAlign='center';
-    cx.fillText('b='+m.toFixed(1),pxp(m/2),pyp(0)-7);
-    cx.fillStyle=PURPLE;cx.textAlign=m>=0?'right':'left';
-    cx.fillText('\u2212a',pxp(m)+(m>=0?-5:5),pyp(-0.5)+4);
-    // Rotation arc B→D
+    cx.beginPath();
+    cx.moveTo(v.px(m+rz*d2),v.py(0));
+    cx.lineTo(v.px(m+rz*d2),v.py(-rz));
+    cx.lineTo(v.px(m),v.py(-rz));
+    cx.stroke();
+
+    // Triangle 2 labels
+    v.label('b='+m.toFixed(1), m/2, 0, { color: GOLD, font: 'bold 12px monospace', align: 'center', offsetY: -7 });
+    v.label('\u2212a', m, -0.5,
+      { color: PURPLE, font: 'bold 12px monospace', align: m>=0?'right':'left', offsetX: m>=0?-5:5, offsetY: 4 });
+
+    // Rotation arc B->D
     const angB=Math.atan2(-m,1), angD=Math.atan2(1,m);
-    const rArc=S*Math.sqrt(1+m*m)*0.32;
+    const rArc=v.scale*Math.sqrt(1+m*m)*0.32;
     cx.beginPath();cx.strokeStyle='rgba(255,209,102,.5)';cx.lineWidth=1.2;cx.setLineDash([3,4]);
-    cx.arc(pxp(0),pyp(0),rArc,angB,angD,false);
+    cx.arc(v.px(0),v.py(0),rArc,angB,angD,false);
     cx.stroke();cx.setLineDash([]);
-    gdot(pxp(1),pyp(m),4,CYAN);
-    gdot(pxp(m),pyp(-1),4,PURPLE);
+
+    v.dot(1, m, { color: CYAN, radius: 4 });
+    v.dot(m, -1, { color: PURPLE, radius: 4 });
   }
-  gdot(pxp(0),pyp(0),5,GOLD);
+  v.dot(0, 0, { color: GOLD, radius: 5 });
+
   // Annotation box
   const bx=298,by=12,bw=294,bh=absM>0.15?152:60;
   cx.fillStyle='rgba(22,22,26,.92)';cx.strokeStyle='rgba(255,255,255,.1)';cx.lineWidth=.8;
@@ -557,52 +569,46 @@ function drawStageProof(){
 }
 
 function drawStage4(){
+  const v=makeView();
+  v.clear(); v.drawGrid(); v.drawAxes();
+
   const m1=s4m1,b1=s4b1,m2=s4m2,b2=s4b2;
-  drawLine(m1,b1,CYAN,2.5);
-  drawLine(m2,b2,ORANGE,2.5);
+  v.plotFn(x=>m1*x+b1, { color: CYAN });
+  v.plotFn(x=>m2*x+b2, { color: ORANGE });
+
   // Y-intercept dots
-  gdot(px(0),py(b1),4,CYAN);
-  gdot(px(0),py(b2),4,ORANGE);
+  v.dot(0, b1, { color: CYAN, radius: 4 });
+  v.dot(0, b2, { color: ORANGE, radius: 4 });
 
   const dm=m1-m2;
   let caseLabel='',caseCol='';
   if(Math.abs(dm)<0.001&&Math.abs(b1-b2)<0.001){
-    // Same line
     caseLabel=T('Ta sama prosta \u2014 niesko\u0144czenie wiele rozwi\u0105za\u0144','Same line \u2014 infinite solutions');
     caseCol=GREEN;
   } else if(Math.abs(dm)<0.001){
-    // Parallel
     caseLabel=T('R\u00F3wnoleg\u0142e \u2014 brak rozwi\u0105za\u0144','Parallel \u2014 no solution');
     caseCol='rgba(220,80,80,.85)';
   } else {
-    // Intersection
     const ix=(b2-b1)/dm,iy=m1*ix+b1;
     caseLabel=T('Jedno rozwi\u0105zanie','One solution')+': ('+ix.toFixed(2)+', '+iy.toFixed(2)+')';
     caseCol=GOLD;
-    gdot(px(ix),py(iy),7,GOLD);
+    v.dot(ix, iy, { color: GOLD, radius: 7 });
     // Dashed crosshairs
-    cx.setLineDash([3,4]);cx.strokeStyle='rgba(255,209,102,.2)';cx.lineWidth=1;
-    cx.beginPath();cx.moveTo(px(ix),py(0));cx.lineTo(px(ix),py(iy));cx.stroke();
-    cx.beginPath();cx.moveTo(px(0),py(iy));cx.lineTo(px(ix),py(iy));cx.stroke();
-    cx.setLineDash([]);
-    cx.fillStyle=GOLD;cx.font='bold 11px monospace';cx.textAlign='left';
-    const labelX=px(ix)+10,labelY=py(iy)-8;
-    cx.fillText('('+ix.toFixed(2)+', '+iy.toFixed(2)+')',labelX,labelY);
+    v.segment(ix, 0, ix, iy, { color: GOLD, lineWidth: 1, dash: [3,4], alpha: 0.2 });
+    v.segment(0, iy, ix, iy, { color: GOLD, lineWidth: 1, dash: [3,4], alpha: 0.2 });
+    v.label('('+ix.toFixed(2)+', '+iy.toFixed(2)+')', ix, iy,
+      { color: GOLD, font: 'bold 11px monospace', offsetX: 10, offsetY: -8 });
   }
 
   // Overlay
-  cx.fillStyle='rgba(22,22,26,.88)';cx.strokeStyle='rgba(255,255,255,.10)';cx.lineWidth=.8;
-  cx.beginPath();cx.roundRect(8,8,290,70,6);cx.fill();cx.stroke();
-  cx.font='bold 12px monospace';cx.textAlign='left';
-  cx.fillStyle=CYAN;cx.fillText('L\u2081: y = '+fmtN(m1)+'x + '+fmtN(b1),18,26);
-  cx.fillStyle=ORANGE;cx.fillText('L\u2082: y = '+fmtN(m2)+'x + '+fmtN(b2),18,44);
-  cx.fillStyle=caseCol;cx.font='bold 11px monospace';
-  cx.fillText(caseLabel,18,62);
+  drawOverlay(v, 8, 8, 290, 70, [
+    { text: 'L\u2081: y = '+fmtN(m1)+'x + '+fmtN(b1), color: CYAN, font: 'bold 12px monospace', x: 18, y: 26 },
+    { text: 'L\u2082: y = '+fmtN(m2)+'x + '+fmtN(b2), color: ORANGE, font: 'bold 12px monospace', x: 18, y: 44 },
+    { text: caseLabel, color: caseCol, font: 'bold 11px monospace', x: 18, y: 62 }
+  ]);
 }
 
 function tick(){
-  cx.fillStyle='#0e0e12';cx.fillRect(0,0,W,H);
-  drawGrid();drawAxes();
   if(stage===0)drawStage0();
   else if(stage===1)drawStage1();
   else if(stage===2)drawStage2();
