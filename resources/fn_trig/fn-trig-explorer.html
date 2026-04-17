@@ -7,7 +7,49 @@
 </head>
 <body>
 <script type="module">
-import { VizCore, T, COLORS } from '../lib/viz-core.js';
+import { VizCore, T, COLORS, drawTextC } from '../lib/viz-core.js';
+
+// Static proof content for click-to-expand overlays
+const PROOF_PERIOD = {
+  title: () => T('Okres sin(Bx) = 2\u03C0/B', 'Period of sin(Bx) = 2\u03C0/B'),
+  lines: [
+    { text: T('Okres T funkcji f: najmniejsza liczba T > 0 taka, \u017Ce', 'Period T of a function f: smallest T > 0 such that'), size: 11 },
+    { text: 'f(x + T) = f(x)  ' + T('dla ka\u017Cdego x', 'for all x'), size: 12, color: COLORS.YELLOW },
+    '',
+    { text: T('Dla sinusa: sin znakuje si\u0119 na okr\u0119gu jednostkowym.', 'For sine: sin completes one loop around the unit circle.'), size: 11 },
+    { text: T('Pe\u0142en obr\u00F3t to 2\u03C0 radian\u00F3w, wi\u0119c sin(x+2\u03C0) = sin(x).', 'Full revolution is 2\u03C0 radians, so sin(x+2\u03C0) = sin(x).'), size: 11 },
+    '',
+    { text: T('Przy sin(Bx): \u201Epr\u0119dko\u015B\u0107 k\u0105towa\u201D to B, wi\u0119c pe\u0142en obr\u00F3t', 'For sin(Bx): "angular speed" is B, so a full cycle'), size: 11 },
+    { text: T('zachodzi, gdy Bx zwi\u0119kszy si\u0119 o 2\u03C0, czyli x o 2\u03C0/B.', 'happens when Bx grows by 2\u03C0, i.e. x by 2\u03C0/B.'), size: 11 },
+    '',
+    { text: 'sin(B(x + 2\u03C0/B)) = sin(Bx + 2\u03C0) = sin(Bx)  \u2713', size: 12, color: COLORS.GREEN, bold: true },
+    '',
+    { text: 'T = 2\u03C0/B   \u220E', size: 14, color: COLORS.GREEN, bold: true },
+    '',
+    { text: T('B = 2  \u2192  T = \u03C0  (podw\u00F3jna cz\u0119stotliwo\u015B\u0107)', 'B = 2  \u2192  T = \u03C0  (double frequency)'), size: 10, color: COLORS.ORANGE },
+    { text: T('B = 0.5 \u2192  T = 4\u03C0  (po\u0142owa cz\u0119stotliwo\u015Bci)', 'B = 0.5 \u2192  T = 4\u03C0  (half frequency)'), size: 10, color: COLORS.ORANGE },
+  ],
+};
+
+const PROOF_AMPLITUDE = {
+  title: () => T('Amplituda A\u00B7sin(x) = |A|', 'Amplitude of A\u00B7sin(x) = |A|'),
+  lines: [
+    { text: T('Warto\u015Bci sin(x) le\u017C\u0105 w [\u22121, 1]  (tw. o ograniczono\u015Bci).', 'sin(x) values lie in [\u22121, 1]  (boundedness theorem).'), size: 11 },
+    '',
+    { text: T('Mno\u017C\u0105c przez A:', 'Multiplying by A:'), size: 11 },
+    { text: 'A\u00B7sin(x) \u2208 [\u2212|A|, |A|]', size: 13, color: COLORS.YELLOW, bold: true },
+    '',
+    { text: T('Maksimum osi\u0105gane, gdy sin(x)=1  (x = \u03C0/2 + 2k\u03C0).', 'Maximum when sin(x)=1  (x = \u03C0/2 + 2k\u03C0).'), size: 10, color: 'rgba(255,255,255,0.7)' },
+    { text: T('Minimum \u2014 gdy sin(x) = \u22121.', 'Minimum \u2014 when sin(x) = \u22121.'), size: 10, color: 'rgba(255,255,255,0.7)' },
+    '',
+    { text: T('Amplituda = po\u0142owa odleg\u0142o\u015Bci max \u2212 min:', 'Amplitude = half the peak-to-peak distance:'), size: 11 },
+    { text: '(|A| \u2212 (\u2212|A|))/2 = |A|', size: 12, color: COLORS.GREEN, bold: true },
+    '',
+    { text: 'Amplituda = |A|   \u220E', size: 14, color: COLORS.GREEN, bold: true },
+    '',
+    { text: T('A < 0 \u2192 wykres odbity przez o\u015B OX (amplituda wci\u0105\u017C |A|).', 'A < 0 \u2192 graph reflected across the x-axis (amplitude still |A|).'), size: 10, color: COLORS.ORANGE },
+  ],
+};
 import { GraphView } from '../lib/graph-core.js';
 
 function gv(cx, W, H) {
@@ -50,7 +92,7 @@ const { cx, W, H } = VizCore.init({
         { id: 'A', lbl: 'A', color: COLORS.CYAN,   min: 0.1, max: 2,   step: 0.1, val: 1 },
         { id: 'B', lbl: 'B', color: COLORS.ORANGE, min: 0.25, max: 3,  step: 0.25, val: 1 },
       ],
-      draw(cx, W, H, vals) {
+      draw(cx, W, H, vals, proof) {
         const A = vals.A, B = vals.B;
         const v = gv(cx, W, H);
         drawTrigAxes(v, cx, W);
@@ -76,6 +118,27 @@ const { cx, W, H } = VizCore.init({
         cx.fillText(A + '\u00B7sin(' + B + 'x)', 12, 22);
         cx.fillStyle = 'rgba(255,255,255,0.4)';
         cx.fillText('Okres T = 2\u03C0/' + B + ', Amplituda = ' + A, 12, 40);
+
+        // Two clickable proof tiles in the upper-right corner
+        const tX = W - 180, tY = 10;
+        cx.save();
+        cx.fillStyle = 'rgba(192,128,255,0.1)';
+        cx.fillRect(tX, tY, 170, 26);
+        cx.strokeStyle = 'rgba(192,128,255,0.4)';
+        cx.strokeRect(tX, tY, 170, 26);
+        cx.restore();
+        drawTextC(cx, T('dow\u00F3d: T = 2\u03C0/B', 'proof: T = 2\u03C0/B'), tX + 85, tY + 13, 'bold 10px monospace', COLORS.PURPLE);
+        proof.registerCell(tX, tY, 170, 26, PROOF_PERIOD);
+
+        const tX2 = W - 180, tY2 = 42;
+        cx.save();
+        cx.fillStyle = 'rgba(192,128,255,0.1)';
+        cx.fillRect(tX2, tY2, 170, 26);
+        cx.strokeStyle = 'rgba(192,128,255,0.4)';
+        cx.strokeRect(tX2, tY2, 170, 26);
+        cx.restore();
+        drawTextC(cx, T('dow\u00F3d: amplituda = |A|', 'proof: amplitude = |A|'), tX2 + 85, tY2 + 13, 'bold 10px monospace', COLORS.PURPLE);
+        proof.registerCell(tX2, tY2, 170, 26, PROOF_AMPLITUDE);
       },
     },
 

@@ -77,8 +77,21 @@
   }
 
   let nPoints = 12;
+  let htN = 100;
+  let htK = 55;
   let stage = 0;
   let animStartTime = Date.now();
+
+  // Normal CDF approximation (Abramowitz & Stegun 7.1.26)
+  function normalCdfApprox(z) {
+    if (z < 0) return 1 - normalCdfApprox(-z);
+    const a1 =  0.254829592, a2 = -0.284496736, a3 =  1.421413741;
+    const a4 = -1.453152027, a5 =  1.061405429, p  =  0.3275911;
+    const x = z / Math.SQRT2;
+    const t = 1 / (1 + p * x);
+    const erf = 1 - (((((a5*t + a4)*t + a3)*t + a2)*t + a1)*t) * Math.exp(-x*x);
+    return 0.5 * (1 + erf);
+  }
 
   function clear() { cx.fillStyle = '#0e0e12'; cx.fillRect(0, 0, W, H); }
 
@@ -756,6 +769,211 @@
         drawCount('IQR = ' + iqr.toFixed(1), W / 2, 395, COL_ACCENT);
       }
     },
+    // Stage 4: Outliers (1.5 × IQR rule)
+    {
+      title: () => T('Warto\u015Bci odstaj\u0105ce (outliers)', 'Outliers (1.5\u00D7IQR rule)'),
+      desc: () => T(
+        'Regu\u0142a 1.5\u00D7IQR: ka\u017Cda warto\u015B\u0107 poza [Q1 \u2212 1.5\u00D7IQR,  Q3 + 1.5\u00D7IQR] jest uznawana za odstaj\u0105c\u0105. Odstaj\u0105ce znaczone na czerwono.',
+        'The 1.5\u00D7IQR rule: any point outside [Q1 \u2212 1.5\u00D7IQR,  Q3 + 1.5\u00D7IQR] is flagged as an outlier (red).'
+      ),
+      sliders: [
+        { id: 'nPoints', lbl: T('n =','n ='), color: COL_DOT, min: 8, max: 20, step: 1, val: () => nPoints },
+      ],
+      draw() {
+        const data = generateData(nPoints, 73);
+        // Force one outlier for teaching effect
+        data[data.length - 1] = 28;
+        const sorted = [...data].sort((a,b) => a-b);
+        const q = quartiles(data);
+        const iqr = q.q3 - q.q1;
+        const lo = q.q1 - 1.5 * iqr;
+        const hi = q.q3 + 1.5 * iqr;
+
+        const MAX_VIS = 30;
+
+        // Number line with extended range
+        const lineY = 170;
+        function valToXOut(v) {
+          return XL + (v / MAX_VIS) * (XR - XL);
+        }
+
+        // Line itself
+        cx.save();
+        cx.strokeStyle = COL_LINE; cx.lineWidth = 1;
+        cx.beginPath(); cx.moveTo(XL, lineY); cx.lineTo(XR, lineY); cx.stroke();
+        // Ticks
+        for (let v = 0; v <= MAX_VIS; v += 5) {
+          const x = valToXOut(v);
+          cx.beginPath(); cx.moveTo(x, lineY - 3); cx.lineTo(x, lineY + 3); cx.stroke();
+          cx.font = '9px monospace'; cx.fillStyle = 'rgba(255,255,255,0.45)'; cx.textAlign = 'center';
+          cx.fillText(v, x, lineY + 14);
+        }
+        cx.restore();
+
+        // Shade normal range (green wash)
+        cx.save();
+        cx.fillStyle = 'rgba(131,193,103,0.1)';
+        const loX = valToXOut(Math.max(0, lo));
+        const hiX = valToXOut(Math.min(MAX_VIS, hi));
+        cx.fillRect(loX, lineY - 60, hiX - loX, 60);
+        cx.restore();
+
+        // Fences — vertical lines
+        [[lo, 'Q1\u22121.5\u00D7IQR'], [hi, 'Q3+1.5\u00D7IQR']].forEach(([val, lbl]) => {
+          if (val < 0 || val > MAX_VIS) return;
+          const x = valToXOut(val);
+          cx.save();
+          cx.strokeStyle = COL_ACCENT; cx.lineWidth = 1; cx.setLineDash([3, 3]);
+          cx.beginPath(); cx.moveTo(x, lineY - 90); cx.lineTo(x, lineY); cx.stroke();
+          cx.setLineDash([]);
+          cx.font = '10px monospace'; cx.fillStyle = COL_ACCENT; cx.textAlign = 'center';
+          cx.fillText(lbl + ' = ' + val.toFixed(1), x, lineY - 95);
+          cx.restore();
+        });
+
+        // Data points, colored by outlier status
+        const stacks = {};
+        sorted.forEach(v => { stacks[v] = (stacks[v] || 0) + 1; });
+        const placed = {};
+        sorted.forEach(v => {
+          const x = valToXOut(v);
+          placed[v] = (placed[v] || 0) + 1;
+          const y = lineY - 10 - (placed[v] - 1) * 12;
+          const isOutlier = v < lo || v > hi;
+          const col = isOutlier ? '#FF4655' : COL_DOT;
+          drawGlowDot(x, y, 5, col, isOutlier ? 1 : 0.7);
+          if (isOutlier) {
+            cx.save();
+            cx.font = 'bold 9px monospace'; cx.fillStyle = '#FF4655'; cx.textAlign = 'center';
+            cx.fillText(String(v) + ' !', x, y - 12);
+            cx.restore();
+          }
+        });
+
+        // Mini-boxplot below number line
+        const boxY = lineY + 40;
+        const q1X = valToXOut(q.q1), q3X = valToXOut(q.q3), medX = valToXOut(q.med);
+        cx.save();
+        cx.strokeStyle = 'rgba(255,255,255,0.55)'; cx.lineWidth = 1.5;
+        cx.fillStyle = 'rgba(88,196,221,0.15)';
+        cx.fillRect(q1X, boxY - 18, q3X - q1X, 36);
+        cx.strokeRect(q1X, boxY - 18, q3X - q1X, 36);
+        cx.beginPath(); cx.moveTo(medX, boxY - 18); cx.lineTo(medX, boxY + 18); cx.stroke();
+        cx.restore();
+
+        cx.font = '10px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = COL_Q1; cx.fillText('Q1=' + q.q1, q1X, boxY + 32);
+        cx.fillStyle = COL_MED; cx.fillText('Med=' + q.med, medX, boxY + 32);
+        cx.fillStyle = COL_Q3; cx.fillText('Q3=' + q.q3, q3X, boxY + 32);
+
+        // Formula & conclusion
+        drawFormula('IQR = Q3 \u2212 Q1 = ' + iqr.toFixed(1), W / 2, 310);
+        drawFormula(T('Zakres \u201Enormalny\u201D', 'Normal range') + ': [' + lo.toFixed(1) + ', ' + hi.toFixed(1) + ']', W / 2, 332);
+        const outliers = sorted.filter(v => v < lo || v > hi);
+        drawCount(
+          outliers.length > 0
+            ? T('Outlier\u00F3w: ', 'Outliers: ') + outliers.length + '  (' + outliers.join(', ') + ')'
+            : T('Brak outlier\u00F3w', 'No outliers'),
+          W / 2, 362,
+          outliers.length > 0 ? '#FF4655' : COL_STD
+        );
+        drawFormula(T('Regu\u0142a Tukeya: warto\u015B\u0107 > 1.5\u00D7IQR od kwartyla = odstaj\u0105ca', 'Tukey rule: value > 1.5\u00D7IQR from quartile = outlier'), W / 2, 390);
+      }
+    },
+    // Stage 5: Intro to hypothesis testing
+    {
+      title: () => T('Podstawy hipotezy (dla ciekawskich)', 'Hypothesis testing basics (for the curious)'),
+      desc: () => T(
+        'Rzucili\u015Bmy monet\u0105 n razy i mamy k or\u0142\u00F3w. Czy moneta jest uczciwa (H\u2080: p = 0.5)? Por\u00F3wnujemy obserwowane k z oczekiwanym przy H\u2080. Je\u015Bli odchylenie \u201Edu\u017Ce\u201D \u2014 odrzucamy.',
+        'We flipped a coin n times and got k heads. Is it fair (H\u2080: p = 0.5)? Compare observed k to expected under H\u2080. Large deviation \u2192 reject.'
+      ),
+      sliders: [
+        { id: 'htN',  lbl: T('n =','n ='), color: COL_DOT,  min: 20, max: 200, step: 1,   val: () => htN },
+        { id: 'htK',  lbl: T('k =','k ='), color: COL_MEAN, min: 0,  max: 200, step: 1,   val: () => htK },
+      ],
+      draw() {
+        const n = htN, k = htK;
+        const expected = n * 0.5;
+        const sigma = Math.sqrt(n * 0.5 * 0.5);
+        const z = (k - expected) / sigma;
+        const pTwo = 2 * (1 - normalCdfApprox(Math.abs(z)));
+
+        // Axis
+        const bx = 30, by = 100, bw = W - 60, bh = 110;
+        cx.save();
+        cx.strokeStyle = COL_LINE; cx.lineWidth = 1;
+        cx.beginPath(); cx.moveTo(bx, by + bh); cx.lineTo(bx + bw, by + bh); cx.stroke();
+        cx.restore();
+
+        // Bell curve centered at expected, with +-4 sigma range
+        const xMin = expected - 4 * sigma, xMax = expected + 4 * sigma;
+        const xToSc = v => bx + ((v - xMin) / (xMax - xMin)) * bw;
+
+        cx.save();
+        cx.strokeStyle = COL_DOT; cx.lineWidth = 1.8;
+        cx.beginPath();
+        for (let i = 0; i <= 200; i++) {
+          const t = i / 200;
+          const v = xMin + t * (xMax - xMin);
+          const zz = (v - expected) / sigma;
+          const d = Math.exp(-zz * zz / 2);
+          const y = by + bh - d * bh * 0.9;
+          if (i === 0) cx.moveTo(xToSc(v), y); else cx.lineTo(xToSc(v), y);
+        }
+        cx.stroke();
+        cx.restore();
+
+        // Mark rejection regions (|z| > 1.96, ≈ 5%)
+        const zThresh = 1.96;
+        const lowX = xToSc(expected - zThresh * sigma);
+        const hiX  = xToSc(expected + zThresh * sigma);
+        cx.save();
+        cx.fillStyle = 'rgba(255,70,85,0.15)';
+        cx.fillRect(bx, by, lowX - bx, bh);
+        cx.fillRect(hiX, by, bx + bw - hiX, bh);
+        cx.restore();
+
+        // Dashed z=±1.96 lines
+        [-zThresh, zThresh].forEach(zz => {
+          const sx = xToSc(expected + zz * sigma);
+          cx.save();
+          cx.strokeStyle = 'rgba(255,70,85,0.6)';
+          cx.lineWidth = 1; cx.setLineDash([4, 3]);
+          cx.beginPath(); cx.moveTo(sx, by); cx.lineTo(sx, by + bh); cx.stroke();
+          cx.restore();
+        });
+
+        // Mark observed k
+        const kX = xToSc(Math.max(xMin, Math.min(xMax, k)));
+        const zzK = Math.abs(z);
+        const kCol = (zzK > zThresh) ? '#FF4655' : COL_STD;
+        cx.save();
+        cx.strokeStyle = kCol; cx.lineWidth = 2;
+        cx.beginPath(); cx.moveTo(kX, by - 10); cx.lineTo(kX, by + bh + 10); cx.stroke();
+        cx.restore();
+        cx.font = 'bold 11px monospace'; cx.fillStyle = kCol; cx.textAlign = 'center';
+        cx.fillText('k=' + k, kX, by - 14);
+
+        // Axis labels
+        cx.font = '10px monospace'; cx.textAlign = 'center'; cx.fillStyle = 'rgba(255,255,255,0.5)';
+        cx.fillText(T('oczekiwane ', 'expected ') + expected.toFixed(1), xToSc(expected), by + bh + 14);
+        cx.fillText('\u2212z*', xToSc(expected - zThresh * sigma), by + bh + 14);
+        cx.fillText('+z*', xToSc(expected + zThresh * sigma), by + bh + 14);
+
+        // Numbers
+        drawFormula('z = (k \u2212 n\u00B7p) / \u221A(n\u00B7p\u00B7(1\u2212p)) = ' + z.toFixed(2), W / 2, 240);
+        drawFormula('p-value \u2248 ' + pTwo.toFixed(4), W / 2, 262);
+        const verdict = zzK > zThresh
+          ? T('|z| > 1.96 \u2192 odrzu\u0107 H\u2080 (moneta wygl\u0105da nieuczciwie)', '|z| > 1.96 \u2192 reject H\u2080 (looks biased)')
+          : T('|z| \u2264 1.96 \u2192 nie odrzucaj H\u2080 (dane zgodne z uczciw\u0105 monet\u0105)', '|z| \u2264 1.96 \u2192 do not reject H\u2080 (consistent with fair coin)');
+        drawCount(verdict, W / 2, 290, zzK > zThresh ? '#FF4655' : COL_STD);
+
+        drawFormula(T('Czerwone regiony = odrzucenie H\u2080 na poziomie 5%', 'Red regions = reject H\u2080 at the 5% level'), W / 2, 320);
+        drawFormula(T('To jest TEST Z \u2014 najprostszy test hipotezy. Matura LP nie wymaga, ale warto.', 'This is a Z-TEST \u2014 simplest hypothesis test. Not required on Polish matura LP, but worth seeing.'), W / 2, 342);
+
+        drawFormula(T('Je\u015Bli zwi\u0119kszasz n przy tym samym k/n, |z| ro\u015Bnie \u2014 wi\u0119ksza pr\u00F3ba wykrywa mniejsze odchylenia.', 'If n grows with the same k/n, |z| grows \u2014 larger samples detect smaller deviations.'), W / 2, 375);
+      }
+    },
   ];
 
   // ── Slider management ─────────────────────────────────────────
@@ -780,6 +998,8 @@
       el.addEventListener('input', function() {
         const v = +this.value;
         if (s.id === 'nPoints') nPoints = v;
+        if (s.id === 'htN')     htN = v;
+        if (s.id === 'htK')     htK = Math.min(v, htN);
         document.getElementById('v_' + s.id).textContent = v.toFixed(0);
       });
     });

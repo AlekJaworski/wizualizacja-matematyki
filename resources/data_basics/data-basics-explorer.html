@@ -74,6 +74,7 @@
   }
 
   let nPoints = 10;
+  let skewAmt = 0.5;
   let stage = 0;
   let animStartTime = Date.now();
 
@@ -541,6 +542,105 @@
         drawCount(T('Dominanta: ', 'Mode: ') + modeStr, W / 2, 370, COL_MODE);
       }
     },
+    // Stage: Skew — comparing mean and median across shapes
+    {
+      title: () => T('Sko\u015Bno\u015B\u0107: \u015Brednia vs mediana', 'Skew: mean vs median'),
+      desc: () => T(
+        'Kszta\u0142t rozk\u0142adu widzisz po po\u0142o\u017Ceniu \u015Bredniej wzgl\u0119dem mediany. Gdy \u015Brednia > mediana \u2014 prawostronna (\u201Eogon\u201D po prawej). < \u2014 lewostronna. \u2248 \u2014 symetryczna.',
+        'Distribution shape is visible from where the mean lies relative to the median. Mean > median \u2192 right-skewed (long right tail). < \u2192 left-skewed. \u2248 \u2192 symmetric.'
+      ),
+      sliders: [
+        { id: 'skew', lbl: T('sko\u015Bno\u015B\u0107', 'skew'), color: COL_MODE, min: -1, max: 1, step: 0.05, val: () => skewAmt },
+      ],
+      draw() {
+        const skew = skewAmt;
+        // Build a histogram whose mean drifts from its median as skew changes
+        const bins = 20;
+        const binVals = [];
+        for (let i = 0; i < bins; i++) {
+          const t = i / (bins - 1);          // 0..1
+          // Power transformation: t^(1-skew/2) biases mass to one side
+          const power = 1 - skew * 0.9;
+          const u = Math.pow(t, Math.max(0.2, power));
+          binVals.push(u);
+        }
+        // Center around ~10
+        const vals = binVals.map((u, i) => 2 + u * 16);
+
+        // Compute mean and median
+        const m = vals.reduce((a,b) => a+b, 0) / vals.length;
+        const sorted = [...vals].sort((a,b) => a-b);
+        const med = sorted[Math.floor(sorted.length / 2)];
+
+        // Histogram
+        const XL_local = 50, XR_local = W - 50;
+        const baseY = 220;
+        const maxH = 130;
+
+        cx.save();
+        cx.strokeStyle = COL_LINE; cx.lineWidth = 1;
+        cx.beginPath(); cx.moveTo(XL_local, baseY); cx.lineTo(XR_local, baseY); cx.stroke();
+        cx.restore();
+
+        // Bin the values into buckets
+        const nb = 14;
+        const minV = 0, maxV = 20;
+        const buckets = new Array(nb).fill(0);
+        vals.forEach(v => {
+          const idx = Math.min(nb - 1, Math.floor((v - minV) / (maxV - minV) * nb));
+          buckets[idx]++;
+        });
+        const maxBucket = Math.max(...buckets);
+        const binW = (XR_local - XL_local) / nb;
+        buckets.forEach((c, i) => {
+          const x = XL_local + i * binW;
+          const h = (c / maxBucket) * maxH;
+          cx.save();
+          cx.fillStyle = 'rgba(88,196,221,0.6)';
+          cx.fillRect(x + 1, baseY - h, binW - 2, h);
+          cx.restore();
+        });
+
+        // Axis ticks
+        for (let v = 0; v <= 20; v += 5) {
+          const x = XL_local + (v / 20) * (XR_local - XL_local);
+          cx.font = '9px monospace'; cx.fillStyle = 'rgba(255,255,255,0.4)'; cx.textAlign = 'center';
+          cx.fillText(v, x, baseY + 14);
+        }
+
+        // Mean line
+        const meanX = XL_local + (m / 20) * (XR_local - XL_local);
+        cx.save();
+        cx.strokeStyle = COL_MEAN; cx.lineWidth = 2;
+        cx.beginPath(); cx.moveTo(meanX, baseY - maxH - 20); cx.lineTo(meanX, baseY + 5); cx.stroke();
+        cx.restore();
+        cx.font = 'bold 11px monospace'; cx.fillStyle = COL_MEAN; cx.textAlign = 'center';
+        cx.fillText(T('\u015Brednia = ', 'mean = ') + m.toFixed(2), meanX, baseY - maxH - 24);
+
+        // Median line
+        const medX = XL_local + (med / 20) * (XR_local - XL_local);
+        cx.save();
+        cx.strokeStyle = COL_MEDIAN; cx.lineWidth = 2; cx.setLineDash([4, 3]);
+        cx.beginPath(); cx.moveTo(medX, baseY - maxH - 20); cx.lineTo(medX, baseY + 5); cx.stroke();
+        cx.setLineDash([]);
+        cx.restore();
+        cx.font = 'bold 11px monospace'; cx.fillStyle = COL_MEDIAN; cx.textAlign = 'center';
+        cx.fillText(T('mediana = ', 'median = ') + med.toFixed(2), medX, baseY - maxH - 40);
+
+        // Verdict
+        let verdict, col;
+        const diff = m - med;
+        if (Math.abs(diff) < 0.3) { verdict = T('symetryczny', 'symmetric');                   col = COL_LINE; }
+        else if (diff > 0)        { verdict = T('prawostronna (\u015Brednia > mediana)', 'right-skewed (mean > median)'); col = '#FF6B35'; }
+        else                      { verdict = T('lewostronna (\u015Brednia < mediana)', 'left-skewed (mean < median)');   col = '#E07090'; }
+        drawCount(verdict, W / 2, baseY + 50, col);
+
+        drawFormula(T('\u015Arednia \u201Eci\u0105gnie si\u0119\u201D w stron\u0119 ogona; mediana zostaje w \u015Brodku masy.',
+                       'Mean is "pulled" toward the tail; median stays at the mass center.'), W / 2, baseY + 80);
+        drawFormula(T('Dlatego dla dochod\u00F3w / czas\u00F3w oczekiwania (prawostronne) mediana jest uczciwsza.',
+                       'That\u2019s why for incomes / wait-times (right-skewed) the median is fairer.'), W / 2, baseY + 104);
+      }
+    },
   ];
 
   // ── Slider management ─────────────────────────────────────────
@@ -565,7 +665,9 @@
       el.addEventListener('input', function() {
         const v = +this.value;
         if (s.id === 'nPoints') nPoints = v;
-        document.getElementById('v_' + s.id).textContent = v.toFixed(0);
+        if (s.id === 'skew')    skewAmt = v;
+        const digits = (s.step < 1) ? 2 : 0;
+        document.getElementById('v_' + s.id).textContent = v.toFixed(digits);
       });
     });
   }

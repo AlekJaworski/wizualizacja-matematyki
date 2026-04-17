@@ -131,6 +131,10 @@ const stages=[
    f:'y = ax² + bx + c',
    d:T('Rozwiń a(x−h)²+k i porównaj z ax²+bx+c. Trzy metody pierwiastków: ① forma kanoniczna x=h±√(−k/a) ② wyróżnik Δ=b²−4ac ③ rozkład na czynniki.','Expand a(x−h)²+k and match ax²+bx+c. Three root methods: ① canonical x=h±√(−k/a) ② discriminant Δ=b²−4ac ③ factorization.'),
    show:'abc'},
+  {a:1,h:2,k:-3,
+   f:'Uzupełnianie kwadratu',
+   d:T('Dowód: jak PRZEKSZTAŁCIĆ ax²+bx+c do a(x−h)²+k? Metoda „uzupełnienia kwadratu” krok po kroku. To pokazuje DLACZEGO h=−b/2a, k=c−b²/4a.','Proof: how do you TRANSFORM ax²+bx+c into a(x−h)²+k? The "completing the square" trick, step by step. This is WHY h=−b/2a, k=c−b²/4a.'),
+   show:'derive'},
 ];
 
 function ease(t){return t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;}
@@ -465,11 +469,79 @@ function drawABCOverlay(a,h,k){
   }
 }
 
+function drawCompletingSquareDerivation(a,h,k){
+  // Compute live b, c from current a, h, k
+  const b = -2 * a * h;
+  const c = a*h*h + k;
+
+  // Format helpers
+  const fmt = v => {
+    if (Math.abs(v - Math.round(v)) < 0.01) return Math.round(v).toString();
+    return v.toFixed(2);
+  };
+  const sgn = v => v >= 0 ? '+' : '−';
+  const absF = v => fmt(Math.abs(v));
+
+  // Side panel occupies top-left
+  const lx = 14;
+  let ly = 22;
+  cx.save();
+  cx.textAlign = 'left';
+  cx.textBaseline = 'middle';
+
+  cx.font='bold 12px monospace';cx.fillStyle='#C080FF';
+  cx.fillText(T('Uzupełnianie kwadratu — krok po kroku:','Completing the square — step by step:'),lx,ly);
+  ly += 22;
+
+  const lines = [
+    { text: '1.  y = ax² + bx + c', col: 'rgba(255,255,255,0.9)', bold: true },
+    { text: T('     podstaw a='+fmt(a)+', b='+fmt(b)+', c='+fmt(c),
+              '     substitute a='+fmt(a)+', b='+fmt(b)+', c='+fmt(c)),
+      col: 'rgba(255,255,255,0.45)', size: 10 },
+    { space: 10 },
+    { text: '2.  y = a · [x² + (b/a)·x] + c', col: '#FFD166' },
+    { text: T('     wyciągamy a przed nawias','     factor a out'),
+      col: 'rgba(255,255,255,0.45)', size: 10 },
+    { space: 10 },
+    { text: '3.  y = a · [x² + (b/a)x + (b/2a)² − (b/2a)²] + c', col: '#FFD166' },
+    { text: T('     dodajemy i odejmujemy (b/2a)² \u2014 kluczowy TRIK','     add and subtract (b/2a)² \u2014 the key TRICK'),
+      col: '#C080FF', size: 10 },
+    { space: 10 },
+    { text: '4.  y = a · (x + b/2a)² − a · (b/2a)² + c', col: '#FFD166' },
+    { text: T('     pierwsze 3 wyrazy składają się w pełny kwadrat','     first 3 terms form a perfect square'),
+      col: 'rgba(255,255,255,0.45)', size: 10 },
+    { space: 10 },
+    { text: '5.  y = a · (x − h)² + k', col: '#83C167', bold: true, size: 13 },
+    { text: T('     gdzie  h = −b/2a = ' + fmt(h) + ',   k = c − b²/4a = ' + fmt(k),
+              '     where  h = −b/2a = ' + fmt(h) + ',   k = c − b²/4a = ' + fmt(k)),
+      col: '#83C167', size: 10 },
+  ];
+
+  lines.forEach(L => {
+    if (L.space) { ly += L.space; return; }
+    cx.font = (L.bold ? 'bold ' : '') + (L.size || 11) + 'px monospace';
+    cx.fillStyle = L.col;
+    cx.fillText(L.text, lx, ly);
+    ly += (L.size || 11) + 5;
+  });
+
+  cx.restore();
+
+  // Bottom-right: QED-style summary
+  cx.save();
+  cx.font = 'bold 11px monospace';
+  cx.fillStyle = '#83C167';
+  cx.textAlign = 'right';
+  cx.fillText(T('∎ Wierzchołek: V = (h, k) = ('+fmt(h)+', '+fmt(k)+')',
+               '∎ Vertex: V = (h, k) = ('+fmt(h)+', '+fmt(k)+')'), W-10, H-16);
+  cx.restore();
+}
+
 function tick(){
   if(!imode){
     af++;const t=Math.min(af/ad,1),e=ease(t);
     cu.a=fr.a+(to.a-fr.a)*e;cu.h=fr.h+(to.h-fr.h)*e;cu.k=fr.k+(to.k-fr.k)*e;
-    if(t>=1&&(stages[qsi]?.show==='k'||stages[qsi]?.show==='abc'))imode=true;
+    if(t>=1&&(stages[qsi]?.show==='k'||stages[qsi]?.show==='abc'||stages[qsi]?.show==='derive'))imode=true;
   }
   initView();
   view.clear();
@@ -479,6 +551,7 @@ function tick(){
   drawVertex(cu.h,cu.k);
   drawRoots(cu.a,cu.h,cu.k);
   if(qsi===4)drawABCOverlay(cu.a,cu.h,cu.k);
+  if(qsi===5)drawCompletingSquareDerivation(cu.a,cu.h,cu.k);
   requestAnimationFrame(tick);
 }
 
