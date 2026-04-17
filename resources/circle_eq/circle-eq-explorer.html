@@ -8,6 +8,7 @@
 <body>
 <script type="module">
 import { VizCore, T, COLORS } from '../lib/viz-core.js';
+import { GraphView } from '../lib/graph-core.js';
 
 const { cv, cx, W, H, getCanvasPos } = VizCore.init({
   title: T('Równanie okręgu', 'Circle Equation'),
@@ -24,34 +25,33 @@ const { cv, cx, W, H, getCanvasPos } = VizCore.init({
         { id: 'r', lbl: 'r', color: COLORS.CYAN, min: 30, max: 130, step: 1, val: 80 },
       ],
       draw(cx, W, H, vals) {
-        const OX = W / 2, OY = H / 2, SC = 30;
+        const SC = 30;
+        const view = new GraphView(cx, { xRange: [-W/(2*SC), W/(2*SC)], yRange: [-H/(2*SC), H/(2*SC)] });
         const r = vals.r;
 
-        drawGrid(cx, OX, OY, SC, W, H);
-        drawAxes(cx, OX, OY, W, H, SC);
+        view.drawGrid();
+        view.drawAxes();
 
-        // Circle
-        cx.beginPath(); cx.arc(OX, OY, r, 0, Math.PI * 2);
+        // Circle (pixel radius)
+        cx.beginPath(); cx.arc(view.px(0), view.py(0), r, 0, Math.PI * 2);
         cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 2.5;
         cx.shadowColor = COLORS.CYAN; cx.shadowBlur = 8; cx.stroke(); cx.shadowBlur = 0;
 
         // Radius line to a point on circle
         const ang = -Math.PI / 4;
-        const Px = OX + r * Math.cos(ang), Py = OY + r * Math.sin(ang);
-        cx.beginPath(); cx.moveTo(OX, OY); cx.lineTo(Px, Py);
+        const Px = view.px(0) + r * Math.cos(ang), Py = view.py(0) + r * Math.sin(ang);
+        cx.beginPath(); cx.moveTo(view.px(0), view.py(0)); cx.lineTo(Px, Py);
         cx.strokeStyle = COLORS.YELLOW; cx.lineWidth = 2; cx.stroke();
 
         // Distance label
-        const mx = (OX + Px) / 2, my = (OY + Py) / 2;
+        const mx = (view.px(0) + Px) / 2, my = (view.py(0) + Py) / 2;
         cx.font = 'bold 13px monospace'; cx.textAlign = 'left';
         cx.fillStyle = COLORS.YELLOW; cx.fillText('r = ' + Math.round(r / SC * 10) / 10, mx + 5, my - 5);
 
         // Centre dot
-        cx.beginPath(); cx.arc(OX, OY, 5, 0, Math.PI * 2);
-        cx.fillStyle = COLORS.ORANGE; cx.shadowColor = COLORS.ORANGE;
-        cx.shadowBlur = 8; cx.fill(); cx.shadowBlur = 0;
+        view.dot(0, 0, { color: COLORS.ORANGE, glow: 8 });
         cx.fillStyle = COLORS.ORANGE; cx.font = '12px monospace';
-        cx.fillText('(0, 0)', OX + 8, OY - 8);
+        cx.fillText('(0, 0)', view.px(0) + 8, view.py(0) - 8);
 
         // Point dot
         cx.beginPath(); cx.arc(Px, Py, 5, 0, Math.PI * 2);
@@ -76,30 +76,31 @@ const { cv, cx, W, H, getCanvasPos } = VizCore.init({
         { id: 'r', lbl: 'r', color: COLORS.CYAN, min: 20, max: 100, step: 1, val: 60 },
       ],
       draw(cx, W, H, vals) {
-        const OX = W / 2, OY = H / 2, SC = 30;
+        const SC = 30;
+        const view = new GraphView(cx, { xRange: [-W/(2*SC), W/(2*SC)], yRange: [-H/(2*SC), H/(2*SC)] });
         const r = vals.r;
 
-        drawGrid(cx, OX, OY, SC, W, H);
-        drawAxes(cx, OX, OY, W, H, SC);
+        view.drawGrid();
+        view.drawAxes();
 
-        const px = dragCentre.x, py = dragCentre.y;
+        const dpx = dragCentre.x, dpy = dragCentre.y;
 
-        cx.beginPath(); cx.arc(px, py, r, 0, Math.PI * 2);
+        cx.beginPath(); cx.arc(dpx, dpy, r, 0, Math.PI * 2);
         cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 2.5;
         cx.shadowColor = COLORS.CYAN; cx.shadowBlur = 8; cx.stroke(); cx.shadowBlur = 0;
 
         // Centre cross
-        cx.beginPath(); cx.arc(px, py, 6, 0, Math.PI * 2);
+        cx.beginPath(); cx.arc(dpx, dpy, 6, 0, Math.PI * 2);
         cx.fillStyle = COLORS.ORANGE; cx.shadowColor = COLORS.ORANGE;
         cx.shadowBlur = 8; cx.fill(); cx.shadowBlur = 0;
 
-        const p = Math.round((px - OX) / SC * 10) / 10;
-        const q = Math.round((OY - py) / SC * 10) / 10;
+        const p = Math.round((dpx - view.px(0)) / SC * 10) / 10;
+        const q = Math.round((view.py(0) - dpy) / SC * 10) / 10;
         const rv = Math.round(r / SC * 10) / 10;
 
         cx.font = '13px monospace'; cx.textAlign = 'left';
         cx.fillStyle = COLORS.ORANGE;
-        cx.fillText('(' + p + ', ' + q + ')', px + 8, py - 10);
+        cx.fillText('(' + p + ', ' + q + ')', dpx + 8, dpy - 10);
 
         cx.fillStyle = COLORS.CYAN;
         const ps = p >= 0 ? '−' + p : '+' + Math.abs(p);
@@ -123,20 +124,18 @@ const { cv, cx, W, H, getCanvasPos } = VizCore.init({
         { id: 'r', lbl: 'r', color: COLORS.CYAN,   min: 1,  max: 5, step: 0.5, val: 3 },
       ],
       draw(cx, W, H, vals) {
-        const OX = W / 2, OY = H / 2, SC = 35;
+        const SC = 35;
+        const view = new GraphView(cx, { xRange: [-W/(2*SC), W/(2*SC)], yRange: [-H/(2*SC), H/(2*SC)] });
         const { p, q, r } = vals;
 
-        drawGrid(cx, OX, OY, SC, W, H);
-        drawAxes(cx, OX, OY, W, H, SC);
+        view.drawGrid();
+        view.drawAxes();
 
-        const px = OX + p * SC, py = OY - q * SC;
-        cx.beginPath(); cx.arc(px, py, r * SC, 0, Math.PI * 2);
+        cx.beginPath(); cx.arc(view.px(p), view.py(q), r * SC, 0, Math.PI * 2);
         cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 2.5;
         cx.shadowColor = COLORS.CYAN; cx.shadowBlur = 8; cx.stroke(); cx.shadowBlur = 0;
 
-        cx.beginPath(); cx.arc(px, py, 5, 0, Math.PI * 2);
-        cx.fillStyle = COLORS.ORANGE; cx.shadowColor = COLORS.ORANGE;
-        cx.shadowBlur = 6; cx.fill(); cx.shadowBlur = 0;
+        view.dot(p, q, { color: COLORS.ORANGE, glow: 6 });
 
         // Show both forms
         const ps = p >= 0 ? '−' + p : '+' + Math.abs(p);
@@ -165,34 +164,32 @@ const { cv, cx, W, H, getCanvasPos } = VizCore.init({
         { id: 'r2', lbl: 'r²', color: COLORS.CYAN, min: 1, max: 25, step: 1, val: 9 },
       ],
       draw(cx, W, H, vals) {
-        const OX = W / 2, OY = H / 2, SC = 40;
+        const SC = 40;
+        const view = new GraphView(cx, { xRange: [-W/(2*SC), W/(2*SC)], yRange: [-H/(2*SC), H/(2*SC)] });
         const { p, q, r2 } = vals;
         const r = Math.sqrt(r2);
 
-        drawGrid(cx, OX, OY, SC, W, H);
-        drawAxes(cx, OX, OY, W, H, SC);
+        view.drawGrid();
+        view.drawAxes();
 
-        const px = OX + p * SC, py = OY - q * SC;
-        cx.beginPath(); cx.arc(px, py, r * SC, 0, Math.PI * 2);
+        cx.beginPath(); cx.arc(view.px(p), view.py(q), r * SC, 0, Math.PI * 2);
         cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 2.5;
         cx.shadowColor = COLORS.CYAN; cx.shadowBlur = 8; cx.stroke(); cx.shadowBlur = 0;
 
-        cx.beginPath(); cx.arc(px, py, 5, 0, Math.PI * 2);
-        cx.fillStyle = COLORS.ORANGE; cx.shadowColor = COLORS.ORANGE;
-        cx.shadowBlur = 8; cx.fill(); cx.shadowBlur = 0;
+        view.dot(p, q, { color: COLORS.ORANGE, glow: 8 });
 
         // Coordinates labels on axes
         if (p !== 0) {
-          cx.beginPath(); cx.moveTo(px, OY - 5); cx.lineTo(px, OY + 5);
+          cx.beginPath(); cx.moveTo(view.px(p), view.py(0) - 5); cx.lineTo(view.px(p), view.py(0) + 5);
           cx.strokeStyle = COLORS.ORANGE; cx.lineWidth = 1.5; cx.stroke();
           cx.font = '12px monospace'; cx.textAlign = 'center';
-          cx.fillStyle = COLORS.ORANGE; cx.fillText(p, px, OY + 16);
+          cx.fillStyle = COLORS.ORANGE; cx.fillText(p, view.px(p), view.py(0) + 16);
         }
         if (q !== 0) {
-          cx.beginPath(); cx.moveTo(OX - 5, py); cx.lineTo(OX + 5, py);
+          cx.beginPath(); cx.moveTo(view.px(0) - 5, view.py(q)); cx.lineTo(view.px(0) + 5, view.py(q));
           cx.strokeStyle = COLORS.YELLOW; cx.lineWidth = 1.5; cx.stroke();
           cx.font = '12px monospace'; cx.textAlign = 'right';
-          cx.fillStyle = COLORS.YELLOW; cx.fillText(q, OX - 8, py + 4);
+          cx.fillStyle = COLORS.YELLOW; cx.fillText(q, view.px(0) - 8, view.py(q) + 4);
         }
 
         const ps = p >= 0 ? '−' + p : '+' + Math.abs(p);
@@ -209,25 +206,6 @@ const { cv, cx, W, H, getCanvasPos } = VizCore.init({
     },
   ],
 });
-
-// ── Grid/axes helpers ─────────────────────────────────────────────
-function drawGrid(cx, OX, OY, SC, W, H) {
-  cx.strokeStyle = 'rgba(255,255,255,0.06)'; cx.lineWidth = 1;
-  for (let x = OX % SC; x < W; x += SC) { cx.beginPath(); cx.moveTo(x, 0); cx.lineTo(x, H); cx.stroke(); }
-  for (let y = OY % SC; y < H; y += SC) { cx.beginPath(); cx.moveTo(0, y); cx.lineTo(W, y); cx.stroke(); }
-}
-function drawAxes(cx, OX, OY, W, H, SC) {
-  cx.strokeStyle = 'rgba(255,255,255,0.3)'; cx.lineWidth = 1.5;
-  cx.beginPath(); cx.moveTo(0, OY); cx.lineTo(W, OY); cx.stroke();
-  cx.beginPath(); cx.moveTo(OX, 0); cx.lineTo(OX, H); cx.stroke();
-  cx.font = '10px monospace'; cx.fillStyle = 'rgba(255,255,255,0.25)'; cx.textAlign = 'center';
-  for (let i = -8; i <= 8; i++) {
-    if (i === 0) continue;
-    const x = OX + i * SC, y = OY + i * SC;
-    if (x > 5 && x < W - 5) cx.fillText(i, x, OY + 12);
-    if (y > 5 && y < H - 5) { cx.textAlign = 'right'; cx.fillText(-i, OX - 4, y + 3); cx.textAlign = 'center'; }
-  }
-}
 
 // ── Drag centre for stage 1 ───────────────────────────────────────
 const OX = W / 2, OY = H / 2;

@@ -226,8 +226,8 @@ function drawStage2(){
   const topH=210, gap=20, botTop=topH+gap;
   const botH=H-botTop;
 
-  const top = new GraphView(cx, { rect:[0,0,W,topH], xRange:[-3,3], yRange:[-4,4], scale:45 });
-  const bot = new GraphView(cx, { rect:[0,botTop,W,botH], xRange:[-3,3], yRange:[-4,4], scale:45 });
+  const top = new GraphView(cx, { rect:[0,0,W,topH], xRange:[-4,4], yRange:[-3,3] });
+  const bot = new GraphView(cx, { rect:[0,botTop,W,botH], xRange:[-4,4], yRange:[-4,4] });
 
   const f=x=>x*x*x-3*x;
   const fp=x=>3*x*x-3;
@@ -237,20 +237,10 @@ function drawStage2(){
   top.drawGrid();
   top.drawAxes();
 
-  // Shading for sign of f' on top panel
-  cx.globalAlpha=0.06;
-  cx.fillStyle=TANG;
-  // f increasing: x < -1
-  const leftEnd = top.px(-1);
-  if(leftEnd>0){cx.fillRect(0,0,leftEnd,topH);}
-  // f increasing: x > 1
-  const rightStart = top.px(1);
-  if(rightStart<W){cx.fillRect(rightStart,0,W-rightStart,topH);}
-  // f decreasing: -1 < x < 1
-  cx.fillStyle='#FF6B6B';
-  const negL=Math.max(top.px(-1),0), negR=Math.min(top.px(1),W);
-  if(negR>negL){cx.fillRect(negL,0,negR-negL,topH);}
-  cx.globalAlpha=1;
+  // Shading for sign of f' on top panel (very subtle)
+  top.shadeRect(-4, -3, -1, 3, { color: TANG, alpha: 0.05 });
+  top.shadeRect(1, -3, 4, 3, { color: TANG, alpha: 0.05 });
+  top.shadeRect(-1, -3, 1, 3, { color: '#FF6B6B', alpha: 0.05 });
 
   top.plotFn(f, {color:CURVE, lineWidth:2.5, domain:[-3,3]});
   top.endClip();

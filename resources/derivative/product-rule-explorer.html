@@ -44,7 +44,9 @@
   </div>
 </div>
 
-<script>
+<script type="module">
+import { GraphView } from '../lib/graph-core.js';
+
 (function(){
   const cv = document.getElementById('cv');
   const cx = cv.getContext('2d');
@@ -60,46 +62,14 @@
   const COL_DX = '#FFD166';
   const COL_DX2 = '#E07090';
 
-  // Graph coords
-  const GOX = W / 2, GOY = H * 0.6, GSC = 35;
-  function gx(x) { return GOX + x * GSC; }
-  function gy(y) { return GOY - y * GSC; }
+  function makeGV() {
+    return new GraphView(cx, { xRange: [-8, 8], yRange: [-2, 8], rect: [0, 0, W, H] });
+  }
 
   let x0 = 3, dx = 2;
   let stage = 0;
 
   function clear() { cx.fillStyle = '#0e0e12'; cx.fillRect(0, 0, W, H); }
-
-  function drawGrid() {
-    cx.strokeStyle = 'rgba(255,255,255,0.04)'; cx.lineWidth = 0.7;
-    for (let x = -8; x <= 8; x++) { cx.beginPath(); cx.moveTo(gx(x), 0); cx.lineTo(gx(x), H); cx.stroke(); }
-    for (let y = -2; y <= 8; y++) { cx.beginPath(); cx.moveTo(0, gy(y)); cx.lineTo(W, gy(y)); cx.stroke(); }
-  }
-
-  function drawAxes() {
-    cx.strokeStyle = 'rgba(255,255,255,0.2)'; cx.lineWidth = 1;
-    cx.beginPath(); cx.moveTo(0, gy(0)); cx.lineTo(W, gy(0)); cx.stroke();
-    cx.beginPath(); cx.moveTo(gx(0), 0); cx.lineTo(gx(0), H); cx.stroke();
-    cx.fillStyle = 'rgba(255,255,255,0.25)'; cx.font = '9px monospace'; cx.textAlign = 'center';
-    for (let x = -7; x <= 7; x++) { if (x === 0) continue; cx.fillText(x, gx(x), gy(0) + 13); }
-  }
-
-  function plotCurve(fn, color, alpha, dash) {
-    cx.save(); cx.strokeStyle = color; cx.globalAlpha = alpha; cx.lineWidth = 2;
-    if (dash) cx.setLineDash(dash);
-    cx.beginPath(); let started = false;
-    for (let sx = 0; sx <= W; sx += 2) {
-      const x = (sx - GOX) / GSC, y = fn(x), sy = gy(y);
-      if (sy < -80 || sy > H + 80) { started = false; continue; }
-      if (!started) { cx.moveTo(sx, sy); started = true; } else cx.lineTo(sx, sy);
-    }
-    cx.stroke(); cx.restore();
-  }
-
-  function gdot(x, y, r, col) {
-    cx.beginPath(); cx.arc(gx(x), gy(y), r, 0, Math.PI * 2);
-    cx.fillStyle = col; cx.shadowColor = col; cx.shadowBlur = 10; cx.fill(); cx.shadowBlur = 0;
-  }
 
   // ── Rectangle drawing for area model ─────────────────────────
   function drawRect(p, dxVal) {
@@ -164,31 +134,30 @@
         { id: 'x0', lbl: 'x', color: COL_CURVE, min: 1, max: 6, step: 0.5, val: 3 },
       ],
       draw() {
-        drawGrid(); drawAxes();
-        plotCurve(x => x * x, COL_PQ, 0.6);
+        const v = makeGV();
+        v.drawGrid({ color: 'rgba(255,255,255,0.04)' }); v.drawAxes({ color: 'rgba(255,255,255,0.2)', lineWidth: 1, arrows: false });
+        v.plotFn(x => x * x, { color: COL_PQ, alpha: 0.6 });
 
         const y0 = x0 * x0;
         const y1 = (x0 + 1) * (x0 + 1);
         const gain = y1 - y0;
 
         // Mark the two points
-        gdot(x0, y0, 5, COL_CURVE);
-        gdot(x0 + 1, y1, 5, COL_DX);
+        v.dot(x0, y0, { radius: 5, color: COL_CURVE });
+        v.dot(x0 + 1, y1, { radius: 5, color: COL_DX });
 
         // Vertical gain
-        cx.strokeStyle = COL_DX + '80'; cx.lineWidth = 2; cx.setLineDash([4, 4]);
-        cx.beginPath(); cx.moveTo(gx(x0 + 1), gy(y0)); cx.lineTo(gx(x0 + 1), gy(y1)); cx.stroke();
-        cx.setLineDash([]); cx.strokeStyle = 'rgba(255,255,255,0.15)';
-        cx.beginPath(); cx.moveTo(gx(x0), gy(y0)); cx.lineTo(gx(x0 + 1), gy(y0)); cx.stroke();
+        v.segment(x0 + 1, y0, x0 + 1, y1, { color: COL_DX + '80', lineWidth: 2, dash: [4, 4] });
+        v.segment(x0, y0, x0 + 1, y0, { color: 'rgba(255,255,255,0.15)', lineWidth: 1 });
 
         // Labels
         cx.font = '12px monospace'; cx.textAlign = 'left';
         cx.fillStyle = COL_CURVE;
-        cx.fillText('f(' + x0.toFixed(0) + ') = ' + y0.toFixed(0), gx(x0) + 10, gy(y0));
+        cx.fillText('f(' + x0.toFixed(0) + ') = ' + y0.toFixed(0), v.px(x0) + 10, v.py(y0));
         cx.fillStyle = COL_DX;
-        cx.fillText('f(' + (x0+1).toFixed(0) + ') = ' + y1.toFixed(0), gx(x0 + 1) + 10, gy(y1));
+        cx.fillText('f(' + (x0+1).toFixed(0) + ') = ' + y1.toFixed(0), v.px(x0 + 1) + 10, v.py(y1));
         cx.fillStyle = '#fff';
-        cx.fillText(T('zysk', 'gain') + ': +' + gain.toFixed(0) + T(' zł', ''), gx(x0 + 1) + 10, gy((y0 + y1) / 2));
+        cx.fillText(T('zysk', 'gain') + ': +' + gain.toFixed(0) + T(' zł', ''), v.px(x0 + 1) + 10, v.py((y0 + y1) / 2));
       }
     },
     {
@@ -251,9 +220,10 @@
         { id: 'dx', lbl: 'Δx', color: COL_DX, min: 0.01, max: 3, step: 0.01, val: 1.5 },
       ],
       draw() {
-        drawGrid(); drawAxes();
+        const v = makeGV();
+        v.drawGrid({ color: 'rgba(255,255,255,0.04)' }); v.drawAxes({ color: 'rgba(255,255,255,0.2)', lineWidth: 1, arrows: false });
         const prod = x => x * x;
-        plotCurve(prod, COL_PQ, 0.5);
+        v.plotFn(prod, { color: COL_PQ, alpha: 0.5 });
 
         const y0 = prod(x0);
         const y1 = prod(x0 + dx);
@@ -262,14 +232,14 @@
 
         // Secant line
         const secant = x => y0 + secantSlope * (x - x0);
-        plotCurve(secant, COL_DX, 0.6, [6, 4]);
+        v.plotFn(secant, { color: COL_DX, alpha: 0.6, dash: [6, 4] });
 
         // Tangent line (true derivative)
         const tangent = x => y0 + trueSlope * (x - x0);
-        plotCurve(tangent, COL_PQ, 0.4, [3, 3]);
+        v.plotFn(tangent, { color: COL_PQ, alpha: 0.4, dash: [3, 3] });
 
-        gdot(x0, y0, 5, COL_CURVE);
-        gdot(x0 + dx, y1, 4, COL_DX);
+        v.dot(x0, y0, { radius: 5, color: COL_CURVE });
+        v.dot(x0 + dx, y1, { radius: 4, color: COL_DX });
 
         // Info
         cx.font = '12px monospace'; cx.textAlign = 'left';
@@ -279,11 +249,11 @@
         cx.fillStyle = COL_PQ;
         cx.fillText(T('styczna (pochodna)', 'tangent (derivative)') + ': ' + trueSlope.toFixed(1), infoX, infoY + 16);
         cx.fillStyle = 'rgba(255,255,255,0.5)';
-        cx.fillText(T('różnica', 'difference') + ': ' + Math.abs(secantSlope - trueSlope).toFixed(2), infoX, infoY + 32);
+        cx.fillText(T('r\u00F3\u017Cnica', 'difference') + ': ' + Math.abs(secantSlope - trueSlope).toFixed(2), infoX, infoY + 32);
 
         if (dx < 0.1) {
           cx.fillStyle = COL_PQ; cx.font = '13px monospace';
-          cx.fillText(T('Δx → 0: sieczna ≈ styczna ✓', 'Δx → 0: secant ≈ tangent ✓'), infoX, infoY + 52);
+          cx.fillText(T('\u0394x \u2192 0: sieczna \u2248 styczna \u2713', '\u0394x \u2192 0: secant \u2248 tangent \u2713'), infoX, infoY + 52);
         }
       }
     },
@@ -297,24 +267,25 @@
         { id: 'x0', lbl: 'x', color: COL_CURVE, min: -3, max: 5, step: 0.5, val: 3 },
       ],
       draw() {
-        drawGrid(); drawAxes();
-        plotCurve(x => x * x, COL_PQ, 0.5);
+        const v = makeGV();
+        v.drawGrid({ color: 'rgba(255,255,255,0.04)' }); v.drawAxes({ color: 'rgba(255,255,255,0.2)', lineWidth: 1, arrows: false });
+        v.plotFn(x => x * x, { color: COL_PQ, alpha: 0.5 });
 
         const slope = 2 * x0;
         const y0 = x0 * x0;
         const tangent = x => y0 + slope * (x - x0);
-        plotCurve(tangent, COL_DX, 0.7, [6, 4]);
+        v.plotFn(tangent, { color: COL_DX, alpha: 0.7, dash: [6, 4] });
 
-        gdot(x0, y0, 6, COL_PQ);
+        v.dot(x0, y0, { radius: 6, color: COL_PQ });
 
         // Formula
         cx.font = '14px monospace'; cx.textAlign = 'center'; cx.fillStyle = COL_CURVE;
-        cx.fillText("f'(x) = lim  [f(x+Δx) − f(x)] / Δx", W/2, 22);
+        cx.fillText("f'(x) = lim  [f(x+\u0394x) \u2212 f(x)] / \u0394x", W/2, 22);
         cx.font = '10px monospace'; cx.fillStyle = 'rgba(255,255,255,0.35)';
-        cx.fillText('Δx→0', W/2 - 60, 34);
+        cx.fillText('\u0394x\u21920', W/2 - 60, 34);
 
         cx.font = '16px monospace'; cx.fillStyle = COL_PQ;
-        cx.fillText("f'(" + x0.toFixed(0) + ") = 2·" + x0.toFixed(0) + " = " + slope.toFixed(0), W/2, H - 16);
+        cx.fillText("f'(" + x0.toFixed(0) + ") = 2\u00B7" + x0.toFixed(0) + " = " + slope.toFixed(0), W/2, H - 16);
 
         // Link
         const el = document.getElementById('limit-link');

@@ -8,43 +8,10 @@
 <body>
 <script type="module">
 import { VizCore, T, COLORS } from '../lib/viz-core.js';
+import { GraphView } from '../lib/graph-core.js';
 
-const OX = 300, OY = 220, SC = 55;
-const px = x => OX + x * SC;
-const py = y => OY - y * SC;
-
-function drawGrid(cx, W, H) {
-  cx.strokeStyle = 'rgba(255,255,255,0.06)'; cx.lineWidth = 1;
-  for (let x = OX % SC; x < W; x += SC) { cx.beginPath(); cx.moveTo(x, 0); cx.lineTo(x, H); cx.stroke(); }
-  for (let y = OY % SC; y < H; y += SC) { cx.beginPath(); cx.moveTo(0, y); cx.lineTo(W, y); cx.stroke(); }
-}
-function drawAxes(cx, W, H) {
-  cx.strokeStyle = 'rgba(255,255,255,0.3)'; cx.lineWidth = 1.5;
-  cx.beginPath(); cx.moveTo(0, OY); cx.lineTo(W, OY); cx.stroke();
-  cx.beginPath(); cx.moveTo(OX, 0); cx.lineTo(OX, H); cx.stroke();
-  cx.font = '10px monospace'; cx.fillStyle = 'rgba(255,255,255,0.2)'; cx.textAlign = 'center';
-  for (let i = -4; i <= 4; i++) {
-    if (i === 0) continue;
-    const x = OX + i * SC;
-    if (x > 10 && x < W - 10) cx.fillText(i, x, OY + 13);
-  }
-}
-function plotFn(cx, W, fn, col, lw = 2, dash = []) {
-  cx.beginPath(); let first = true;
-  for (let sx = 0; sx < W; sx += 2) {
-    const x = (sx - OX) / SC;
-    try {
-      const y = fn(x);
-      if (!isFinite(y) || y > 6 || y < -4) { first = true; continue; }
-      if (first) { cx.moveTo(sx, py(y)); first = false; } else cx.lineTo(sx, py(y));
-    } catch { first = true; }
-  }
-  cx.strokeStyle = col; cx.lineWidth = lw; cx.setLineDash(dash);
-  cx.shadowColor = col; cx.shadowBlur = 4; cx.stroke(); cx.shadowBlur = 0; cx.setLineDash([]);
-}
-function gdot(cx, x, y, r, col) {
-  cx.beginPath(); cx.arc(px(x), py(y), r, 0, Math.PI * 2);
-  cx.fillStyle = col; cx.shadowColor = col; cx.shadowBlur = 10; cx.fill(); cx.shadowBlur = 0;
+function gv(cx, W, H) {
+  return new GraphView(cx, { xRange: [-4.5, 4.5], yRange: [-3, 6], rect: [0, 0, W, H] });
 }
 
 const { cx, W, H } = VizCore.init({
@@ -67,22 +34,20 @@ const { cx, W, H } = VizCore.init({
         const f = t => t * t;           // f(x) = x²
         const fg = t => f(g(t));        // f(g(x)) = (2x+1)²
 
-        drawGrid(cx, W, H); drawAxes(cx, W, H);
-        plotFn(cx, W, g,  COLORS.ORANGE, 1.5, [4,3]);
-        plotFn(cx, W, fg, COLORS.CYAN,   2.5);
+        const v = gv(cx, W, H);
+        v.drawGrid(); v.drawAxes();
+        v.plotFn(g,  { color: COLORS.ORANGE, lineWidth: 1.5, dash: [4,3], glow: 4 });
+        v.plotFn(fg, { color: COLORS.CYAN,   lineWidth: 2.5, glow: 4 });
 
         const gx = g(x), fgx = fg(x);
 
         // Show pipeline on canvas
-        // x → vertical → g(x) on orange line → horizontal → point on fg
-        cx.beginPath(); cx.moveTo(px(x), OY); cx.lineTo(px(x), py(gx));
-        cx.strokeStyle = COLORS.ORANGE; cx.lineWidth = 1.5; cx.setLineDash([3,3]); cx.stroke(); cx.setLineDash([]);
+        v.segment(x, 0, x, gx, { color: COLORS.ORANGE, lineWidth: 1.5, dash: [3,3] });
         if (fgx <= 6 && fgx >= -4) {
-          cx.beginPath(); cx.moveTo(px(x), py(gx)); cx.lineTo(px(x), py(fgx));
-          cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 1.5; cx.setLineDash([3,3]); cx.stroke(); cx.setLineDash([]);
+          v.segment(x, gx, x, fgx, { color: COLORS.CYAN, lineWidth: 1.5, dash: [3,3] });
         }
-        gdot(cx, x, gx, 5, COLORS.ORANGE);
-        if (fgx <= 6 && fgx >= -4) gdot(cx, x, fgx, 6, COLORS.CYAN);
+        v.dot(x, gx, { radius: 5, color: COLORS.ORANGE });
+        if (fgx <= 6 && fgx >= -4) v.dot(x, fgx, { radius: 6, color: COLORS.CYAN });
 
         const CX2 = W - 120, CY2 = 40;
         cx.font = '12px monospace'; cx.textAlign = 'left';
@@ -154,13 +119,14 @@ const { cx, W, H } = VizCore.init({
         const fg = t => f(g(t));   // (2x+1)²
         const gf = t => g(f(t));   // 2x²+1
 
-        drawGrid(cx, W, H); drawAxes(cx, W, H);
-        plotFn(cx, W, fg, COLORS.CYAN, 2.5);
-        plotFn(cx, W, gf, COLORS.PINK, 2.5);
+        const v = gv(cx, W, H);
+        v.drawGrid(); v.drawAxes();
+        v.plotFn(fg, { color: COLORS.CYAN, lineWidth: 2.5, glow: 4 });
+        v.plotFn(gf, { color: COLORS.PINK, lineWidth: 2.5, glow: 4 });
 
         const fgx = fg(x), gfx = gf(x);
-        if (fgx <= 6 && fgx >= -4) gdot(cx, x, fgx, 6, COLORS.CYAN);
-        if (gfx <= 6 && gfx >= -4) gdot(cx, x, gfx, 6, COLORS.PINK);
+        if (fgx <= 6 && fgx >= -4) v.dot(x, fgx, { radius: 6, color: COLORS.CYAN });
+        if (gfx <= 6 && gfx >= -4) v.dot(x, gfx, { radius: 6, color: COLORS.PINK });
 
         cx.font = '12px monospace'; cx.textAlign = 'left';
         cx.fillStyle = COLORS.CYAN;
@@ -190,25 +156,23 @@ const { cx, W, H } = VizCore.init({
         const fi  = t => t / 2;
         const ffi = t => f(fi(t));  // = t
 
-        drawGrid(cx, W, H); drawAxes(cx, W, H);
+        const v = gv(cx, W, H);
+        v.drawGrid(); v.drawAxes();
         // y = x (identity)
-        cx.beginPath(); cx.moveTo(0, OY + OX); cx.lineTo(W, OY - (W - OX));
-        cx.strokeStyle = 'rgba(255,255,255,0.15)'; cx.lineWidth = 1; cx.setLineDash([4,4]); cx.stroke(); cx.setLineDash([]);
+        v.line(0, 0, 1, 1, { color: 'rgba(255,255,255,0.15)', lineWidth: 1, dash: [4,4] });
 
-        plotFn(cx, W, f,   COLORS.ORANGE, 2);
-        plotFn(cx, W, fi,  COLORS.GREEN,  2);
-        plotFn(cx, W, ffi, COLORS.CYAN,   2.5, [5,3]);
+        v.plotFn(f,   { color: COLORS.ORANGE, lineWidth: 2, glow: 4 });
+        v.plotFn(fi,  { color: COLORS.GREEN,  lineWidth: 2, glow: 4 });
+        v.plotFn(ffi, { color: COLORS.CYAN,   lineWidth: 2.5, dash: [5,3], glow: 4 });
 
         // Trace: x → f → f⁻¹ → x
         const fx = f(x), ffx = fi(fx);
-        gdot(cx, x, 0, 5, COLORS.YELLOW);
-        gdot(cx, x, fx, 5, COLORS.ORANGE);
-        gdot(cx, x, ffx, 6, COLORS.CYAN);
+        v.dot(x, 0,   { radius: 5, color: COLORS.YELLOW });
+        v.dot(x, fx,  { radius: 5, color: COLORS.ORANGE });
+        v.dot(x, ffx, { radius: 6, color: COLORS.CYAN });
 
-        cx.beginPath(); cx.moveTo(px(x), OY); cx.lineTo(px(x), py(fx));
-        cx.strokeStyle = COLORS.ORANGE; cx.lineWidth = 1.5; cx.setLineDash([3,3]); cx.stroke(); cx.setLineDash([]);
-        cx.beginPath(); cx.moveTo(px(x), py(fx)); cx.lineTo(px(x), py(ffx));
-        cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 1.5; cx.setLineDash([3,3]); cx.stroke(); cx.setLineDash([]);
+        v.segment(x, 0, x, fx,  { color: COLORS.ORANGE, lineWidth: 1.5, dash: [3,3] });
+        v.segment(x, fx, x, ffx, { color: COLORS.CYAN, lineWidth: 1.5, dash: [3,3] });
 
         cx.font = '12px monospace'; cx.textAlign = 'left';
         cx.fillStyle = COLORS.ORANGE; cx.fillText('f(x) = 2x', 14, 22);

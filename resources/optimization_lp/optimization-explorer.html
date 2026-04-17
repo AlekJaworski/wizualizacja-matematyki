@@ -42,8 +42,9 @@
   </div>
 </div>
 
-<script>
-(function(){
+<script type="module">
+import { GraphView } from '../lib/graph-core.js';
+{
   const cv = document.getElementById('cv');
   const cx = cv.getContext('2d');
   const W = 600, H = 310;
@@ -87,18 +88,6 @@
     cx.textAlign = 'center'; cx.fillText(xLabel, ox + xMax * sc / 2, oy + 16);
     cx.save(); cx.translate(ox - 16, oy - yMax * sc / 2); cx.rotate(-Math.PI/2);
     cx.fillText(yLabel, 0, 0); cx.restore();
-  }
-
-  function plotCustom(fn, ox, oy, sc, xMin, xMax, color, alpha) {
-    cx.save(); cx.strokeStyle = color; cx.globalAlpha = alpha; cx.lineWidth = 2;
-    cx.beginPath(); let first = true;
-    for (let x = xMin; x <= xMax; x += 0.05) {
-      const sx = ox + x * sc;
-      const sy = oy - fn(x) * sc;
-      if (sy < -50 || sy > H + 50) { first = true; continue; }
-      if (first) { cx.moveTo(sx, sy); first = false; } else cx.lineTo(sx, sy);
-    }
-    cx.stroke(); cx.restore();
   }
 
   function gdot(sx, sy, r, col) {
@@ -226,26 +215,15 @@
         { id: 'oc', lbl: 'c', color: '#83C167', min: -5, max: 5, step: 0.5, val: () => oc },
       ],
       draw() {
-        const OX2 = W/2, OY2 = H/2, SC2 = 30;
-        const pxf = (x) => OX2 + x * SC2;
-        const pyf = (y) => OY2 - y * SC2;
+        const SC2 = 30;
+        const gv = new GraphView(cx, { xRange: [-W/(2*SC2), W/(2*SC2)], yRange: [-H/(2*SC2), H/(2*SC2)], scale: SC2 });
 
-        cx.strokeStyle = 'rgba(255,255,255,0.04)'; cx.lineWidth = 0.7;
-        for (let x = -10; x <= 10; x++) { cx.beginPath(); cx.moveTo(pxf(x),0); cx.lineTo(pxf(x),H); cx.stroke(); }
-        for (let y = -5; y <= 5; y++) { cx.beginPath(); cx.moveTo(0,pyf(y)); cx.lineTo(W,pyf(y)); cx.stroke(); }
-        cx.strokeStyle = 'rgba(255,255,255,0.2)'; cx.lineWidth = 1;
-        cx.beginPath(); cx.moveTo(0,pyf(0)); cx.lineTo(W,pyf(0)); cx.stroke();
-        cx.beginPath(); cx.moveTo(pxf(0),0); cx.lineTo(pxf(0),H); cx.stroke();
+        gv.drawGrid();
+        gv.drawAxes({ ticks: false, labels: false, arrows: false });
 
         if (oa === 0) {
           const fn = (x) => ob * x + oc;
-          cx.save(); cx.strokeStyle = COL_PARA; cx.lineWidth = 2; cx.beginPath();
-          for (let sx = 0; sx <= W; sx += 2) {
-            const x = (sx - OX2) / SC2;
-            const sy = pyf(fn(x));
-            if (sx === 0) cx.moveTo(sx, sy); else cx.lineTo(sx, sy);
-          }
-          cx.stroke(); cx.restore();
+          gv.plotFn(fn, { color: COL_PARA });
           infoBox(T('a=0: prosta, brak ekstremum','a=0: line, no extremum'), W/2, 22, COL_PARA);
           return;
         }
@@ -254,21 +232,12 @@
         const vx = -ob / (2 * oa);
         const vy = fn(vx);
 
-        cx.save(); cx.strokeStyle = COL_PARA; cx.lineWidth = 2; cx.beginPath();
-        for (let sx = 0; sx <= W; sx += 2) {
-          const x = (sx - OX2) / SC2;
-          const y = fn(x);
-          const sy = pyf(y);
-          if (sy < -100 || sy > H + 100) { cx.moveTo(sx, sy); continue; }
-          if (sx === 0) cx.moveTo(sx, sy); else cx.lineTo(sx, sy);
-        }
-        cx.stroke(); cx.restore();
+        gv.plotFn(fn, { color: COL_PARA });
 
-        const svx = pxf(vx), svy = pyf(vy);
+        const svx = gv.px(vx), svy = gv.py(vy);
         if (svy > 0 && svy < H) {
           gdot(svx, svy, 6, COL_VERTEX);
-          cx.strokeStyle = COL_VERTEX + '40'; cx.lineWidth = 1; cx.setLineDash([3,3]);
-          cx.beginPath(); cx.moveTo(svx, svy); cx.lineTo(svx, pyf(0)); cx.stroke(); cx.setLineDash([]);
+          gv.segment(vx, vy, vx, 0, { color: COL_VERTEX + '40', lineWidth: 1, dash: [3, 3] });
           const kind = oa < 0 ? T('maks.','max') : T('min.','min');
           infoBox(kind + ': x=' + vx.toFixed(2) + ', f=' + vy.toFixed(2), svx, svy - 18, COL_VERTEX);
         }
@@ -399,7 +368,7 @@
 
   goTo(0);
   tick();
-})();
+}
 </script>
 </body>
 </html>

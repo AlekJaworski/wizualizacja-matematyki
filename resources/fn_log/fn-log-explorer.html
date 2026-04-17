@@ -8,47 +8,10 @@
 <body>
 <script type="module">
 import { VizCore, T, COLORS } from '../lib/viz-core.js';
+import { GraphView } from '../lib/graph-core.js';
 
-const OX = 150, OY = 220, SC = 60;
-const px = x => OX + x * SC;
-const py = y => OY - y * SC;
-
-function drawGrid(cx, W, H) {
-  cx.strokeStyle = 'rgba(255,255,255,0.06)'; cx.lineWidth = 1;
-  for (let x = OX % SC; x < W; x += SC) { cx.beginPath(); cx.moveTo(x, 0); cx.lineTo(x, H); cx.stroke(); }
-  for (let y = OY % SC; y < H; y += SC) { cx.beginPath(); cx.moveTo(0, y); cx.lineTo(W, y); cx.stroke(); }
-}
-function drawAxes(cx, W, H) {
-  cx.strokeStyle = 'rgba(255,255,255,0.3)'; cx.lineWidth = 1.5;
-  cx.beginPath(); cx.moveTo(0, OY); cx.lineTo(W, OY); cx.stroke();
-  cx.beginPath(); cx.moveTo(OX, 0); cx.lineTo(OX, H); cx.stroke();
-  cx.font = '10px monospace'; cx.fillStyle = 'rgba(255,255,255,0.25)'; cx.textAlign = 'center';
-  for (let i = -2; i <= 6; i++) {
-    if (i === 0) continue;
-    const x = OX + i * SC;
-    if (x > 10 && x < W - 10) cx.fillText(i, x, OY + 13);
-  }
-  for (let i = -3; i <= 3; i++) {
-    if (i === 0) continue;
-    const y = OY - i * SC;
-    if (y > 10 && y < H - 10) { cx.textAlign = 'right'; cx.fillText(i, OX - 5, y + 4); cx.textAlign = 'center'; }
-  }
-}
-function plotFn(cx, W, fn, col, lw = 2, dash = []) {
-  cx.beginPath(); let first = true;
-  for (let sx = 0; sx < W; sx += 2) {
-    const x = (sx - OX) / SC;
-    if (x <= 0) { first = true; continue; }
-    const y = fn(x);
-    if (!isFinite(y) || y > 5 || y < -5) { first = true; continue; }
-    if (first) { cx.moveTo(sx, py(y)); first = false; } else cx.lineTo(sx, py(y));
-  }
-  cx.strokeStyle = col; cx.lineWidth = lw; cx.setLineDash(dash);
-  cx.shadowColor = col; cx.shadowBlur = 4; cx.stroke(); cx.shadowBlur = 0; cx.setLineDash([]);
-}
-function gdot(cx, x, y, r, col) {
-  cx.beginPath(); cx.arc(px(x), py(y), r, 0, Math.PI * 2);
-  cx.fillStyle = col; cx.shadowColor = col; cx.shadowBlur = 10; cx.fill(); cx.shadowBlur = 0;
+function gv(cx, W, H) {
+  return new GraphView(cx, { xRange: [-2, 6], yRange: [-3, 3], rect: [0, 0, W, H] });
 }
 
 const { cx, W, H } = VizCore.init({
@@ -70,19 +33,17 @@ const { cx, W, H } = VizCore.init({
         const a = vals.a, x = vals.x;
         const logval = Math.log(x) / Math.log(a);
 
-        drawGrid(cx, W, H); drawAxes(cx, W, H);
-        plotFn(cx, W, t => Math.log(t) / Math.log(a), COLORS.CYAN, 2.5);
+        const g = gv(cx, W, H);
+        g.drawGrid(); g.drawAxes();
+        g.plotFn(t => Math.log(t) / Math.log(a), { color: COLORS.CYAN, glow: 4 });
 
         // Vertical asymptote
-        cx.beginPath(); cx.moveTo(OX, 0); cx.lineTo(OX, H);
-        cx.strokeStyle = 'rgba(255,107,53,0.3)'; cx.lineWidth = 1; cx.setLineDash([5,4]); cx.stroke(); cx.setLineDash([]);
+        g.verticalLine(0, { color: 'rgba(255,107,53,0.3)', lineWidth: 1, dash: [5,4] });
 
         // Highlight point
-        cx.beginPath(); cx.moveTo(px(x), OY); cx.lineTo(px(x), py(logval));
-        cx.strokeStyle = 'rgba(255,209,102,0.4)'; cx.lineWidth = 1.5; cx.setLineDash([3,3]); cx.stroke(); cx.setLineDash([]);
-        cx.beginPath(); cx.moveTo(OX, py(logval)); cx.lineTo(px(x), py(logval));
-        cx.strokeStyle = 'rgba(255,209,102,0.4)'; cx.lineWidth = 1.5; cx.setLineDash([3,3]); cx.stroke(); cx.setLineDash([]);
-        gdot(cx, x, logval, 6, COLORS.YELLOW);
+        g.segment(x, 0, x, logval, { color: 'rgba(255,209,102,0.4)', lineWidth: 1.5, dash: [3,3] });
+        g.segment(0, logval, x, logval, { color: 'rgba(255,209,102,0.4)', lineWidth: 1.5, dash: [3,3] });
+        g.dot(x, logval, { radius: 6, color: COLORS.YELLOW });
 
         cx.font = '13px monospace'; cx.textAlign = 'left';
         cx.fillStyle = COLORS.CYAN;
@@ -105,26 +66,24 @@ const { cx, W, H } = VizCore.init({
       ],
       draw(cx, W, H, vals) {
         const a = vals.a;
-        drawGrid(cx, W, H); drawAxes(cx, W, H);
+        const g = gv(cx, W, H);
+        g.drawGrid(); g.drawAxes();
 
         // y = x mirror line
-        cx.beginPath(); cx.moveTo(0, OY + OX); cx.lineTo(W, OY - (W - OX));
-        cx.strokeStyle = 'rgba(255,255,255,0.15)'; cx.lineWidth = 1; cx.setLineDash([4,4]); cx.stroke(); cx.setLineDash([]);
-        cx.font = '11px monospace'; cx.textAlign = 'left';
-        cx.fillStyle = 'rgba(255,255,255,0.25)'; cx.fillText('y = x', W - 70, 20);
+        g.plotFn(x => x, { color: 'rgba(255,255,255,0.15)', lineWidth: 1, dash: [4,4] });
+        g.label('y = x', 2.5, 2.5, { color: 'rgba(255,255,255,0.25)', font: '11px monospace', offsetX: 4, offsetY: -4 });
 
         // aˣ (orange)
-        plotFn(cx, W, x => Math.pow(a, x), COLORS.ORANGE, 2);
+        g.plotFn(x => Math.pow(a, x), { color: COLORS.ORANGE, lineWidth: 2, glow: 4 });
         // log_a(x) (cyan)
-        plotFn(cx, W, x => x > 0 ? Math.log(x) / Math.log(a) : null, COLORS.CYAN, 2.5);
+        g.plotFn(x => x > 0 ? Math.log(x) / Math.log(a) : NaN, { color: COLORS.CYAN, glow: 4 });
 
         // Special points
-        gdot(cx, 0, 1, 5, COLORS.ORANGE);   // (0,1) on exp
-        gdot(cx, 1, 0, 5, COLORS.CYAN);     // (1,0) on log
+        g.dot(0, 1, { radius: 5, color: COLORS.ORANGE });   // (0,1) on exp
+        g.dot(1, 0, { radius: 5, color: COLORS.CYAN });     // (1,0) on log
 
-        cx.font = '12px monospace'; cx.textAlign = 'left';
-        cx.fillStyle = COLORS.ORANGE; cx.fillText(a.toFixed(1) + 'ˣ', W - 55, py(3) - 8);
-        cx.fillStyle = COLORS.CYAN;   cx.fillText('log' + a.toFixed(1) + '(x)', px(4) + 5, py(1.2));
+        g.label(a.toFixed(1) + 'ˣ', 5.5, 3, { color: COLORS.ORANGE, font: '12px monospace' });
+        g.label('log' + a.toFixed(1) + '(x)', 4, 1.2, { color: COLORS.CYAN, font: '12px monospace', offsetX: 5 });
       },
     },
 
@@ -278,24 +237,20 @@ const { cx, W, H } = VizCore.init({
       ],
       draw(cx, W, H, vals) {
         const x = vals.x;
-        drawGrid(cx, W, H); drawAxes(cx, W, H);
+        const g = gv(cx, W, H);
+        g.drawGrid(); g.drawAxes();
 
         // ln curve
-        plotFn(cx, W, t => t > 0 ? Math.log(t) : null, COLORS.CYAN, 2.5);
-        // Tangent at x: slope = 1/x
-        const slope = 1 / x, yAtX = Math.log(x);
-        const x1 = x - 1.5, x2 = x + 1.5;
-        cx.beginPath();
-        cx.moveTo(px(x1), py(yAtX + slope * (x1 - x)));
-        cx.lineTo(px(x2), py(yAtX + slope * (x2 - x)));
-        cx.strokeStyle = COLORS.ORANGE; cx.lineWidth = 1.5; cx.setLineDash([4,3]); cx.stroke(); cx.setLineDash([]);
+        g.plotFn(t => t > 0 ? Math.log(t) : NaN, { color: COLORS.CYAN, glow: 4 });
+        // Tangent at x
+        const lnFn = t => Math.log(t);
+        g.tangentLine(lnFn, x, { color: COLORS.ORANGE, lineWidth: 1.5, dash: [4,3], derivFn: t => 1/t });
 
-        gdot(cx, x, yAtX, 6, COLORS.YELLOW);
+        const yAtX = Math.log(x);
+        g.dot(x, yAtX, { radius: 6, color: COLORS.YELLOW });
         // Mark e on axis
-        cx.beginPath(); cx.moveTo(px(Math.E), OY - 5); cx.lineTo(px(Math.E), OY + 5);
-        cx.strokeStyle = COLORS.GREEN; cx.lineWidth = 1.5; cx.stroke();
-        cx.font = '11px monospace'; cx.textAlign = 'center';
-        cx.fillStyle = COLORS.GREEN; cx.fillText('e', px(Math.E), OY + 16);
+        g.segment(Math.E, -0.08, Math.E, 0.08, { color: COLORS.GREEN, lineWidth: 1.5 });
+        g.label('e', Math.E, 0, { color: COLORS.GREEN, font: '11px monospace', align: 'center', offsetY: 16 });
 
         cx.font = '13px monospace'; cx.textAlign = 'left';
         cx.fillStyle = COLORS.CYAN; cx.fillText('ln(x) = log_e(x)', 14, 22);

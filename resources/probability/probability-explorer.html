@@ -44,7 +44,8 @@
   </div>
 </div>
 
-<script>
+<script type="module">
+import { GraphView } from '../lib/graph-core.js';
 (function(){
 const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
 const T = (pl, en) => LANG === 'pl' ? pl : en;
@@ -167,9 +168,10 @@ document.getElementById('qnext').addEventListener('click',()=>goTo(stageIdx+1));
 // ── Drawing helpers ────────────────────────────────────────────
 function clear(){cx.fillStyle='#0e0e12';cx.fillRect(0,0,W,H);}
 
+const _gvHelper = new GraphView(cx, { rect: [0, 0, W, H], xRange: [0, W], yRange: [0, H] });
+
 function gdot(x,y,r,col){
-  cx.beginPath();cx.arc(x,y,r,0,Math.PI*2);cx.fillStyle=col;
-  cx.shadowColor=col;cx.shadowBlur=12;cx.fill();cx.shadowBlur=0;
+  _gvHelper.dotScreen(x,y,{radius:r,color:col});
 }
 
 function roundRect(x,y,w,h,r){

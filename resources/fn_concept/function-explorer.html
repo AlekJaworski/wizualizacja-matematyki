@@ -42,7 +42,9 @@
   </div>
 </div>
 
-<script>
+<script type="module">
+import { GraphView } from '../lib/graph-core.js';
+
 (function(){
   const cv = document.getElementById('cv');
   const cx = cv.getContext('2d');
@@ -81,38 +83,8 @@
     cx.closePath();
   }
 
-  function gdot(sx, sy, r, col) {
-    cx.beginPath(); cx.arc(sx, sy, r, 0, Math.PI*2);
-    cx.fillStyle = col; cx.shadowColor = col; cx.shadowBlur = 10; cx.fill(); cx.shadowBlur = 0;
-  }
-
-  // Graph coords
-  const GOX = W/2, GOY = H*0.55, GSC = 30;
-  function gx(x) { return GOX + x * GSC; }
-  function gy(y) { return GOY - y * GSC; }
-
-  function drawGrid() {
-    cx.strokeStyle = 'rgba(255,255,255,0.04)'; cx.lineWidth = 0.7;
-    for (let x=-10;x<=10;x++){cx.beginPath();cx.moveTo(gx(x),0);cx.lineTo(gx(x),H);cx.stroke();}
-    for (let y=-5;y<=10;y++){cx.beginPath();cx.moveTo(0,gy(y));cx.lineTo(W,gy(y));cx.stroke();}
-  }
-  function drawAxes() {
-    cx.strokeStyle = 'rgba(255,255,255,0.2)'; cx.lineWidth = 1;
-    cx.beginPath();cx.moveTo(0,gy(0));cx.lineTo(W,gy(0));cx.stroke();
-    cx.beginPath();cx.moveTo(gx(0),0);cx.lineTo(gx(0),H);cx.stroke();
-    cx.fillStyle='rgba(255,255,255,0.2)';cx.font='9px monospace';cx.textAlign='center';
-    for(let x=-9;x<=9;x++){if(x===0)continue;cx.fillText(x,gx(x),gy(0)+12);}
-  }
-
-  function plotFn(fn, col, alpha) {
-    cx.save(); cx.strokeStyle=col; cx.globalAlpha=alpha; cx.lineWidth=2;
-    cx.beginPath(); let s=false;
-    for(let sx=0;sx<=W;sx+=2){
-      const x=(sx-GOX)/GSC, y=fn(x), sy=gy(y);
-      if(sy<-50||sy>H+50){s=false;continue;}
-      if(!s){cx.moveTo(sx,sy);s=true;}else cx.lineTo(sx,sy);
-    }
-    cx.stroke(); cx.restore();
+  function makeGV() {
+    return new GraphView(cx, { xRange: [-10, 10], yRange: [-5, 10], rect: [0, 0, W, H] });
   }
 
   // ── Stages ───────────────────────────────────────────────────
@@ -178,24 +150,22 @@
         { id: 'fn', lbl: 'f', color: COL_BOX, min: 0, max: 2, step: 1, val: fnType },
       ],
       draw() {
-        drawGrid(); drawAxes();
-        plotFn(FNS[fnType].fn, COL_OUT, 0.7);
+        const g = makeGV();
+        g.drawGrid(); g.drawAxes();
+        g.plotFn(FNS[fnType].fn, { color: COL_OUT, alpha: 0.7 });
 
         const y = f(x0);
 
         // Dashed lines to axes
-        cx.strokeStyle = 'rgba(255,255,255,0.15)'; cx.lineWidth = 1; cx.setLineDash([4,4]);
-        cx.beginPath(); cx.moveTo(gx(x0), gy(0)); cx.lineTo(gx(x0), gy(y)); cx.stroke();
-        cx.beginPath(); cx.moveTo(gx(0), gy(y)); cx.lineTo(gx(x0), gy(y)); cx.stroke();
-        cx.setLineDash([]);
+        g.segment(x0, 0, x0, y, { color: 'rgba(255,255,255,0.15)', lineWidth: 1, dash: [4,4] });
+        g.segment(0, y, x0, y, { color: 'rgba(255,255,255,0.15)', lineWidth: 1, dash: [4,4] });
 
         // Point
-        gdot(gx(x0), gy(y), 6, COL_OUT);
+        g.dot(x0, y, { radius: 6, color: COL_OUT });
 
         // Labels
-        cx.font = '11px monospace'; cx.textAlign = 'left';
-        cx.fillStyle = COL_IN; cx.fillText('x = ' + x0.toFixed(1), gx(x0) + 10, gy(0) + 14);
-        cx.fillStyle = COL_OUT; cx.fillText('f(x) = ' + y.toFixed(1), gx(0) + 8, gy(y) - 6);
+        g.label('x = ' + x0.toFixed(1), x0, 0, { color: COL_IN, font: '11px monospace', offsetX: 10, offsetY: 14 });
+        g.label('f(x) = ' + y.toFixed(1), 0, y, { color: COL_OUT, font: '11px monospace', offsetX: 8, offsetY: -6 });
 
         cx.font = '12px monospace'; cx.textAlign = 'center'; cx.fillStyle = COL_BOX;
         cx.fillText(FNS[fnType].labelShort, W/2, 20);
@@ -212,21 +182,18 @@
       ],
       draw() {
         fnType = 1; // x²
-        drawGrid(); drawAxes();
-        plotFn(x => x*x, COL_OUT, 0.6);
+        const g = makeGV();
+        g.drawGrid(); g.drawAxes();
+        g.plotFn(x => x*x, { color: COL_OUT, alpha: 0.6 });
 
         // Highlight domain (x-axis)
-        cx.strokeStyle = COL_DOM; cx.lineWidth = 3; cx.globalAlpha = 0.4;
-        cx.beginPath(); cx.moveTo(0, gy(0)); cx.lineTo(W, gy(0)); cx.stroke();
-        cx.globalAlpha = 1;
+        g.horizontalLine(0, { color: COL_DOM, lineWidth: 3, alpha: 0.4, dash: [] });
 
         // Highlight range (y-axis, y>=0 only)
-        cx.strokeStyle = COL_RNG; cx.lineWidth = 3; cx.globalAlpha = 0.4;
-        cx.beginPath(); cx.moveTo(gx(0), gy(0)); cx.lineTo(gx(0), 0); cx.stroke();
-        cx.globalAlpha = 1;
+        g.segment(0, 0, 0, 10, { color: COL_RNG, lineWidth: 3, alpha: 0.4 });
 
         const y = x0 * x0;
-        gdot(gx(x0), gy(y), 5, COL_OUT);
+        g.dot(x0, y, { radius: 5, color: COL_OUT });
 
         // Labels
         cx.font = '11px monospace'; cx.textAlign = 'left';
@@ -247,30 +214,27 @@
         { id: 'x0', lbl: 'x', color: COL_IN, min: -2.9, max: 2.9, step: 0.1, val: 0 },
       ],
       draw() {
-        drawGrid(); drawAxes();
+        const g = makeGV();
+        g.drawGrid(); g.drawAxes();
 
         // Draw circle x²+y²=9
         cx.strokeStyle = COL_BAD; cx.lineWidth = 2; cx.globalAlpha = 0.7;
-        cx.beginPath(); cx.arc(gx(0), gy(0), 3*GSC, 0, Math.PI*2); cx.stroke();
+        cx.beginPath(); cx.arc(g.px(0), g.py(0), 3*g.scale, 0, Math.PI*2); cx.stroke();
         cx.globalAlpha = 1;
 
         // Vertical line test
-        cx.strokeStyle = COL_IN + '40'; cx.lineWidth = 1; cx.setLineDash([4,4]);
-        cx.beginPath(); cx.moveTo(gx(x0), 0); cx.lineTo(gx(x0), H); cx.stroke();
-        cx.setLineDash([]);
+        g.verticalLine(x0, { color: COL_IN + '40', lineWidth: 1, dash: [4,4] });
 
         // Two intersection points (if |x0| < 3)
         const r2 = 9 - x0*x0;
         if (r2 > 0) {
           const y1 = Math.sqrt(r2);
           const y2 = -Math.sqrt(r2);
-          gdot(gx(x0), gy(y1), 6, COL_BAD);
-          gdot(gx(x0), gy(y2), 6, COL_BAD);
+          g.dot(x0, y1, { radius: 6, color: COL_BAD });
+          g.dot(x0, y2, { radius: 6, color: COL_BAD });
 
-          cx.font = '11px monospace'; cx.textAlign = 'left';
-          cx.fillStyle = COL_BAD;
-          cx.fillText('y = ' + y1.toFixed(1), gx(x0) + 10, gy(y1));
-          cx.fillText('y = ' + y2.toFixed(1), gx(x0) + 10, gy(y2));
+          g.label('y = ' + y1.toFixed(1), x0, y1, { color: COL_BAD, font: '11px monospace', offsetX: 10 });
+          g.label('y = ' + y2.toFixed(1), x0, y2, { color: COL_BAD, font: '11px monospace', offsetX: 10 });
 
           // "TWO outputs!" label
           cx.font = '13px monospace'; cx.textAlign = 'center'; cx.fillStyle = COL_BAD;
@@ -291,17 +255,18 @@
         { id: 'x0', lbl: 'x', color: COL_IN, min: -4, max: 4, step: 0.1, val: 1 },
       ],
       draw() {
-        drawGrid(); drawAxes();
+        const g = makeGV();
+        g.drawGrid(); g.drawAxes();
 
         // Parabola (left half)
         cx.save(); cx.rect(0, 0, W/2 - 10, H); cx.clip();
-        plotFn(x => x*x, COL_OUT, 0.6);
+        g.plotFn(x => x*x, { color: COL_OUT, alpha: 0.6 });
         cx.restore();
 
         // Circle (right half)
         cx.save(); cx.rect(W/2 + 10, 0, W/2, H); cx.clip();
         cx.strokeStyle = COL_BAD; cx.lineWidth = 2; cx.globalAlpha = 0.6;
-        cx.beginPath(); cx.arc(gx(0), gy(0), 3*GSC, 0, Math.PI*2); cx.stroke();
+        cx.beginPath(); cx.arc(g.px(0), g.py(0), 3*g.scale, 0, Math.PI*2); cx.stroke();
         cx.globalAlpha = 1;
         cx.restore();
 
@@ -315,26 +280,22 @@
         cx.fillStyle = COL_BAD; cx.fillText(T('✗ nie funkcja', '✗ not function'), W*0.75, 22);
 
         // Vertical test line on both
-        cx.strokeStyle = COL_IN + '50'; cx.lineWidth = 1.5; cx.setLineDash([4,4]);
-        cx.beginPath(); cx.moveTo(gx(x0), 0); cx.lineTo(gx(x0), H); cx.stroke();
-        cx.setLineDash([]);
+        g.verticalLine(x0, { color: COL_IN + '50', lineWidth: 1.5, dash: [4,4] });
 
         // Parabola intersection (1 point)
-        const py = x0*x0;
-        if (gx(x0) < W/2) {
-          gdot(gx(x0), gy(py), 5, COL_OUT);
-          cx.font='10px monospace'; cx.fillStyle=COL_OUT; cx.textAlign='left';
-          cx.fillText(T('1 punkt ✓','1 point ✓'), gx(x0)+8, gy(py)-8);
+        const parY = x0*x0;
+        if (g.px(x0) < W/2) {
+          g.dot(x0, parY, { radius: 5, color: COL_OUT });
+          g.label(T('1 punkt ✓','1 point ✓'), x0, parY, { color: COL_OUT, font: '10px monospace', offsetX: 8, offsetY: -8 });
         }
 
         // Circle intersections (0 or 2)
         const r2 = 9 - x0*x0;
-        if (r2 > 0 && gx(x0) > W/2) {
+        if (r2 > 0 && g.px(x0) > W/2) {
           const y1 = Math.sqrt(r2), y2 = -Math.sqrt(r2);
-          gdot(gx(x0), gy(y1), 5, COL_BAD);
-          gdot(gx(x0), gy(y2), 5, COL_BAD);
-          cx.font='10px monospace'; cx.fillStyle=COL_BAD; cx.textAlign='left';
-          cx.fillText(T('2 punkty ✗','2 points ✗'), gx(x0)+8, gy(y1)-8);
+          g.dot(x0, y1, { radius: 5, color: COL_BAD });
+          g.dot(x0, y2, { radius: 5, color: COL_BAD });
+          g.label(T('2 punkty ✗','2 points ✗'), x0, y1, { color: COL_BAD, font: '10px monospace', offsetX: 8, offsetY: -8 });
         }
       }
     },

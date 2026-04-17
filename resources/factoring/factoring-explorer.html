@@ -44,8 +44,9 @@
   </div>
 </div>
 
-<script>
-(function(){
+<script type="module">
+import { GraphView } from '../lib/graph-core.js';
+{
   const cv = document.getElementById('cv');
   const cx = cv.getContext('2d');
   const W = 600, H = 420;
@@ -60,10 +61,14 @@
   const COL_SCALED = '#FFD166'; // scaled line (yellow)
   const COL_CURSOR = 'rgba(255,255,255,0.25)';
 
-  // Coordinate system
-  const OX = W / 2, OY = Math.round(H * 0.45), SC = 40;
-  function px(x) { return OX + x * SC; }
-  function py(y) { return OY - y * SC; }
+  // GraphView for coordinate transforms, grid, axes
+  let view;
+  function initView() {
+    view = new GraphView(cx, { rect: [0,0,W,H], xRange: [-7.5,7.5], yRange: [-5.775,4.725], scale: 40 });
+  }
+  initView();
+  function px(x) { return view.px(x); }
+  function py(y) { return view.py(y); }
 
   // State
   let r1 = -2, r2 = 2, x0 = 1.5;
@@ -72,78 +77,25 @@
   let animating = false;
   let animX = -5;
 
-  // ── Drawing helpers ──────────────────────────────────────────
-  function clear() {
-    cx.fillStyle = '#0e0e12';
-    cx.fillRect(0, 0, W, H);
-  }
+  // ── Drawing helpers (delegated to GraphView) ─────────────────
+  function clear() { initView(); view.clear(); }
 
-  function drawGrid() {
-    cx.strokeStyle = 'rgba(255,255,255,0.04)';
-    cx.lineWidth = 0.7;
-    for (let x = -7; x <= 7; x++) {
-      cx.beginPath(); cx.moveTo(px(x), 0); cx.lineTo(px(x), H); cx.stroke();
-    }
-    for (let y = -6; y <= 5; y++) {
-      cx.beginPath(); cx.moveTo(0, py(y)); cx.lineTo(W, py(y)); cx.stroke();
-    }
-  }
+  function drawGrid() { view.drawGrid({ color: 'rgba(255,255,255,0.04)' }); }
 
   function drawAxes() {
-    cx.strokeStyle = 'rgba(255,255,255,0.2)';
-    cx.lineWidth = 1;
-    cx.beginPath(); cx.moveTo(0, py(0)); cx.lineTo(W, py(0)); cx.stroke();
-    cx.beginPath(); cx.moveTo(px(0), 0); cx.lineTo(px(0), H); cx.stroke();
-
-    cx.fillStyle = 'rgba(255,255,255,0.25)';
-    cx.font = '9px monospace';
-    cx.textAlign = 'center';
-    for (let x = -6; x <= 6; x++) {
-      if (x === 0) continue;
-      cx.fillText(x, px(x), py(0) + 13);
-    }
-    cx.textAlign = 'right';
-    for (let y = -5; y <= 4; y++) {
-      if (y === 0) continue;
-      cx.fillText(y, px(0) - 6, py(y) + 3);
-    }
+    view.drawAxes({ color: 'rgba(255,255,255,0.2)', arrows: false, labels: true, tickSize: 3 });
   }
 
   function plotLine(fn, color, alpha, dash) {
-    cx.save();
-    cx.strokeStyle = color;
-    cx.globalAlpha = alpha;
-    cx.lineWidth = 2;
-    if (dash) cx.setLineDash(dash);
-    cx.beginPath();
-    for (let sx = 0; sx <= W; sx += 2) {
-      const x = (sx - OX) / SC;
-      const y = fn(x);
-      const sy = py(y);
-      if (sy < -50 || sy > H + 50) { cx.moveTo(sx, sy); continue; }
-      if (sx === 0) cx.moveTo(sx, sy); else cx.lineTo(sx, sy);
-    }
-    cx.stroke();
-    cx.restore();
+    view.plotFn(fn, { color, alpha, lineWidth: 2, dash });
   }
 
   function gdot(x, y, r, col) {
-    cx.beginPath();
-    cx.arc(px(x), py(y), r, 0, Math.PI * 2);
-    cx.fillStyle = col;
-    cx.shadowColor = col;
-    cx.shadowBlur = 10;
-    cx.fill();
-    cx.shadowBlur = 0;
+    view.dot(x, y, { radius: r, color: col, glow: 10 });
   }
 
   function label(text, x, y, col, align, size) {
-    cx.save();
-    cx.font = (size || 11) + 'px monospace';
-    cx.fillStyle = col;
-    cx.textAlign = align || 'left';
-    cx.fillText(text, px(x), py(y));
-    cx.restore();
+    view.label(text, x, y, { color: col, align: align || 'left', font: (size || 11) + 'px monospace' });
   }
 
   function infoBox(text, sx, sy, col) {
@@ -500,7 +452,7 @@
 
   goTo(0);
   tick();
-})();
+}
 </script>
 </body>
 </html>

@@ -44,7 +44,8 @@
   </div>
 </div>
 
-<script>
+<script type="module">
+import { GraphView } from '../lib/graph-core.js';
 (function(){
   const cv = document.getElementById('cv');
   const cx = cv.getContext('2d');
@@ -86,46 +87,16 @@
   ];
 
   // ── Drawing helpers ──────────────────────────────────────────
+  // Lightweight GraphView used only for its dotScreen helper
+  const _gvHelper = new GraphView(cx, { rect: [0, 0, W, H], xRange: [0, W], yRange: [0, H] });
+
   function clear() {
     cx.fillStyle = '#0e0e12';
     cx.fillRect(0, 0, W, H);
   }
 
-  function drawGrid(xMin, xMax, yMin, yMax) {
-    cx.strokeStyle = 'rgba(255,255,255,0.04)';
-    cx.lineWidth = 0.7;
-    for (let x = Math.ceil(xMin); x <= Math.floor(xMax); x++) {
-      cx.beginPath(); cx.moveTo(px(x), 0); cx.lineTo(px(x), H); cx.stroke();
-    }
-    for (let y = Math.ceil(yMin); y <= Math.floor(yMax); y++) {
-      cx.beginPath(); cx.moveTo(0, py(y)); cx.lineTo(W, py(y)); cx.stroke();
-    }
-  }
-
-  function drawAxes(xMin, xMax, yMin, yMax) {
-    cx.strokeStyle = 'rgba(255,255,255,0.2)';
-    cx.lineWidth = 1;
-    cx.beginPath(); cx.moveTo(0, py(0)); cx.lineTo(W, py(0)); cx.stroke();
-    cx.beginPath(); cx.moveTo(px(0), 0); cx.lineTo(px(0), H); cx.stroke();
-
-    cx.fillStyle = 'rgba(255,255,255,0.25)';
-    cx.font = '9px monospace';
-    cx.textAlign = 'center';
-    for (let x = Math.ceil(xMin); x <= Math.floor(xMax); x++) {
-      if (x === 0) continue;
-      cx.fillText(x, px(x), py(0) + 13);
-    }
-    cx.textAlign = 'right';
-    for (let y = Math.ceil(yMin); y <= Math.floor(yMax); y++) {
-      if (y === 0) continue;
-      cx.fillText(y, px(0) - 6, py(y) + 3);
-    }
-  }
-
   function gdot(sx, sy, r, col) {
-    cx.beginPath(); cx.arc(sx, sy, r, 0, Math.PI * 2);
-    cx.fillStyle = col; cx.shadowColor = col; cx.shadowBlur = 12;
-    cx.fill(); cx.shadowBlur = 0;
+    _gvHelper.dotScreen(sx, sy, { radius: r, color: col });
   }
 
   function infoBox(text, sx, sy, col, alpha) {

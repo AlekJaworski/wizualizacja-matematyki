@@ -44,7 +44,9 @@
   </div>
 </div>
 
-<script>
+<script type="module">
+import { GraphView } from '../lib/graph-core.js';
+
 (function(){
   const cv = document.getElementById('cv');
   const cx = cv.getContext('2d');
@@ -227,55 +229,33 @@
       ],
       draw() {
         // Show on graph: f, g, fg, and tangent to fg
-        const GOX = W / 2, GOY = H * 0.65, GSC = 28;
-        function px(x) { return GOX + x * GSC; }
-        function py(y) { return GOY - y * GSC; }
+        const v = new GraphView(cx, { xRange: [-10, 10], yRange: [-3, 10], rect: [0, 0, W, H] });
+        v.drawGrid({ color: 'rgba(255,255,255,0.04)' });
+        v.drawAxes({ color: 'rgba(255,255,255,0.15)', lineWidth: 1, arrows: false, ticks: false, labels: false });
 
-        // Grid
-        cx.strokeStyle = 'rgba(255,255,255,0.04)'; cx.lineWidth = 0.7;
-        for (let x = -10; x <= 10; x++) { cx.beginPath(); cx.moveTo(px(x), 0); cx.lineTo(px(x), H); cx.stroke(); }
-        for (let y = -3; y <= 10; y++) { cx.beginPath(); cx.moveTo(0, py(y)); cx.lineTo(W, py(y)); cx.stroke(); }
-        cx.strokeStyle = 'rgba(255,255,255,0.15)'; cx.lineWidth = 1;
-        cx.beginPath(); cx.moveTo(0, py(0)); cx.lineTo(W, py(0)); cx.stroke();
-        cx.beginPath(); cx.moveTo(px(0), 0); cx.lineTo(px(0), H); cx.stroke();
-
-        // Plot f, g, fg
-        function plotFn(fn, col, alpha, dash) {
-          cx.save(); cx.strokeStyle = col; cx.globalAlpha = alpha; cx.lineWidth = 1.5;
-          if (dash) cx.setLineDash(dash);
-          cx.beginPath(); let s = false;
-          for (let sx = 0; sx <= W; sx += 2) {
-            const x = (sx - GOX) / GSC, y = fn(x), sy = py(y);
-            if (sy < -60 || sy > H + 60) { s = false; continue; }
-            if (!s) { cx.moveTo(sx, sy); s = true; } else cx.lineTo(sx, sy);
-          }
-          cx.stroke(); cx.restore();
-        }
-
-        plotFn(f, COL_F, 0.4, [4, 4]);
-        plotFn(g, COL_G, 0.4, [4, 4]);
-        plotFn(fg, COL_FG, 0.7);
+        v.plotFn(f,  { color: COL_F, alpha: 0.4, lineWidth: 1.5, dash: [4, 4] });
+        v.plotFn(g,  { color: COL_G, alpha: 0.4, lineWidth: 1.5, dash: [4, 4] });
+        v.plotFn(fg, { color: COL_FG, alpha: 0.7, lineWidth: 1.5 });
 
         // Tangent to fg at x0
         const fgVal = fg(x0);
         const fgSlope = fp(x0) * g(x0) + f(x0) * gp(x0);
         const tangent = x => fgVal + fgSlope * (x - x0);
-        plotFn(tangent, COL_DX, 0.6, [6, 4]);
+        v.plotFn(tangent, { color: COL_DX, alpha: 0.6, lineWidth: 1.5, dash: [6, 4] });
 
         // Point
-        cx.beginPath(); cx.arc(px(x0), py(fgVal), 5, 0, Math.PI * 2);
-        cx.fillStyle = COL_FG; cx.shadowColor = COL_FG; cx.shadowBlur = 10; cx.fill(); cx.shadowBlur = 0;
+        v.dot(x0, fgVal, { radius: 5, color: COL_FG });
 
         // Labels
         cx.font = '11px monospace'; cx.textAlign = 'left';
         cx.fillStyle = COL_F; cx.fillText('f(x)=x+1', 10, 18);
-        cx.fillStyle = COL_G; cx.fillText('g(x)=x²', 10, 32);
-        cx.fillStyle = COL_FG; cx.fillText('h=f·g', 10, 46);
+        cx.fillStyle = COL_G; cx.fillText('g(x)=x\u00B2', 10, 32);
+        cx.fillStyle = COL_FG; cx.fillText('h=f\u00B7g', 10, 46);
 
         cx.font = '12px monospace'; cx.textAlign = 'center';
         cx.fillStyle = COL_DX;
         cx.fillText("h'(" + x0.toFixed(0) + ") = f'g + fg' = " +
-          fp(x0).toFixed(0) + '·' + g(x0).toFixed(0) + ' + ' + f(x0).toFixed(0) + '·' + gp(x0).toFixed(0) +
+          fp(x0).toFixed(0) + '\u00B7' + g(x0).toFixed(0) + ' + ' + f(x0).toFixed(0) + '\u00B7' + gp(x0).toFixed(0) +
           ' = ' + fgSlope.toFixed(0), W/2, H - 10);
       }
     },
