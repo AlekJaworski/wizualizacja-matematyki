@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Liczby calkowite i podzielnosc — Eksplorator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+  #qf { margin: 0 0 5px; font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  #qd { margin: 0 0 10px; font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); min-height: 48px; white-space: pre-line; }
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 70px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+  .nav { display: flex; align-items: center; justify-content: space-between; }
+  button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  button:hover { background: rgba(255,255,255,.08); }
+  button:disabled { opacity: .3; cursor: default; }
+  #qdots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.18); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  #sliders-wrap { min-height: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="400"></canvas>
+  <div class="panel">
+    <p id="qf"></p>
+    <p id="qd"></p>
+    <div id="sliders-wrap"></div>
+    <div class="nav">
+      <button id="qprev">&larr;</button>
+      <div id="qdots"></div>
+      <button id="qnext">&rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const cv = document.getElementById('cv');
+  const cx = cv.getContext('2d');
+  const W = 600, H = 400;
+
+  const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
+  const T = (pl, en) => LANG === 'pl' ? pl : en;
+
+  // Colors
+  const CYAN   = '#58C4DD';
+  const ORANGE  = '#FF6B35';
+  const GREEN   = '#83C167';
+  const YELLOW  = '#FFD166';
+  const PINK    = '#E07090';
+  const PURPLE  = '#C080FF';
+  const DIM     = 'rgba(255,255,255,0.2)';
+
+  // Prime colors
+  const PRIME_COLORS = { 2: CYAN, 3: ORANGE, 5: GREEN, 7: YELLOW, 11: PINK, 13: PURPLE, 17: '#FF9999', 19: '#99DDFF', 23: '#DDFF99', 29: '#FFCC99', 31: '#CC99FF', 37: '#99FFDD', 41: '#FFDD99', 43: '#DD99FF', 47: '#99FFCC', 53: '#DDCCFF', 59: '#CCFFDD' };
+  function primeColor(p) { return PRIME_COLORS[p] || '#AAAAFF'; }
+
+  // State
+  let zoom = 4;
+  let divN = 360;
+  let factN = 60;
+  let gcdA = 84, gcdB = 56;
+  let lcmA = 12, lcmB = 8;
+  let stage = 0;
+
+  function clear() { cx.fillStyle = '#0e0e12'; cx.fillRect(0, 0, W, H); }
+
+  // ── Helpers ──────────────────────────────────────────────────
+
+  function primeFactorize(n) {
+    if (n < 2) return [];
+    const factors = [];
+    let d = 2;
+    while (d * d <= n) {
+      while (n % d === 0) { factors.push(d); n /= d; }
+      d++;
+    }
+    if (n > 1) factors.push(n);
+    return factors;
+  }
+
+  function gcd(a, b) { while (b) { [a, b] = [b, a % b]; } return a; }
+  function lcm(a, b) { return (a * b) / gcd(a, b); }
+
+  function gcdSteps(a, b) {
+    const steps = [];
+    while (b > 0) {
+      const q = Math.floor(a / b);
+      const r = a - q * b;
+      steps.push({ a, b, q, r });
+      a = b;
+      b = r;
+    }
+    return { steps, result: a };
+  }
+
+  function digitSum(n) {
+    return String(n).split('').reduce((s, d) => s + parseInt(d), 0);
+  }
+
+  // ── Drawing helpers ──────────────────────────────────────────
+
+  function drawTextC(text, x, y, font, color, align) {
+    cx.save();
+    cx.font = font || '13px monospace';
+    cx.fillStyle = color || 'rgba(255,255,255,0.7)';
+    cx.textAlign = align || 'center';
+    cx.textBaseline = 'middle';
+    cx.fillText(text, x, y);
+    cx.restore();
+  }
+
+  function drawGlow(text, x, y, font, color) {
+    cx.save();
+    cx.font = font || 'bold 22px monospace';
+    cx.textAlign = 'center';
+    cx.textBaseline = 'middle';
+    cx.fillStyle = color || YELLOW;
+    cx.shadowColor = color || YELLOW;
+    cx.shadowBlur = 15;
+    cx.fillText(text, x, y);
+    cx.shadowBlur = 0;
+    cx.restore();
+  }
+
+  // ── Stage 0: Number Line ─────────────────────────────────────
+
+  function drawNumberLine() {
+    const centerY = H * 0.45;
+    const margin = 50;
+    const lineW = W - 2 * margin;
+    const count = zoom * 2 + 1; // how many integers visible per side... zoom controls density
+    const range = Math.floor(zoom * 3); // integers from -range to +range
+    const step = lineW / (range * 2);
+
+    // Main line
+    cx.strokeStyle = 'rgba(255,255,255,0.3)';
+    cx.lineWidth = 2;
+    cx.beginPath();
+    cx.moveTo(margin, centerY);
+    cx.lineTo(W - margin, centerY);
+    cx.stroke();
+
+    // Arrow heads
+    cx.fillStyle = 'rgba(255,255,255,0.3)';
+    cx.beginPath();
+    cx.moveTo(W - margin, centerY);
+    cx.lineTo(W - margin - 10, centerY - 5);
+    cx.lineTo(W - margin - 10, centerY + 5);
+    cx.fill();
+    cx.beginPath();
+    cx.moveTo(margin, centerY);
+    cx.lineTo(margin + 10, centerY - 5);
+    cx.lineTo(margin + 10, centerY + 5);
+    cx.fill();
+
+    // Tick marks and labels
+    for (let i = -range; i <= range; i++) {
+      const x = W / 2 + i * step;
+      if (x < margin + 5 || x > W - margin - 5) continue;
+
+      let color;
+      if (i > 0) color = GREEN;
+      else if (i === 0) color = YELLOW;
+      else color = PINK;
+
+      // Tick
+      cx.strokeStyle = color;
+      cx.lineWidth = 1.5;
+      cx.beginPath();
+      cx.moveTo(x, centerY - 8);
+      cx.lineTo(x, centerY + 8);
+      cx.stroke();
+
+      // Dot
+      cx.beginPath();
+      cx.arc(x, centerY, 4, 0, Math.PI * 2);
+      cx.fillStyle = color;
+      cx.fill();
+
+      // Label
+      cx.font = step > 25 ? '12px monospace' : '10px monospace';
+      cx.fillStyle = color;
+      cx.textAlign = 'center';
+      cx.textBaseline = 'top';
+      cx.fillText(String(i), x, centerY + 14);
+    }
+
+    // Region labels
+    // Negatives region
+    const negEndX = W / 2 - step;
+    const negStartX = Math.max(margin + 15, W / 2 - range * step);
+    if (negEndX > negStartX) {
+      cx.save();
+      cx.strokeStyle = PINK;
+      cx.globalAlpha = 0.3;
+      cx.lineWidth = 1;
+      cx.setLineDash([4, 3]);
+      const bracketY = centerY - 30;
+      cx.beginPath();
+      cx.moveTo(negStartX, bracketY + 8);
+      cx.lineTo(negStartX, bracketY);
+      cx.lineTo(negEndX, bracketY);
+      cx.lineTo(negEndX, bracketY + 8);
+      cx.stroke();
+      cx.setLineDash([]);
+      cx.restore();
+      drawTextC(T('ujemne', 'negatives'), (negStartX + negEndX) / 2, centerY - 45, '10px monospace', PINK);
+    }
+
+    // Zero
+    drawTextC('0', W / 2, centerY - 45, 'bold 12px monospace', YELLOW);
+
+    // Naturals region
+    const natStartX = W / 2 + step;
+    const natEndX = Math.min(W - margin - 15, W / 2 + range * step);
+    if (natEndX > natStartX) {
+      cx.save();
+      cx.strokeStyle = GREEN;
+      cx.globalAlpha = 0.3;
+      cx.lineWidth = 1;
+      cx.setLineDash([4, 3]);
+      const bracketY = centerY - 30;
+      cx.beginPath();
+      cx.moveTo(natStartX, bracketY + 8);
+      cx.lineTo(natStartX, bracketY);
+      cx.lineTo(natEndX, bracketY);
+      cx.lineTo(natEndX, bracketY + 8);
+      cx.stroke();
+      cx.setLineDash([]);
+      cx.restore();
+    }
+
+    // Set labels at top
+    drawTextC('\u2124 = {..., -3, -2, -1, 0, 1, 2, 3, ...}', W / 2, 25, 'bold 14px monospace', CYAN);
+
+    // N label
+    drawTextC('\u2115', Math.min(W - margin - 30, (natStartX + natEndX) / 2), centerY - 45, 'bold 14px monospace', GREEN);
+
+    // Z label on left
+    drawTextC('\u2124', W / 2, centerY + 45, 'bold 16px monospace', CYAN);
+    cx.save();
+    cx.strokeStyle = CYAN;
+    cx.globalAlpha = 0.15;
+    cx.lineWidth = 1;
+    cx.setLineDash([4, 3]);
+    const fullLeft = Math.max(margin + 15, W / 2 - range * step);
+    const fullRight = Math.min(W - margin - 15, W / 2 + range * step);
+    const zBracketY = centerY + 35;
+    cx.beginPath();
+    cx.moveTo(fullLeft, zBracketY - 4);
+    cx.lineTo(fullLeft, zBracketY);
+    cx.lineTo(fullRight, zBracketY);
+    cx.lineTo(fullRight, zBracketY - 4);
+    cx.stroke();
+    cx.setLineDash([]);
+    cx.restore();
+
+    // Legend
+    const ly = H - 30;
+    cx.beginPath(); cx.arc(W / 2 - 140, ly, 5, 0, Math.PI * 2); cx.fillStyle = PINK; cx.fill();
+    drawTextC(T('ujemne', 'negatives'), W / 2 - 110, ly, '11px monospace', 'rgba(255,255,255,0.5)', 'left');
+    cx.beginPath(); cx.arc(W / 2 - 20, ly, 5, 0, Math.PI * 2); cx.fillStyle = YELLOW; cx.fill();
+    drawTextC('zero', W / 2 + 5, ly, '11px monospace', 'rgba(255,255,255,0.5)', 'left');
+    cx.beginPath(); cx.arc(W / 2 + 70, ly, 5, 0, Math.PI * 2); cx.fillStyle = GREEN; cx.fill();
+    drawTextC(T('naturalne', 'naturals'), W / 2 + 95, ly, '11px monospace', 'rgba(255,255,255,0.5)', 'left');
+  }
+
+  // ── Stage 1: Divisibility Rules ──────────────────────────────
+
+  function drawDivisibility() {
+    const n = divN;
+    const digits = String(n).split('').map(Number);
+    const lastDigit = digits[digits.length - 1];
+    const lastTwo = n % 100;
+    const dSum = digitSum(n);
+
+    // Number at top
+    drawGlow(String(n), W / 2, 35, 'bold 28px monospace', CYAN);
+
+    const rules = [
+      { d: 2,  pass: n % 2 === 0,  rule: T('ostatnia cyfra parzysta', 'last digit even'),          detail: T('ostatnia: ' + lastDigit, 'last: ' + lastDigit) },
+      { d: 3,  pass: n % 3 === 0,  rule: T('suma cyfr \u00F7 3', 'digit sum \u00F7 3'),            detail: digits.join('+') + ' = ' + dSum + (n % 3 === 0 ? ' \u2713' : '') },
+      { d: 4,  pass: n % 4 === 0,  rule: T('ostatnie 2 cyfry \u00F7 4', 'last 2 digits \u00F7 4'), detail: (n >= 100 ? '...' : '') + String(lastTwo).padStart(2, '0') + ' \u00F7 4 = ' + (lastTwo / 4).toFixed(lastTwo % 4 === 0 ? 0 : 1) },
+      { d: 5,  pass: n % 5 === 0,  rule: T('ostatnia 0 lub 5', 'last digit 0 or 5'),               detail: T('ostatnia: ' + lastDigit, 'last: ' + lastDigit) },
+      { d: 6,  pass: n % 6 === 0,  rule: T('\u00F7 2 i \u00F7 3', '\u00F7 2 and \u00F7 3'),       detail: (n % 2 === 0 ? '\u27132' : '\u27172') + ' ' + (n % 3 === 0 ? '\u27133' : '\u27173') },
+      { d: 8,  pass: n % 8 === 0,  rule: T('ostatnie 3 cyfry \u00F7 8', 'last 3 digits \u00F7 8'), detail: String(n % 1000) + ' \u00F7 8 = ' + (n % 1000 / 8).toFixed(n % 8 === 0 ? 0 : 1) },
+      { d: 9,  pass: n % 9 === 0,  rule: T('suma cyfr \u00F7 9', 'digit sum \u00F7 9'),            detail: digits.join('+') + ' = ' + dSum + (n % 9 === 0 ? ' \u2713' : '') },
+      { d: 10, pass: n % 10 === 0, rule: T('ostatnia cyfra 0', 'last digit 0'),                     detail: T('ostatnia: ' + lastDigit, 'last: ' + lastDigit) },
+    ];
+
+    const cols = 2;
+    const rows = 4;
+    const cellW = (W - 40) / cols;
+    const cellH = 72;
+    const startY = 65;
+    const startX = 20;
+
+    rules.forEach((r, i) => {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const x = startX + col * cellW;
+      const y = startY + row * cellH;
+
+      // Background
+      cx.fillStyle = r.pass ? 'rgba(131,193,103,0.08)' : 'rgba(255,255,255,0.02)';
+      cx.beginPath();
+      cx.roundRect(x + 2, y + 2, cellW - 4, cellH - 6, 6);
+      cx.fill();
+
+      // Border
+      cx.strokeStyle = r.pass ? 'rgba(131,193,103,0.3)' : 'rgba(255,255,255,0.06)';
+      cx.lineWidth = 1;
+      cx.beginPath();
+      cx.roundRect(x + 2, y + 2, cellW - 4, cellH - 6, 6);
+      cx.stroke();
+
+      // Divisor and check/cross
+      const mark = r.pass ? '\u2713' : '\u2717';
+      const markColor = r.pass ? GREEN : 'rgba(255,255,255,0.2)';
+      const textColor = r.pass ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.25)';
+
+      drawTextC('\u00F7' + r.d, x + 28, y + 20, 'bold 15px monospace', textColor);
+      drawTextC(mark, x + cellW - 25, y + 20, 'bold 16px monospace', markColor);
+
+      // Rule description
+      drawTextC(r.rule, x + cellW / 2, y + 40, '10px monospace', r.pass ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.18)', 'center');
+
+      // Detail
+      drawTextC(r.detail, x + cellW / 2, y + 56, '10px monospace', r.pass ? YELLOW : 'rgba(255,255,255,0.13)', 'center');
+    });
+
+    // Digits breakdown at bottom
+    const bottomY = H - 20;
+    drawTextC(T('Cyfry: ', 'Digits: ') + digits.join(', ') + '   |   ' + T('Suma cyfr: ', 'Digit sum: ') + dSum, W / 2, bottomY, '11px monospace', 'rgba(255,255,255,0.4)');
+  }
+
+  // ── Stage 2: Prime Factorization Tree ────────────────────────
+
+  function drawFactorTree() {
+    const n = factN;
+    if (n < 2) {
+      drawGlow(String(n), W / 2, H / 2, 'bold 28px monospace', CYAN);
+      drawTextC(T('Liczby 0 i 1 nie maja rozkladu', 'Numbers 0 and 1 have no factorization'), W / 2, H / 2 + 35, '12px monospace', 'rgba(255,255,255,0.5)');
+      return;
+    }
+
+    // Build factor tree nodes
+    const nodes = []; // { val, x, y, children:[], isPrime }
+    function buildTree(val) {
+      if (val < 2) return null;
+      const factors = [];
+      let d = 2;
+      let temp = val;
+      while (d * d <= temp) {
+        if (temp % d === 0) { factors.push(d); temp /= d; break; }
+        d++;
+      }
+      if (factors.length === 0) {
+        // It's prime
+        return { val, children: [], isPrime: true };
+      }
+      const f1 = factors[0];
+      const f2 = val / f1;
+      const left = buildTree(f1);
+      const right = buildTree(f2);
+      return { val, children: [left, right], isPrime: false };
+    }
+
+    const tree = buildTree(n);
+
+    // Compute depth
+    function depth(node) {
+      if (!node || node.children.length === 0) return 0;
+      return 1 + Math.max(...node.children.map(depth));
+    }
+    const d = depth(tree);
+
+    // Assign positions
+    const topY = 45;
+    const bottomY = Math.min(H - 80, topY + d * 65);
+    const levelH = d > 0 ? (bottomY - topY) / d : 0;
+
+    let leafIndex = 0;
+    function countLeaves(node) {
+      if (!node || node.children.length === 0) return 1;
+      return node.children.reduce((s, c) => s + countLeaves(c), 0);
+    }
+    const totalLeaves = countLeaves(tree);
+    const leafSpacing = Math.min(80, (W - 100) / Math.max(totalLeaves, 1));
+    const leafStartX = W / 2 - (totalLeaves - 1) * leafSpacing / 2;
+
+    function assignPos(node, level) {
+      if (!node) return;
+      if (node.children.length === 0) {
+        node.x = leafStartX + leafIndex * leafSpacing;
+        node.y = topY + level * levelH;
+        leafIndex++;
+      } else {
+        node.children.forEach(c => assignPos(c, level + 1));
+        node.x = (node.children[0].x + node.children[node.children.length - 1].x) / 2;
+        node.y = topY + level * levelH;
+      }
+    }
+    assignPos(tree, 0);
+
+    // Draw tree
+    function drawNode(node) {
+      if (!node) return;
+
+      // Draw edges to children
+      node.children.forEach(child => {
+        cx.strokeStyle = 'rgba(255,255,255,0.2)';
+        cx.lineWidth = 1.5;
+        cx.beginPath();
+        cx.moveTo(node.x, node.y + 12);
+        cx.lineTo(child.x, child.y - 12);
+        cx.stroke();
+        drawNode(child);
+      });
+
+      // Draw node
+      const r = node.isPrime ? 15 : 14;
+      const color = node.isPrime ? primeColor(node.val) : 'rgba(255,255,255,0.12)';
+      cx.beginPath();
+      cx.arc(node.x, node.y, r, 0, Math.PI * 2);
+      cx.fillStyle = color;
+      if (node.isPrime) {
+        cx.shadowColor = color;
+        cx.shadowBlur = 10;
+      }
+      cx.fill();
+      cx.shadowBlur = 0;
+
+      // Border for composites
+      if (!node.isPrime) {
+        cx.strokeStyle = 'rgba(255,255,255,0.25)';
+        cx.lineWidth = 1;
+        cx.beginPath();
+        cx.arc(node.x, node.y, r, 0, Math.PI * 2);
+        cx.stroke();
+      }
+
+      // Label
+      cx.font = node.val === n ? 'bold 13px monospace' : '12px monospace';
+      cx.fillStyle = node.isPrime ? '#000' : 'rgba(255,255,255,0.8)';
+      cx.textAlign = 'center';
+      cx.textBaseline = 'middle';
+      cx.fillText(String(node.val), node.x, node.y);
+    }
+    drawNode(tree);
+
+    // Prime factorization result at bottom
+    const primes = primeFactorize(n);
+    const counts = {};
+    primes.forEach(p => { counts[p] = (counts[p] || 0) + 1; });
+    const uniquePrimes = [...new Set(primes)];
+    const parts = uniquePrimes.map(p => {
+      const e = counts[p];
+      return e > 1 ? p + '^' + e : String(p);
+    });
+    const factStr = n + ' = ' + parts.join(' \u00B7 ');
+
+    drawGlow(factStr, W / 2, H - 40, 'bold 16px monospace', YELLOW);
+
+    // Legend for primes used
+    const legendY = H - 15;
+    const primeList = uniquePrimes;
+    const legendW = primeList.length * 55;
+    const legendStartX = W / 2 - legendW / 2;
+    primeList.forEach((p, i) => {
+      cx.beginPath();
+      cx.arc(legendStartX + i * 55 + 8, legendY, 5, 0, Math.PI * 2);
+      cx.fillStyle = primeColor(p);
+      cx.fill();
+      drawTextC(String(p), legendStartX + i * 55 + 28, legendY, '10px monospace', 'rgba(255,255,255,0.5)');
+    });
+  }
+
+  // ── Stage 3: GCD — Euclidean Algorithm ───────────────────────
+
+  function drawGCD() {
+    const a = Math.max(gcdA, gcdB);
+    const b = Math.min(gcdA, gcdB);
+    const { steps, result } = gcdSteps(a, b);
+
+    // Title
+    drawTextC('NWD(' + gcdA + ', ' + gcdB + ')', W / 2, 30, 'bold 18px monospace', CYAN);
+
+    // Steps
+    const startY = 65;
+    const lineH = 42;
+    const maxVisible = Math.min(steps.length, Math.floor((H - 120) / lineH));
+
+    // Animate steps appearing
+    const elapsed = Date.now() - animStartTime;
+    const stepsToShow = Math.min(maxVisible, Math.floor(elapsed / 600) + 1);
+
+    for (let i = 0; i < stepsToShow && i < maxVisible; i++) {
+      const s = steps[i];
+      const y = startY + i * lineH;
+
+      // Step number
+      drawTextC((i + 1) + '.', 30, y + 10, '11px monospace', 'rgba(255,255,255,0.3)', 'center');
+
+      // Equation:  a = q * b + r
+      const eqX = 55;
+      cx.font = '15px monospace';
+      cx.textAlign = 'left';
+      cx.textBaseline = 'middle';
+
+      // a
+      cx.fillStyle = 'rgba(255,255,255,0.8)';
+      cx.fillText(String(s.a), eqX, y + 10);
+
+      // =
+      const aW = cx.measureText(String(s.a)).width;
+      cx.fillStyle = 'rgba(255,255,255,0.4)';
+      cx.fillText(' = ', eqX + aW, y + 10);
+
+      // q (yellow)
+      const eqW = cx.measureText(' = ').width;
+      cx.fillStyle = YELLOW;
+      cx.fillText(String(s.q), eqX + aW + eqW, y + 10);
+
+      // " \u00B7 "
+      const qW = cx.measureText(String(s.q)).width;
+      cx.fillStyle = 'rgba(255,255,255,0.4)';
+      cx.fillText(' \u00B7 ', eqX + aW + eqW + qW, y + 10);
+
+      // b
+      const dotW = cx.measureText(' \u00B7 ').width;
+      cx.fillStyle = 'rgba(255,255,255,0.8)';
+      cx.fillText(String(s.b), eqX + aW + eqW + qW + dotW, y + 10);
+
+      // " + "
+      const bW = cx.measureText(String(s.b)).width;
+      cx.fillStyle = 'rgba(255,255,255,0.4)';
+      cx.fillText(' + ', eqX + aW + eqW + qW + dotW + bW, y + 10);
+
+      // r (cyan, or green if last step)
+      const plusW = cx.measureText(' + ').width;
+      const rColor = s.r === 0 ? GREEN : CYAN;
+      cx.fillStyle = rColor;
+      cx.font = 'bold 15px monospace';
+      cx.fillText(String(s.r), eqX + aW + eqW + qW + dotW + bW + plusW, y + 10);
+      cx.font = '15px monospace';
+
+      // Legend labels for this step
+      const rightX = W - 20;
+      cx.textAlign = 'right';
+      cx.fillStyle = YELLOW;
+      cx.font = '10px monospace';
+      cx.fillText(T('iloraz', 'quotient') + '=' + s.q, rightX, y + 2);
+      cx.fillStyle = rColor;
+      cx.fillText(T('reszta', 'remainder') + '=' + s.r, rightX, y + 18);
+
+      // Arrow to next step
+      if (i < stepsToShow - 1 && i < maxVisible - 1 && s.r > 0) {
+        cx.save();
+        cx.strokeStyle = 'rgba(255,255,255,0.15)';
+        cx.lineWidth = 1;
+        const arrowX = 25;
+        cx.beginPath();
+        cx.moveTo(arrowX, y + 22);
+        cx.lineTo(arrowX, y + lineH - 2);
+        cx.lineTo(arrowX + 6, y + lineH - 7);
+        cx.stroke();
+        cx.restore();
+      }
+    }
+
+    // Final result
+    if (stepsToShow >= steps.length) {
+      const resultY = startY + Math.min(steps.length, maxVisible) * lineH + 10;
+      drawGlow('NWD(' + gcdA + ', ' + gcdB + ') = ' + result, W / 2, Math.min(resultY, H - 30), 'bold 20px monospace', GREEN);
+    }
+  }
+
+  // ── Stage 4: LCM from GCD ───────────────────────────────────
+
+  function drawLCM() {
+    const a = lcmA, b = lcmB;
+    const g = gcd(a, b);
+    const l = lcm(a, b);
+
+    // Title / formula
+    drawTextC('NWW(' + a + ', ' + b + ') = ' + a + '\u00B7' + b + ' / NWD(' + a + ',' + b + ') = ' + (a * b) + ' / ' + g + ' = ' + l, W / 2, 25, '12px monospace', 'rgba(255,255,255,0.6)');
+
+    // GCD info
+    drawTextC('NWD(' + a + ', ' + b + ') = ' + g, W / 2, 48, '12px monospace', PURPLE);
+
+    // Two number lines
+    const margin = 50;
+    const lineW = W - 2 * margin;
+    const maxMult = l + Math.max(a, b); // show a bit past LCM
+    const scale = lineW / maxMult;
+
+    // Top line: multiples of a
+    const topY = 120;
+    cx.strokeStyle = 'rgba(255,255,255,0.2)';
+    cx.lineWidth = 1.5;
+    cx.beginPath();
+    cx.moveTo(margin, topY);
+    cx.lineTo(W - margin, topY);
+    cx.stroke();
+
+    drawTextC(T('wielokrotnosci ' + a, 'multiples of ' + a), margin - 5, topY - 25, '11px monospace', CYAN, 'left');
+
+    // Bottom line: multiples of b
+    const botY = 230;
+    cx.strokeStyle = 'rgba(255,255,255,0.2)';
+    cx.lineWidth = 1.5;
+    cx.beginPath();
+    cx.moveTo(margin, botY);
+    cx.lineTo(W - margin, botY);
+    cx.stroke();
+
+    drawTextC(T('wielokrotnosci ' + b, 'multiples of ' + b), margin - 5, botY - 25, '11px monospace', ORANGE, 'left');
+
+    // Draw multiples of a
+    for (let m = a; m <= maxMult; m += a) {
+      const x = margin + m * scale;
+      if (x > W - margin + 5) break;
+      const isCommon = m % b === 0;
+      const isLCM = m === l;
+
+      cx.beginPath();
+      cx.arc(x, topY, isLCM ? 8 : 5, 0, Math.PI * 2);
+      cx.fillStyle = isLCM ? GREEN : (isCommon ? GREEN : CYAN);
+      if (isLCM) { cx.shadowColor = GREEN; cx.shadowBlur = 15; }
+      cx.fill();
+      cx.shadowBlur = 0;
+
+      cx.font = '10px monospace';
+      cx.fillStyle = isLCM ? GREEN : (isCommon ? GREEN : CYAN);
+      cx.textAlign = 'center';
+      cx.textBaseline = 'bottom';
+      cx.fillText(String(m), x, topY - 10);
+    }
+
+    // Draw multiples of b
+    for (let m = b; m <= maxMult; m += b) {
+      const x = margin + m * scale;
+      if (x > W - margin + 5) break;
+      const isCommon = m % a === 0;
+      const isLCM = m === l;
+
+      cx.beginPath();
+      cx.arc(x, botY, isLCM ? 8 : 5, 0, Math.PI * 2);
+      cx.fillStyle = isLCM ? GREEN : (isCommon ? GREEN : ORANGE);
+      if (isLCM) { cx.shadowColor = GREEN; cx.shadowBlur = 15; }
+      cx.fill();
+      cx.shadowBlur = 0;
+
+      cx.font = '10px monospace';
+      cx.fillStyle = isLCM ? GREEN : (isCommon ? GREEN : ORANGE);
+      cx.textAlign = 'center';
+      cx.textBaseline = 'top';
+      cx.fillText(String(m), x, botY + 10);
+    }
+
+    // Draw green connecting lines for common multiples
+    for (let m = l; m <= maxMult; m += l) {
+      const x = margin + m * scale;
+      if (x > W - margin + 5) break;
+
+      cx.save();
+      cx.strokeStyle = GREEN;
+      cx.globalAlpha = m === l ? 0.6 : 0.25;
+      cx.lineWidth = m === l ? 2 : 1;
+      cx.setLineDash([4, 3]);
+      cx.beginPath();
+      cx.moveTo(x, topY + 10);
+      cx.lineTo(x, botY - 10);
+      cx.stroke();
+      cx.setLineDash([]);
+      cx.restore();
+
+      if (m === l) {
+        // LCM label
+        const pulse = 0.7 + 0.3 * Math.sin(Date.now() / 400);
+        cx.save();
+        cx.globalAlpha = pulse;
+        drawTextC('NWW = ' + l, x, (topY + botY) / 2, 'bold 14px monospace', GREEN);
+        cx.restore();
+      }
+    }
+
+    // Result at bottom
+    drawGlow('NWW(' + a + ', ' + b + ') = ' + l, W / 2, H - 60, 'bold 20px monospace', GREEN);
+
+    // Legend
+    const ly = H - 25;
+    cx.beginPath(); cx.arc(W / 2 - 130, ly, 5, 0, Math.PI * 2); cx.fillStyle = CYAN; cx.fill();
+    drawTextC(T('wielokr. ' + a, 'mult. of ' + a), W / 2 - 105, ly, '10px monospace', 'rgba(255,255,255,0.45)', 'left');
+    cx.beginPath(); cx.arc(W / 2 - 10, ly, 5, 0, Math.PI * 2); cx.fillStyle = ORANGE; cx.fill();
+    drawTextC(T('wielokr. ' + b, 'mult. of ' + b), W / 2 + 15, ly, '10px monospace', 'rgba(255,255,255,0.45)', 'left');
+    cx.beginPath(); cx.arc(W / 2 + 110, ly, 5, 0, Math.PI * 2); cx.fillStyle = GREEN; cx.fill();
+    drawTextC(T('wspolne', 'common'), W / 2 + 130, ly, '10px monospace', 'rgba(255,255,255,0.45)', 'left');
+  }
+
+  // ── Stages Definition ────────────────────────────────────────
+
+  let animStartTime = 0;
+
+  const stages_def = [
+    {
+      title: () => T('Os liczbowa', 'Number Line'),
+      desc: () => T(
+        'Liczby calkowite to zbior {..., -3, -2, -1, 0, 1, 2, 3, ...}. Rozszerzaja liczby naturalne o zero i liczby ujemne. Przesun suwak, zeby zobaczyc, jak gesto rozmieszczone sa liczby na osi.',
+        'Integers are the set {..., -3, -2, -1, 0, 1, 2, 3, ...}. They extend the naturals by adding zero and negatives. Slide to see how densely numbers are spaced on the line.'
+      ),
+      sliders: [
+        { id: 'zoom', lbl: 'zoom', color: CYAN, min: 1, max: 10, step: 1, val: () => zoom },
+      ],
+      draw: drawNumberLine
+    },
+    {
+      title: () => T('Cechy podzielnosci', 'Divisibility Rules'),
+      desc: () => T(
+        'Kazda liczba niesie ukryte informacje o swoich dzielnikach. Zmien liczbe suwakiem i sprawdz, ktore cechy podzielnosci spelnia \u2014 i DLACZEGO.',
+        'Every number carries hidden info about its divisors. Change the number and check which divisibility rules it satisfies \u2014 and WHY.'
+      ),
+      sliders: [
+        { id: 'divN', lbl: 'n', color: CYAN, min: 2, max: 999, step: 1, val: () => divN },
+      ],
+      draw: drawDivisibility
+    },
+    {
+      title: () => T('Rozklad na czynniki pierwsze', 'Prime Factorization'),
+      desc: () => T(
+        'Kazda liczba wieksza od 1 rozklada sie na iloczyn liczb pierwszych \u2014 i ten rozklad jest JEDYNY (twierdzenie o jednoznacznosci). Przesun suwak i obserwuj drzewo rozkladu.',
+        'Every number greater than 1 factors into a product of primes \u2014 and this factorization is UNIQUE (fundamental theorem). Slide and watch the factor tree.'
+      ),
+      sliders: [
+        { id: 'factN', lbl: 'n', color: CYAN, min: 2, max: 120, step: 1, val: () => factN },
+      ],
+      draw: drawFactorTree
+    },
+    {
+      title: () => T('NWD \u2014 algorytm Euklidesa', 'GCD \u2014 Euclidean Algorithm'),
+      desc: () => T(
+        'Algorytm Euklidesa to elegancki sposob na znalezienie najwiekszego wspolnego dzielnika. Dzielimy z reszta, reszta staje sie dzielnikiem, powtarzamy \u2014 az reszta wyniesie 0. Ostatnia niezerowa reszta to NWD!',
+        'The Euclidean algorithm elegantly finds the greatest common divisor. Divide with remainder, the remainder becomes the divisor, repeat \u2014 until the remainder is 0. The last nonzero remainder is the GCD!'
+      ),
+      sliders: [
+        { id: 'gcdA', lbl: 'a', color: CYAN, min: 1, max: 200, step: 1, val: () => gcdA },
+        { id: 'gcdB', lbl: 'b', color: ORANGE, min: 1, max: 200, step: 1, val: () => gcdB },
+      ],
+      draw: drawGCD
+    },
+    {
+      title: () => T('NWW z NWD', 'LCM from GCD'),
+      desc: () => T(
+        'NWW(a,b) = a\u00B7b / NWD(a,b). Wizualnie: wielokrotnosci obu liczb biegna po osi \u2014 NWW to PIERWSZA wspolna wielokrotnosc. Przesun suwaki i obserwuj, gdzie sie spotykaja.',
+        'LCM(a,b) = a\u00B7b / GCD(a,b). Visually: multiples of both numbers run along the line \u2014 the LCM is the FIRST common multiple. Slide and watch where they meet.'
+      ),
+      sliders: [
+        { id: 'lcmA', lbl: 'a', color: CYAN, min: 2, max: 30, step: 1, val: () => lcmA },
+        { id: 'lcmB', lbl: 'b', color: ORANGE, min: 2, max: 30, step: 1, val: () => lcmB },
+      ],
+      draw: drawLCM
+    },
+  ];
+
+  // ── Slider management ─────────────────────────────────────────
+  const slWrap = document.getElementById('sliders-wrap');
+
+  function buildSliders(defs) {
+    let html = '<div class="sliders">';
+    defs.forEach(s => {
+      const v = typeof s.val === 'function' ? s.val() : s.val;
+      html += '<div class="slider-row">' +
+        '<span class="lbl" style="color:' + s.color + '">' + s.lbl + ' =</span>' +
+        '<input type="range" id="s_' + s.id + '" min="' + s.min + '" max="' + s.max + '" step="' + s.step + '" value="' + v + '">' +
+        '<span class="val" id="v_' + s.id + '" style="color:' + s.color + '"></span>' +
+        '</div>';
+    });
+    html += '</div>';
+    slWrap.innerHTML = html;
+
+    defs.forEach(s => {
+      const el = document.getElementById('s_' + s.id);
+      document.getElementById('v_' + s.id).textContent = el.value;
+      el.addEventListener('input', function() {
+        const v = +this.value;
+        if (s.id === 'zoom') zoom = v;
+        if (s.id === 'divN') divN = v;
+        if (s.id === 'factN') factN = v;
+        if (s.id === 'gcdA') { gcdA = v; animStartTime = Date.now(); }
+        if (s.id === 'gcdB') { gcdB = v; animStartTime = Date.now(); }
+        if (s.id === 'lcmA') lcmA = v;
+        if (s.id === 'lcmB') lcmB = v;
+        document.getElementById('v_' + s.id).textContent = v;
+      });
+    });
+  }
+
+  // ── Navigation ────────────────────────────────────────────────
+  const prevBtn = document.getElementById('qprev');
+  const nextBtn = document.getElementById('qnext');
+  const dotsEl = document.getElementById('qdots');
+  const titleEl = document.getElementById('qf');
+  const descEl = document.getElementById('qd');
+
+  function goTo(idx) {
+    stage = Math.max(0, Math.min(stages_def.length - 1, idx));
+    const s = stages_def[stage];
+    titleEl.textContent = s.title();
+    descEl.textContent = s.desc();
+    animStartTime = Date.now();
+    if (s.sliders) {
+      const resolved = s.sliders.map(sl => ({
+        ...sl,
+        val: typeof sl.val === 'function' ? sl.val() : sl.val
+      }));
+      buildSliders(resolved);
+    } else {
+      slWrap.innerHTML = '';
+    }
+    prevBtn.disabled = stage === 0;
+    nextBtn.disabled = stage === stages_def.length - 1;
+    renderDots();
+  }
+
+  function renderDots() {
+    dotsEl.innerHTML = stages_def.map((_, i) =>
+      '<span class="dot' + (i === stage ? ' active' : '') + '" data-i="' + i + '"></span>'
+    ).join('');
+    dotsEl.querySelectorAll('.dot').forEach(d =>
+      d.addEventListener('click', () => goTo(+d.dataset.i))
+    );
+  }
+
+  prevBtn.addEventListener('click', () => goTo(stage - 1));
+  nextBtn.addEventListener('click', () => goTo(stage + 1));
+
+  function tick() { clear(); stages_def[stage].draw(); requestAnimationFrame(tick); }
+  goTo(0);
+  tick();
+})();
+</script>
+</body>
+</html>

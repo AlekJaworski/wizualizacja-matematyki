@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Logika — Eksplorator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+  #qf { margin: 0 0 5px; font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  #qd { margin: 0 0 10px; font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); min-height: 48px; white-space: pre-line; }
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 70px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+  .nav { display: flex; align-items: center; justify-content: space-between; }
+  button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  button:hover { background: rgba(255,255,255,.08); }
+  button:disabled { opacity: .3; cursor: default; }
+  #qdots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.18); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  #sliders-wrap { min-height: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="400"></canvas>
+  <div class="panel">
+    <p id="qf"></p>
+    <p id="qd"></p>
+    <div id="sliders-wrap"></div>
+    <div class="nav">
+      <button id="qprev">&larr;</button>
+      <div id="qdots"></div>
+      <button id="qnext">&rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const cv = document.getElementById('cv');
+  const cx = cv.getContext('2d');
+  const W = 600, H = 400;
+
+  const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
+  const T = (pl, en) => LANG === 'pl' ? pl : en;
+
+  const COL_ACCENT = '#58C4DD';
+  const COL_TRUE   = '#2ecc71';
+  const COL_FALSE  = '#e74c3c';
+  const COL_P      = '#58C4DD';
+  const COL_Q      = '#e67e22';
+  const COL_AND    = '#2ecc71';
+  const COL_LEAF   = '#FFD166';
+
+  let p = 1, q = 0;
+  let stage = 0;
+
+  function clear() { cx.fillStyle = '#0e0e12'; cx.fillRect(0, 0, W, H); }
+
+  function boolStr(v) { return v ? T('PRAWDA','TRUE') : T('FAŁSZ','FALSE'); }
+  function boolCol(v) { return v ? COL_TRUE : COL_FALSE; }
+
+  // Draw a toggle switch
+  function drawSwitch(x, y, val, label, color) {
+    // Label
+    cx.save();
+    cx.font = 'bold 16px monospace';
+    cx.textAlign = 'center';
+    cx.fillStyle = color;
+    cx.fillText(label, x, y - 30);
+    cx.restore();
+
+    // Track
+    const tw = 60, th = 28, tr = 14;
+    cx.beginPath();
+    cx.roundRect(x - tw/2, y - th/2, tw, th, tr);
+    cx.fillStyle = val ? 'rgba(46,204,113,0.35)' : 'rgba(231,76,60,0.25)';
+    cx.fill();
+    cx.strokeStyle = val ? COL_TRUE : COL_FALSE;
+    cx.lineWidth = 2;
+    cx.stroke();
+
+    // Knob
+    const knobX = val ? x + tw/2 - tr - 2 : x - tw/2 + tr + 2;
+    cx.beginPath();
+    cx.arc(knobX, y, 10, 0, Math.PI * 2);
+    cx.fillStyle = val ? COL_TRUE : COL_FALSE;
+    cx.shadowColor = val ? COL_TRUE : COL_FALSE;
+    cx.shadowBlur = 10;
+    cx.fill();
+    cx.shadowBlur = 0;
+
+    // Value text
+    cx.save();
+    cx.font = 'bold 13px monospace';
+    cx.textAlign = 'center';
+    cx.fillStyle = boolCol(val);
+    cx.fillText(val ? '1' : '0', x, y + 35);
+    cx.restore();
+  }
+
+  // Draw result box
+  function drawResult(x, y, label, val, color) {
+    cx.save();
+    cx.font = '13px monospace';
+    cx.textAlign = 'center';
+    cx.fillStyle = 'rgba(255,255,255,0.5)';
+    cx.fillText(label, x, y - 10);
+
+    cx.font = 'bold 18px monospace';
+    cx.fillStyle = boolCol(val);
+    cx.shadowColor = boolCol(val);
+    cx.shadowBlur = 12;
+    cx.fillText(boolStr(val), x, y + 16);
+    cx.shadowBlur = 0;
+    cx.restore();
+  }
+
+  // Draw Venn diagram
+  function drawVenn(cx0, cy0, pVal, qVal, mode) {
+    const r = 55;
+    const offset = 35;
+
+    // p circle
+    cx.save();
+    cx.globalAlpha = 0.2;
+    if (mode === 'and') {
+      // Only overlap
+      cx.beginPath();
+      cx.arc(cx0 - offset, cy0, r, 0, Math.PI * 2);
+      cx.clip();
+      cx.beginPath();
+      cx.arc(cx0 + offset, cy0, r, 0, Math.PI * 2);
+      cx.fillStyle = COL_AND;
+      if (pVal && qVal) cx.globalAlpha = 0.5;
+      else cx.globalAlpha = 0.1;
+      cx.fill();
+      cx.restore();
+    } else {
+      // OR — shade both
+      cx.beginPath();
+      cx.arc(cx0 - offset, cy0, r, 0, Math.PI * 2);
+      cx.fillStyle = COL_P;
+      cx.globalAlpha = (pVal || qVal) ? 0.3 : 0.08;
+      cx.fill();
+
+      cx.beginPath();
+      cx.arc(cx0 + offset, cy0, r, 0, Math.PI * 2);
+      cx.fillStyle = COL_Q;
+      cx.globalAlpha = (pVal || qVal) ? 0.3 : 0.08;
+      cx.fill();
+      cx.restore();
+    }
+
+    // Outlines
+    cx.save();
+    cx.lineWidth = 2;
+
+    cx.beginPath();
+    cx.arc(cx0 - offset, cy0, r, 0, Math.PI * 2);
+    cx.strokeStyle = COL_P;
+    cx.globalAlpha = pVal ? 0.8 : 0.3;
+    cx.stroke();
+
+    cx.beginPath();
+    cx.arc(cx0 + offset, cy0, r, 0, Math.PI * 2);
+    cx.strokeStyle = COL_Q;
+    cx.globalAlpha = qVal ? 0.8 : 0.3;
+    cx.stroke();
+    cx.restore();
+
+    // Labels
+    cx.save();
+    cx.font = 'bold 14px monospace';
+    cx.textAlign = 'center';
+    cx.fillStyle = COL_P;
+    cx.fillText('p', cx0 - offset - 30, cy0 - r - 8);
+    cx.fillStyle = COL_Q;
+    cx.fillText('q', cx0 + offset + 30, cy0 - r - 8);
+    cx.restore();
+  }
+
+  // ── Stages ──────────────────────────────────────────────────
+
+  const stages_def = [
+    // Stage 1: Zdania logiczne
+    {
+      title: () => T('Zdania logiczne', 'Logical propositions'),
+      desc: () => T(
+        'Matematyka zaczyna się od logiki — to jej język i fundament.\nZdanie logiczne to stwierdzenie, które jest albo prawdziwe (1), albo fałszywe (0). Nie ma nic pomiędzy!',
+        'Mathematics starts with logic — it is its language and foundation.\nA logical proposition is a statement that is either true (1) or false (0). Nothing in between!'
+      ),
+      sliders: [
+        { id: 'p', lbl: 'p', color: COL_P, min: 0, max: 1, step: 1, val: () => p },
+        { id: 'q', lbl: 'q', color: COL_Q, min: 0, max: 1, step: 1, val: () => q },
+      ],
+      draw() {
+        // Switches
+        drawSwitch(200, 100, p, 'p', COL_P);
+        drawSwitch(400, 100, q, 'q', COL_Q);
+
+        // Example propositions
+        cx.save();
+        cx.font = '12px monospace';
+        cx.textAlign = 'center';
+        cx.fillStyle = 'rgba(255,255,255,0.4)';
+        cx.fillText(T('p: "2 + 2 = 4"', 'p: "2 + 2 = 4"'), 200, 170);
+        cx.fillText(T('q: "Ziemia jest płaska"', 'q: "Earth is flat"'), 400, 170);
+        cx.restore();
+
+        // Results
+        drawResult(200, 230, T('Wartość p:', 'Value of p:'), p);
+        drawResult(400, 230, T('Wartość q:', 'Value of q:'), q);
+
+        // Visual boxes
+        cx.save();
+        cx.strokeStyle = 'rgba(255,255,255,0.08)';
+        cx.lineWidth = 1;
+        cx.setLineDash([4, 4]);
+        cx.strokeRect(110, 55, 180, 210);
+        cx.strokeRect(310, 55, 180, 210);
+        cx.setLineDash([]);
+        cx.restore();
+
+        // Bottom hint
+        cx.save();
+        cx.font = '11px monospace';
+        cx.textAlign = 'center';
+        cx.fillStyle = 'rgba(255,255,255,0.3)';
+        cx.fillText(T('Przełączaj suwaki p i q, by zmienić wartości logiczne', 'Toggle p and q sliders to change truth values'), W/2, 310);
+        cx.restore();
+
+        // Symbols
+        cx.save();
+        cx.font = '40px monospace';
+        cx.textAlign = 'center';
+        cx.fillStyle = boolCol(p);
+        cx.globalAlpha = 0.15;
+        cx.fillText(p ? '\u2713' : '\u2717', 200, 360);
+        cx.fillStyle = boolCol(q);
+        cx.fillText(q ? '\u2713' : '\u2717', 400, 360);
+        cx.restore();
+      }
+    },
+
+    // Stage 2: Koniunkcja i alternatywa
+    {
+      title: () => T('Koniunkcja i alternatywa', 'Conjunction and disjunction'),
+      desc: () => T(
+        'Koniunkcja (p\u2227q) — „p I q" — prawdziwa TYLKO gdy oba prawdziwe.\nAlternatywa (p\u2228q) — „p LUB q" — fałszywa TYLKO gdy oba fałszywe.\nDiagram Venna pokazuje to wizualnie.',
+        'Conjunction (p\u2227q) — "p AND q" — true ONLY when both true.\nDisjunction (p\u2228q) — "p OR q" — false ONLY when both false.\nVenn diagram shows this visually.'
+      ),
+      sliders: [
+        { id: 'p', lbl: 'p', color: COL_P, min: 0, max: 1, step: 1, val: () => p },
+        { id: 'q', lbl: 'q', color: COL_Q, min: 0, max: 1, step: 1, val: () => q },
+      ],
+      draw() {
+        const andVal = p && q ? 1 : 0;
+        const orVal = p || q ? 1 : 0;
+
+        // Switches at top
+        drawSwitch(150, 55, p, 'p', COL_P);
+        drawSwitch(450, 55, q, 'q', COL_Q);
+
+        // AND section
+        cx.save();
+        cx.font = 'bold 14px monospace';
+        cx.textAlign = 'center';
+        cx.fillStyle = COL_ACCENT;
+        cx.fillText(T('p \u2227 q  (I / AND)', 'p \u2227 q  (AND)'), 165, 125);
+        cx.restore();
+
+        drawVenn(165, 210, p, q, 'and');
+        drawResult(165, 310, '', andVal);
+
+        // OR section
+        cx.save();
+        cx.font = 'bold 14px monospace';
+        cx.textAlign = 'center';
+        cx.fillStyle = COL_ACCENT;
+        cx.fillText(T('p \u2228 q  (LUB / OR)', 'p \u2228 q  (OR)'), 435, 125);
+        cx.restore();
+
+        drawVenn(435, 210, p, q, 'or');
+        drawResult(435, 310, '', orVal);
+
+        // Separator
+        cx.save();
+        cx.strokeStyle = 'rgba(255,255,255,0.1)';
+        cx.setLineDash([4, 4]);
+        cx.beginPath();
+        cx.moveTo(W/2, 110);
+        cx.lineTo(W/2, 370);
+        cx.stroke();
+        cx.setLineDash([]);
+        cx.restore();
+
+        // Bottom summary
+        cx.save();
+        cx.font = '11px monospace';
+        cx.textAlign = 'center';
+        cx.fillStyle = 'rgba(255,255,255,0.35)';
+        cx.fillText(T('\u2227 = część wspólna (overlap)     \u2228 = suma zbiorów (union)', '\u2227 = overlap     \u2228 = union'), W/2, 385);
+        cx.restore();
+      }
+    },
+
+    // Stage 3: Implikacja
+    {
+      title: () => T('Implikacja', 'Implication'),
+      desc: () => T(
+        'Implikacja p\u2192q: „jeśli p, to q."\nJedyny sposób, by implikacja była FAŁSZYWA: z prawdy wynika fałsz.\nPrzykład: „Jeśli pada deszcz (p), to biorę parasol (q)."',
+        'Implication p\u2192q: "if p, then q."\nThe only way implication is FALSE: truth implies falsehood.\nExample: "If it rains (p), then I take an umbrella (q)."'
+      ),
+      sliders: [
+        { id: 'p', lbl: 'p', color: COL_P, min: 0, max: 1, step: 1, val: () => p },
+        { id: 'q', lbl: 'q', color: COL_Q, min: 0, max: 1, step: 1, val: () => q },
+      ],
+      draw() {
+        const imp = (!p || q) ? 1 : 0;
+
+        // Switches
+        drawSwitch(170, 55, p, 'p', COL_P);
+        drawSwitch(430, 55, q, 'q', COL_Q);
+
+        // Arrow between
+        cx.save();
+        cx.strokeStyle = boolCol(imp);
+        cx.lineWidth = 3;
+        cx.shadowColor = boolCol(imp);
+        cx.shadowBlur = 10;
+        cx.beginPath();
+        cx.moveTo(235, 55);
+        cx.lineTo(365, 55);
+        cx.stroke();
+        // Arrowhead
+        cx.beginPath();
+        cx.moveTo(365, 55);
+        cx.lineTo(350, 45);
+        cx.lineTo(350, 65);
+        cx.closePath();
+        cx.fillStyle = boolCol(imp);
+        cx.fill();
+        cx.shadowBlur = 0;
+        cx.restore();
+
+        // Result
+        cx.save();
+        cx.font = 'bold 16px monospace';
+        cx.textAlign = 'center';
+        cx.fillStyle = COL_ACCENT;
+        cx.fillText('p \u2192 q', W/2, 105);
+        cx.restore();
+
+        drawResult(W/2, 135, '', imp);
+
+        // Truth table building
+        const rows = [
+          [1, 1, 1], [1, 0, 0], [0, 1, 1], [0, 0, 1]
+        ];
+        const tableX = 140, tableY = 185, rowH = 35, colW = 100;
+        const headers = ['p', 'q', 'p \u2192 q'];
+
+        // Header
+        cx.save();
+        cx.font = 'bold 13px monospace';
+        cx.textAlign = 'center';
+        headers.forEach((h, i) => {
+          cx.fillStyle = i === 0 ? COL_P : i === 1 ? COL_Q : COL_ACCENT;
+          cx.fillText(h, tableX + i * colW + colW/2, tableY);
+        });
+
+        // Header line
+        cx.strokeStyle = 'rgba(255,255,255,0.15)';
+        cx.lineWidth = 1;
+        cx.beginPath();
+        cx.moveTo(tableX, tableY + 8);
+        cx.lineTo(tableX + 3 * colW, tableY + 8);
+        cx.stroke();
+        cx.restore();
+
+        // Rows
+        rows.forEach((row, ri) => {
+          const ry = tableY + 20 + ri * rowH;
+          const isCurrentRow = (row[0] === p && row[1] === q);
+
+          // Highlight current row
+          if (isCurrentRow) {
+            cx.save();
+            cx.fillStyle = 'rgba(88,196,221,0.08)';
+            cx.fillRect(tableX - 5, ry - 12, 3 * colW + 10, rowH);
+            cx.strokeStyle = COL_ACCENT;
+            cx.globalAlpha = 0.5 + 0.3 * Math.sin(Date.now() / 300);
+            cx.lineWidth = 1;
+            cx.strokeRect(tableX - 5, ry - 12, 3 * colW + 10, rowH);
+            cx.restore();
+          }
+
+          cx.save();
+          cx.font = '13px monospace';
+          cx.textAlign = 'center';
+          row.forEach((v, ci) => {
+            cx.fillStyle = boolCol(v);
+            cx.fillText(v ? '1' : '0', tableX + ci * colW + colW/2, ry + 5);
+          });
+          cx.restore();
+        });
+
+        // Key insight — pulsing
+        cx.save();
+        cx.font = 'bold 12px monospace';
+        cx.textAlign = 'center';
+        cx.fillStyle = COL_FALSE;
+        const pulse = 0.5 + 0.5 * Math.sin(Date.now() / 400);
+        cx.globalAlpha = pulse;
+        cx.fillText(T('FAŁSZYWA tylko gdy: PRAWDA \u2192 FAŁSZ', 'FALSE only when: TRUE \u2192 FALSE'), W/2, tableY + 165);
+        cx.restore();
+
+        // Rain analogy
+        cx.save();
+        cx.font = '11px monospace';
+        cx.textAlign = 'center';
+        cx.fillStyle = 'rgba(255,255,255,0.35)';
+        cx.fillText(T('Pada i nie bierzesz parasola? Złamana obietnica!', 'It rains and you don\'t take umbrella? Broken promise!'), W/2, tableY + 185);
+        cx.restore();
+      }
+    },
+
+    // Stage 4: Tabela prawdy
+    {
+      title: () => T('Tabela prawdy', 'Truth table'),
+      desc: () => T(
+        'Pełna tabela prawdy dla wszystkich operatorów logicznych. Wiersz podświetlony odpowiada aktualnym wartościom p i q. Zielone = prawda, różowe = fałsz.',
+        'Full truth table for all logical operators. Highlighted row corresponds to current p and q values. Green = true, pink = false.'
+      ),
+      sliders: [
+        { id: 'p', lbl: 'p', color: COL_P, min: 0, max: 1, step: 1, val: () => p },
+        { id: 'q', lbl: 'q', color: COL_Q, min: 0, max: 1, step: 1, val: () => q },
+      ],
+      draw() {
+        const tableX = 30, tableY = 35, rowH = 40;
+        const cols = ['p', 'q', 'p\u2227q', 'p\u2228q', 'p\u2192q', 'p\u2194q'];
+        const colW = (W - 60) / cols.length;
+
+        // Header
+        cx.save();
+        cx.font = 'bold 12px monospace';
+        cx.textAlign = 'center';
+        cols.forEach((h, i) => {
+          let color = COL_ACCENT;
+          if (i === 0) color = COL_P;
+          if (i === 1) color = COL_Q;
+          cx.fillStyle = color;
+          cx.fillText(h, tableX + i * colW + colW/2, tableY);
+        });
+
+        cx.strokeStyle = 'rgba(255,255,255,0.2)';
+        cx.lineWidth = 1;
+        cx.beginPath();
+        cx.moveTo(tableX, tableY + 10);
+        cx.lineTo(tableX + cols.length * colW, tableY + 10);
+        cx.stroke();
+        cx.restore();
+
+        const combos = [[1,1],[1,0],[0,1],[0,0]];
+        combos.forEach((combo, ri) => {
+          const pv = combo[0], qv = combo[1];
+          const andV = pv && qv ? 1 : 0;
+          const orV = pv || qv ? 1 : 0;
+          const impV = (!pv || qv) ? 1 : 0;
+          const biV = (pv === qv) ? 1 : 0;
+          const vals = [pv, qv, andV, orV, impV, biV];
+
+          const ry = tableY + 25 + ri * rowH;
+          const isCurrentRow = (pv === p && qv === q);
+
+          // Highlight
+          if (isCurrentRow) {
+            cx.save();
+            cx.fillStyle = 'rgba(88,196,221,0.1)';
+            cx.fillRect(tableX - 5, ry - 14, cols.length * colW + 10, rowH);
+            cx.strokeStyle = COL_ACCENT;
+            cx.globalAlpha = 0.5 + 0.3 * Math.sin(Date.now() / 300);
+            cx.lineWidth = 1.5;
+            cx.strokeRect(tableX - 5, ry - 14, cols.length * colW + 10, rowH);
+            cx.restore();
+          }
+
+          cx.save();
+          cx.font = '14px monospace';
+          cx.textAlign = 'center';
+          vals.forEach((v, ci) => {
+            // Color cells
+            const bgCol = v ? 'rgba(46,204,113,0.12)' : 'rgba(231,76,60,0.10)';
+            cx.fillStyle = bgCol;
+            const cellX = tableX + ci * colW + 8;
+            const cellW = colW - 16;
+            cx.fillRect(cellX, ry - 12, cellW, rowH - 8);
+
+            // Rounded border
+            cx.strokeStyle = v ? 'rgba(46,204,113,0.25)' : 'rgba(231,76,60,0.2)';
+            cx.lineWidth = 0.5;
+            cx.strokeRect(cellX, ry - 12, cellW, rowH - 8);
+
+            cx.fillStyle = boolCol(v);
+            cx.font = 'bold 14px monospace';
+            cx.fillText(v ? '1' : '0', tableX + ci * colW + colW/2, ry + 8);
+          });
+          cx.restore();
+        });
+
+        // Separator
+        cx.save();
+        cx.strokeStyle = 'rgba(255,255,255,0.08)';
+        cx.lineWidth = 1;
+        cx.beginPath();
+        cx.moveTo(tableX + 2 * colW - 3, tableY + 15);
+        cx.lineTo(tableX + 2 * colW - 3, tableY + 25 + 4 * rowH - 10);
+        cx.stroke();
+        cx.restore();
+
+        // Legend at bottom
+        const legendY = tableY + 25 + 4 * rowH + 20;
+        cx.save();
+        cx.font = '11px monospace';
+        cx.textAlign = 'center';
+        cx.fillStyle = 'rgba(255,255,255,0.4)';
+        cx.fillText(T('\u2227 = koniunkcja (AND)   \u2228 = alternatywa (OR)   \u2192 = implikacja   \u2194 = równoważność',
+                       '\u2227 = AND   \u2228 = OR   \u2192 = implication   \u2194 = biconditional'), W/2, legendY);
+        cx.restore();
+
+        // Current values summary
+        cx.save();
+        cx.font = 'bold 13px monospace';
+        cx.textAlign = 'center';
+        const andNow = p && q ? 1 : 0;
+        const orNow = p || q ? 1 : 0;
+        const impNow = (!p || q) ? 1 : 0;
+        const biNow = (p === q) ? 1 : 0;
+        cx.fillStyle = COL_LEAF;
+        cx.shadowColor = COL_LEAF;
+        cx.shadowBlur = 8;
+        cx.fillText(
+          `p=${p}  q=${q}  \u2192  \u2227=${andNow}  \u2228=${orNow}  \u2192=${impNow}  \u2194=${biNow}`,
+          W/2, legendY + 30
+        );
+        cx.shadowBlur = 0;
+        cx.restore();
+
+        // Polish descriptions
+        cx.save();
+        cx.font = '10px monospace';
+        cx.textAlign = 'center';
+        cx.fillStyle = 'rgba(255,255,255,0.25)';
+        cx.fillText(T('Zmień p i q suwakami — obserwuj, jak zmienia się podświetlony wiersz',
+                       'Change p and q with sliders — watch the highlighted row change'), W/2, legendY + 55);
+        cx.restore();
+      }
+    },
+  ];
+
+  // ── Slider management ─────────────────────────────────────────
+  const slWrap = document.getElementById('sliders-wrap');
+
+  function buildSliders(defs) {
+    let html = '<div class="sliders">';
+    defs.forEach(s => {
+      const v = typeof s.val === 'function' ? s.val() : s.val;
+      html += `<div class="slider-row">
+        <span class="lbl" style="color:${s.color}">${s.lbl} =</span>
+        <input type="range" id="s_${s.id}" min="${s.min}" max="${s.max}" step="${s.step}" value="${v}">
+        <span class="val" id="v_${s.id}" style="color:${s.color}"></span>
+      </div>`;
+    });
+    html += '</div>';
+    slWrap.innerHTML = html;
+
+    defs.forEach(s => {
+      const el = document.getElementById('s_' + s.id);
+      function displayVal(v) {
+        if (s.id === 'p' || s.id === 'q') return v == 1 ? T('PRAWDA','TRUE') : T('FAŁSZ','FALSE');
+        return (+v).toFixed(0);
+      }
+      document.getElementById('v_' + s.id).textContent = displayVal(el.value);
+      el.addEventListener('input', function() {
+        const v = +this.value;
+        if (s.id === 'p') p = v;
+        if (s.id === 'q') q = v;
+        document.getElementById('v_' + s.id).textContent = displayVal(v);
+      });
+    });
+  }
+
+  // ── Navigation ────────────────────────────────────────────────
+  const prevBtn = document.getElementById('qprev');
+  const nextBtn = document.getElementById('qnext');
+  const dotsEl = document.getElementById('qdots');
+  const titleEl = document.getElementById('qf');
+  const descEl = document.getElementById('qd');
+
+  function goTo(idx) {
+    stage = Math.max(0, Math.min(stages_def.length - 1, idx));
+    const s = stages_def[stage];
+    titleEl.textContent = s.title();
+    descEl.textContent = s.desc();
+    if (s.sliders) {
+      const resolved = s.sliders.map(sl => ({
+        ...sl,
+        val: typeof sl.val === 'function' ? sl.val() : sl.val
+      }));
+      buildSliders(resolved);
+    } else {
+      slWrap.innerHTML = '';
+    }
+    prevBtn.disabled = stage === 0;
+    nextBtn.disabled = stage === stages_def.length - 1;
+    renderDots();
+  }
+
+  function renderDots() {
+    dotsEl.innerHTML = stages_def.map((_, i) =>
+      `<span class="dot${i === stage ? ' active' : ''}" data-i="${i}"></span>`
+    ).join('');
+    dotsEl.querySelectorAll('.dot').forEach(d =>
+      d.addEventListener('click', () => goTo(+d.dataset.i))
+    );
+  }
+
+  prevBtn.addEventListener('click', () => goTo(stage - 1));
+  nextBtn.addEventListener('click', () => goTo(stage + 1));
+
+  function tick() { clear(); stages_def[stage].draw(); requestAnimationFrame(tick); }
+  goTo(0);
+  tick();
+})();
+</script>
+</body>
+</html>
