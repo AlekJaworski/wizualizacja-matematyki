@@ -279,8 +279,9 @@
       cx.strokeRect(x + 3, startY + 3, boxW - 6, boxH - 6);
       cx.restore();
 
-      // Power label (10^k)
-      drawTextC('10' + (k === 0 ? '\u2070' : k === 1 ? '\u00B9' : k === 2 ? '\u00B2' : k === 3 ? '\u00B3' : '\u207' + (k - 0)),
+      // Power label (10^k) — superscript digits via static array
+      const SUP = ['\u2070', '\u00B9', '\u00B2', '\u00B3', '\u2074', '\u2075', '\u2076', '\u2077', '\u2078', '\u2079'];
+      drawTextC('10' + (SUP[k] || ''),
         x + boxW / 2, startY + 14, '11px monospace', 'rgba(255,255,255,0.55)');
 
       // Value mod m — prominent
