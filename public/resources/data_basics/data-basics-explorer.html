@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dane i statystyki — Eksplorator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+  #qf { margin: 0 0 5px; font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  #qd { margin: 0 0 10px; font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); min-height: 48px; white-space: pre-line; }
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 70px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+  .nav { display: flex; align-items: center; justify-content: space-between; }
+  button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  button:hover { background: rgba(255,255,255,.08); }
+  button:disabled { opacity: .3; cursor: default; }
+  #qdots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.18); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  #sliders-wrap { min-height: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="400"></canvas>
+  <div class="panel">
+    <p id="qf"></p>
+    <p id="qd"></p>
+    <div id="sliders-wrap"></div>
+    <div class="nav">
+      <button id="qprev">&larr;</button>
+      <div id="qdots"></div>
+      <button id="qnext">&rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const cv = document.getElementById('cv');
+  const cx = cv.getContext('2d');
+  const W = 600, H = 400;
+
+  const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
+  const T = (pl, en) => LANG === 'pl' ? pl : en;
+
+  const COL_ACCENT = '#58C4DD';
+  const COL_DOT    = '#e74c3c';
+  const COL_MEAN   = '#FFD166';
+  const COL_MEDIAN = '#2ecc71';
+  const COL_MODE   = '#9b59b6';
+  const COL_LINE   = 'rgba(255,255,255,0.25)';
+
+  // Seeded random for consistent datasets
+  let seed = 42;
+  function seededRandom() { seed = (seed * 16807 + 0) % 2147483647; return (seed - 1) / 2147483646; }
+
+  function generateData(n, seedVal) {
+    seed = seedVal || 42;
+    const data = [];
+    for (let i = 0; i < n; i++) {
+      // Values 1-10 with some clustering
+      const v = Math.round(seededRandom() * 8) + 1;
+      data.push(v);
+    }
+    return data;
+  }
+
+  let nPoints = 10;
+  let stage = 0;
+  let animStartTime = Date.now();
+
+  function clear() { cx.fillStyle = '#0e0e12'; cx.fillRect(0, 0, W, H); }
+
+  // Number line from 0 to 11
+  function drawNumberLine(y, xLeft, xRight, highlight) {
+    cx.save();
+    cx.strokeStyle = COL_LINE;
+    cx.lineWidth = 1.5;
+    cx.beginPath();
+    cx.moveTo(xLeft, y);
+    cx.lineTo(xRight, y);
+    cx.stroke();
+    // Ticks
+    for (let v = 0; v <= 10; v++) {
+      const x = xLeft + (v / 10) * (xRight - xLeft);
+      cx.beginPath();
+      cx.moveTo(x, y - 5);
+      cx.lineTo(x, y + 5);
+      cx.stroke();
+      cx.font = '11px monospace';
+      cx.fillStyle = 'rgba(255,255,255,0.5)';
+      cx.textAlign = 'center';
+      cx.fillText(v, x, y + 18);
+    }
+    cx.restore();
+  }
+
+  function valToX(v, xLeft, xRight) {
+    return xLeft + (v / 10) * (xRight - xLeft);
+  }
+
+  function drawGlowDot(x, y, r, color, alpha) {
+    cx.save();
+    cx.globalAlpha = alpha !== undefined ? alpha : 1;
+    cx.beginPath();
+    cx.arc(x, y, r, 0, Math.PI * 2);
+    cx.fillStyle = color;
+    cx.shadowColor = color;
+    cx.shadowBlur = 10;
+    cx.fill();
+    cx.shadowBlur = 0;
+    cx.restore();
+  }
+
+  function drawCount(text, x, y, color) {
+    cx.save();
+    cx.font = 'bold 20px monospace';
+    cx.textAlign = 'center';
+    cx.fillStyle = color || COL_ACCENT;
+    cx.shadowColor = color || COL_ACCENT;
+    cx.shadowBlur = 15;
+    cx.fillText(text, x, y);
+    cx.shadowBlur = 0;
+    cx.restore();
+  }
+
+  function drawFormula(text, x, y, color) {
+    cx.save();
+    cx.font = '13px monospace';
+    cx.textAlign = 'center';
+    cx.fillStyle = color || 'rgba(255,255,255,0.7)';
+    cx.fillText(text, x, y);
+    cx.restore();
+  }
+
+  function mean(arr) { return arr.reduce((a,b) => a+b, 0) / arr.length; }
+  function median(arr) {
+    const s = [...arr].sort((a,b) => a-b);
+    const mid = Math.floor(s.length / 2);
+    return s.length % 2 !== 0 ? s[mid] : (s[mid-1] + s[mid]) / 2;
+  }
+  function mode(arr) {
+    const freq = {};
+    arr.forEach(v => freq[v] = (freq[v]||0) + 1);
+    const maxF = Math.max(...Object.values(freq));
+    const modes = Object.keys(freq).filter(k => freq[k] === maxF).map(Number);
+    if (modes.length === Object.keys(freq).length) return []; // no mode
+    return modes;
+  }
+
+  const XL = 60, XR = W - 60;
+
+  // ── Stages ──────────────────────────────────────────────────
+
+  const stages_def = [
+    // Stage 1: Dataset
+    {
+      title: () => T('Zbior danych', 'Dataset'),
+      desc: () => T(
+        'Zbior danych to po prostu lista liczb. Kazda kropka to jedna obserwacja — np. wynik testu, temperatura, waga.\nPrzesuwaj suwak, aby dodac lub usunac punkty. Ile ich jest? To \"n\" — liczebnosc zbioru.',
+        'A dataset is simply a list of numbers. Each dot is one observation.\nMove the slider to add or remove points.'
+      ),
+      sliders: [
+        { id: 'nPoints', lbl: T('n =','n ='), color: COL_DOT, min: 5, max: 20, step: 1, val: () => nPoints },
+      ],
+      draw() {
+        const data = generateData(nPoints, 42);
+        const elapsed = (Date.now() - animStartTime) / 1000;
+        const lineY = 200;
+        drawNumberLine(lineY, XL, XR);
+
+        // Stack dots at same value
+        const stacks = {};
+        data.forEach((v, i) => {
+          if (!stacks[v]) stacks[v] = [];
+          stacks[v].push(i);
+        });
+
+        Object.keys(stacks).forEach(v => {
+          const vn = +v;
+          const x = valToX(vn, XL, XR);
+          stacks[v].forEach((idx, stackIdx) => {
+            const targetY = lineY - 12 - stackIdx * 18;
+            const delay = idx * 0.06;
+            const prog = Math.min(1, Math.max(0, (elapsed - delay) / 0.4));
+            const eased = 1 - Math.pow(1 - prog, 3);
+            const dotY = lineY + 50 * (1 - eased) + targetY * eased - lineY * (1 - eased);
+            const alpha = eased;
+            drawGlowDot(x, lineY - 12 - stackIdx * 18 + (1 - eased) * 40, 7, COL_DOT, alpha);
+          });
+        });
+
+        // Count label
+        drawFormula('n = ' + data.length, W / 2, 310);
+        drawFormula(T('Dane: [', 'Data: [') + data.slice(0, 12).join(', ') + (data.length > 12 ? ', ...' : '') + ']', W / 2, 340);
+        drawCount(data.length + T(' punktow', ' points'), W / 2, 375, COL_ACCENT);
+      }
+    },
+
+    // Stage 2: Mean
+    {
+      title: () => T('Srednia arytmetyczna', 'Arithmetic Mean'),
+      desc: () => T(
+        'Wyobraz sobie, ze kazda liczba to ciezarek na wadze. Srednia to punkt, w ktorym waga sie rownowazy!\nSrednia = suma wszystkich wartosci / ich liczba.',
+        'Imagine each number is a weight on a balance. The mean is the balance point!\nMean = sum of all values / count.'
+      ),
+      sliders: [
+        { id: 'nPoints', lbl: T('n =','n ='), color: COL_DOT, min: 5, max: 20, step: 1, val: () => nPoints },
+      ],
+      draw() {
+        const data = generateData(nPoints, 42);
+        const m = mean(data);
+        const elapsed = (Date.now() - animStartTime) / 1000;
+        const lineY = 180;
+        drawNumberLine(lineY, XL, XR);
+
+        // Stack dots
+        const stacks = {};
+        data.forEach((v, i) => {
+          if (!stacks[v]) stacks[v] = [];
+          stacks[v].push(i);
+        });
+        Object.keys(stacks).forEach(v => {
+          const x = valToX(+v, XL, XR);
+          stacks[v].forEach((idx, si) => {
+            drawGlowDot(x, lineY - 12 - si * 16, 6, COL_DOT);
+          });
+        });
+
+        // Mean balance point — triangle
+        const mx = valToX(m, XL, XR);
+        const showMean = Math.min(1, elapsed / 0.8);
+
+        cx.save();
+        cx.globalAlpha = showMean;
+        // Triangle under number line
+        cx.beginPath();
+        cx.moveTo(mx, lineY + 8);
+        cx.lineTo(mx - 10, lineY + 28);
+        cx.lineTo(mx + 10, lineY + 28);
+        cx.closePath();
+        cx.fillStyle = COL_MEAN;
+        cx.shadowColor = COL_MEAN;
+        cx.shadowBlur = 12;
+        cx.fill();
+        cx.shadowBlur = 0;
+
+        // Vertical line from mean
+        cx.strokeStyle = COL_MEAN;
+        cx.lineWidth = 2;
+        cx.setLineDash([4, 3]);
+        cx.beginPath();
+        cx.moveTo(mx, lineY);
+        cx.lineTo(mx, lineY - 100);
+        cx.stroke();
+        cx.setLineDash([]);
+
+        cx.font = 'bold 13px monospace';
+        cx.textAlign = 'center';
+        cx.fillStyle = COL_MEAN;
+        cx.fillText(T('srednia', 'mean'), mx, lineY + 42);
+        cx.fillText(m.toFixed(2), mx, lineY + 57);
+        cx.restore();
+
+        // Balance beam visual
+        if (showMean > 0.5) {
+          cx.save();
+          cx.globalAlpha = (showMean - 0.5) * 2;
+          cx.font = '11px monospace';
+          cx.textAlign = 'center';
+          cx.fillStyle = 'rgba(255,255,255,0.4)';
+          cx.fillText(T('^ punkt rownowagi', '^ balance point'), mx, lineY + 72);
+          cx.restore();
+        }
+
+        // Formula
+        const sum = data.reduce((a,b) => a+b, 0);
+        drawFormula(sum + ' / ' + data.length + ' = ' + m.toFixed(2), W / 2, 310);
+        drawFormula(T('suma / n = srednia', 'sum / n = mean'), W / 2, 335);
+
+        // Pulsing accent
+        const pulse = 0.6 + 0.4 * Math.sin(Date.now() / 400);
+        cx.save();
+        cx.globalAlpha = pulse;
+        cx.font = 'bold 11px monospace';
+        cx.textAlign = 'center';
+        cx.fillStyle = COL_MEAN;
+        cx.fillText(T('Waga sie rownowazy!', 'The scale balances!'), W / 2, 375);
+        cx.restore();
+      }
+    },
+
+    // Stage 3: Median
+    {
+      title: () => T('Mediana', 'Median'),
+      desc: () => T(
+        'Mediana dzieli dane na pol — polowa wartosci jest mniejsza, polowa wieksza. Posortuj dane i znajdz srodek!\nDla parzystej liczby danych: srednia dwoch srodkowych.',
+        'The median splits data in half — half the values are smaller, half are larger. Sort and find the middle!'
+      ),
+      sliders: [
+        { id: 'nPoints', lbl: T('n =','n ='), color: COL_DOT, min: 5, max: 20, step: 1, val: () => nPoints },
+      ],
+      draw() {
+        const data = generateData(nPoints, 42);
+        const sorted = [...data].sort((a,b) => a - b);
+        const med = median(data);
+        const elapsed = (Date.now() - animStartTime) / 1000;
+
+        // Draw sorted array as dots in a row
+        const rowY = 100;
+        const spacing = Math.min(30, (W - 120) / sorted.length);
+        const startX = W / 2 - (sorted.length - 1) * spacing / 2;
+
+        // Animate sorting: first show unsorted, then sorted
+        const sortProg = Math.min(1, Math.max(0, (elapsed - 0.3) / 1.0));
+
+        cx.save();
+        cx.font = '10px monospace';
+        cx.textAlign = 'center';
+        cx.fillStyle = 'rgba(255,255,255,0.4)';
+        cx.fillText(T('Posortowane dane:', 'Sorted data:'), W / 2, rowY - 30);
+        cx.restore();
+
+        const midIdx = Math.floor(sorted.length / 2);
+        const isEven = sorted.length % 2 === 0;
+
+        sorted.forEach((v, i) => {
+          const x = startX + i * spacing;
+          const y = rowY;
+
+          // Highlight middle value(s)
+          let isMiddle = false;
+          if (isEven) {
+            isMiddle = (i === midIdx - 1 || i === midIdx);
+          } else {
+            isMiddle = (i === midIdx);
+          }
+
+          const col = isMiddle ? COL_MEDIAN : COL_DOT;
+          const r = isMiddle ? 9 : 6;
+
+          const prog = Math.min(1, Math.max(0, (elapsed - i * 0.05) / 0.4));
+          cx.save();
+          cx.globalAlpha = prog;
+          drawGlowDot(x, y, r, col);
+
+          cx.font = '10px monospace';
+          cx.textAlign = 'center';
+          cx.fillStyle = 'rgba(255,255,255,0.6)';
+          cx.fillText(v, x, y + 20);
+          cx.restore();
+        });
+
+        // Draw bracket showing left/right halves
+        const bracketProg = Math.min(1, Math.max(0, (elapsed - 1.0) / 0.5));
+        if (bracketProg > 0) {
+          cx.save();
+          cx.globalAlpha = bracketProg;
+
+          // Left half label
+          const leftEnd = startX + (midIdx - (isEven ? 1 : 1)) * spacing;
+          const rightStart = startX + (midIdx + (isEven ? 0 : 0)) * spacing;
+
+          cx.font = '11px monospace';
+          cx.textAlign = 'center';
+
+          // Left bracket
+          cx.fillStyle = 'rgba(255,255,255,0.3)';
+          const leftMid = startX + ((isEven ? midIdx - 2 : midIdx - 1)) * spacing / 2 + startX / 2;
+          cx.fillText(T('polowa mniejsza', 'lower half'), startX + (isEven ? midIdx/2 - 1 : midIdx/2) * spacing, rowY + 45);
+
+          // Right bracket
+          cx.fillText(T('polowa wieksza', 'upper half'), startX + (isEven ? midIdx + (sorted.length - midIdx)/2 : midIdx + 1 + (sorted.length - midIdx - 1)/2) * spacing, rowY + 45);
+
+          cx.restore();
+        }
+
+        // Number line with median
+        const lineY = 220;
+        drawNumberLine(lineY, XL, XR);
+
+        // All dots on number line
+        const stacks = {};
+        sorted.forEach((v, i) => {
+          if (!stacks[v]) stacks[v] = [];
+          stacks[v].push(i);
+        });
+        Object.keys(stacks).forEach(v => {
+          const x = valToX(+v, XL, XR);
+          stacks[v].forEach((idx, si) => {
+            drawGlowDot(x, lineY - 10 - si * 14, 5, COL_DOT, 0.6);
+          });
+        });
+
+        // Median line
+        const medX = valToX(med, XL, XR);
+        cx.save();
+        cx.strokeStyle = COL_MEDIAN;
+        cx.lineWidth = 2.5;
+        cx.shadowColor = COL_MEDIAN;
+        cx.shadowBlur = 10;
+        cx.beginPath();
+        cx.moveTo(medX, lineY - 70);
+        cx.lineTo(medX, lineY + 5);
+        cx.stroke();
+        cx.shadowBlur = 0;
+
+        cx.font = 'bold 13px monospace';
+        cx.textAlign = 'center';
+        cx.fillStyle = COL_MEDIAN;
+        cx.fillText(T('mediana = ', 'median = ') + med, medX, lineY + 30);
+        cx.restore();
+
+        // Formula
+        if (isEven) {
+          drawFormula('(' + sorted[midIdx-1] + ' + ' + sorted[midIdx] + ') / 2 = ' + med, W / 2, 310);
+          drawFormula(T('Parzyste n: srednia dwoch srodkowych', 'Even n: average of two middle values'), W / 2, 335);
+        } else {
+          drawFormula(T('Srodkowa wartosc: ', 'Middle value: ') + sorted[midIdx], W / 2, 310);
+          drawFormula(T('Nieparzyste n: wprost srodkowy element', 'Odd n: directly the middle element'), W / 2, 335);
+        }
+
+        drawCount(T('Mediana = ', 'Median = ') + med, W / 2, 375, COL_MEDIAN);
+      }
+    },
+
+    // Stage 4: Mode
+    {
+      title: () => T('Dominanta (moda)', 'Mode'),
+      desc: () => T(
+        'Dominanta to wartosc, ktora pojawia sie NAJCZESCIEJ. Moze byc jedna, kilka, albo zadna (gdy wszystkie sa rowne).\nPatrz na wykres — najwyzszy slupek to dominanta!',
+        'The mode is the value that appears MOST OFTEN. There can be one, several, or none.\nLook at the chart — the tallest bar is the mode!'
+      ),
+      sliders: [
+        { id: 'nPoints', lbl: T('n =','n ='), color: COL_DOT, min: 5, max: 20, step: 1, val: () => nPoints },
+      ],
+      draw() {
+        const data = generateData(nPoints, 42);
+        const freq = {};
+        data.forEach(v => freq[v] = (freq[v]||0) + 1);
+        const maxF = Math.max(...Object.values(freq));
+        const modes = mode(data);
+        const elapsed = (Date.now() - animStartTime) / 1000;
+
+        // Bar chart
+        const barLeft = 80, barRight = W - 80;
+        const barBottom = 280, barTop = 60;
+        const vals = Object.keys(freq).map(Number).sort((a,b) => a - b);
+        const barW = Math.min(40, (barRight - barLeft) / (vals.length + 1));
+        const gap = (barRight - barLeft - barW * vals.length) / (vals.length + 1);
+
+        // Axes
+        cx.save();
+        cx.strokeStyle = COL_LINE;
+        cx.lineWidth = 1;
+        cx.beginPath();
+        cx.moveTo(barLeft - 10, barBottom);
+        cx.lineTo(barRight + 10, barBottom);
+        cx.stroke();
+        cx.beginPath();
+        cx.moveTo(barLeft - 10, barBottom);
+        cx.lineTo(barLeft - 10, barTop);
+        cx.stroke();
+
+        // Y axis labels
+        cx.font = '10px monospace';
+        cx.fillStyle = 'rgba(255,255,255,0.4)';
+        cx.textAlign = 'right';
+        for (let f = 0; f <= maxF; f++) {
+          const y = barBottom - (f / maxF) * (barBottom - barTop);
+          cx.fillText(f, barLeft - 15, y + 4);
+          if (f > 0) {
+            cx.save();
+            cx.strokeStyle = 'rgba(255,255,255,0.06)';
+            cx.beginPath();
+            cx.moveTo(barLeft - 10, y);
+            cx.lineTo(barRight + 10, y);
+            cx.stroke();
+            cx.restore();
+          }
+        }
+        cx.restore();
+
+        vals.forEach((v, i) => {
+          const f = freq[v];
+          const x = barLeft + gap + i * (barW + gap);
+          const barH = (f / maxF) * (barBottom - barTop);
+          const isMode = modes.includes(v);
+
+          const prog = Math.min(1, Math.max(0, (elapsed - i * 0.1) / 0.5));
+          const easedH = barH * (1 - Math.pow(1 - prog, 3));
+
+          cx.save();
+          cx.globalAlpha = prog;
+          const col = isMode ? COL_MODE : COL_DOT;
+          cx.fillStyle = col;
+          cx.shadowColor = col;
+          cx.shadowBlur = isMode ? 15 : 5;
+          cx.fillRect(x, barBottom - easedH, barW, easedH);
+          cx.shadowBlur = 0;
+
+          // Value label below
+          cx.font = '11px monospace';
+          cx.textAlign = 'center';
+          cx.fillStyle = 'rgba(255,255,255,0.6)';
+          cx.fillText(v, x + barW / 2, barBottom + 16);
+
+          // Frequency on top
+          if (prog > 0.8) {
+            cx.font = 'bold 12px monospace';
+            cx.fillStyle = isMode ? COL_MODE : 'rgba(255,255,255,0.5)';
+            cx.fillText(f, x + barW / 2, barBottom - easedH - 8);
+          }
+
+          // Highlight mode bar
+          if (isMode && prog > 0.9) {
+            const pulse = 0.4 + 0.3 * Math.sin(Date.now() / 300);
+            cx.strokeStyle = COL_MODE;
+            cx.lineWidth = 2;
+            cx.globalAlpha = pulse;
+            cx.strokeRect(x - 2, barBottom - easedH - 2, barW + 4, easedH + 4);
+          }
+
+          cx.restore();
+        });
+
+        // Mode label
+        const modeStr = modes.length === 0
+          ? T('brak dominanty', 'no mode')
+          : modes.join(', ');
+
+        drawFormula(T('Czestosc kazdej wartosci', 'Frequency of each value'), W / 2, 330);
+        drawCount(T('Dominanta: ', 'Mode: ') + modeStr, W / 2, 370, COL_MODE);
+      }
+    },
+  ];
+
+  // ── Slider management ─────────────────────────────────────────
+  const slWrap = document.getElementById('sliders-wrap');
+
+  function buildSliders(defs) {
+    let html = '<div class="sliders">';
+    defs.forEach(s => {
+      const v = typeof s.val === 'function' ? s.val() : s.val;
+      html += `<div class="slider-row">
+        <span class="lbl" style="color:${s.color}">${s.lbl}</span>
+        <input type="range" id="s_${s.id}" min="${s.min}" max="${s.max}" step="${s.step}" value="${v}">
+        <span class="val" id="v_${s.id}" style="color:${s.color}"></span>
+      </div>`;
+    });
+    html += '</div>';
+    slWrap.innerHTML = html;
+
+    defs.forEach(s => {
+      const el = document.getElementById('s_' + s.id);
+      document.getElementById('v_' + s.id).textContent = (+el.value).toFixed(0);
+      el.addEventListener('input', function() {
+        const v = +this.value;
+        if (s.id === 'nPoints') nPoints = v;
+        document.getElementById('v_' + s.id).textContent = v.toFixed(0);
+      });
+    });
+  }
+
+  // ── Navigation ────────────────────────────────────────────────
+  const prevBtn = document.getElementById('qprev');
+  const nextBtn = document.getElementById('qnext');
+  const dotsEl = document.getElementById('qdots');
+  const titleEl = document.getElementById('qf');
+  const descEl = document.getElementById('qd');
+
+  function goTo(idx) {
+    stage = Math.max(0, Math.min(stages_def.length - 1, idx));
+    const s = stages_def[stage];
+    titleEl.textContent = s.title();
+    descEl.textContent = s.desc();
+    animStartTime = Date.now();
+    if (s.sliders) {
+      const resolved = s.sliders.map(sl => ({
+        ...sl,
+        val: typeof sl.val === 'function' ? sl.val() : sl.val
+      }));
+      buildSliders(resolved);
+    } else {
+      slWrap.innerHTML = '';
+    }
+    prevBtn.disabled = stage === 0;
+    nextBtn.disabled = stage === stages_def.length - 1;
+    renderDots();
+  }
+
+  function renderDots() {
+    dotsEl.innerHTML = stages_def.map((_, i) =>
+      `<span class="dot${i === stage ? ' active' : ''}" data-i="${i}"></span>`
+    ).join('');
+    dotsEl.querySelectorAll('.dot').forEach(d =>
+      d.addEventListener('click', () => goTo(+d.dataset.i))
+    );
+  }
+
+  prevBtn.addEventListener('click', () => goTo(stage - 1));
+  nextBtn.addEventListener('click', () => goTo(stage + 1));
+
+  function tick() { clear(); stages_def[stage].draw(); requestAnimationFrame(tick); }
+  goTo(0);
+  tick();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Symetralna odcinka — historia</title>
+</head>
+<body>
+<script type="module">
+import { VizCore, T, COLORS } from '../lib/viz-core.js';
+
+// ── Geometry helpers ──────────────────────────────────────────────
+function dist(A, B) { return Math.hypot(A.x - B.x, A.y - B.y); }
+function mid(A, B) { return { x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 }; }
+function perpDir(A, B) {
+  const dx = B.x - A.x, dy = B.y - A.y;
+  const len = Math.hypot(dx, dy) || 1;
+  return { x: -dy / len, y: dx / len };
+}
+
+function circumcenter(A, B, C) {
+  const mx1 = (A.x + B.x) / 2, my1 = (A.y + B.y) / 2;
+  const mx2 = (B.x + C.x) / 2, my2 = (B.y + C.y) / 2;
+  const dx1 = -(B.y - A.y), dy1 = B.x - A.x;
+  const dx2 = -(C.y - B.y), dy2 = C.x - B.x;
+  const det = dx1 * dy2 - dy1 * dx2;
+  if (Math.abs(det) < 1e-8) return { x: mx1, y: my1 };
+  const t = ((mx2 - mx1) * dy2 - (my2 - my1) * dx2) / det;
+  return { x: mx1 + t * dx1, y: my1 + t * dy1 };
+}
+
+function drawDot(cx, x, y, r, col) {
+  cx.beginPath(); cx.arc(x, y, r, 0, Math.PI * 2);
+  cx.fillStyle = col; cx.shadowColor = col; cx.shadowBlur = 8; cx.fill(); cx.shadowBlur = 0;
+}
+
+function drawLine(cx, x1, y1, x2, y2, col, lw = 1.5, dash = []) {
+  cx.beginPath(); cx.moveTo(x1, y1); cx.lineTo(x2, y2);
+  cx.strokeStyle = col; cx.lineWidth = lw;
+  cx.setLineDash(dash); cx.stroke(); cx.setLineDash([]);
+}
+
+function drawLabel(cx, text, x, y, col, size = 13) {
+  cx.font = size + 'px monospace'; cx.fillStyle = col;
+  cx.textAlign = 'center'; cx.textBaseline = 'middle';
+  cx.fillText(text, x, y);
+}
+
+function drawRightAngle(cx, M, dirSeg, dirPerp, size, col) {
+  // Draw a small square at M indicating a right angle
+  const s = size;
+  cx.beginPath();
+  cx.moveTo(M.x + dirSeg.x * s, M.y + dirSeg.y * s);
+  cx.lineTo(M.x + dirSeg.x * s + dirPerp.x * s, M.y + dirSeg.y * s + dirPerp.y * s);
+  cx.lineTo(M.x + dirPerp.x * s, M.y + dirPerp.y * s);
+  cx.strokeStyle = col; cx.lineWidth = 1.5; cx.stroke();
+}
+
+function drawHouse(cx, x, y, col) {
+  // Simple house icon
+  const s = 10;
+  // Walls
+  cx.beginPath();
+  cx.rect(x - s, y - s * 0.3, s * 2, s * 1.3);
+  cx.fillStyle = col + '44'; cx.fill();
+  cx.strokeStyle = col; cx.lineWidth = 1.5; cx.stroke();
+  // Roof
+  cx.beginPath();
+  cx.moveTo(x - s * 1.3, y - s * 0.3);
+  cx.lineTo(x, y - s * 1.5);
+  cx.lineTo(x + s * 1.3, y - s * 0.3);
+  cx.closePath();
+  cx.fillStyle = col + '66'; cx.fill();
+  cx.strokeStyle = col; cx.lineWidth = 1.5; cx.stroke();
+  // Door
+  cx.beginPath();
+  cx.rect(x - s * 0.25, y + s * 0.2, s * 0.5, s * 0.8);
+  cx.fillStyle = col; cx.fill();
+}
+
+function drawDistLine(cx, A, B, col, lw = 1.5) {
+  cx.beginPath(); cx.moveTo(A.x, A.y); cx.lineTo(B.x, B.y);
+  cx.strokeStyle = col; cx.lineWidth = lw;
+  cx.setLineDash([4, 4]); cx.stroke(); cx.setLineDash([]);
+}
+
+// ── Shared state ─────────────────────────────────────────────────
+// Stage 0-1: two houses + trial point
+const houseA = { x: 160, y: 210 };
+const houseB = { x: 440, y: 210 };
+const trial  = { x: 350, y: 120 };
+
+// Stage 3: three houses for circumcenter
+const tri = [
+  { x: 150, y: 100 },
+  { x: 450, y: 140 },
+  { x: 300, y: 360 },
+];
+
+// Animation timers
+let animT = 0;
+let lastStage = -1;
+
+const { cv, cx, W, H, getCanvasPos } = VizCore.init({
+  title: T('Symetralna odcinka — historia', 'Perpendicular Bisector — A Story'),
+  H: 420,
+  stages: [
+    // ── Stage 0: The Problem ──────────────────────────────────────
+    {
+      title: () => T('Problem', 'The Problem'),
+      desc: () => T(
+        'Masz przyjaciela \u2014 mieszkacie 100 km od siebie. Chcecie kupi\u0107 domek letni, kt\u00f3ry b\u0119dzie jednakowo daleko od was obu, \u017ceby by\u0142o sprawiedliwie. Gdzie mo\u017cecie go postawi\u0107?',
+        'You and a friend live 100 km apart. You want a summer house equally far from both of you \u2014 fair and square. Where can you put it?'
+      ),
+      sliders: [],
+      draw(cx, W, H) {
+        // Ground line
+        drawLine(cx, 40, 300, 560, 300, 'rgba(255,255,255,0.08)', 1);
+
+        // Road between houses
+        drawLine(cx, houseA.x, houseA.y + 12, houseB.x, houseB.y + 12, 'rgba(255,255,255,0.12)', 3);
+
+        // Houses
+        drawHouse(cx, houseA.x, houseA.y, COLORS.CYAN);
+        drawHouse(cx, houseB.x, houseB.y, COLORS.ORANGE);
+
+        // House labels
+        drawLabel(cx, T('Ty', 'You'), houseA.x, houseA.y + 30, COLORS.CYAN, 13);
+        drawLabel(cx, T('Przyjaciel', 'Friend'), houseB.x, houseB.y + 30, COLORS.ORANGE, 13);
+
+        // Distance lines from trial to houses
+        const dA = dist(trial, houseA);
+        const dB = dist(trial, houseB);
+        drawDistLine(cx, trial, houseA, COLORS.CYAN);
+        drawDistLine(cx, trial, houseB, COLORS.ORANGE);
+
+        // Distance readouts
+        const ratio = Math.abs(dA - dB) / Math.max(dA, dB);
+        const fair = ratio < 0.05;
+
+        cx.font = '12px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('d(Ty) = ' + Math.round(dA), 16, 22);
+        cx.fillStyle = COLORS.ORANGE;
+        cx.fillText('d(Przyjaciel) = ' + Math.round(dB), 16, 38);
+
+        // Fair / not fair indicator
+        if (fair) {
+          cx.font = 'bold 14px monospace'; cx.textAlign = 'center';
+          cx.fillStyle = COLORS.GREEN;
+          cx.shadowColor = COLORS.GREEN; cx.shadowBlur = 12;
+          cx.fillText('OK! ' + T('Sprawiedliwie!', 'Fair!'), trial.x, trial.y - 28);
+          cx.shadowBlur = 0;
+        } else {
+          cx.font = '12px monospace'; cx.textAlign = 'center';
+          cx.fillStyle = '#FF6060';
+          cx.fillText(T('Niesprawiedliwe!', 'Not fair!'), trial.x, trial.y - 28);
+        }
+
+        // Trial point (draggable)
+        drawDot(cx, trial.x, trial.y, 9, fair ? COLORS.GREEN : '#FFD166');
+
+        // Hint
+        cx.font = '11px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = 'rgba(255,255,255,0.35)';
+        cx.fillText(T('Przesun zielony punkt \u2014 gdzie jest sprawiedliwie?', 'Drag the green dot \u2014 where is it fair?'), W / 2, H - 16);
+      },
+    },
+
+    // ── Stage 1: The Discovery ────────────────────────────────────
+    {
+      title: () => T('Odkrycie', 'The Discovery'),
+      desc: () => T(
+        'Zauwa\u017c co\u015b niezwyk\u0142ego: wszystkie sprawiedliwe punkty le\u017c\u0105 na jednej linii! Ta linia jest prostopad\u0142a do odcinka \u0142\u0105cz\u0105cego domy i przechodzi przez jego \u015brodek. To symetralna odcinka.',
+        'Notice something remarkable: all fair points lie on one line! This line is perpendicular to the segment joining the houses and passes through its midpoint. This is the perpendicular bisector.'
+      ),
+      sliders: [],
+      draw(cx, W, H) {
+        animT += 0.015;
+        const reveal = Math.min(1, animT);
+
+        const M = mid(houseA, houseB);
+        const pd = perpDir(houseA, houseB);
+
+        // Road
+        drawLine(cx, houseA.x, houseA.y + 12, houseB.x, houseB.y + 12, 'rgba(255,255,255,0.12)', 3);
+
+        // Houses
+        drawHouse(cx, houseA.x, houseA.y, COLORS.CYAN);
+        drawHouse(cx, houseB.x, houseB.y, COLORS.ORANGE);
+        drawLabel(cx, T('Ty', 'You'), houseA.x, houseA.y + 30, COLORS.CYAN, 13);
+        drawLabel(cx, T('Przyjaciel', 'Friend'), houseB.x, houseB.y + 30, COLORS.ORANGE, 13);
+
+        // Perpendicular bisector — animate reveal
+        const bLen = 200 * reveal;
+        cx.beginPath();
+        cx.moveTo(M.x - pd.x * bLen, M.y - pd.y * bLen);
+        cx.lineTo(M.x + pd.x * bLen, M.y + pd.y * bLen);
+        cx.strokeStyle = COLORS.GREEN; cx.lineWidth = 2.5;
+        cx.shadowColor = COLORS.GREEN; cx.shadowBlur = reveal > 0.8 ? 12 : 0;
+        cx.stroke(); cx.shadowBlur = 0;
+
+        // Midpoint
+        drawDot(cx, M.x, M.y, 5, COLORS.YELLOW);
+        if (reveal > 0.3) {
+          drawLabel(cx, 'M', M.x + 14, M.y + 4, COLORS.YELLOW, 12);
+        }
+
+        // Right angle marker
+        if (reveal > 0.6) {
+          const segDir = { x: (houseB.x - houseA.x) / dist(houseA, houseB), y: (houseB.y - houseA.y) / dist(houseA, houseB) };
+          drawRightAngle(cx, M, segDir, pd, 12, COLORS.GREEN);
+        }
+
+        // Snap trial point to the bisector line
+        // Project trial onto the bisector
+        const dx = trial.x - M.x, dy = trial.y - M.y;
+        const proj = dx * pd.x + dy * pd.y;
+        const snapX = M.x + pd.x * proj;
+        const snapY = M.y + pd.y * proj;
+        // Clamp to visible range
+        const clampedProj = Math.max(-190, Math.min(190, proj));
+        const sx = M.x + pd.x * clampedProj;
+        const sy = M.y + pd.y * clampedProj;
+
+        // Distance lines
+        const dA = dist({ x: sx, y: sy }, houseA);
+        const dB = dist({ x: sx, y: sy }, houseB);
+        drawDistLine(cx, { x: sx, y: sy }, houseA, COLORS.CYAN);
+        drawDistLine(cx, { x: sx, y: sy }, houseB, COLORS.ORANGE);
+
+        drawDot(cx, sx, sy, 9, COLORS.GREEN);
+
+        // Distances — always equal on the line
+        cx.font = '12px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('d(Ty) = ' + Math.round(dA), 16, 22);
+        cx.fillStyle = COLORS.ORANGE;
+        cx.fillText('d(Przyjaciel) = ' + Math.round(dB), 16, 38);
+        cx.fillStyle = COLORS.GREEN;
+        cx.fillText(T('Zawsze rowne!', 'Always equal!'), 16, 54);
+
+        // "symetralna" label with glow
+        if (reveal > 0.8) {
+          cx.font = 'bold 15px monospace'; cx.textAlign = 'center';
+          cx.fillStyle = COLORS.GREEN;
+          cx.shadowColor = COLORS.GREEN; cx.shadowBlur = 16;
+          cx.fillText(T('symetralna', 'perp. bisector'), M.x + pd.x * 170, M.y + pd.y * 170);
+          cx.shadowBlur = 0;
+        }
+
+        // Update trial position to snap for drag continuity
+        trial.x = sx; trial.y = sy;
+      },
+    },
+
+    // ── Stage 2: Why does it work? ────────────────────────────────
+    {
+      title: () => T('Dlaczego to dziala?', 'Why Does It Work?'),
+      desc: () => T(
+        'Z\u0142\u00f3\u017c odcinek AB wzd\u0142u\u017c symetralnej \u2014 punkt A pokryje B! Ka\u017cdy punkt na symetralnej jest osi\u0105 symetrii odcinka. Dlatego odleg\u0142o\u015bci od A i B s\u0105 identyczne \u2014 symetria to gwarantuje.',
+        'Fold segment AB along the bisector \u2014 A lands on B! Every point on the bisector is an axis of symmetry. That\'s why distances to A and B are always identical.'
+      ),
+      sliders: [
+        { id: 'fold', lbl: T('skladanie', 'fold'), color: COLORS.YELLOW, min: 0, max: 1, step: 0.01, val: 0 },
+      ],
+      draw(cx, W, H, vals) {
+        const A = { x: 180, y: 260 };
+        const B = { x: 420, y: 260 };
+        const M = mid(A, B);
+        const pd = perpDir(A, B);
+        const P = { x: M.x + pd.x * 140, y: M.y + pd.y * 140 };
+        const fold = vals.fold;
+
+        // Perpendicular bisector
+        drawLine(cx, M.x - pd.x * 200, M.y - pd.y * 200, M.x + pd.x * 200, M.y + pd.y * 200, COLORS.GREEN, 2, [6, 4]);
+
+        // Segment AB
+        drawLine(cx, A.x, A.y, B.x, B.y, 'rgba(255,255,255,0.4)', 2);
+
+        // Right angle marker
+        const segDir = { x: (B.x - A.x) / dist(A, B), y: (B.y - A.y) / dist(A, B) };
+        drawRightAngle(cx, M, segDir, pd, 12, COLORS.GREEN);
+
+        // Point P on bisector
+        drawDot(cx, P.x, P.y, 7, COLORS.PURPLE);
+        drawLabel(cx, 'P', P.x - 16, P.y - 4, COLORS.PURPLE, 14);
+
+        // Triangles PMA and PMB
+        // Triangle PMA
+        cx.beginPath(); cx.moveTo(P.x, P.y); cx.lineTo(M.x, M.y); cx.lineTo(A.x, A.y); cx.closePath();
+        cx.fillStyle = 'rgba(88,196,221,0.08)'; cx.fill();
+        cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 1.5; cx.stroke();
+
+        // Triangle PMB
+        cx.beginPath(); cx.moveTo(P.x, P.y); cx.lineTo(M.x, M.y); cx.lineTo(B.x, B.y); cx.closePath();
+        cx.fillStyle = 'rgba(255,107,53,0.08)'; cx.fill();
+        cx.strokeStyle = COLORS.ORANGE; cx.lineWidth = 1.5; cx.stroke();
+
+        // Congruence marks on PM (common side)
+        const pmMid = mid(P, M);
+        drawLabel(cx, '||', pmMid.x + 8, pmMid.y, COLORS.YELLOW, 11);
+
+        // Congruence marks on MA and MB
+        const maMid = mid(M, A);
+        const mbMid = mid(M, B);
+        drawLabel(cx, '|', maMid.x, maMid.y + 14, COLORS.YELLOW, 11);
+        drawLabel(cx, '|', mbMid.x, mbMid.y + 14, COLORS.YELLOW, 11);
+
+        // Labels
+        drawDot(cx, M.x, M.y, 5, COLORS.YELLOW);
+        drawLabel(cx, 'M', M.x, M.y + 18, COLORS.YELLOW, 13);
+
+        // Fold animation: mirror A across the bisector towards B
+        const foldedAx = A.x + (B.x - A.x) * fold;
+        const foldedAy = A.y + (B.y - A.y) * fold;
+
+        drawDot(cx, B.x, B.y, 7, COLORS.ORANGE);
+        drawLabel(cx, 'B', B.x + 16, B.y, COLORS.ORANGE, 14);
+
+        // A moves during fold
+        drawDot(cx, foldedAx, foldedAy, 7, COLORS.CYAN);
+        if (fold < 0.5) {
+          drawLabel(cx, 'A', foldedAx - 16, foldedAy, COLORS.CYAN, 14);
+        } else {
+          drawLabel(cx, 'A\u2192B', foldedAx + 20, foldedAy - 6, COLORS.CYAN, 12);
+        }
+
+        // PA and PB distance labels
+        const paD = dist(P, A);
+        const pbD = dist(P, B);
+        cx.font = '12px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('PA = ' + Math.round(paD), 16, 22);
+        cx.fillStyle = COLORS.ORANGE;
+        cx.fillText('PB = ' + Math.round(pbD), 16, 38);
+        cx.fillStyle = COLORS.YELLOW;
+        cx.fillText('PM = PM (' + T('wspolny', 'common') + ')', 16, 54);
+        cx.fillText('MA = MB (' + T('srodek', 'midpoint') + ')', 16, 70);
+        cx.fillText(T('\u2220PMA = \u2220PMB = 90\u00b0', '\u2220PMA = \u2220PMB = 90\u00b0'), 16, 86);
+
+        if (fold > 0.9) {
+          cx.font = 'bold 13px monospace'; cx.textAlign = 'center';
+          cx.fillStyle = COLORS.GREEN;
+          cx.shadowColor = COLORS.GREEN; cx.shadowBlur = 12;
+          cx.fillText(T('A pokrywa B \u2014 symetria!', 'A lands on B \u2014 symmetry!'), W / 2, H - 16);
+          cx.shadowBlur = 0;
+        }
+      },
+    },
+
+    // ── Stage 3: Three Houses — Circumcircle ──────────────────────
+    {
+      title: () => T('Trzy domy \u2014 okr\u0105g opisany', 'Three Houses \u2014 Circumscribed Circle'),
+      desc: () => T(
+        'A co je\u015bli macie troje przyjaci\u00f3\u0142? Punkt jednakowo daleko od trzech punkt\u00f3w to \u015brodek okr\u0119gu opisanego \u2014 i le\u017cy na przeci\u0119ciu DW\u00d3CH symetralnych. Trzecia musi przej\u015b\u0107 przez ten sam punkt!',
+        'What if there are three of you? The point equidistant from three points is the circumcenter \u2014 at the intersection of TWO bisectors. The third must pass through the same point!'
+      ),
+      sliders: [],
+      draw(cx, W, H) {
+        const [A, B, C] = tri;
+        const sides = [[A, B], [B, C], [C, A]];
+        const sideColors = [COLORS.CYAN, COLORS.ORANGE, COLORS.YELLOW];
+        const O = circumcenter(A, B, C);
+        const R = dist(O, A);
+
+        // Triangle
+        cx.beginPath();
+        cx.moveTo(A.x, A.y); cx.lineTo(B.x, B.y); cx.lineTo(C.x, C.y); cx.closePath();
+        cx.strokeStyle = 'rgba(255,255,255,0.25)'; cx.lineWidth = 1.5; cx.stroke();
+
+        // Perpendicular bisectors
+        sides.forEach(([P1, P2], i) => {
+          const M = mid(P1, P2);
+          const pd = perpDir(P1, P2);
+          drawLine(cx, M.x - pd.x * 250, M.y - pd.y * 250, M.x + pd.x * 250, M.y + pd.y * 250, sideColors[i], 1.5, [5, 4]);
+          drawDot(cx, M.x, M.y, 4, sideColors[i]);
+        });
+
+        // Circumscribed circle
+        cx.beginPath(); cx.arc(O.x, O.y, R, 0, Math.PI * 2);
+        cx.strokeStyle = COLORS.GREEN; cx.lineWidth = 2.5;
+        cx.shadowColor = COLORS.GREEN; cx.shadowBlur = 10;
+        cx.stroke(); cx.shadowBlur = 0;
+
+        // Radii
+        [A, B, C].forEach(p => {
+          drawLine(cx, O.x, O.y, p.x, p.y, 'rgba(131,193,103,0.3)', 1.5);
+        });
+
+        // Houses
+        drawHouse(cx, A.x, A.y, COLORS.CYAN);
+        drawHouse(cx, B.x, B.y, COLORS.ORANGE);
+        drawHouse(cx, C.x, C.y, COLORS.YELLOW);
+
+        // Circumcenter
+        drawDot(cx, O.x, O.y, 7, COLORS.GREEN);
+        drawLabel(cx, 'O', O.x + 14, O.y - 8, COLORS.GREEN, 13);
+
+        // Distances
+        const dA = Math.round(dist(O, A));
+        const dB = Math.round(dist(O, B));
+        const dC = Math.round(dist(O, C));
+        cx.font = '12px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = COLORS.GREEN;
+        cx.fillText('OA = OB = OC = ' + dA, 16, 22);
+        cx.fillStyle = 'rgba(255,255,255,0.4)';
+        cx.fillText(T('Symetralne spotykaja sie w jednym punkcie!', 'Bisectors meet at one point!'), 16, 38);
+        cx.fillStyle = 'rgba(255,255,255,0.3)';
+        cx.fillText(T('Przeciagnij domy!', 'Drag the houses!'), 16, H - 8);
+      },
+    },
+
+    // ── Stage 4: Construction ─────────────────────────────────────
+    {
+      title: () => T('Konstrukcja', 'Construction'),
+      desc: () => T(
+        'Jak narysowa\u0107 symetraln\u0105? Rozstaw cyrkiel szerzej ni\u017c po\u0142owa odcinka. Narysuj dwa \u0142uki \u2014 z A i z B. \u0141uki przetn\u0105 si\u0119 w dw\u00f3ch punktach. Po\u0142\u0105cz je \u2014 to symetralna!',
+        'How to draw it? Open the compass wider than half the segment. Draw two arcs \u2014 from A and from B. They intersect at two points. Connect them \u2014 that\'s the perpendicular bisector!'
+      ),
+      sliders: [
+        { id: 'step', lbl: T('krok', 'step'), color: COLORS.CYAN, min: 0, max: 4, step: 1, val: 0 },
+      ],
+      draw(cx, W, H, vals) {
+        const A = { x: 180, y: 240 };
+        const B = { x: 420, y: 240 };
+        const M = mid(A, B);
+        const segLen = dist(A, B);
+        const r = segLen * 0.7; // compass radius > half segment
+        const step = Math.round(vals.step);
+
+        // Step labels
+        const stepLabels = [
+          T('Odcinek AB', 'Segment AB'),
+          T('Luk z punktu A', 'Arc from point A'),
+          T('Luk z punktu B \u2014 przeciecia!', 'Arc from point B \u2014 intersections!'),
+          T('Polacz przeciecia \u2014 symetralna!', 'Connect intersections \u2014 bisector!'),
+          T('Sprawdzenie: kat prosty i srodek', 'Verify: right angle and midpoint'),
+        ];
+
+        // Always draw segment AB
+        drawLine(cx, A.x, A.y, B.x, B.y, 'rgba(255,255,255,0.5)', 2.5);
+        drawDot(cx, A.x, A.y, 6, COLORS.CYAN);
+        drawDot(cx, B.x, B.y, 6, COLORS.ORANGE);
+        drawLabel(cx, 'A', A.x - 18, A.y + 2, COLORS.CYAN, 14);
+        drawLabel(cx, 'B', B.x + 18, B.y + 2, COLORS.ORANGE, 14);
+
+        // Compute intersection points of the two arcs
+        // Two circles of radius r centered at A and B
+        const d = segLen;
+        const a2 = (r * r - r * r + d * d) / (2 * d); // simplifies to d/2
+        const h = Math.sqrt(r * r - a2 * a2);
+        const pd = perpDir(A, B);
+        const intP1 = { x: M.x + pd.x * h, y: M.y + pd.y * h };
+        const intP2 = { x: M.x - pd.x * h, y: M.y - pd.y * h };
+
+        // Step 1: Arc from A
+        if (step >= 1) {
+          cx.beginPath();
+          // Draw a visible arc portion from A
+          const angToB = Math.atan2(B.y - A.y, B.x - A.x);
+          cx.arc(A.x, A.y, r, angToB - 0.9, angToB + 0.9);
+          cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 2;
+          cx.shadowColor = COLORS.CYAN; cx.shadowBlur = 6;
+          cx.stroke(); cx.shadowBlur = 0;
+        }
+
+        // Step 2: Arc from B + intersection points
+        if (step >= 2) {
+          cx.beginPath();
+          const angToA = Math.atan2(A.y - B.y, A.x - B.x);
+          cx.arc(B.x, B.y, r, angToA - 0.9, angToA + 0.9);
+          cx.strokeStyle = COLORS.ORANGE; cx.lineWidth = 2;
+          cx.shadowColor = COLORS.ORANGE; cx.shadowBlur = 6;
+          cx.stroke(); cx.shadowBlur = 0;
+
+          // Intersection points
+          drawDot(cx, intP1.x, intP1.y, 6, COLORS.YELLOW);
+          drawDot(cx, intP2.x, intP2.y, 6, COLORS.YELLOW);
+        }
+
+        // Step 3: Connect intersections — the perpendicular bisector
+        if (step >= 3) {
+          drawLine(cx, intP1.x, intP1.y, intP2.x, intP2.y, COLORS.GREEN, 2.5);
+
+          cx.font = 'bold 14px monospace'; cx.textAlign = 'center';
+          cx.fillStyle = COLORS.GREEN;
+          cx.shadowColor = COLORS.GREEN; cx.shadowBlur = 12;
+          cx.fillText(T('symetralna', 'perp. bisector'), intP1.x + 70, intP1.y - 10);
+          cx.shadowBlur = 0;
+        }
+
+        // Step 4: Verify — right angle + midpoint
+        if (step >= 4) {
+          drawDot(cx, M.x, M.y, 5, COLORS.YELLOW);
+          drawLabel(cx, 'M', M.x + 14, M.y + 14, COLORS.YELLOW, 13);
+
+          const segDir = { x: (B.x - A.x) / segLen, y: (B.y - A.y) / segLen };
+          drawRightAngle(cx, M, segDir, pd, 14, COLORS.GREEN);
+
+          // MA = MB annotation
+          cx.font = '12px monospace'; cx.textAlign = 'center';
+          cx.fillStyle = COLORS.YELLOW;
+          cx.fillText('MA = MB = ' + Math.round(segLen / 2), M.x, M.y + 30);
+
+          // check mark
+          cx.font = 'bold 16px monospace';
+          cx.fillStyle = COLORS.GREEN;
+          cx.shadowColor = COLORS.GREEN; cx.shadowBlur = 8;
+          cx.fillText('\u2713', M.x, M.y - 20);
+          cx.shadowBlur = 0;
+        }
+
+        // Current step label
+        cx.font = '12px monospace'; cx.textAlign = 'left';
+        cx.fillStyle = 'rgba(255,255,255,0.55)';
+        cx.fillText(T('Krok', 'Step') + ' ' + step + ': ' + stepLabels[step], 16, 22);
+      },
+    },
+  ],
+});
+
+// ── Drag interaction ──────────────────────────────────────────────
+let dragging = null;
+let currentStageIdx = 0;
+cv.classList.add('draggable');
+
+// Track stage changes by polling (VizCore doesn't expose stage change callback)
+const stageTitle = document.getElementById('qf');
+const observer = new MutationObserver(() => {
+  const title = stageTitle.textContent;
+  let newStage = -1;
+  if (title.includes('Problem') || title.includes('The Problem')) newStage = 0;
+  else if (title.includes('Odkrycie') || title.includes('Discovery')) newStage = 1;
+  else if (title.includes('Dlaczego') || title.includes('Why')) newStage = 2;
+  else if (title.includes('Trzy') || title.includes('Three')) newStage = 3;
+  else if (title.includes('Konstrukcja') || title.includes('Construction')) newStage = 4;
+
+  if (newStage !== -1 && newStage !== currentStageIdx) {
+    currentStageIdx = newStage;
+    animT = 0; // reset animation on stage change
+    // Reset trial point when entering stage 0 or 1
+    if (newStage === 0) {
+      trial.x = 350; trial.y = 120;
+    }
+    if (newStage === 1) {
+      // Snap to bisector
+      const M = mid(houseA, houseB);
+      const pd = perpDir(houseA, houseB);
+      trial.x = M.x + pd.x * 60;
+      trial.y = M.y + pd.y * 60;
+    }
+  }
+});
+observer.observe(stageTitle, { childList: true, characterData: true, subtree: true });
+
+function getDraggables() {
+  switch (currentStageIdx) {
+    case 0: return [trial];
+    case 1: return [trial];
+    case 3: return tri;
+    default: return [];
+  }
+}
+
+function onDown(e) {
+  const pos = getCanvasPos(e);
+  const pts = getDraggables();
+  dragging = pts.find(v => Math.hypot(v.x - pos.x, v.y - pos.y) < 24) || null;
+  if (dragging && e.preventDefault) e.preventDefault();
+}
+
+function onMove(e) {
+  if (!dragging) return;
+  if (e.preventDefault) e.preventDefault();
+  const pos = getCanvasPos(e);
+  dragging.x = Math.max(20, Math.min(W - 20, pos.x));
+  dragging.y = Math.max(20, Math.min(H - 20, pos.y));
+}
+
+function onUp() { dragging = null; }
+
+cv.addEventListener('mousedown', onDown);
+cv.addEventListener('mousemove', onMove);
+cv.addEventListener('mouseup', onUp);
+cv.addEventListener('mouseleave', onUp);
+cv.addEventListener('touchstart', onDown, { passive: false });
+cv.addEventListener('touchmove', onMove, { passive: false });
+cv.addEventListener('touchend', onUp);
+</script>
+</body>
+</html>

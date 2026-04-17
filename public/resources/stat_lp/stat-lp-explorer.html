@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Statystyka LP — Eksplorator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+  #qf { margin: 0 0 5px; font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  #qd { margin: 0 0 10px; font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); min-height: 48px; white-space: pre-line; }
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 70px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+  .nav { display: flex; align-items: center; justify-content: space-between; }
+  button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  button:hover { background: rgba(255,255,255,.08); }
+  button:disabled { opacity: .3; cursor: default; }
+  #qdots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.18); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  #sliders-wrap { min-height: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="420"></canvas>
+  <div class="panel">
+    <p id="qf"></p>
+    <p id="qd"></p>
+    <div id="sliders-wrap"></div>
+    <div class="nav">
+      <button id="qprev">&larr;</button>
+      <div id="qdots"></div>
+      <button id="qnext">&rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const cv = document.getElementById('cv');
+  const cx = cv.getContext('2d');
+  const W = 600, H = 420;
+
+  const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
+  const T = (pl, en) => LANG === 'pl' ? pl : en;
+
+  const COL_ACCENT  = '#58C4DD';
+  const COL_DOT     = '#e74c3c';
+  const COL_MEAN    = '#FFD166';
+  const COL_RANGE   = '#3498db';
+  const COL_DEV     = '#e67e22';
+  const COL_VAR     = '#9b59b6';
+  const COL_STD     = '#2ecc71';
+  const COL_Q1      = '#e74c3c';
+  const COL_MED     = '#FFD166';
+  const COL_Q3      = '#3498db';
+  const COL_LINE    = 'rgba(255,255,255,0.25)';
+
+  let seed = 73;
+  function seededRandom() { seed = (seed * 16807 + 0) % 2147483647; return (seed - 1) / 2147483646; }
+
+  function generateData(n, seedVal) {
+    seed = seedVal || 73;
+    const data = [];
+    for (let i = 0; i < n; i++) {
+      const v = Math.round(seededRandom() * 18) + 1;
+      data.push(v);
+    }
+    return data;
+  }
+
+  let nPoints = 12;
+  let stage = 0;
+  let animStartTime = Date.now();
+
+  function clear() { cx.fillStyle = '#0e0e12'; cx.fillRect(0, 0, W, H); }
+
+  const XL = 60, XR = W - 60;
+  const MAX_VAL = 20;
+
+  function drawNumberLine(y, xLeft, xRight, maxV) {
+    maxV = maxV || MAX_VAL;
+    cx.save();
+    cx.strokeStyle = COL_LINE;
+    cx.lineWidth = 1.5;
+    cx.beginPath();
+    cx.moveTo(xLeft, y);
+    cx.lineTo(xRight, y);
+    cx.stroke();
+    const step = maxV <= 10 ? 1 : (maxV <= 20 ? 2 : 5);
+    for (let v = 0; v <= maxV; v += step) {
+      const x = xLeft + (v / maxV) * (xRight - xLeft);
+      cx.beginPath();
+      cx.moveTo(x, y - 4);
+      cx.lineTo(x, y + 4);
+      cx.stroke();
+      cx.font = '10px monospace';
+      cx.fillStyle = 'rgba(255,255,255,0.4)';
+      cx.textAlign = 'center';
+      cx.fillText(v, x, y + 16);
+    }
+    cx.restore();
+  }
+
+  function valToX(v, xLeft, xRight, maxV) {
+    return xLeft + (v / (maxV || MAX_VAL)) * (xRight - xLeft);
+  }
+
+  function drawGlowDot(x, y, r, color, alpha) {
+    cx.save();
+    cx.globalAlpha = alpha !== undefined ? alpha : 1;
+    cx.beginPath();
+    cx.arc(x, y, r, 0, Math.PI * 2);
+    cx.fillStyle = color;
+    cx.shadowColor = color;
+    cx.shadowBlur = 8;
+    cx.fill();
+    cx.shadowBlur = 0;
+    cx.restore();
+  }
+
+  function drawCount(text, x, y, color) {
+    cx.save();
+    cx.font = 'bold 18px monospace';
+    cx.textAlign = 'center';
+    cx.fillStyle = color || COL_ACCENT;
+    cx.shadowColor = color || COL_ACCENT;
+    cx.shadowBlur = 12;
+    cx.fillText(text, x, y);
+    cx.shadowBlur = 0;
+    cx.restore();
+  }
+
+  function drawFormula(text, x, y, color, size) {
+    cx.save();
+    cx.font = (size || 13) + 'px monospace';
+    cx.textAlign = 'center';
+    cx.fillStyle = color || 'rgba(255,255,255,0.7)';
+    cx.fillText(text, x, y);
+    cx.restore();
+  }
+
+  function mean(arr) { return arr.reduce((a,b) => a+b, 0) / arr.length; }
+  function variance(arr) { const m = mean(arr); return arr.reduce((s,v) => s + (v-m)*(v-m), 0) / arr.length; }
+  function stddev(arr) { return Math.sqrt(variance(arr)); }
+  function median(arr) {
+    const s = [...arr].sort((a,b) => a-b);
+    const mid = Math.floor(s.length / 2);
+    return s.length % 2 !== 0 ? s[mid] : (s[mid-1] + s[mid]) / 2;
+  }
+  function quartiles(arr) {
+    const s = [...arr].sort((a,b) => a-b);
+    const n = s.length;
+    const med = median(s);
+    const lower = s.slice(0, Math.floor(n / 2));
+    const upper = n % 2 === 0 ? s.slice(n / 2) : s.slice(Math.floor(n / 2) + 1);
+    return { q1: median(lower), med, q3: median(upper) };
+  }
+
+  // ── Stages ──────────────────────────────────────────────────
+
+  const stages_def = [
+    // Stage 1: Range and deviations
+    {
+      title: () => T('Rozstep i odchylenie', 'Range and Deviation'),
+      desc: () => T(
+        'Rozstep to roznica miedzy najwieksza a najmniejsza wartoscia — pokazuje, jak \"rozciagniete\" sa dane.\nKolorowe paski to odchylenia od sredniej: jak daleko kazdy punkt jest od \"srodka\".',
+        'Range is the difference between max and min — shows how spread out data is.\nColored bars are deviations from the mean.'
+      ),
+      sliders: [
+        { id: 'nPoints', lbl: T('n =','n ='), color: COL_DOT, min: 5, max: 20, step: 1, val: () => nPoints },
+      ],
+      draw() {
+        const data = generateData(nPoints, 73);
+        const m = mean(data);
+        const sorted = [...data].sort((a,b) => a-b);
+        const minV = sorted[0], maxV = sorted[sorted.length - 1];
+        const range = maxV - minV;
+        const elapsed = (Date.now() - animStartTime) / 1000;
+        const lineY = 160;
+
+        drawNumberLine(lineY, XL, XR);
+
+        // Stack dots
+        const stacks = {};
+        data.forEach((v, i) => {
+          if (!stacks[v]) stacks[v] = [];
+          stacks[v].push(i);
+        });
+        Object.keys(stacks).forEach(v => {
+          const x = valToX(+v, XL, XR);
+          stacks[v].forEach((idx, si) => {
+            drawGlowDot(x, lineY - 10 - si * 14, 5, COL_DOT, 0.8);
+          });
+        });
+
+        // Mean line
+        const mx = valToX(m, XL, XR);
+        cx.save();
+        cx.strokeStyle = COL_MEAN;
+        cx.lineWidth = 2;
+        cx.setLineDash([4, 3]);
+        cx.beginPath();
+        cx.moveTo(mx, lineY - 80);
+        cx.lineTo(mx, lineY + 5);
+        cx.stroke();
+        cx.setLineDash([]);
+        cx.font = 'bold 11px monospace';
+        cx.textAlign = 'center';
+        cx.fillStyle = COL_MEAN;
+        cx.fillText(T('srednia = ', 'mean = ') + m.toFixed(1), mx, lineY - 85);
+        cx.restore();
+
+        // Range bracket
+        const bracketProg = Math.min(1, elapsed / 0.8);
+        if (bracketProg > 0) {
+          cx.save();
+          cx.globalAlpha = bracketProg;
+          const minX = valToX(minV, XL, XR);
+          const maxX = valToX(maxV, XL, XR);
+          const bracketY = lineY + 30;
+
+          cx.strokeStyle = COL_RANGE;
+          cx.lineWidth = 2;
+          cx.shadowColor = COL_RANGE;
+          cx.shadowBlur = 8;
+          // Horizontal
+          cx.beginPath();
+          cx.moveTo(minX, bracketY);
+          cx.lineTo(maxX, bracketY);
+          cx.stroke();
+          // Verticals
+          cx.beginPath();
+          cx.moveTo(minX, bracketY - 6);
+          cx.lineTo(minX, bracketY + 6);
+          cx.stroke();
+          cx.beginPath();
+          cx.moveTo(maxX, bracketY - 6);
+          cx.lineTo(maxX, bracketY + 6);
+          cx.stroke();
+          cx.shadowBlur = 0;
+
+          cx.font = 'bold 12px monospace';
+          cx.textAlign = 'center';
+          cx.fillStyle = COL_RANGE;
+          cx.fillText(T('rozstep = ', 'range = ') + maxV + ' - ' + minV + ' = ' + range, (minX + maxX) / 2, bracketY + 22);
+          cx.restore();
+        }
+
+        // Deviation bars
+        const devProg = Math.min(1, Math.max(0, (elapsed - 0.5) / 0.8));
+        if (devProg > 0) {
+          const devY = 260;
+          cx.save();
+          cx.font = '10px monospace';
+          cx.textAlign = 'center';
+          cx.fillStyle = 'rgba(255,255,255,0.4)';
+          cx.fillText(T('Odchylenia od sredniej (xi - srednia):', 'Deviations from mean (xi - mean):'), W / 2, devY - 15);
+          cx.restore();
+
+          const barW = Math.min(25, (W - 120) / data.length);
+          const barGap = 2;
+          const totalW = data.length * (barW + barGap);
+          const startX = W / 2 - totalW / 2;
+          const maxDev = Math.max(...data.map(v => Math.abs(v - m)));
+
+          data.forEach((v, i) => {
+            const dev = v - m;
+            const x = startX + i * (barW + barGap);
+            const barH = (Math.abs(dev) / maxDev) * 80 * devProg;
+            const col = dev >= 0 ? COL_DEV : '#3498db';
+
+            cx.save();
+            cx.globalAlpha = devProg;
+            cx.fillStyle = col;
+            cx.shadowColor = col;
+            cx.shadowBlur = 4;
+            if (dev >= 0) {
+              cx.fillRect(x, devY - barH, barW, barH);
+            } else {
+              cx.fillRect(x, devY, barW, barH);
+            }
+            cx.shadowBlur = 0;
+
+            // Value on top
+            if (devProg > 0.7) {
+              cx.font = '8px monospace';
+              cx.textAlign = 'center';
+              cx.fillStyle = 'rgba(255,255,255,0.5)';
+              cx.fillText(dev > 0 ? '+' + dev.toFixed(1) : dev.toFixed(1), x + barW / 2, dev >= 0 ? devY - barH - 4 : devY + barH + 10);
+            }
+            cx.restore();
+          });
+
+          // Zero line for deviations
+          cx.save();
+          cx.strokeStyle = 'rgba(255,255,255,0.2)';
+          cx.lineWidth = 1;
+          cx.beginPath();
+          cx.moveTo(startX - 5, devY);
+          cx.lineTo(startX + totalW + 5, devY);
+          cx.stroke();
+          cx.restore();
+        }
+
+        drawCount(T('Rozstep = ', 'Range = ') + range, W / 2, 400, COL_RANGE);
+      }
+    },
+
+    // Stage 2: Variance step by step
+    {
+      title: () => T('Wariancja krok po kroku', 'Variance Step by Step'),
+      desc: () => T(
+        'Wariancja mierzy \"rozrzut\" danych. Kroki:\n1) Oblicz srednia  2) Odejmij srednia od kazdej wartosci  3) Podniez do kwadratu  4) Policz srednia kwadratow.\nKwadraty odchylen to pola kwadratow — im wieksze, tym wiekszy rozrzut!',
+        'Variance measures "spread". Steps:\n1) Compute mean  2) Subtract mean from each  3) Square it  4) Average the squares.'
+      ),
+      sliders: [
+        { id: 'nPoints', lbl: T('n =','n ='), color: COL_DOT, min: 5, max: 15, step: 1, val: () => nPoints },
+      ],
+      draw() {
+        const data = generateData(Math.min(nPoints, 15), 73);
+        const m = mean(data);
+        const v = variance(data);
+        const elapsed = (Date.now() - animStartTime) / 1000;
+
+        // Step indicator
+        const stepProg = [
+          Math.min(1, elapsed / 0.6),
+          Math.min(1, Math.max(0, (elapsed - 0.6) / 0.6)),
+          Math.min(1, Math.max(0, (elapsed - 1.2) / 0.8)),
+          Math.min(1, Math.max(0, (elapsed - 2.0) / 0.6)),
+        ];
+
+        // Step 1: Show mean
+        cx.save();
+        cx.globalAlpha = stepProg[0];
+        cx.font = 'bold 11px monospace';
+        cx.fillStyle = COL_MEAN;
+        cx.textAlign = 'left';
+        cx.fillText(T('1. Srednia = ', '1. Mean = ') + m.toFixed(2), 30, 30);
+        cx.restore();
+
+        // Show deviations as squares
+        const maxDev = Math.max(...data.map(d => Math.abs(d - m)));
+        const squareArea = 130;
+        const maxSqSize = 50;
+        const cols = Math.min(data.length, 8);
+        const rows = Math.ceil(data.length / cols);
+        const cellW = (W - 60) / cols;
+        const cellH = Math.min(55, (280) / rows);
+        const startY = 50;
+
+        data.forEach((d, i) => {
+          const dev = d - m;
+          const devSq = dev * dev;
+          const col = i % cols;
+          const row = Math.floor(i / cols);
+          const cx0 = 30 + col * cellW + cellW / 2;
+          const cy0 = startY + row * cellH + cellH / 2;
+
+          // Step 2: Show (xi - mean)
+          if (stepProg[1] > 0) {
+            cx.save();
+            cx.globalAlpha = stepProg[1];
+            cx.font = '9px monospace';
+            cx.textAlign = 'center';
+            cx.fillStyle = 'rgba(255,255,255,0.5)';
+            cx.fillText(d + ' - ' + m.toFixed(1), cx0, cy0 - 22);
+            cx.fillText('= ' + dev.toFixed(1), cx0, cy0 - 12);
+            cx.restore();
+          }
+
+          // Step 3: Show squares
+          if (stepProg[2] > 0) {
+            const sqSize = Math.min(maxSqSize, Math.max(4, (Math.abs(dev) / Math.max(maxDev, 1)) * maxSqSize)) * stepProg[2];
+            cx.save();
+            cx.globalAlpha = stepProg[2] * 0.6;
+            cx.fillStyle = COL_VAR;
+            cx.shadowColor = COL_VAR;
+            cx.shadowBlur = 6;
+            cx.fillRect(cx0 - sqSize / 2, cy0 - sqSize / 2 + 5, sqSize, sqSize);
+            cx.shadowBlur = 0;
+
+            // Label
+            cx.globalAlpha = stepProg[2];
+            cx.font = '8px monospace';
+            cx.textAlign = 'center';
+            cx.fillStyle = 'rgba(255,255,255,0.6)';
+            cx.fillText(devSq.toFixed(1), cx0, cy0 + sqSize / 2 + 18);
+            cx.restore();
+          }
+        });
+
+        // Step 4: Sum and divide
+        if (stepProg[3] > 0) {
+          const sumSq = data.reduce((s, d) => s + (d - m) * (d - m), 0);
+          cx.save();
+          cx.globalAlpha = stepProg[3];
+
+          const formulaY = H - 80;
+
+          cx.font = '11px monospace';
+          cx.textAlign = 'center';
+          cx.fillStyle = 'rgba(255,255,255,0.5)';
+          cx.fillText(T('2. Odchylenia: (xi - srednia)', '2. Deviations: (xi - mean)'), W / 2, formulaY - 25);
+          cx.fillText(T('3. Kwadraty odchylen (pola kwadratow powyzej)', '3. Squared deviations (square areas above)'), W / 2, formulaY - 10);
+
+          cx.font = 'bold 12px monospace';
+          cx.fillStyle = COL_VAR;
+          cx.fillText(T('4. Wariancja = suma kwadratow / n', '4. Variance = sum of squares / n'), W / 2, formulaY + 10);
+          cx.fillText(sumSq.toFixed(1) + ' / ' + data.length + ' = ' + v.toFixed(2), W / 2, formulaY + 30);
+          cx.restore();
+        }
+
+        drawCount(T('Wariancja = ', 'Variance = ') + v.toFixed(2), W / 2, H - 10, COL_VAR);
+      }
+    },
+
+    // Stage 3: Standard deviation
+    {
+      title: () => T('Odchylenie standardowe', 'Standard Deviation'),
+      desc: () => T(
+        'Odchylenie standardowe (sigma) to pierwiastek z wariancji. Mowi nam: \"typowy\" punkt jest odlegly o sigma od sredniej.\nOkoło 68% danych miesci sie w przedziale srednia +/- sigma.',
+        'Standard deviation (sigma) is the square root of variance. About 68% of data falls within mean +/- sigma.'
+      ),
+      sliders: [
+        { id: 'nPoints', lbl: T('n =','n ='), color: COL_DOT, min: 5, max: 20, step: 1, val: () => nPoints },
+      ],
+      draw() {
+        const data = generateData(nPoints, 73);
+        const m = mean(data);
+        const sd = stddev(data);
+        const v = variance(data);
+        const elapsed = (Date.now() - animStartTime) / 1000;
+        const lineY = 180;
+
+        drawNumberLine(lineY, XL, XR);
+
+        // Dots
+        const stacks = {};
+        data.forEach((val, i) => {
+          if (!stacks[val]) stacks[val] = [];
+          stacks[val].push(i);
+        });
+        Object.keys(stacks).forEach(val => {
+          const x = valToX(+val, XL, XR);
+          stacks[val].forEach((idx, si) => {
+            const withinSigma = Math.abs(+val - m) <= sd;
+            drawGlowDot(x, lineY - 10 - si * 14, 5, withinSigma ? COL_STD : COL_DOT, 0.8);
+          });
+        });
+
+        // Mean line
+        const mx = valToX(m, XL, XR);
+        cx.save();
+        cx.strokeStyle = COL_MEAN;
+        cx.lineWidth = 2;
+        cx.beginPath();
+        cx.moveTo(mx, lineY - 90);
+        cx.lineTo(mx, lineY + 5);
+        cx.stroke();
+        cx.font = 'bold 11px monospace';
+        cx.textAlign = 'center';
+        cx.fillStyle = COL_MEAN;
+        cx.fillText(T('srednia', 'mean'), mx, lineY - 95);
+        cx.restore();
+
+        // Sigma band
+        const bandProg = Math.min(1, elapsed / 0.8);
+        if (bandProg > 0) {
+          const leftX = valToX(Math.max(0, m - sd), XL, XR);
+          const rightX = valToX(Math.min(MAX_VAL, m + sd), XL, XR);
+
+          cx.save();
+          cx.globalAlpha = bandProg * 0.15;
+          cx.fillStyle = COL_STD;
+          cx.fillRect(leftX, lineY - 90, rightX - leftX, 95);
+          cx.restore();
+
+          // Band edges
+          cx.save();
+          cx.globalAlpha = bandProg;
+          cx.strokeStyle = COL_STD;
+          cx.lineWidth = 2;
+          cx.setLineDash([4, 3]);
+          cx.beginPath();
+          cx.moveTo(leftX, lineY - 90);
+          cx.lineTo(leftX, lineY + 5);
+          cx.stroke();
+          cx.beginPath();
+          cx.moveTo(rightX, lineY - 90);
+          cx.lineTo(rightX, lineY + 5);
+          cx.stroke();
+          cx.setLineDash([]);
+
+          // Sigma distance arrows
+          const arrowY = lineY + 35;
+          cx.strokeStyle = COL_STD;
+          cx.lineWidth = 2;
+          cx.shadowColor = COL_STD;
+          cx.shadowBlur = 6;
+          // Left arrow
+          cx.beginPath();
+          cx.moveTo(mx, arrowY);
+          cx.lineTo(leftX, arrowY);
+          cx.stroke();
+          cx.beginPath();
+          cx.moveTo(leftX, arrowY);
+          cx.lineTo(leftX + 8, arrowY - 4);
+          cx.lineTo(leftX + 8, arrowY + 4);
+          cx.closePath();
+          cx.fill();
+          // Right arrow
+          cx.beginPath();
+          cx.moveTo(mx, arrowY);
+          cx.lineTo(rightX, arrowY);
+          cx.stroke();
+          cx.beginPath();
+          cx.moveTo(rightX, arrowY);
+          cx.lineTo(rightX - 8, arrowY - 4);
+          cx.lineTo(rightX - 8, arrowY + 4);
+          cx.closePath();
+          cx.fillStyle = COL_STD;
+          cx.fill();
+          cx.shadowBlur = 0;
+
+          // Labels
+          cx.font = 'bold 12px monospace';
+          cx.textAlign = 'center';
+          cx.fillStyle = COL_STD;
+          cx.fillText('\u03C3', (mx + leftX) / 2, arrowY - 8);
+          cx.fillText('\u03C3', (mx + rightX) / 2, arrowY - 8);
+
+          cx.font = '10px monospace';
+          cx.fillStyle = 'rgba(255,255,255,0.4)';
+          cx.fillText('-\u03C3', leftX, lineY + 55);
+          cx.fillText('+\u03C3', rightX, lineY + 55);
+
+          cx.restore();
+        }
+
+        // Count within sigma
+        const withinCount = data.filter(d => Math.abs(d - m) <= sd).length;
+        const pct = ((withinCount / data.length) * 100).toFixed(0);
+
+        // 68% rule
+        const pulse = 0.6 + 0.4 * Math.sin(Date.now() / 400);
+        cx.save();
+        cx.globalAlpha = pulse;
+        cx.font = 'bold 12px monospace';
+        cx.textAlign = 'center';
+        cx.fillStyle = COL_STD;
+        cx.fillText(T('~68% danych w przedziale srednia +/- sigma', '~68% of data within mean +/- sigma'), W / 2, 300);
+        cx.restore();
+
+        drawFormula('\u03C3 = \u221A(' + v.toFixed(1) + ') = ' + sd.toFixed(2), W / 2, 330);
+        drawFormula(T('W przedziale: ', 'Within range: ') + withinCount + '/' + data.length + ' = ' + pct + '%', W / 2, 355);
+
+        const col = COL_STD;
+        cx.save();
+        cx.font = '11px monospace';
+        cx.textAlign = 'center';
+        cx.fillStyle = COL_STD;
+        cx.fillText(T('Zielone = w przedziale sigma', 'Green = within sigma range'), W / 2 - 100, 390);
+        cx.fillStyle = COL_DOT;
+        cx.fillText(T('Czerwone = poza', 'Red = outside'), W / 2 + 120, 390);
+        cx.restore();
+
+        drawCount('\u03C3 = ' + sd.toFixed(2), W / 2, H - 5, COL_STD);
+      }
+    },
+
+    // Stage 4: Quartiles and box plot
+    {
+      title: () => T('Kwartyle i wykres pudelkowy', 'Quartiles and Box Plot'),
+      desc: () => T(
+        'Kwartyle dziela posortowane dane na 4 czesci:\nQ1 = 25%, mediana = 50%, Q3 = 75%.\nWykres pudelkowy (box plot) to elegancki sposob na pokazanie rozkladu danych.',
+        'Quartiles split sorted data into 4 parts: Q1=25%, median=50%, Q3=75%.\nA box plot elegantly shows data distribution.'
+      ),
+      sliders: [
+        { id: 'nPoints', lbl: T('n =','n ='), color: COL_DOT, min: 5, max: 20, step: 1, val: () => nPoints },
+      ],
+      draw() {
+        const data = generateData(nPoints, 73);
+        const sorted = [...data].sort((a,b) => a-b);
+        const q = quartiles(data);
+        const minV = sorted[0], maxV = sorted[sorted.length - 1];
+        const iqr = q.q3 - q.q1;
+        const elapsed = (Date.now() - animStartTime) / 1000;
+
+        // Sorted data display
+        const rowY = 55;
+        const spacing = Math.min(28, (W - 100) / sorted.length);
+        const startX = W / 2 - (sorted.length - 1) * spacing / 2;
+
+        cx.save();
+        cx.font = '10px monospace';
+        cx.textAlign = 'center';
+        cx.fillStyle = 'rgba(255,255,255,0.4)';
+        cx.fillText(T('Posortowane dane:', 'Sorted data:'), W / 2, rowY - 20);
+        cx.restore();
+
+        // Color dots by quartile
+        const n = sorted.length;
+        const midIdx = Math.floor(n / 2);
+        const lowerEnd = Math.floor(n / 2);
+        const q1Idx = Math.floor(lowerEnd / 2);
+        const upperStart = n % 2 === 0 ? midIdx : midIdx + 1;
+        const q3Idx = upperStart + Math.floor((n - upperStart) / 2);
+
+        sorted.forEach((v, i) => {
+          const x = startX + i * spacing;
+          const prog = Math.min(1, Math.max(0, (elapsed - i * 0.04) / 0.3));
+          let col = COL_DOT;
+          if (i < lowerEnd) {
+            col = i < q1Idx || (lowerEnd % 2 === 0 && i === q1Idx - 1) ? 'rgba(255,255,255,0.4)' : COL_Q1;
+          }
+          if (i === midIdx || (n % 2 === 0 && i === midIdx - 1)) col = COL_MED;
+          if (i >= upperStart) col = i >= q3Idx ? 'rgba(255,255,255,0.4)' : COL_Q3;
+
+          cx.save();
+          cx.globalAlpha = prog;
+          drawGlowDot(x, rowY, 6, col);
+          cx.font = '9px monospace';
+          cx.textAlign = 'center';
+          cx.fillStyle = 'rgba(255,255,255,0.5)';
+          cx.fillText(v, x, rowY + 18);
+          cx.restore();
+        });
+
+        // Number line
+        const lineY = 150;
+        drawNumberLine(lineY, XL, XR);
+
+        // Dots on number line
+        const stacks = {};
+        sorted.forEach((v, i) => {
+          if (!stacks[v]) stacks[v] = [];
+          stacks[v].push(i);
+        });
+        Object.keys(stacks).forEach(val => {
+          const x = valToX(+val, XL, XR);
+          stacks[val].forEach((idx, si) => {
+            drawGlowDot(x, lineY - 10 - si * 12, 4, COL_DOT, 0.5);
+          });
+        });
+
+        // Box plot
+        const boxProg = Math.min(1, Math.max(0, (elapsed - 0.5) / 0.8));
+        if (boxProg > 0) {
+          const boxY = 210;
+          const boxH = 50;
+
+          const minX = valToX(minV, XL, XR);
+          const maxX = valToX(maxV, XL, XR);
+          const q1X = valToX(q.q1, XL, XR);
+          const q3X = valToX(q.q3, XL, XR);
+          const medX = valToX(q.med, XL, XR);
+
+          cx.save();
+          cx.globalAlpha = boxProg;
+
+          // Whiskers
+          cx.strokeStyle = 'rgba(255,255,255,0.5)';
+          cx.lineWidth = 1.5;
+          // Left whisker
+          cx.beginPath();
+          cx.moveTo(minX, boxY + boxH / 2);
+          cx.lineTo(q1X, boxY + boxH / 2);
+          cx.stroke();
+          cx.beginPath();
+          cx.moveTo(minX, boxY + 10);
+          cx.lineTo(minX, boxY + boxH - 10);
+          cx.stroke();
+          // Right whisker
+          cx.beginPath();
+          cx.moveTo(q3X, boxY + boxH / 2);
+          cx.lineTo(maxX, boxY + boxH / 2);
+          cx.stroke();
+          cx.beginPath();
+          cx.moveTo(maxX, boxY + 10);
+          cx.lineTo(maxX, boxY + boxH - 10);
+          cx.stroke();
+
+          // Box
+          cx.fillStyle = 'rgba(88, 196, 221, 0.15)';
+          cx.fillRect(q1X, boxY, q3X - q1X, boxH);
+          cx.strokeStyle = COL_ACCENT;
+          cx.lineWidth = 2;
+          cx.shadowColor = COL_ACCENT;
+          cx.shadowBlur = 8;
+          cx.strokeRect(q1X, boxY, q3X - q1X, boxH);
+          cx.shadowBlur = 0;
+
+          // Median line
+          cx.strokeStyle = COL_MED;
+          cx.lineWidth = 3;
+          cx.shadowColor = COL_MED;
+          cx.shadowBlur = 10;
+          cx.beginPath();
+          cx.moveTo(medX, boxY);
+          cx.lineTo(medX, boxY + boxH);
+          cx.stroke();
+          cx.shadowBlur = 0;
+
+          // Labels
+          cx.font = 'bold 10px monospace';
+          cx.textAlign = 'center';
+
+          cx.fillStyle = 'rgba(255,255,255,0.5)';
+          cx.fillText('min=' + minV, minX, boxY + boxH + 18);
+          cx.fillText('max=' + maxV, maxX, boxY + boxH + 18);
+
+          cx.fillStyle = COL_Q1;
+          cx.fillText('Q1=' + q.q1, q1X, boxY - 8);
+
+          cx.fillStyle = COL_MED;
+          cx.fillText(T('Med=', 'Med=') + q.med, medX, boxY - 8);
+
+          cx.fillStyle = COL_Q3;
+          cx.fillText('Q3=' + q.q3, q3X, boxY - 8);
+
+          // IQR bracket
+          const iqrY = boxY + boxH + 35;
+          cx.strokeStyle = COL_ACCENT;
+          cx.lineWidth = 1.5;
+          cx.beginPath();
+          cx.moveTo(q1X, iqrY);
+          cx.lineTo(q3X, iqrY);
+          cx.stroke();
+          cx.beginPath();
+          cx.moveTo(q1X, iqrY - 4);
+          cx.lineTo(q1X, iqrY + 4);
+          cx.stroke();
+          cx.beginPath();
+          cx.moveTo(q3X, iqrY - 4);
+          cx.lineTo(q3X, iqrY + 4);
+          cx.stroke();
+
+          cx.font = 'bold 11px monospace';
+          cx.fillStyle = COL_ACCENT;
+          cx.fillText('IQR = Q3 - Q1 = ' + q.q3 + ' - ' + q.q1 + ' = ' + iqr, (q1X + q3X) / 2, iqrY + 18);
+
+          cx.restore();
+        }
+
+        // Summary
+        drawFormula(T('Kwartyle dziela dane na 4 rowne czesci', 'Quartiles split data into 4 equal parts'), W / 2, 360);
+        drawCount('IQR = ' + iqr.toFixed(1), W / 2, 395, COL_ACCENT);
+      }
+    },
+  ];
+
+  // ── Slider management ─────────────────────────────────────────
+  const slWrap = document.getElementById('sliders-wrap');
+
+  function buildSliders(defs) {
+    let html = '<div class="sliders">';
+    defs.forEach(s => {
+      const v = typeof s.val === 'function' ? s.val() : s.val;
+      html += `<div class="slider-row">
+        <span class="lbl" style="color:${s.color}">${s.lbl}</span>
+        <input type="range" id="s_${s.id}" min="${s.min}" max="${s.max}" step="${s.step}" value="${v}">
+        <span class="val" id="v_${s.id}" style="color:${s.color}"></span>
+      </div>`;
+    });
+    html += '</div>';
+    slWrap.innerHTML = html;
+
+    defs.forEach(s => {
+      const el = document.getElementById('s_' + s.id);
+      document.getElementById('v_' + s.id).textContent = (+el.value).toFixed(0);
+      el.addEventListener('input', function() {
+        const v = +this.value;
+        if (s.id === 'nPoints') nPoints = v;
+        document.getElementById('v_' + s.id).textContent = v.toFixed(0);
+      });
+    });
+  }
+
+  // ── Navigation ────────────────────────────────────────────────
+  const prevBtn = document.getElementById('qprev');
+  const nextBtn = document.getElementById('qnext');
+  const dotsEl = document.getElementById('qdots');
+  const titleEl = document.getElementById('qf');
+  const descEl = document.getElementById('qd');
+
+  function goTo(idx) {
+    stage = Math.max(0, Math.min(stages_def.length - 1, idx));
+    const s = stages_def[stage];
+    titleEl.textContent = s.title();
+    descEl.textContent = s.desc();
+    animStartTime = Date.now();
+    if (s.sliders) {
+      const resolved = s.sliders.map(sl => ({
+        ...sl,
+        val: typeof sl.val === 'function' ? sl.val() : sl.val
+      }));
+      buildSliders(resolved);
+    } else {
+      slWrap.innerHTML = '';
+    }
+    prevBtn.disabled = stage === 0;
+    nextBtn.disabled = stage === stages_def.length - 1;
+    renderDots();
+  }
+
+  function renderDots() {
+    dotsEl.innerHTML = stages_def.map((_, i) =>
+      `<span class="dot${i === stage ? ' active' : ''}" data-i="${i}"></span>`
+    ).join('');
+    dotsEl.querySelectorAll('.dot').forEach(d =>
+      d.addEventListener('click', () => goTo(+d.dataset.i))
+    );
+  }
+
+  prevBtn.addEventListener('click', () => goTo(stage - 1));
+  nextBtn.addEventListener('click', () => goTo(stage + 1));
+
+  function tick() { clear(); stages_def[stage].draw(); requestAnimationFrame(tick); }
+  goTo(0);
+  tick();
+})();
+</script>
+</body>
+</html>

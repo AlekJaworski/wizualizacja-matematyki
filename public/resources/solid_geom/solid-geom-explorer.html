@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stereometria — Eksplorator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+  #qf { margin: 0 0 5px; font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  #qd { margin: 0 0 10px; font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); min-height: 48px; white-space: pre-line; }
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 70px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+  .nav { display: flex; align-items: center; justify-content: space-between; }
+  button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  button:hover { background: rgba(255,255,255,.08); }
+  button:disabled { opacity: .3; cursor: default; }
+  #qdots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.18); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  #sliders-wrap { min-height: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="420"></canvas>
+  <div class="panel">
+    <p id="qf"></p>
+    <p id="qd"></p>
+    <div id="sliders-wrap"></div>
+    <div class="nav">
+      <button id="qprev">&larr;</button>
+      <div id="qdots"></div>
+      <button id="qnext">&rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const cv = document.getElementById('cv');
+  const cx = cv.getContext('2d');
+  const W = 600, H = 420;
+
+  const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
+  const T = (pl, en) => LANG === 'pl' ? pl : en;
+
+  const COL_ACCENT = '#58C4DD';
+  const COL_EDGE   = 'rgba(88,196,221,0.6)';
+  const COL_HIDDEN = 'rgba(88,196,221,0.18)';
+  const COL_FACE   = 'rgba(88,196,221,0.06)';
+  const COL_DIM    = '#e67e22';
+  const COL_HEIGHT = '#e74c3c';
+  const COL_LEAF   = '#FFD166';
+
+  let ba = 4, bb = 3, bh = 5;    // box
+  let pa = 4, ph = 5;             // pyramid
+  let cr = 3, ch = 5;             // cylinder
+  let cnr = 3, cnh = 5, spr = 3; // cone, sphere
+  let stage = 0;
+
+  const scale = 22;
+
+  function clear() { cx.fillStyle = '#0e0e12'; cx.fillRect(0, 0, W, H); }
+
+  // 3D isometric projection
+  function project3D(x, y, z, angle, cx0, cy0) {
+    const cos = Math.cos(angle), sin = Math.sin(angle);
+    return {
+      px: cx0 + (x * cos - y * sin) * scale,
+      py: cy0 - z * scale + (x * sin + y * cos) * scale * 0.4
+    };
+  }
+
+  function drawLine3D(x1,y1,z1, x2,y2,z2, angle, cx0, cy0, color, dash) {
+    const a = project3D(x1,y1,z1, angle, cx0, cy0);
+    const b = project3D(x2,y2,z2, angle, cx0, cy0);
+    cx.save();
+    cx.strokeStyle = color || COL_EDGE;
+    cx.lineWidth = 1.5;
+    if (dash) cx.setLineDash(dash);
+    cx.beginPath();
+    cx.moveTo(a.px, a.py);
+    cx.lineTo(b.px, b.py);
+    cx.stroke();
+    cx.setLineDash([]);
+    cx.restore();
+  }
+
+  function drawLabel(text, x, y, color, fontSize) {
+    cx.save();
+    cx.font = (fontSize || 13) + 'px monospace';
+    cx.textAlign = 'center';
+    cx.fillStyle = color || 'rgba(255,255,255,0.7)';
+    cx.fillText(text, x, y);
+    cx.restore();
+  }
+
+  function drawFormula(text, x, y, color) {
+    cx.save();
+    cx.font = '14px monospace';
+    cx.textAlign = 'center';
+    cx.fillStyle = color || 'rgba(255,255,255,0.7)';
+    cx.fillText(text, x, y);
+    cx.restore();
+  }
+
+  function drawCount(text, x, y, color) {
+    cx.save();
+    cx.font = 'bold 18px monospace';
+    cx.textAlign = 'center';
+    cx.fillStyle = color || COL_LEAF;
+    cx.shadowColor = color || COL_LEAF;
+    cx.shadowBlur = 12;
+    cx.fillText(text, x, y);
+    cx.shadowBlur = 0;
+    cx.restore();
+  }
+
+  function drawDimLine(x1, y1, x2, y2, label, color, offset) {
+    const ox = offset || 0;
+    cx.save();
+    cx.strokeStyle = color || COL_DIM;
+    cx.lineWidth = 1;
+    cx.setLineDash([3, 3]);
+    cx.beginPath();
+    cx.moveTo(x1, y1);
+    cx.lineTo(x2, y2);
+    cx.stroke();
+    cx.setLineDash([]);
+    cx.font = 'bold 11px monospace';
+    cx.textAlign = 'center';
+    cx.fillStyle = color || COL_DIM;
+    cx.fillText(label, (x1+x2)/2 + ox, (y1+y2)/2 - 6);
+    cx.restore();
+  }
+
+  // Draw ellipse for cylinder/cone
+  function drawEllipse(cx0, cy0, rx, ry, color, dash) {
+    cx.save();
+    cx.strokeStyle = color || COL_EDGE;
+    cx.lineWidth = 1.5;
+    if (dash) cx.setLineDash(dash);
+    cx.beginPath();
+    cx.ellipse(cx0, cy0, rx, ry, 0, 0, Math.PI * 2);
+    cx.stroke();
+    cx.setLineDash([]);
+    cx.restore();
+  }
+
+  function fillEllipse(cx0, cy0, rx, ry, color) {
+    cx.save();
+    cx.fillStyle = color || COL_FACE;
+    cx.beginPath();
+    cx.ellipse(cx0, cy0, rx, ry, 0, 0, Math.PI * 2);
+    cx.fill();
+    cx.restore();
+  }
+
+  // ── Stages ──────────────────────────────────────────────────
+
+  const stages_def = [
+    // Stage 1: Prostopadloscian
+    {
+      title: () => T('Prostopadłościan', 'Rectangular Prism'),
+      desc: () => T(
+        'Prostopadłościan to bryła o 6 ścianach będących prostokątami. Zmieniaj wymiary a, b, h i obserwuj, jak zmienia się objętość i pole powierzchni.',
+        'A rectangular prism has 6 rectangular faces. Change dimensions a, b, h and watch volume and surface area change.'
+      ),
+      sliders: [
+        { id: 'ba', lbl: 'a', color: COL_ACCENT, min: 1, max: 8, step: 0.5, val: () => ba },
+        { id: 'bb', lbl: 'b', color: '#e67e22', min: 1, max: 8, step: 0.5, val: () => bb },
+        { id: 'bh', lbl: 'h', color: COL_HEIGHT, min: 1, max: 8, step: 0.5, val: () => bh },
+      ],
+      draw() {
+        const angle = Date.now() / 4000;
+        const cx0 = W/2, cy0 = 210;
+        const a = ba/2, b = bb/2, h = bh;
+
+        // 8 vertices of the box
+        const verts = [
+          [-a, -b, 0], [a, -b, 0], [a, b, 0], [-a, b, 0],   // bottom
+          [-a, -b, h], [a, -b, h], [a, b, h], [-a, b, h],   // top
+        ];
+
+        const proj = verts.map(v => project3D(v[0], v[1], v[2], angle, cx0, cy0));
+
+        // Faces with depth sorting (simplified: draw back edges dashed, front solid)
+        const edges = [
+          [0,1],[1,2],[2,3],[3,0], // bottom
+          [4,5],[5,6],[6,7],[7,4], // top
+          [0,4],[1,5],[2,6],[3,7], // verticals
+        ];
+
+        // Fill top face
+        cx.save();
+        cx.fillStyle = 'rgba(88,196,221,0.08)';
+        cx.beginPath();
+        cx.moveTo(proj[4].px, proj[4].py);
+        cx.lineTo(proj[5].px, proj[5].py);
+        cx.lineTo(proj[6].px, proj[6].py);
+        cx.lineTo(proj[7].px, proj[7].py);
+        cx.closePath();
+        cx.fill();
+        cx.restore();
+
+        // Fill front face
+        cx.save();
+        cx.fillStyle = 'rgba(88,196,221,0.04)';
+        cx.beginPath();
+        cx.moveTo(proj[1].px, proj[1].py);
+        cx.lineTo(proj[2].px, proj[2].py);
+        cx.lineTo(proj[6].px, proj[6].py);
+        cx.lineTo(proj[5].px, proj[5].py);
+        cx.closePath();
+        cx.fill();
+        cx.restore();
+
+        // Determine which edges are "back" using angle
+        const backEdges = []; // simplified: draw some dashed
+        const cosA = Math.cos(angle);
+        const sinA = Math.sin(angle);
+
+        edges.forEach(([i,j]) => {
+          const midX = (verts[i][0] + verts[j][0]) / 2;
+          const midY = (verts[i][1] + verts[j][1]) / 2;
+          // Check if midpoint is behind in view
+          const viewY = midX * sinA + midY * cosA;
+          const isBack = viewY < -0.1 && verts[i][2] < h - 0.1 && verts[j][2] < h - 0.1;
+          const color = isBack ? COL_HIDDEN : COL_EDGE;
+          const dash = isBack ? [4, 4] : null;
+          drawLine3D(verts[i][0], verts[i][1], verts[i][2],
+                     verts[j][0], verts[j][1], verts[j][2],
+                     angle, cx0, cy0, color, dash);
+        });
+
+        // Dimension labels
+        const p0 = project3D(-a, -b, 0, angle, cx0, cy0);
+        const p1 = project3D(a, -b, 0, angle, cx0, cy0);
+        const p2 = project3D(a, b, 0, angle, cx0, cy0);
+        const p4 = project3D(a, -b, h, angle, cx0, cy0);
+
+        drawDimLine(p0.px, p0.py + 15, p1.px, p1.py + 15, 'a=' + ba, COL_ACCENT);
+        drawDimLine(p1.px + 15, p1.py, p2.px + 15, p2.py, 'b=' + bb, '#e67e22', 15);
+        drawDimLine(p1.px + 20, p1.py, p4.px + 20, p4.py, 'h=' + bh, COL_HEIGHT, 15);
+
+        // Formulas
+        const V = ba * bb * bh;
+        const P = 2 * (ba*bb + bb*bh + ba*bh);
+        drawFormula('V = a\u00B7b\u00B7h = ' + ba + '\u00B7' + bb + '\u00B7' + bh + ' = ' + V.toFixed(1), W/2, H - 60);
+        drawFormula('P = 2(ab+bh+ah) = ' + P.toFixed(1), W/2, H - 38);
+        drawCount('V = ' + V.toFixed(1), W/2, H - 10, COL_LEAF);
+      }
+    },
+
+    // Stage 2: Ostrosłup
+    {
+      title: () => T('Ostrosłup', 'Pyramid'),
+      desc: () => T(
+        'Ostrosłup o podstawie kwadratowej. Wierzchołek (apex) jest nad środkiem podstawy. Objętość to 1/3 objętości prostopadłościanu o tej samej podstawie i wysokości!',
+        'Square-based pyramid. The apex is above the center of the base. Volume is 1/3 of a prism with the same base and height!'
+      ),
+      sliders: [
+        { id: 'pa', lbl: 'a', color: COL_ACCENT, min: 1, max: 8, step: 0.5, val: () => pa },
+        { id: 'ph', lbl: 'h', color: COL_HEIGHT, min: 1, max: 8, step: 0.5, val: () => ph },
+      ],
+      draw() {
+        const angle = Date.now() / 4000;
+        const cx0 = W/2, cy0 = 230;
+        const a = pa/2, h = ph;
+
+        // 5 vertices: 4 base + apex
+        const base = [[-a,-a,0],[a,-a,0],[a,a,0],[-a,a,0]];
+        const apex = [0, 0, h];
+
+        const projBase = base.map(v => project3D(v[0], v[1], v[2], angle, cx0, cy0));
+        const projApex = project3D(apex[0], apex[1], apex[2], angle, cx0, cy0);
+
+        // Fill one face
+        cx.save();
+        cx.fillStyle = 'rgba(88,196,221,0.06)';
+        cx.beginPath();
+        cx.moveTo(projBase[0].px, projBase[0].py);
+        cx.lineTo(projBase[1].px, projBase[1].py);
+        cx.lineTo(projApex.px, projApex.py);
+        cx.closePath();
+        cx.fill();
+        cx.restore();
+
+        // Base edges
+        const cosA = Math.cos(angle), sinA = Math.sin(angle);
+        for (let i = 0; i < 4; i++) {
+          const j = (i + 1) % 4;
+          const midY = (base[i][1] + base[j][1]) / 2;
+          const viewDepth = base[i][0] * sinA + midY * cosA;
+          const isBack = viewDepth < -0.1;
+          drawLine3D(base[i][0], base[i][1], 0, base[j][0], base[j][1], 0,
+                     angle, cx0, cy0, isBack ? COL_HIDDEN : COL_EDGE, isBack ? [4,4] : null);
+        }
+
+        // Lateral edges to apex
+        for (let i = 0; i < 4; i++) {
+          const viewDepth = base[i][0] * sinA + base[i][1] * cosA;
+          const isBack = viewDepth < -0.3;
+          drawLine3D(base[i][0], base[i][1], 0, 0, 0, h,
+                     angle, cx0, cy0, isBack ? COL_HIDDEN : COL_EDGE, isBack ? [4,4] : null);
+        }
+
+        // Height line (dashed red)
+        const center = project3D(0, 0, 0, angle, cx0, cy0);
+        drawLine3D(0, 0, 0, 0, 0, h, angle, cx0, cy0, COL_HEIGHT, [3, 3]);
+
+        // Height label
+        cx.save();
+        cx.font = 'bold 11px monospace';
+        cx.fillStyle = COL_HEIGHT;
+        cx.textAlign = 'left';
+        cx.fillText('h=' + ph, center.px + 8, (center.py + projApex.py) / 2);
+        cx.restore();
+
+        // Base dimension
+        const pb0 = project3D(-a, -a, 0, angle, cx0, cy0);
+        const pb1 = project3D(a, -a, 0, angle, cx0, cy0);
+        drawDimLine(pb0.px, pb0.py + 12, pb1.px, pb1.py + 12, 'a=' + pa, COL_ACCENT);
+
+        // Slant height
+        const sl = Math.sqrt(ph * ph + (pa/2) * (pa/2));
+
+        // Formulas
+        const V = (1/3) * pa * pa * ph;
+        drawFormula('V = \u2153 \u00B7 a\u00B2 \u00B7 h = \u2153 \u00B7 ' + pa + '\u00B2 \u00B7 ' + ph + ' = ' + V.toFixed(2), W/2, H - 55);
+        drawFormula(T('wysokość ściany bocznej', 'slant height') + ' l = \u221A(h\u00B2+(a/2)\u00B2) = ' + sl.toFixed(2), W/2, H - 33);
+        drawCount('V = ' + V.toFixed(2), W/2, H - 8, COL_LEAF);
+      }
+    },
+
+    // Stage 3: Walec
+    {
+      title: () => T('Walec', 'Cylinder'),
+      desc: () => T(
+        'Walec to bryła obrotowa — prostokąt obrócony wokół jednego boku. Powierzchnia boczna po rozwinięciu to prostokąt 2\u03C0r \u00D7 h!',
+        'A cylinder is a solid of revolution — a rectangle rotated around one side. The lateral surface unrolls into a rectangle 2\u03C0r \u00D7 h!'
+      ),
+      sliders: [
+        { id: 'cr', lbl: 'r', color: COL_ACCENT, min: 1, max: 6, step: 0.5, val: () => cr },
+        { id: 'ch', lbl: 'h', color: COL_HEIGHT, min: 1, max: 8, step: 0.5, val: () => ch },
+      ],
+      draw() {
+        // Left: cylinder, Right: unrolled surface
+        const cylX = 180, cylY = 210;
+        const rx = cr * scale * 0.9;
+        const ry = cr * scale * 0.3;
+        const hPx = ch * scale;
+
+        // Bottom ellipse (back half dashed)
+        fillEllipse(cylX, cylY + hPx/2, rx, ry, 'rgba(88,196,221,0.05)');
+        cx.save();
+        cx.strokeStyle = COL_HIDDEN;
+        cx.lineWidth = 1.5;
+        cx.setLineDash([4, 4]);
+        cx.beginPath();
+        cx.ellipse(cylX, cylY + hPx/2, rx, ry, 0, Math.PI, Math.PI * 2);
+        cx.stroke();
+        cx.setLineDash([]);
+        cx.strokeStyle = COL_EDGE;
+        cx.beginPath();
+        cx.ellipse(cylX, cylY + hPx/2, rx, ry, 0, 0, Math.PI);
+        cx.stroke();
+        cx.restore();
+
+        // Vertical edges
+        cx.save();
+        cx.strokeStyle = COL_EDGE;
+        cx.lineWidth = 1.5;
+        cx.beginPath();
+        cx.moveTo(cylX - rx, cylY - hPx/2);
+        cx.lineTo(cylX - rx, cylY + hPx/2);
+        cx.stroke();
+        cx.beginPath();
+        cx.moveTo(cylX + rx, cylY - hPx/2);
+        cx.lineTo(cylX + rx, cylY + hPx/2);
+        cx.stroke();
+        cx.restore();
+
+        // Top ellipse
+        fillEllipse(cylX, cylY - hPx/2, rx, ry, 'rgba(88,196,221,0.08)');
+        drawEllipse(cylX, cylY - hPx/2, rx, ry, COL_EDGE);
+
+        // Fill body
+        cx.save();
+        cx.fillStyle = 'rgba(88,196,221,0.03)';
+        cx.beginPath();
+        cx.moveTo(cylX - rx, cylY - hPx/2);
+        cx.lineTo(cylX - rx, cylY + hPx/2);
+        cx.ellipse(cylX, cylY + hPx/2, rx, ry, 0, Math.PI, 0, true);
+        cx.lineTo(cylX + rx, cylY - hPx/2);
+        cx.ellipse(cylX, cylY - hPx/2, rx, ry, 0, 0, Math.PI, true);
+        cx.closePath();
+        cx.fill();
+        cx.restore();
+
+        // Radius line on top
+        cx.save();
+        cx.strokeStyle = COL_ACCENT;
+        cx.lineWidth = 1.5;
+        cx.setLineDash([3, 3]);
+        cx.beginPath();
+        cx.moveTo(cylX, cylY - hPx/2);
+        cx.lineTo(cylX + rx, cylY - hPx/2);
+        cx.stroke();
+        cx.setLineDash([]);
+        cx.font = 'bold 11px monospace';
+        cx.fillStyle = COL_ACCENT;
+        cx.textAlign = 'center';
+        cx.fillText('r=' + cr, cylX + rx/2, cylY - hPx/2 - 8);
+        cx.restore();
+
+        // Height dimension
+        cx.save();
+        cx.strokeStyle = COL_HEIGHT;
+        cx.lineWidth = 1;
+        cx.setLineDash([3, 3]);
+        cx.beginPath();
+        cx.moveTo(cylX + rx + 20, cylY - hPx/2);
+        cx.lineTo(cylX + rx + 20, cylY + hPx/2);
+        cx.stroke();
+        cx.setLineDash([]);
+        cx.font = 'bold 11px monospace';
+        cx.fillStyle = COL_HEIGHT;
+        cx.textAlign = 'left';
+        cx.fillText('h=' + ch, cylX + rx + 25, cylY);
+        cx.restore();
+
+        // Right: unrolled lateral surface
+        const unX = 420, unY = 100;
+        const unW = Math.min(150, 2 * Math.PI * cr * 10);
+        const unH = ch * 18;
+        const maxDrawH = Math.min(unH, 200);
+        const maxDrawW = Math.min(unW, 160);
+
+        cx.save();
+        cx.strokeStyle = COL_DIM;
+        cx.lineWidth = 1.5;
+        cx.setLineDash([]);
+        cx.strokeRect(unX - maxDrawW/2, unY, maxDrawW, maxDrawH);
+        cx.fillStyle = 'rgba(230,126,34,0.06)';
+        cx.fillRect(unX - maxDrawW/2, unY, maxDrawW, maxDrawH);
+        cx.restore();
+
+        // Labels on unrolled rectangle
+        cx.save();
+        cx.font = '11px monospace';
+        cx.fillStyle = COL_DIM;
+        cx.textAlign = 'center';
+        cx.fillText('2\u03C0r = ' + (2 * Math.PI * cr).toFixed(1), unX, unY - 6);
+        cx.save();
+        cx.translate(unX + maxDrawW/2 + 14, unY + maxDrawH/2);
+        cx.rotate(Math.PI/2);
+        cx.textAlign = 'center';
+        cx.fillText('h = ' + ch, 0, 0);
+        cx.restore();
+        cx.restore();
+
+        // Arrow from cylinder to rectangle
+        cx.save();
+        cx.strokeStyle = 'rgba(255,255,255,0.15)';
+        cx.lineWidth = 1;
+        cx.setLineDash([3, 3]);
+        cx.beginPath();
+        cx.moveTo(cylX + rx + 35, cylY);
+        cx.lineTo(unX - maxDrawW/2 - 10, unY + maxDrawH/2);
+        cx.stroke();
+        cx.setLineDash([]);
+        cx.font = '10px monospace';
+        cx.fillStyle = 'rgba(255,255,255,0.3)';
+        cx.textAlign = 'center';
+        cx.fillText(T('rozwiń', 'unroll'), (cylX + rx + 35 + unX - maxDrawW/2 - 10) / 2, cylY - 10);
+        cx.restore();
+
+        // Formulas
+        const V = Math.PI * cr * cr * ch;
+        const P = 2 * Math.PI * cr * cr + 2 * Math.PI * cr * ch;
+        drawFormula('V = \u03C0r\u00B2h = \u03C0\u00B7' + cr + '\u00B2\u00B7' + ch + ' = ' + V.toFixed(2), W/2, H - 55);
+        drawFormula('P = 2\u03C0r\u00B2 + 2\u03C0rh = ' + P.toFixed(2), W/2, H - 33);
+        drawCount('V = ' + V.toFixed(2), W/2, H - 8, COL_LEAF);
+      }
+    },
+
+    // Stage 4: Stożek i kula
+    {
+      title: () => T('Stożek i kula', 'Cone & Sphere'),
+      desc: () => T(
+        'Stożek to ostrosłup o podstawie kołowej — V = 1/3 \u03C0r\u00B2h.\nKula — każdy punkt na powierzchni jest w odległości r od środka. V = 4/3 \u03C0r\u00B3, S = 4\u03C0r\u00B2.',
+        'A cone is a pyramid with a circular base — V = 1/3 \u03C0r\u00B2h.\nSphere — every point on its surface is distance r from center. V = 4/3 \u03C0r\u00B3, S = 4\u03C0r\u00B2.'
+      ),
+      sliders: [
+        { id: 'cnr', lbl: T('r stożka','cone r'), color: COL_ACCENT, min: 1, max: 6, step: 0.5, val: () => cnr },
+        { id: 'cnh', lbl: T('h stożka','cone h'), color: COL_HEIGHT, min: 1, max: 8, step: 0.5, val: () => cnh },
+        { id: 'spr', lbl: T('r kuli','sphere r'), color: '#2ecc71', min: 1, max: 6, step: 0.5, val: () => spr },
+      ],
+      draw() {
+        // LEFT: Cone
+        const coneX = 155, coneY = 195;
+        const cRx = cnr * scale * 0.7;
+        const cRy = cnr * scale * 0.22;
+        const cHpx = cnh * scale * 0.85;
+
+        // Base ellipse
+        fillEllipse(coneX, coneY + cHpx/2, cRx, cRy, 'rgba(88,196,221,0.05)');
+        cx.save();
+        cx.strokeStyle = COL_HIDDEN;
+        cx.lineWidth = 1.5;
+        cx.setLineDash([4, 4]);
+        cx.beginPath();
+        cx.ellipse(coneX, coneY + cHpx/2, cRx, cRy, 0, Math.PI, Math.PI * 2);
+        cx.stroke();
+        cx.setLineDash([]);
+        cx.strokeStyle = COL_EDGE;
+        cx.beginPath();
+        cx.ellipse(coneX, coneY + cHpx/2, cRx, cRy, 0, 0, Math.PI);
+        cx.stroke();
+        cx.restore();
+
+        // Apex
+        const apexY = coneY - cHpx/2;
+
+        // Lateral edges
+        cx.save();
+        cx.strokeStyle = COL_EDGE;
+        cx.lineWidth = 1.5;
+        cx.beginPath();
+        cx.moveTo(coneX - cRx, coneY + cHpx/2);
+        cx.lineTo(coneX, apexY);
+        cx.stroke();
+        cx.beginPath();
+        cx.moveTo(coneX + cRx, coneY + cHpx/2);
+        cx.lineTo(coneX, apexY);
+        cx.stroke();
+        cx.restore();
+
+        // Fill
+        cx.save();
+        cx.fillStyle = 'rgba(88,196,221,0.04)';
+        cx.beginPath();
+        cx.moveTo(coneX, apexY);
+        cx.lineTo(coneX - cRx, coneY + cHpx/2);
+        cx.lineTo(coneX + cRx, coneY + cHpx/2);
+        cx.closePath();
+        cx.fill();
+        cx.restore();
+
+        // Height
+        cx.save();
+        cx.strokeStyle = COL_HEIGHT;
+        cx.lineWidth = 1;
+        cx.setLineDash([3, 3]);
+        cx.beginPath();
+        cx.moveTo(coneX, apexY);
+        cx.lineTo(coneX, coneY + cHpx/2);
+        cx.stroke();
+        cx.setLineDash([]);
+        cx.font = 'bold 10px monospace';
+        cx.fillStyle = COL_HEIGHT;
+        cx.textAlign = 'left';
+        cx.fillText('h=' + cnh, coneX + 5, coneY);
+        cx.restore();
+
+        // Radius
+        cx.save();
+        cx.strokeStyle = COL_ACCENT;
+        cx.lineWidth = 1;
+        cx.setLineDash([3, 3]);
+        cx.beginPath();
+        cx.moveTo(coneX, coneY + cHpx/2);
+        cx.lineTo(coneX + cRx, coneY + cHpx/2);
+        cx.stroke();
+        cx.setLineDash([]);
+        cx.font = 'bold 10px monospace';
+        cx.fillStyle = COL_ACCENT;
+        cx.textAlign = 'center';
+        cx.fillText('r=' + cnr, coneX + cRx/2, coneY + cHpx/2 + 15);
+        cx.restore();
+
+        // Cone label
+        drawLabel(T('STOŻEK', 'CONE'), coneX, 30, COL_ACCENT, 13);
+
+        // Cone formula
+        const cV = (1/3) * Math.PI * cnr * cnr * cnh;
+        drawFormula('V = \u2153\u03C0r\u00B2h = ' + cV.toFixed(2), coneX, H - 55);
+
+        // RIGHT: Sphere
+        const sphX = 445, sphY = 195;
+        const sphR = spr * scale * 0.85;
+
+        // Main circle
+        cx.save();
+        cx.strokeStyle = '#2ecc71';
+        cx.lineWidth = 2;
+        cx.beginPath();
+        cx.arc(sphX, sphY, sphR, 0, Math.PI * 2);
+        cx.stroke();
+        cx.fillStyle = 'rgba(46,204,113,0.04)';
+        cx.fill();
+        cx.restore();
+
+        // Cross-section ellipse (horizontal)
+        drawEllipse(sphX, sphY, sphR, sphR * 0.3, 'rgba(46,204,113,0.3)', [3, 3]);
+        // Cross-section ellipse (vertical)
+        drawEllipse(sphX, sphY, sphR * 0.3, sphR, 'rgba(46,204,113,0.2)', [3, 3]);
+
+        // Radius line
+        cx.save();
+        cx.strokeStyle = '#2ecc71';
+        cx.lineWidth = 1.5;
+        cx.beginPath();
+        cx.moveTo(sphX, sphY);
+        cx.lineTo(sphX + sphR * 0.7, sphY - sphR * 0.7);
+        cx.stroke();
+        cx.font = 'bold 10px monospace';
+        cx.fillStyle = '#2ecc71';
+        cx.textAlign = 'left';
+        cx.fillText('r=' + spr, sphX + sphR * 0.35 + 5, sphY - sphR * 0.35 - 5);
+        cx.restore();
+
+        // Center dot
+        cx.save();
+        cx.beginPath();
+        cx.arc(sphX, sphY, 3, 0, Math.PI * 2);
+        cx.fillStyle = '#2ecc71';
+        cx.fill();
+        cx.restore();
+
+        // Sphere label
+        drawLabel(T('KULA', 'SPHERE'), sphX, 30, '#2ecc71', 13);
+
+        // Sphere formulas
+        const sV = (4/3) * Math.PI * spr * spr * spr;
+        const sS = 4 * Math.PI * spr * spr;
+        drawFormula('V = \u2074\u2044\u2083\u03C0r\u00B3 = ' + sV.toFixed(2), sphX, H - 55);
+        drawFormula('S = 4\u03C0r\u00B2 = ' + sS.toFixed(2), sphX, H - 33);
+
+        // Cone surface
+        const cL = Math.sqrt(cnr * cnr + cnh * cnh);
+        drawFormula('P = \u03C0r(r+l) = ' + (Math.PI * cnr * (cnr + cL)).toFixed(2), coneX, H - 33);
+
+        // Separator
+        cx.save();
+        cx.strokeStyle = 'rgba(255,255,255,0.08)';
+        cx.setLineDash([4, 4]);
+        cx.beginPath();
+        cx.moveTo(W/2, 20);
+        cx.lineTo(W/2, H - 65);
+        cx.stroke();
+        cx.setLineDash([]);
+        cx.restore();
+
+        // Bottom summary
+        cx.save();
+        cx.font = '10px monospace';
+        cx.textAlign = 'center';
+        cx.fillStyle = 'rgba(255,255,255,0.3)';
+        cx.fillText(T('Stożek = 1/3 walca    |    Kula = jedyna bryła o stałej krzywiźnie',
+                       'Cone = 1/3 cylinder    |    Sphere = only solid with constant curvature'), W/2, H - 8);
+        cx.restore();
+      }
+    },
+  ];
+
+  // ── Slider management ─────────────────────────────────────────
+  const slWrap = document.getElementById('sliders-wrap');
+
+  function buildSliders(defs) {
+    let html = '<div class="sliders">';
+    defs.forEach(s => {
+      const v = typeof s.val === 'function' ? s.val() : s.val;
+      html += `<div class="slider-row">
+        <span class="lbl" style="color:${s.color}">${s.lbl} =</span>
+        <input type="range" id="s_${s.id}" min="${s.min}" max="${s.max}" step="${s.step}" value="${v}">
+        <span class="val" id="v_${s.id}" style="color:${s.color}"></span>
+      </div>`;
+    });
+    html += '</div>';
+    slWrap.innerHTML = html;
+
+    defs.forEach(s => {
+      const el = document.getElementById('s_' + s.id);
+      document.getElementById('v_' + s.id).textContent = (+el.value).toFixed(s.step < 1 ? 1 : 0);
+      el.addEventListener('input', function() {
+        const v = +this.value;
+        if (s.id === 'ba') ba = v;
+        if (s.id === 'bb') bb = v;
+        if (s.id === 'bh') bh = v;
+        if (s.id === 'pa') pa = v;
+        if (s.id === 'ph') ph = v;
+        if (s.id === 'cr') cr = v;
+        if (s.id === 'ch') ch = v;
+        if (s.id === 'cnr') cnr = v;
+        if (s.id === 'cnh') cnh = v;
+        if (s.id === 'spr') spr = v;
+        document.getElementById('v_' + s.id).textContent = v.toFixed(s.step < 1 ? 1 : 0);
+      });
+    });
+  }
+
+  // ── Navigation ────────────────────────────────────────────────
+  const prevBtn = document.getElementById('qprev');
+  const nextBtn = document.getElementById('qnext');
+  const dotsEl = document.getElementById('qdots');
+  const titleEl = document.getElementById('qf');
+  const descEl = document.getElementById('qd');
+
+  function goTo(idx) {
+    stage = Math.max(0, Math.min(stages_def.length - 1, idx));
+    const s = stages_def[stage];
+    titleEl.textContent = s.title();
+    descEl.textContent = s.desc();
+    if (s.sliders) {
+      const resolved = s.sliders.map(sl => ({
+        ...sl,
+        val: typeof sl.val === 'function' ? sl.val() : sl.val
+      }));
+      buildSliders(resolved);
+    } else {
+      slWrap.innerHTML = '';
+    }
+    prevBtn.disabled = stage === 0;
+    nextBtn.disabled = stage === stages_def.length - 1;
+    renderDots();
+  }
+
+  function renderDots() {
+    dotsEl.innerHTML = stages_def.map((_, i) =>
+      `<span class="dot${i === stage ? ' active' : ''}" data-i="${i}"></span>`
+    ).join('');
+    dotsEl.querySelectorAll('.dot').forEach(d =>
+      d.addEventListener('click', () => goTo(+d.dataset.i))
+    );
+  }
+
+  prevBtn.addEventListener('click', () => goTo(stage - 1));
+  nextBtn.addEventListener('click', () => goTo(stage + 1));
+
+  function tick() { clear(); stages_def[stage].draw(); requestAnimationFrame(tick); }
+  goTo(0);
+  tick();
+})();
+</script>
+</body>
+</html>
