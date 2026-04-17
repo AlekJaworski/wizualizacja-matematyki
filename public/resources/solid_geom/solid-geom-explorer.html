@@ -496,8 +496,8 @@
     {
       title: () => T('Stożek i kula', 'Cone & Sphere'),
       desc: () => T(
-        'Stożek to ostrosłup o podstawie kołowej — V = 1/3 \u03C0r\u00B2h.\nKula — każdy punkt na powierzchni jest w odległości r od środka. V = 4/3 \u03C0r\u00B3, S = 4\u03C0r\u00B2.',
-        'A cone is a pyramid with a circular base — V = 1/3 \u03C0r\u00B2h.\nSphere — every point on its surface is distance r from center. V = 4/3 \u03C0r\u00B3, S = 4\u03C0r\u00B2.'
+        'Stożek: V = ⅓πr²h, pole powierzchni P = πr(r+l), gdzie l = √(r²+h²) to tworząca.\nKula: V = ⁴⁄₃πr³, S = 4πr². Kula to jedyna bryła, której powierzchnia zależy TYLKO od promienia.',
+        'Cone: V = ⅓πr²h, surface area P = πr(r+l), where l = √(r²+h²) is the slant height.\nSphere: V = ⁴⁄₃πr³, S = 4πr². The sphere is the only solid whose surface depends ONLY on the radius.'
       ),
       sliders: [
         { id: 'cnr', lbl: T('r stożka','cone r'), color: COL_ACCENT, min: 1, max: 6, step: 0.5, val: () => cnr },
