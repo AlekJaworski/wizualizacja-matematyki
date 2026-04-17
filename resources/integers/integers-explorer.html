@@ -72,6 +72,139 @@
   let lcmA = 12, lcmB = 8;
   let stage = 0;
 
+  // Click-to-expand proof state
+  let cellRects = [];       // rebuilt every frame on divisibility stages
+  let activeProof = null;   // the rule currently shown in full-proof overlay
+
+  // Proof content per divisor (displayed in click-to-expand overlay).
+  // Each entry is an array of lines. A string is a 12px centered white line;
+  // an object lets you override size/color/bold/align/space.
+  // "" produces a 10px vertical gap.
+  const PROOF_LINES = {
+    2: [
+      { text: T('Ka\u017Cd\u0105 liczb\u0119 piszemy jako  n = 10a + b', 'Write any number as  n = 10a + b'), size: 12 },
+      { text: T('(a = reszta cyfr,  b = ostatnia cyfra)', '(a = remaining digits,  b = last digit)'), size: 10, color: 'rgba(255,255,255,0.5)' },
+      '',
+      { text: T('Kluczowy fakt:  10 = 2\u00B75,  wi\u0119c 10 \u2261 0 (mod 2)', 'Key fact:  10 = 2\u00B75,  so 10 \u2261 0 (mod 2)'), size: 12, color: CYAN },
+      '',
+      { text: 'n = 10a + b  \u2261  0\u00B7a + b  =  b   (mod 2)', size: 13, color: YELLOW, bold: true },
+      '',
+      { text: T('Wniosek', 'Conclusion'), size: 11, color: GREEN, bold: true },
+      { text: T('2 | n   \u21D4   b jest parzyste', '2 | n   \u21D4   b is even'), size: 14, color: GREEN, bold: true },
+      { text: T('(czyli ostatnia cyfra jest parzysta)', '(i.e., the last digit is even)'), size: 10, color: 'rgba(255,255,255,0.5)' },
+    ],
+    3: [
+      { text: T('Kluczowy fakt:  10 = 3\u00B73 + 1,  wi\u0119c 10 \u2261 1 (mod 3)', 'Key fact:  10 = 3\u00B73 + 1,  so 10 \u2261 1 (mod 3)'), size: 12, color: CYAN },
+      { text: T('St\u0105d 10\u1D4F \u2261 1 (mod 3) dla ka\u017Cdego k \u2265 0.', 'Hence 10\u1D4F \u2261 1 (mod 3) for every k \u2265 0.'), size: 11, color: 'rgba(255,255,255,0.7)' },
+      '',
+      { text: T('Zapisujemy n w systemie dziesi\u0119tnym:', 'Write n in decimal notation:'), size: 11 },
+      { text: 'n = d\u1D4B\u00B710\u1D4F + \u2026 + d\u2081\u00B710 + d\u2080', size: 12, color: YELLOW },
+      '',
+      { text: 'n \u2261 d\u1D4B + \u2026 + d\u2081 + d\u2080  (mod 3)', size: 13, color: YELLOW, bold: true },
+      { text: T('   = suma cyfr', '   = digit sum'), size: 12, color: YELLOW },
+      '',
+      { text: T('Wniosek', 'Conclusion'), size: 11, color: GREEN, bold: true },
+      { text: T('3 | n   \u21D4   3 | (suma cyfr)', '3 | n   \u21D4   3 | (digit sum)'), size: 14, color: GREEN, bold: true },
+    ],
+    4: [
+      { text: T('Kluczowy fakt:  100 = 4\u00B725,  wi\u0119c 100 \u2261 0 (mod 4)', 'Key fact:  100 = 4\u00B725,  so 100 \u2261 0 (mod 4)'), size: 12, color: CYAN },
+      { text: T('Dla k \u2265 2:  10\u1D4F = 100\u00B710\u1D4F\u207B\u00B2 \u2261 0 (mod 4)', 'For k \u2265 2:  10\u1D4F = 100\u00B710\u1D4F\u207B\u00B2 \u2261 0 (mod 4)'), size: 11, color: 'rgba(255,255,255,0.7)' },
+      '',
+      { text: T('Sk\u0142adniki z k \u2265 2 znikaj\u0105:', 'Terms with k \u2265 2 vanish:'), size: 11 },
+      { text: 'n = \u2026 + d\u2082\u00B7100 + d\u2081\u00B710 + d\u2080', size: 12, color: YELLOW },
+      { text: '  \u2261 0 + d\u2081\u00B710 + d\u2080   (mod 4)', size: 12, color: YELLOW },
+      { text: T('  = ostatnie 2 cyfry', '  = last 2 digits'), size: 12, color: YELLOW, bold: true },
+      '',
+      { text: T('Wniosek', 'Conclusion'), size: 11, color: GREEN, bold: true },
+      { text: T('4 | n   \u21D4   4 | (ostatnie 2 cyfry)', '4 | n   \u21D4   4 | (last 2 digits)'), size: 13, color: GREEN, bold: true },
+    ],
+    5: [
+      { text: T('Kluczowy fakt:  10 = 2\u00B75,  wi\u0119c 10 \u2261 0 (mod 5)', 'Key fact:  10 = 2\u00B75,  so 10 \u2261 0 (mod 5)'), size: 12, color: CYAN },
+      '',
+      { text: 'n = 10a + b  \u2261  0 + b  =  b   (mod 5)', size: 13, color: YELLOW, bold: true },
+      '',
+      { text: T('b jest cyfr\u0105 (0\u20139), wi\u0119c 5 | b dok\u0142adnie wtedy, gdy', 'b is a digit (0\u20139), so 5 | b exactly when'), size: 11 },
+      { text: 'b \u2208 {0, 5}', size: 13, color: YELLOW, bold: true },
+      '',
+      { text: T('Wniosek', 'Conclusion'), size: 11, color: GREEN, bold: true },
+      { text: T('5 | n   \u21D4   ostatnia cyfra to 0 lub 5', '5 | n   \u21D4   last digit is 0 or 5'), size: 13, color: GREEN, bold: true },
+    ],
+    6: [
+      { text: '6 = 2\u00B73,   ' + T('a NWD(2, 3) = 1', 'and gcd(2, 3) = 1'), size: 12, color: CYAN },
+      { text: T('(2 i 3 s\u0105 wzgl\u0119dnie pierwsze)', '(2 and 3 are coprime)'), size: 10, color: 'rgba(255,255,255,0.5)' },
+      '',
+      { text: T('Lemat (szczeg\u00F3lny przypadek CRT):', 'Lemma (special case of CRT):'), size: 11, color: PURPLE, bold: true },
+      { text: T('Je\u015Bli NWD(a, b) = 1,  to', 'If gcd(a, b) = 1,  then'), size: 11 },
+      { text: 'ab | n   \u21D4   a | n  \u2227  b | n', size: 13, color: YELLOW, bold: true },
+      '',
+      { text: T('Stosuj\u0105c to do a = 2, b = 3:', 'Applying to a = 2, b = 3:'), size: 11 },
+      '',
+      { text: T('Wniosek', 'Conclusion'), size: 11, color: GREEN, bold: true },
+      { text: T('6 | n   \u21D4   2 | n  \u2227  3 | n', '6 | n   \u21D4   2 | n  \u2227  3 | n'), size: 13, color: GREEN, bold: true },
+      { text: T('(parzystość  +  cyfra sumowa dzieli się przez 3)', '(even  AND  digit sum divisible by 3)'), size: 10, color: 'rgba(255,255,255,0.55)' },
+    ],
+    7: [
+      { text: T('Ta cecha jest subtelna \u2014 oto dlaczego dzia\u0142a.', 'This rule is subtle \u2014 here is why it works.'), size: 11, color: 'rgba(255,255,255,0.65)' },
+      '',
+      { text: T('Twierdzenie:  7 | n   \u21D4   7 | (a \u2212 2b)', 'Claim:  7 | n   \u21D4   7 | (a \u2212 2b)'), size: 13, color: CYAN, bold: true },
+      { text: T('gdzie n = 10a + b  (b = ostatnia cyfra)', 'where n = 10a + b  (b = last digit)'), size: 10, color: 'rgba(255,255,255,0.55)' },
+      '',
+      { text: T('Kluczowa to\u017Csamo\u015B\u0107 algebraiczna:', 'Key algebraic identity:'), size: 11, color: PURPLE, bold: true },
+      { text: 'n = 10a + b = 10(a \u2212 2b) + 21b', size: 13, color: YELLOW, bold: true },
+      '',
+      { text: T('Poniewa\u017C 21 = 3\u00B77, to 21b \u2261 0 (mod 7).', 'Since 21 = 3\u00B77, we have 21b \u2261 0 (mod 7).'), size: 11 },
+      { text: T('St\u0105d  n \u2261 10(a \u2212 2b)  (mod 7).', 'Hence  n \u2261 10(a \u2212 2b)  (mod 7).'), size: 11 },
+      '',
+      { text: T('NWD(10, 7) = 1, wi\u0119c mno\u017Cenie przez 10 nie zmienia', 'gcd(10, 7) = 1, so multiplying by 10 doesn\u2019t change'), size: 10, color: 'rgba(255,255,255,0.7)' },
+      { text: T('podzielno\u015Bci przez 7:', 'divisibility by 7:'), size: 10, color: 'rgba(255,255,255,0.7)' },
+      { text: '7 | n   \u21D4   7 | (a \u2212 2b)   \u220E', size: 13, color: GREEN, bold: true },
+      '',
+      { text: T('Przyk\u0142ad n = 203:  a=20, b=3  \u2192  20 \u2212 6 = 14 = 2\u00B77 \u2713', 'Example n = 203:  a=20, b=3  \u2192  20 \u2212 6 = 14 = 2\u00B77 \u2713'), size: 11, color: ORANGE },
+      { text: T('Dla du\u017Cych n iteruj: 1729 \u2192 172\u221218=154 \u2192 15\u22128=7 \u2713', 'For large n iterate: 1729 \u2192 172\u221218=154 \u2192 15\u22128=7 \u2713'), size: 11, color: ORANGE },
+    ],
+    8: [
+      { text: T('Kluczowy fakt:  1000 = 8\u00B7125,  wi\u0119c 1000 \u2261 0 (mod 8)', 'Key fact:  1000 = 8\u00B7125,  so 1000 \u2261 0 (mod 8)'), size: 12, color: CYAN },
+      { text: T('Dla k \u2265 3:  10\u1D4F \u2261 0 (mod 8)', 'For k \u2265 3:  10\u1D4F \u2261 0 (mod 8)'), size: 11, color: 'rgba(255,255,255,0.7)' },
+      '',
+      { text: T('Sk\u0142adniki z k \u2265 3 znikaj\u0105:', 'Terms with k \u2265 3 vanish:'), size: 11 },
+      { text: 'n \u2261 d\u2082\u00B7100 + d\u2081\u00B710 + d\u2080   (mod 8)', size: 12, color: YELLOW },
+      { text: T('  = ostatnie 3 cyfry', '  = last 3 digits'), size: 12, color: YELLOW, bold: true },
+      '',
+      { text: T('Wniosek', 'Conclusion'), size: 11, color: GREEN, bold: true },
+      { text: T('8 | n   \u21D4   8 | (ostatnie 3 cyfry)', '8 | n   \u21D4   8 | (last 3 digits)'), size: 13, color: GREEN, bold: true },
+      '',
+      { text: T('Og\u00F3lnie: 2\u1D4F | n  \u21D4  2\u1D4F | (ostatnie k cyfr),  bo 10\u1D4F = 2\u1D4F\u00B75\u1D4F.', 'Generally: 2\u1D4F | n  \u21D4  2\u1D4F | (last k digits),  since 10\u1D4F = 2\u1D4F\u00B75\u1D4F.'), size: 10, color: 'rgba(192,128,255,0.7)' },
+    ],
+    9: [
+      { text: T('Kluczowy fakt:  10 = 9 + 1,  wi\u0119c 10 \u2261 1 (mod 9)', 'Key fact:  10 = 9 + 1,  so 10 \u2261 1 (mod 9)'), size: 12, color: CYAN },
+      { text: T('St\u0105d 10\u1D4F \u2261 1 (mod 9) dla ka\u017Cdego k.', 'Hence 10\u1D4F \u2261 1 (mod 9) for every k.'), size: 11, color: 'rgba(255,255,255,0.7)' },
+      '',
+      { text: 'n = d\u1D4B\u00B710\u1D4F + \u2026 + d\u2080', size: 12, color: YELLOW },
+      { text: '  \u2261 d\u1D4B + \u2026 + d\u2080  (mod 9)', size: 12, color: YELLOW },
+      { text: T('  = suma cyfr', '  = digit sum'), size: 12, color: YELLOW, bold: true },
+      '',
+      { text: T('Wniosek', 'Conclusion'), size: 11, color: GREEN, bold: true },
+      { text: T('9 | n   \u21D4   9 | (suma cyfr)', '9 | n   \u21D4   9 | (digit sum)'), size: 14, color: GREEN, bold: true },
+      '',
+      { text: T('Ta sama idea co dla 3. 9 jest najwi\u0119kszym m, dla', 'Same idea as for 3. 9 is the largest m for which'), size: 10, color: 'rgba(255,255,255,0.55)' },
+      { text: T('kt\u00F3rego 10 \u2261 1 (mod m).', '10 \u2261 1 (mod m).'), size: 10, color: 'rgba(255,255,255,0.55)' },
+    ],
+    11: [
+      { text: T('Kluczowy fakt:  10 = 11 \u2212 1,  wi\u0119c 10 \u2261 \u22121 (mod 11)', 'Key fact:  10 = 11 \u2212 1,  so 10 \u2261 \u22121 (mod 11)'), size: 12, color: CYAN },
+      '',
+      { text: T('Zatem 10\u1D4F \u2261 (\u22121)\u1D4F:', 'Therefore 10\u1D4F \u2261 (\u22121)\u1D4F:'), size: 11 },
+      { text: '10\u2070 \u2261 +1,   10\u00B9 \u2261 \u22121,   10\u00B2 \u2261 +1,   10\u00B3 \u2261 \u22121,   \u2026', size: 11, color: YELLOW },
+      '',
+      { text: 'n = d\u2080 + d\u2081\u00B710 + d\u2082\u00B7100 + d\u2083\u00B71000 + \u2026', size: 11, color: YELLOW },
+      { text: '  \u2261 d\u2080 \u2212 d\u2081 + d\u2082 \u2212 d\u2083 + \u2026   (mod 11)', size: 12, color: YELLOW, bold: true },
+      '',
+      { text: T('Wniosek', 'Conclusion'), size: 11, color: GREEN, bold: true },
+      { text: T('11 | n   \u21D4   11 | (suma naprzemienna cyfr)', '11 | n   \u21D4   11 | (alternating digit sum)'), size: 13, color: GREEN, bold: true },
+      '',
+      { text: T('Przyk\u0142ad n = 2728:  8 \u2212 2 + 7 \u2212 2 = 11   \u21D2   11 | 2728 \u2713', 'Example n = 2728:  8 \u2212 2 + 7 \u2212 2 = 11   \u21D2   11 | 2728 \u2713'), size: 11, color: ORANGE },
+    ],
+  };
+
   function clear() { cx.fillStyle = '#0e0e12'; cx.fillRect(0, 0, W, H); }
 
   // ── Helpers ──────────────────────────────────────────────────
@@ -323,12 +456,14 @@
     const cellH = 82;
     const startY = 46;
     const startX = 20;
+    cellRects.length = 0;
 
     rules.forEach((r, i) => {
       const col = i % cols;
       const row = Math.floor(i / cols);
       const x = startX + col * cellW;
       const y = startY + row * cellH;
+      cellRects.push({ x: x + 3, y: y + 2, w: cellW - 6, h: cellH - 6, rule: r });
 
       // Background — stronger fill for "easy" divisors that pass
       cx.fillStyle = r.pass
@@ -370,6 +505,12 @@
       cx.restore();
       drawTextC(r.why, x + cellW / 2, y + 69, 'bold 10px monospace',
         r.pass ? '#C080FF' : 'rgba(255,255,255,0.18)', 'center');
+
+      // Click hint
+      if (r.proof) {
+        drawTextC(T('kliknij \u2192 dow\u00F3d', 'click \u2192 proof'),
+          x + cellW - 10, y + cellH - 8, '8px monospace', 'rgba(192,128,255,0.45)', 'right');
+      }
     });
   }
 
@@ -388,25 +529,32 @@
 
     const passMark = (ok) => ok ? T(' \u2014 spe\u0142nione', ' \u2014 yes') : '';
     const rules = [
-      { d: 2,  easy: true,  pass: n % 2 === 0, rule: T('ostatnia cyfra parzysta', 'last digit even'),
+      { d: 2,  easy: true,  pass: n % 2 === 0, proof: PROOF_LINES[2],
+        rule: T('ostatnia cyfra parzysta', 'last digit even'),
         detail: T('ostatnia cyfra: ' + lastDigit, 'last digit: ' + lastDigit),
         why: T('bo 10 \u2261 0 (mod 2)', 'because 10 \u2261 0 (mod 2)') },
-      { d: 3,  easy: true,  pass: n % 3 === 0, rule: T('suma cyfr dzieli si\u0119 przez 3', 'digit sum divides by 3'),
+      { d: 3,  easy: true,  pass: n % 3 === 0, proof: PROOF_LINES[3],
+        rule: T('suma cyfr dzieli si\u0119 przez 3', 'digit sum divides by 3'),
         detail: digits.join('+') + ' = ' + dSum + passMark(n % 3 === 0),
         why: T('bo 10 \u2261 1 (mod 3)', 'because 10 \u2261 1 (mod 3)') },
-      { d: 4,  easy: false, pass: n % 4 === 0, rule: T('ostatnie 2 cyfry dziel\u0105 si\u0119 przez 4', 'last 2 digits divide by 4'),
+      { d: 4,  easy: false, pass: n % 4 === 0, proof: PROOF_LINES[4],
+        rule: T('ostatnie 2 cyfry dziel\u0105 si\u0119 przez 4', 'last 2 digits divide by 4'),
         detail: (n >= 100 ? '...' : '') + String(lastTwo).padStart(2, '0') + ' : 4 = ' + (lastTwo / 4).toFixed(lastTwo % 4 === 0 ? 0 : 1),
         why: T('bo 100 \u2261 0 (mod 4)', 'because 100 \u2261 0 (mod 4)') },
-      { d: 5,  easy: true,  pass: n % 5 === 0, rule: T('ostatnia cyfra: 0 lub 5', 'last digit: 0 or 5'),
+      { d: 5,  easy: true,  pass: n % 5 === 0, proof: PROOF_LINES[5],
+        rule: T('ostatnia cyfra: 0 lub 5', 'last digit: 0 or 5'),
         detail: T('ostatnia cyfra: ' + lastDigit, 'last digit: ' + lastDigit),
         why: T('bo 10 \u2261 0 (mod 5)', 'because 10 \u2261 0 (mod 5)') },
-      { d: 7,  easy: false, pass: n % 7 === 0, rule: T('|a\u22122b| dzieli si\u0119 przez 7', '|a\u22122b| divides by 7'),
-        detail: 'a=' + a7 + ', b=' + b7 + '  \u2192  ' + a7 + '\u22122\u00B7' + b7 + ' = ' + val7,
-        why: T('bo 21 = 3\u00B77', 'because 21 = 3\u00B77') },
-      { d: 9,  easy: true,  pass: n % 9 === 0, rule: T('suma cyfr dzieli si\u0119 przez 9', 'digit sum divides by 9'),
+      { d: 7,  easy: false, pass: n % 7 === 0, proof: PROOF_LINES[7],
+        rule: T('obetnij ost. cyfr\u0119, odejmij jej podw\u00F3jno\u015B\u0107, sprawd\u017A ÷7', 'chop last digit, subtract twice it, check ÷7'),
+        detail: 'n=' + n + '  \u2192  ' + a7 + ' \u2212 2\u00B7' + b7 + ' = ' + val7 + (val7 % 7 === 0 ? ' (7|' + val7 + ') \u2713' : ''),
+        why: T('bo 10(a\u22122b) + 21b = n, a 21 = 3\u00B77', 'since 10(a\u22122b) + 21b = n, and 21 = 3\u00B77') },
+      { d: 9,  easy: true,  pass: n % 9 === 0, proof: PROOF_LINES[9],
+        rule: T('suma cyfr dzieli si\u0119 przez 9', 'digit sum divides by 9'),
         detail: digits.join('+') + ' = ' + dSum + passMark(n % 9 === 0),
         why: T('bo 10 \u2261 1 (mod 9)', 'because 10 \u2261 1 (mod 9)') },
-      { d: 11, easy: true,  pass: n % 11 === 0, rule: T('suma naprzemienna cyfr dzieli przez 11', 'alt. digit sum divides by 11'),
+      { d: 11, easy: true,  pass: n % 11 === 0, proof: PROOF_LINES[11],
+        rule: T('suma naprzemienna cyfr dzieli przez 11', 'alt. digit sum divides by 11'),
         detail: T('suma naprzem. = ', 'alt. sum = ') + altSum + passMark(n % 11 === 0),
         why: T('bo 10 \u2261 \u22121 (mod 11)', 'because 10 \u2261 \u22121 (mod 11)') },
     ];
@@ -428,11 +576,11 @@
 
     const okText = (ok) => ok ? T('TAK', 'YES') : T('NIE', 'NO');
     const rules = [
-      { d: 6,  easy: false, pass: n % 6 === 0,
+      { d: 6,  easy: false, pass: n % 6 === 0, proof: PROOF_LINES[6],
         rule: T('podzielne przez 2 oraz przez 3', 'divisible by 2 AND by 3'),
         detail: T('przez 2: ', 'by 2: ') + okText(n % 2 === 0) + '    ' + T('przez 3: ', 'by 3: ') + okText(n % 3 === 0),
         why: T('bo 6 = 2\u00B73  i  NWD(2,3) = 1', 'because 6 = 2\u00B73 and gcd(2,3) = 1') },
-      { d: 8,  easy: false, pass: n % 8 === 0,
+      { d: 8,  easy: false, pass: n % 8 === 0, proof: PROOF_LINES[8],
         rule: T('ostatnie 3 cyfry dziel\u0105 si\u0119 przez 8', 'last 3 digits divide by 8'),
         detail: String(lastThree) + ' : 8 = ' + (lastThree / 8).toFixed(n % 8 === 0 ? 0 : 1),
         why: T('bo 1000 \u2261 0 (mod 8)', 'because 1000 \u2261 0 (mod 8)') },
@@ -443,10 +591,12 @@
     const cellH = 200;
     const startY = 60;
     const startX = 20;
+    cellRects.length = 0;
 
     rules.forEach((r, i) => {
       const x = startX + i * cellW;
       const y = startY;
+      cellRects.push({ x: x + 6, y: y + 4, w: cellW - 12, h: cellH - 8, rule: r });
 
       cx.fillStyle = r.pass ? 'rgba(131,193,103,0.12)' : 'rgba(255,255,255,0.03)';
       cx.beginPath();
@@ -488,6 +638,12 @@
         r.pass ? 'rgba(192,128,255,0.75)' : 'rgba(255,255,255,0.18)', 'center');
       drawTextC(r.why, x + cellW / 2, y + 172, 'bold 12px monospace',
         r.pass ? '#C080FF' : 'rgba(255,255,255,0.2)', 'center');
+
+      // Click-for-proof hint
+      if (r.proof) {
+        drawTextC(T('kliknij \u2192 pe\u0142ny dow\u00F3d', 'click \u2192 full proof'),
+          x + cellW / 2, y + cellH - 10, '9px monospace', 'rgba(192,128,255,0.55)', 'center');
+      }
     });
 
     // Footer
@@ -497,6 +653,55 @@
       W / 2, 312, '10px monospace', 'rgba(192,128,255,0.75)');
 
     drawTextC(T('Cyfry: ', 'Digits: ') + digits.join(', '), W / 2, H - 12, '10px monospace', 'rgba(255,255,255,0.45)');
+  }
+
+  // ── Proof overlay ────────────────────────────────────────────
+
+  function drawProofOverlay(rule) {
+    // Dim background
+    cx.save();
+    cx.fillStyle = 'rgba(10,10,15,0.95)';
+    cx.fillRect(0, 0, W, H);
+    cx.restore();
+
+    // Border frame
+    cx.save();
+    cx.strokeStyle = 'rgba(192,128,255,0.35)';
+    cx.lineWidth = 1;
+    cx.strokeRect(14, 14, W - 28, H - 28);
+    cx.restore();
+
+    // Title
+    drawTextC(T('Dow\u00F3d: podzielno\u015B\u0107 przez ' + rule.d, 'Proof: divisibility by ' + rule.d),
+      W / 2, 34, 'bold 16px monospace', CYAN);
+
+    // Close hint (top right)
+    drawTextC(T('kliknij gdziekolwiek, by zamkn\u0105\u0107', 'click anywhere to close'),
+      W - 25, 34, '10px monospace', 'rgba(255,255,255,0.35)', 'right');
+
+    // Separator
+    cx.save();
+    cx.strokeStyle = 'rgba(192,128,255,0.25)';
+    cx.lineWidth = 0.5;
+    cx.beginPath();
+    cx.moveTo(30, 52); cx.lineTo(W - 30, 52);
+    cx.stroke();
+    cx.restore();
+
+    // Proof lines
+    let y = 74;
+    (rule.proof || []).forEach(line => {
+      if (line === '') { y += 10; return; }
+      const obj = (typeof line === 'string') ? { text: line } : line;
+      const size  = obj.size  || 12;
+      const color = obj.color || 'rgba(255,255,255,0.88)';
+      const bold  = obj.bold  ? 'bold ' : '';
+      const font  = bold + size + 'px monospace';
+      const align = obj.align || 'center';
+      const xPos  = align === 'left' ? 40 : align === 'right' ? W - 40 : W / 2;
+      drawTextC(obj.text, xPos, y, font, color, align);
+      y += obj.space || 20;
+    });
   }
 
   // ── Stage 3: Prime Factorization Tree ────────────────────────
@@ -1011,7 +1216,59 @@
   prevBtn.addEventListener('click', () => goTo(stage - 1));
   nextBtn.addEventListener('click', () => goTo(stage + 1));
 
-  function tick() { clear(); stages_def[stage].draw(); requestAnimationFrame(tick); }
+  // Click-to-expand proof: canvas click on a divisibility cell shows overlay
+  cv.addEventListener('click', (e) => {
+    if (activeProof) { activeProof = null; return; }
+    const rect = cv.getBoundingClientRect();
+    const cxCoord = (e.clientX - rect.left) * (W / rect.width);
+    const cyCoord = (e.clientY - rect.top)  * (H / rect.height);
+    for (const r of cellRects) {
+      if (cxCoord >= r.x && cxCoord <= r.x + r.w &&
+          cyCoord >= r.y && cyCoord <= r.y + r.h) {
+        if (r.rule && r.rule.proof) activeProof = r.rule;
+        break;
+      }
+    }
+  });
+
+  // Close proof with Esc
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && activeProof) activeProof = null;
+  });
+
+  // Cursor feedback when hovering over a clickable cell
+  cv.style.cursor = 'default';
+  cv.addEventListener('mousemove', (e) => {
+    if (activeProof) { cv.style.cursor = 'pointer'; return; }
+    const rect = cv.getBoundingClientRect();
+    const xC = (e.clientX - rect.left) * (W / rect.width);
+    const yC = (e.clientY - rect.top)  * (H / rect.height);
+    let over = false;
+    for (const r of cellRects) {
+      if (xC >= r.x && xC <= r.x + r.w && yC >= r.y && yC <= r.y + r.h) {
+        if (r.rule && r.rule.proof) over = true;
+        break;
+      }
+    }
+    cv.style.cursor = over ? 'pointer' : 'default';
+  });
+
+  // Reset cellRects when leaving a divisibility stage
+  function resetCellsIfNeeded() {
+    const s = stages_def[stage];
+    if (s.draw !== drawDivisibility && s.draw !== drawDivisibilityExtra) {
+      cellRects.length = 0;
+      activeProof = null;
+    }
+  }
+
+  function tick() {
+    clear();
+    resetCellsIfNeeded();
+    stages_def[stage].draw();
+    if (activeProof) drawProofOverlay(activeProof);
+    requestAnimationFrame(tick);
+  }
   goTo(0);
   tick();
 })();
