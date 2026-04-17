@@ -40,6 +40,170 @@ export const COLORS = {
   PANEL:  '#16161a',
 };
 
+// ── Drawing primitives ────────────────────────────────────────────
+
+/** Centered (by default) canvas text with font shorthand. */
+export function drawTextC(cx, text, x, y, font, color, align) {
+  cx.save();
+  cx.font = font || '13px monospace';
+  cx.fillStyle = color || 'rgba(255,255,255,0.7)';
+  cx.textAlign = align || 'center';
+  cx.textBaseline = 'middle';
+  cx.fillText(text, x, y);
+  cx.restore();
+}
+
+/** Text with glow — use for hero numbers / labels you want to pop. */
+export function drawGlow(cx, text, x, y, font, color) {
+  cx.save();
+  cx.font = font || 'bold 22px monospace';
+  cx.textAlign = 'center';
+  cx.textBaseline = 'middle';
+  cx.fillStyle = color || COLORS.YELLOW;
+  cx.shadowColor = color || COLORS.YELLOW;
+  cx.shadowBlur = 15;
+  cx.fillText(text, x, y);
+  cx.shadowBlur = 0;
+  cx.restore();
+}
+
+/** Canvas-drawn ✓ — avoids Unicode font-fallback glitches. */
+export function drawCheck(cx, x, y, size, color) {
+  cx.save();
+  cx.strokeStyle = color;
+  cx.lineWidth = Math.max(2, size / 5);
+  cx.lineCap = 'round';
+  cx.lineJoin = 'round';
+  cx.beginPath();
+  cx.moveTo(x - size * 0.45, y + size * 0.05);
+  cx.lineTo(x - size * 0.10, y + size * 0.38);
+  cx.lineTo(x + size * 0.48, y - size * 0.38);
+  cx.stroke();
+  cx.restore();
+}
+
+/** Canvas-drawn ✗. */
+export function drawCross(cx, x, y, size, color) {
+  cx.save();
+  cx.strokeStyle = color;
+  cx.lineWidth = Math.max(1.5, size / 6);
+  cx.lineCap = 'round';
+  cx.beginPath();
+  cx.moveTo(x - size * 0.38, y - size * 0.38);
+  cx.lineTo(x + size * 0.38, y + size * 0.38);
+  cx.moveTo(x + size * 0.38, y - size * 0.38);
+  cx.lineTo(x - size * 0.38, y + size * 0.38);
+  cx.stroke();
+  cx.restore();
+}
+
+/** Filled circular badge: green ✓ if pass, grey ✗ otherwise. */
+export function drawBadge(cx, x, y, pass, size) {
+  cx.save();
+  cx.beginPath();
+  cx.arc(x, y, size, 0, Math.PI * 2);
+  cx.fillStyle = pass ? 'rgba(131,193,103,0.9)' : 'rgba(80,80,90,0.5)';
+  cx.fill();
+  cx.restore();
+  if (pass) drawCheck(cx, x, y, size * 1.2, '#0e0e12');
+  else      drawCross(cx, x, y, size * 1.1, 'rgba(255,255,255,0.55)');
+}
+
+// ── Click-to-expand proof overlay ─────────────────────────────────
+//
+// Usage inside a stage's draw():
+//   proof.registerCell(x, y, w, h, proofObj);   // per clickable card
+// viz-core wires the canvas click handler; when a registered cell is
+// clicked it calls proof.open(proofObj). Returns a `proof` object the
+// host can read to check `proof.active` and call `proof.drawOverlay(cx)`.
+//
+// A proofObj looks like:
+//   { title: 'Pythagoras', lines: [ { text, size, color, bold, align, space }, '' (blank), ... ] }
+// - strings render as default 12px centered white with 20px line height
+// - '' (empty string) renders as a 10px gap
+// - objects customize size / color / bold / align ('left' | 'center' | 'right') / space
+
+export function createProofRegistry() {
+  const cells = [];
+  let active = null;
+
+  return {
+    get active() { return active; },
+
+    reset() { cells.length = 0; },
+
+    registerCell(x, y, w, h, proofObj) {
+      cells.push({ x, y, w, h, proofObj });
+    },
+
+    /** Call this from a canvas 'click' handler. Returns true if the click
+     *  opened / closed a proof (host should stop further processing). */
+    handleClick(cxCoord, cyCoord) {
+      if (active) { active = null; return true; }
+      for (const c of cells) {
+        if (cxCoord >= c.x && cxCoord <= c.x + c.w &&
+            cyCoord >= c.y && cyCoord <= c.y + c.h) {
+          if (c.proofObj) { active = c.proofObj; return true; }
+        }
+      }
+      return false;
+    },
+
+    close() { active = null; },
+
+    /** Return true if (cxCoord, cyCoord) is over a clickable cell — for cursor feedback. */
+    hitTest(cxCoord, cyCoord) {
+      if (active) return true;
+      return cells.some(c =>
+        cxCoord >= c.x && cxCoord <= c.x + c.w &&
+        cyCoord >= c.y && cyCoord <= c.y + c.h && c.proofObj
+      );
+    },
+
+    drawOverlay(cx, W, H) {
+      if (!active) return;
+      const p = active;
+
+      cx.save();
+      cx.fillStyle = 'rgba(10,10,15,0.95)';
+      cx.fillRect(0, 0, W, H);
+      cx.strokeStyle = 'rgba(192,128,255,0.35)';
+      cx.lineWidth = 1;
+      cx.strokeRect(14, 14, W - 28, H - 28);
+      cx.restore();
+
+      const titleText = (typeof p.title === 'function') ? p.title() : p.title;
+      if (titleText) {
+        drawTextC(cx, titleText, W / 2, 34, 'bold 16px monospace', COLORS.CYAN);
+      }
+      drawTextC(cx, T('kliknij gdziekolwiek, by zamkn\u0105\u0107', 'click anywhere to close'),
+        W - 25, 34, '10px monospace', 'rgba(255,255,255,0.35)', 'right');
+
+      cx.save();
+      cx.strokeStyle = 'rgba(192,128,255,0.25)';
+      cx.lineWidth = 0.5;
+      cx.beginPath();
+      cx.moveTo(30, 52); cx.lineTo(W - 30, 52);
+      cx.stroke();
+      cx.restore();
+
+      let y = 74;
+      (p.lines || []).forEach(line => {
+        if (line === '') { y += 10; return; }
+        const obj = (typeof line === 'string') ? { text: line } : line;
+        const size  = obj.size  || 12;
+        const color = obj.color || 'rgba(255,255,255,0.88)';
+        const bold  = obj.bold  ? 'bold ' : '';
+        const font  = bold + size + 'px monospace';
+        const align = obj.align || 'center';
+        const xPos  = align === 'left' ? 40 : align === 'right' ? W - 40 : W / 2;
+        drawTextC(cx, obj.text, xPos, y, font, color, align);
+        y += obj.space || 20;
+      });
+    },
+  };
+}
+
 // ── Pure helpers (exported for testing) ───────────────────────────
 
 export function clampStage(idx, count) {
@@ -97,6 +261,10 @@ export const VizCore = {
    */
   init({ title = '', H = 310, stages, extraCSS = '' }) {
     const W = 600;
+
+    // Shared proof-overlay registry — each stage's draw() gets passed
+    // it so cards can registerCell() themselves as clickable.
+    const proof = createProofRegistry();
 
     // Inject CSS
     const style = document.createElement('style');
@@ -171,10 +339,26 @@ export const VizCore = {
       prevBtn.disabled = stage === 0;
       nextBtn.disabled = stage === stages.length - 1;
       renderDots();
+      // Switching stage clears any open proof + stale click regions
+      proof.reset();
+      proof.close();
     }
 
     prevBtn.addEventListener('click', () => goTo(stage - 1));
     nextBtn.addEventListener('click', () => goTo(stage + 1));
+
+    // ── Proof overlay wiring ───────────────────────────────────
+    cv.addEventListener('click', (e) => {
+      const { x, y } = getCanvasPos(e);
+      proof.handleClick(x, y);
+    });
+    cv.addEventListener('mousemove', (e) => {
+      const { x, y } = getCanvasPos(e);
+      cv.style.cursor = proof.hitTest(x, y) ? 'pointer' : 'default';
+    });
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') proof.close();
+    });
 
     // ── Drawing helpers exposed to viz authors ──────────────────
     function clear() {
@@ -207,13 +391,17 @@ export const VizCore = {
     // ── Animation loop ──────────────────────────────────────────
     function tick() {
       clear();
-      stages[stage].draw(cx, W, H, getVals(stages[stage].sliders));
+      // Cells that a stage registers this frame are transient; reset
+      // each frame so geometry stays in sync with current state.
+      if (!proof.active) proof.reset();
+      stages[stage].draw(cx, W, H, getVals(stages[stage].sliders), proof);
+      proof.drawOverlay(cx, W, H);
       requestAnimationFrame(tick);
     }
 
     goTo(0);
     requestAnimationFrame(tick);
 
-    return { cv, cx, W, H, goTo, clear, gdot, getCanvasPos };
+    return { cv, cx, W, H, goTo, clear, gdot, getCanvasPos, proof };
   },
 };

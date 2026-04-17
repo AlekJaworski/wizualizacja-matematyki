@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rozkłady prawdopodobieństwa — Eksplorator</title>
+</head>
+<body>
+<script type="module">
+import { VizCore, T, COLORS,
+         drawTextC, drawGlow, drawBadge } from '../lib/viz-core.js';
+
+const { CYAN, ORANGE, GREEN, YELLOW, PINK, PURPLE } = COLORS;
+
+// ── Math helpers ────────────────────────────────────────────────
+
+function logFactorial(n) {
+  let s = 0;
+  for (let i = 2; i <= n; i++) s += Math.log(i);
+  return s;
+}
+
+// P(X=k) = C(n,k) p^k (1-p)^(n-k)
+function binomPmf(n, k, p) {
+  if (k < 0 || k > n) return 0;
+  if (p === 0) return k === 0 ? 1 : 0;
+  if (p === 1) return k === n ? 1 : 0;
+  const logP = logFactorial(n) - logFactorial(k) - logFactorial(n - k)
+             + k * Math.log(p) + (n - k) * Math.log(1 - p);
+  return Math.exp(logP);
+}
+
+// Poisson PMF = e^{-lambda} lambda^k / k!
+function poissonPmf(lambda, k) {
+  if (k < 0 || lambda <= 0) return 0;
+  const logP = -lambda + k * Math.log(lambda) - logFactorial(k);
+  return Math.exp(logP);
+}
+
+// Standard normal PDF
+function normalPdf(x, mu, sigma) {
+  const z = (x - mu) / sigma;
+  return Math.exp(-z * z / 2) / (sigma * Math.sqrt(2 * Math.PI));
+}
+
+// Normal CDF via erf approximation (Abramowitz & Stegun 7.1.26)
+function erf(x) {
+  const sign = x < 0 ? -1 : 1;
+  x = Math.abs(x);
+  const a1 =  0.254829592, a2 = -0.284496736, a3 =  1.421413741;
+  const a4 = -1.453152027, a5 =  1.061405429, p  =  0.3275911;
+  const t = 1 / (1 + p * x);
+  const y = 1 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+  return sign * y;
+}
+function normalCdf(x, mu, sigma) {
+  return 0.5 * (1 + erf((x - mu) / (sigma * Math.SQRT2)));
+}
+
+// ── Proof content (static) ──────────────────────────────────────
+
+const PROOF_BINOMIAL = {
+  title: () => T('Wz\u00F3r dwumianowy', 'Binomial formula'),
+  lines: [
+    { text: T('P(X = k) = C(n, k) \u00B7 p\u1D4F \u00B7 (1\u2212p)\u207F\u207B\u1D4F', 'P(X = k) = C(n, k) \u00B7 p\u1D4F \u00B7 (1\u2212p)\u207F\u207B\u1D4F'),
+      size: 14, color: YELLOW, bold: true, space: 26 },
+    '',
+    { text: T('Sk\u0105d ten wz\u00F3r?', 'Where does it come from?'), size: 11, color: PURPLE, bold: true },
+    '',
+    { text: T('Dok\u0142adnie jedna konkretna sekwencja k sukces\u00F3w', 'Any single specific sequence of k successes'), size: 11 },
+    { text: T('i (n\u2212k) pora\u017Cek ma prawdopodobie\u0144stwo  p\u1D4F \u00B7 (1\u2212p)\u207F\u207B\u1D4F', 'and (n\u2212k) failures has probability  p\u1D4F \u00B7 (1\u2212p)\u207F\u207B\u1D4F'), size: 11 },
+    { text: T('(iloczyn, bo pr\u00F3by s\u0105 niezale\u017Cne).', '(product, because trials are independent).'), size: 11 },
+    '',
+    { text: T('Ile jest takich sekwencji? Wybieramy, na kt\u00F3rych k pozycjach', 'How many such sequences? We choose which k positions'), size: 11 },
+    { text: T('z n s\u0105 sukcesy  \u2192  C(n, k) \u201Ez n po k\u201D.', 'out of n hold the successes  \u2192  C(n, k) "n choose k".'), size: 11 },
+    '',
+    { text: T('Mno\u017C\u0105c: P(X=k) = (liczba sekwencji) \u00B7 (ich wsp\u00F3lne prawd.)', 'Multiplying: P(X=k) = (number of sequences) \u00B7 (shared probability)'), size: 11, color: 'rgba(255,255,255,0.8)' },
+    '',
+    { text: '\u2211\u2096 P(X=k) = (p + (1\u2212p))\u207F = 1\u207F = 1   ' + T('(sprawdzenie)', '(sanity check)'), size: 11, color: GREEN, bold: true },
+  ],
+};
+
+const PROOF_EXPECTATION = {
+  title: () => T('E(X) = np  dla rozk\u0142adu dwumianowego', 'E(X) = np  for binomial'),
+  lines: [
+    { text: T('Ka\u017Cda z n pr\u00F3b to niezale\u017Cna zmienna Bernoulliego Y\u1D62.', 'Each of the n trials is an independent Bernoulli Y\u1D62.'), size: 11 },
+    { text: T('Y\u1D62 = 1 je\u015Bli sukces, 0 je\u015Bli pora\u017Cka. X = Y\u2081 + Y\u2082 + ... + Y\u2099.', 'Y\u1D62 = 1 on success, 0 on failure. X = Y\u2081 + Y\u2082 + ... + Y\u2099.'), size: 11 },
+    '',
+    { text: 'E(Y\u1D62) = 1\u00B7p + 0\u00B7(1\u2212p) = p', size: 12, color: YELLOW, bold: true },
+    '',
+    { text: T('Liniowo\u015B\u0107 warto\u015Bci oczekiwanej:', 'Linearity of expectation:'), size: 11 },
+    { text: 'E(X) = E(Y\u2081) + E(Y\u2082) + ... + E(Y\u2099) = n\u00B7p', size: 13, color: GREEN, bold: true },
+    '',
+    { text: T('Liniowo\u015B\u0107 dzia\u0142a nawet bez niezale\u017Cno\u015Bci \u2014 to pot\u0119\u017Cny wynik.', 'Linearity holds even without independence \u2014 a powerful result.'), size: 10, color: 'rgba(192,128,255,0.75)' },
+    '',
+    { text: T('Wariancja (dla niezale\u017Cnych Y\u1D62):', 'Variance (Y\u1D62 independent):'), size: 11, color: PURPLE, bold: true },
+    { text: 'Var(Y\u1D62) = p(1\u2212p),   Var(X) = n\u00B7p\u00B7(1\u2212p)', size: 12, color: YELLOW, bold: true },
+  ],
+};
+
+const PROOF_POISSON_LIMIT = {
+  title: () => T('Rozk\u0142ad Poissona jako granica dwumianowego', 'Poisson as limit of binomial'),
+  lines: [
+    { text: T('Niech n \u2192 \u221E, p \u2192 0,  \u03BB = np sta\u0142e.', 'Let n \u2192 \u221E, p \u2192 0,  \u03BB = np constant.'), size: 11 },
+    '',
+    { text: 'P(X=k) = C(n, k) \u00B7 p\u1D4F \u00B7 (1\u2212p)\u207F\u207B\u1D4F', size: 12, color: YELLOW },
+    '',
+    { text: T('Podstaw  p = \u03BB/n  i porozdzielaj:', 'Substitute  p = \u03BB/n  and split:'), size: 11 },
+    { text: '= [n!/((n\u2212k)! n\u1D4F)] \u00B7 (\u03BB\u1D4F / k!) \u00B7 (1\u2212\u03BB/n)\u207F \u00B7 (1\u2212\u03BB/n)\u207B\u1D4F', size: 11, color: YELLOW },
+    '',
+    { text: T('W granicy n \u2192 \u221E:', 'As n \u2192 \u221E:'), size: 11 },
+    { text: T('  \u2022 n!/((n\u2212k)!n\u1D4F) \u2192 1   (k pierwszych czynnik\u00F3w / n\u1D4F)', '  \u2022 n!/((n\u2212k)!n\u1D4F) \u2192 1   (k leading factors / n\u1D4F)'), size: 10, color: 'rgba(255,255,255,0.75)' },
+    { text: '  \u2022 (1\u2212\u03BB/n)\u207F \u2192 e\u207B\u1D40', size: 10, color: 'rgba(255,255,255,0.75)' },
+    { text: '  \u2022 (1\u2212\u03BB/n)\u207B\u1D4F \u2192 1', size: 10, color: 'rgba(255,255,255,0.75)' },
+    '',
+    { text: 'P(X=k) \u2192 e\u207B\u1D40 \u00B7 \u03BB\u1D4F / k!', size: 14, color: GREEN, bold: true },
+    '',
+    { text: T('St\u0105d \u201Erzadkie zdarzenia\u201D \u2014 wiele pr\u00F3b, ka\u017Cda z ma\u0142\u0105 szans\u0105.', 'Hence "rare events" \u2014 many trials, each unlikely.'), size: 10, color: 'rgba(192,128,255,0.75)' },
+  ],
+};
+
+const PROOF_NORMAL_68_95 = {
+  title: () => T('Regu\u0142a 68\u201395\u201399.7', 'The 68\u201395\u201399.7 rule'),
+  lines: [
+    { text: T('Dla X \u223C N(\u03BC, \u03C3\u00B2):', 'For X \u223C N(\u03BC, \u03C3\u00B2):'), size: 11 },
+    '',
+    { text: 'P(\u03BC \u2212 \u03C3 \u2264 X \u2264 \u03BC + \u03C3) \u2248 0.6827', size: 12, color: YELLOW },
+    { text: 'P(\u03BC \u2212 2\u03C3 \u2264 X \u2264 \u03BC + 2\u03C3) \u2248 0.9545', size: 12, color: YELLOW },
+    { text: 'P(\u03BC \u2212 3\u03C3 \u2264 X \u2264 \u03BC + 3\u03C3) \u2248 0.9973', size: 12, color: YELLOW },
+    '',
+    { text: T('Sk\u0105d te liczby? Ca\u0142ka z g\u0119sto\u015Bci N(0,1):', 'Where do these come from? Integral of N(0,1) density:'), size: 11, color: PURPLE, bold: true },
+    { text: 'P(|Z| \u2264 k) = 2\u00B7\u03A6(k) \u2212 1,  gdzie  \u03A6(k) = \u222B_{\u2212\u221E}^{k} \u03C6(z) dz', size: 11 },
+    '',
+    { text: T('To centralne tw. graniczne \u2014 dlatego rozk\u0142ad normalny pojawia si\u0119', 'Central limit theorem \u2014 why the normal appears'), size: 10, color: 'rgba(255,255,255,0.7)' },
+    { text: T('wsz\u0119dzie, gdzie sumujemy wiele ma\u0142ych, niezale\u017Cnych sk\u0142adnik\u00F3w.', 'wherever many small independent effects combine.'), size: 10, color: 'rgba(255,255,255,0.7)' },
+  ],
+};
+
+// ── State ───────────────────────────────────────────────────────
+
+const state = {
+  // binomial stage
+  binN: 10, binP: 0.5,
+  // expectation stage (reuse binomial params)
+  // poisson stage
+  poisLambda: 3,
+  // poisson convergence (large n, small p)
+  convN: 50,
+  // normal stage
+  normMu: 0, normSigma: 1,
+};
+
+// ── Stage 1: intro — discrete vs continuous ─────────────────────
+
+function drawIntro(cx, W, H, vals, proof) {
+  drawTextC(cx, T('Zmienna losowa', 'Random variable'), W / 2, 22, 'bold 14px monospace', CYAN);
+  drawTextC(cx, T('X przypisuje wynikowi zdarzenia liczb\u0119.', 'X maps each outcome to a number.'),
+    W / 2, 42, '11px monospace', 'rgba(255,255,255,0.7)');
+
+  // Two panels side by side: discrete (left) vs continuous (right)
+  const midX = W / 2;
+  const boxY = 66, boxH = H - 80, boxW = (W - 60) / 2;
+
+  // Discrete panel
+  cx.save();
+  cx.fillStyle = 'rgba(88,196,221,0.06)';
+  cx.fillRect(20, boxY, boxW, boxH);
+  cx.strokeStyle = 'rgba(88,196,221,0.3)';
+  cx.strokeRect(20, boxY, boxW, boxH);
+  cx.restore();
+  drawTextC(cx, T('Dyskretna', 'Discrete'), 20 + boxW / 2, boxY + 18, 'bold 12px monospace', CYAN);
+  drawTextC(cx, T('wynik ze zbioru przeliczalnego', 'outcome from a countable set'), 20 + boxW / 2, boxY + 35, '10px monospace', 'rgba(255,255,255,0.55)');
+
+  // Mini bar chart of dice
+  const diceBars = [1, 1, 1, 1, 1, 1];
+  const barBase = boxY + 180;
+  const barMaxH = 60;
+  const barW = 22;
+  const barStart = 20 + (boxW - barW * 6 - 30) / 2;
+  diceBars.forEach((v, i) => {
+    const h = barMaxH * 0.8;
+    const x = barStart + i * (barW + 6);
+    cx.fillStyle = CYAN;
+    cx.fillRect(x, barBase - h, barW, h);
+    drawTextC(cx, String(i + 1), x + barW / 2, barBase + 12, '10px monospace', 'rgba(255,255,255,0.7)');
+    drawTextC(cx, '1/6', x + barW / 2, barBase - h - 8, '9px monospace', CYAN);
+  });
+  drawTextC(cx, T('Rzut kostk\u0105: P(X=k) = 1/6', 'Dice roll: P(X=k) = 1/6'),
+    20 + boxW / 2, boxY + 70, '10px monospace', 'rgba(255,255,255,0.75)');
+  drawTextC(cx, T('masa prawd. p(k)', 'probability mass p(k)'), 20 + boxW / 2, boxY + 90, '10px monospace', PURPLE);
+  drawTextC(cx, T('\u03A3 p(k) = 1', '\u03A3 p(k) = 1'), 20 + boxW / 2, boxY + 108, 'bold 13px monospace', YELLOW);
+
+  // Continuous panel
+  const rightX = midX + 10;
+  cx.save();
+  cx.fillStyle = 'rgba(224,112,144,0.06)';
+  cx.fillRect(rightX, boxY, boxW, boxH);
+  cx.strokeStyle = 'rgba(224,112,144,0.3)';
+  cx.strokeRect(rightX, boxY, boxW, boxH);
+  cx.restore();
+  drawTextC(cx, T('Ci\u0105g\u0142a', 'Continuous'), rightX + boxW / 2, boxY + 18, 'bold 12px monospace', PINK);
+  drawTextC(cx, T('wynik z przedzia\u0142u', 'outcome from an interval'), rightX + boxW / 2, boxY + 35, '10px monospace', 'rgba(255,255,255,0.55)');
+
+  // Mini Gaussian curve
+  const gCenter = rightX + boxW / 2;
+  const gBase = boxY + 180;
+  const gMaxH = 60;
+  cx.save();
+  cx.strokeStyle = PINK;
+  cx.lineWidth = 2;
+  cx.beginPath();
+  for (let i = 0; i <= 80; i++) {
+    const t = i / 80;
+    const x = rightX + 15 + t * (boxW - 30);
+    const z = (t - 0.5) * 6;
+    const y = gBase - gMaxH * Math.exp(-z * z / 2);
+    if (i === 0) cx.moveTo(x, y); else cx.lineTo(x, y);
+  }
+  cx.stroke();
+  // axis
+  cx.strokeStyle = 'rgba(255,255,255,0.2)';
+  cx.lineWidth = 1;
+  cx.beginPath();
+  cx.moveTo(rightX + 15, gBase); cx.lineTo(rightX + boxW - 15, gBase);
+  cx.stroke();
+  cx.restore();
+  drawTextC(cx, T('np. wzrost cz\u0142owieka', 'e.g. human height'), rightX + boxW / 2, boxY + 70, '10px monospace', 'rgba(255,255,255,0.75)');
+  drawTextC(cx, T('g\u0119sto\u015B\u0107  f(x)', 'density  f(x)'), rightX + boxW / 2, boxY + 90, '10px monospace', PURPLE);
+  drawTextC(cx, '\u222B f(x) dx = 1', rightX + boxW / 2, boxY + 108, 'bold 13px monospace', YELLOW);
+  drawTextC(cx, T('P(a\u2264X\u2264b) = \u222B\u2090\u1D47 f(x) dx', 'P(a\u2264X\u2264b) = \u222B\u2090\u1D47 f(x) dx'),
+    rightX + boxW / 2, boxY + 220, '10px monospace', 'rgba(255,255,255,0.7)');
+}
+
+// ── Stage 2: Binomial ───────────────────────────────────────────
+
+function drawBinomial(cx, W, H, vals, proof) {
+  const n = Math.round(vals.n);
+  const p = vals.p;
+
+  drawTextC(cx, T('Rozk\u0142ad dwumianowy  X \u223C B(n, p)', 'Binomial distribution  X \u223C B(n, p)'),
+    W / 2, 20, 'bold 13px monospace', CYAN);
+
+  // Bar chart
+  const plotL = 50, plotR = W - 40, plotT = 48, plotB = H - 60;
+  const plotW = plotR - plotL, plotH = plotB - plotT;
+
+  // Compute all pmfs
+  const pmfs = [];
+  let maxPmf = 0;
+  for (let k = 0; k <= n; k++) {
+    const pk = binomPmf(n, k, p);
+    pmfs.push(pk);
+    if (pk > maxPmf) maxPmf = pk;
+  }
+
+  // Axis
+  cx.strokeStyle = 'rgba(255,255,255,0.2)';
+  cx.lineWidth = 1;
+  cx.beginPath();
+  cx.moveTo(plotL, plotB); cx.lineTo(plotR, plotB);
+  cx.moveTo(plotL, plotT); cx.lineTo(plotL, plotB);
+  cx.stroke();
+
+  // Bars
+  const barW = Math.max(4, plotW / (n + 1) - 2);
+  const expected = n * p;
+  pmfs.forEach((pk, k) => {
+    const x = plotL + (k + 0.5) * (plotW / (n + 1)) - barW / 2;
+    const h = (pk / maxPmf) * plotH * 0.92;
+    const col = (k === Math.round(expected)) ? GREEN : CYAN;
+    cx.fillStyle = col;
+    cx.fillRect(x, plotB - h, barW, h);
+    // label k on x-axis, sparse for large n
+    if (n <= 15 || k % Math.ceil(n / 10) === 0 || k === n) {
+      drawTextC(cx, String(k), x + barW / 2, plotB + 10, '9px monospace', 'rgba(255,255,255,0.6)');
+    }
+  });
+
+  // Stats overlay
+  const ex = n * p, va = n * p * (1 - p);
+  drawTextC(cx, 'E(X) = np = ' + ex.toFixed(2), plotR - 10, plotT + 12, 'bold 12px monospace', GREEN, 'right');
+  drawTextC(cx, 'Var(X) = np(1\u2212p) = ' + va.toFixed(2), plotR - 10, plotT + 28, 'bold 11px monospace', ORANGE, 'right');
+  drawTextC(cx, T('\u03C3 = ', '\u03C3 = ') + Math.sqrt(va).toFixed(2), plotR - 10, plotT + 44, '11px monospace', 'rgba(255,255,255,0.7)', 'right');
+
+  // Click-to-expand: the formula tile at top-left
+  const tileX = plotL + 4, tileY = plotT + 4, tileW = 180, tileH = 40;
+  cx.save();
+  cx.fillStyle = 'rgba(192,128,255,0.1)';
+  cx.fillRect(tileX, tileY, tileW, tileH);
+  cx.strokeStyle = 'rgba(192,128,255,0.4)';
+  cx.strokeRect(tileX, tileY, tileW, tileH);
+  cx.restore();
+  drawTextC(cx, 'P(X=k) = C(n,k) p\u1D4F (1\u2212p)\u207F\u207B\u1D4F', tileX + tileW / 2, tileY + 16, 'bold 11px monospace', YELLOW);
+  drawTextC(cx, T('kliknij \u2192 dow\u00F3d', 'click \u2192 proof'), tileX + tileW / 2, tileY + 32, '9px monospace', 'rgba(192,128,255,0.7)');
+  proof.registerCell(tileX, tileY, tileW, tileH, PROOF_BINOMIAL);
+
+  drawTextC(cx, T('Zielony s\u0142upek = najbardziej prawdopodobna warto\u015B\u0107 (moda).', 'Green bar = most likely value (mode).'),
+    W / 2, H - 14, '10px monospace', 'rgba(255,255,255,0.5)');
+}
+
+// ── Stage 3: Expectation + variance ────────────────────────────
+
+function drawExpectation(cx, W, H, vals, proof) {
+  const n = Math.round(vals.n);
+  const p = vals.p;
+  const ex = n * p;
+  const va = n * p * (1 - p);
+
+  drawTextC(cx, T('Warto\u015B\u0107 oczekiwana i wariancja', 'Expectation and variance'),
+    W / 2, 22, 'bold 13px monospace', CYAN);
+
+  // Two side-by-side formula cards
+  const cardW = (W - 60) / 2;
+  const cardH = 110;
+  const cardY = 58;
+
+  // E(X) card
+  cx.save();
+  cx.fillStyle = 'rgba(131,193,103,0.08)';
+  cx.fillRect(20, cardY, cardW, cardH);
+  cx.strokeStyle = 'rgba(131,193,103,0.35)';
+  cx.strokeRect(20, cardY, cardW, cardH);
+  cx.restore();
+  drawTextC(cx, T('Warto\u015B\u0107 oczekiwana  E(X)', 'Expectation  E(X)'), 20 + cardW / 2, cardY + 18, 'bold 11px monospace', GREEN);
+  drawTextC(cx, 'E(X) = \u2211 k \u00B7 p(k)', 20 + cardW / 2, cardY + 42, '12px monospace', YELLOW);
+  drawTextC(cx, T('dla B(n, p):', 'for B(n, p):'), 20 + cardW / 2, cardY + 62, '10px monospace', 'rgba(255,255,255,0.55)');
+  drawTextC(cx, 'E(X) = np = ' + ex.toFixed(3), 20 + cardW / 2, cardY + 82, 'bold 14px monospace', GREEN);
+  drawTextC(cx, T('kliknij \u2192 dow\u00F3d (liniowo\u015B\u0107)', 'click \u2192 proof (linearity)'), 20 + cardW / 2, cardY + 100, '9px monospace', 'rgba(192,128,255,0.7)');
+  proof.registerCell(20, cardY, cardW, cardH, PROOF_EXPECTATION);
+
+  // Var(X) card
+  const varX = 40 + cardW;
+  cx.save();
+  cx.fillStyle = 'rgba(255,107,53,0.08)';
+  cx.fillRect(varX, cardY, cardW, cardH);
+  cx.strokeStyle = 'rgba(255,107,53,0.35)';
+  cx.strokeRect(varX, cardY, cardW, cardH);
+  cx.restore();
+  drawTextC(cx, T('Wariancja  Var(X)', 'Variance  Var(X)'), varX + cardW / 2, cardY + 18, 'bold 11px monospace', ORANGE);
+  drawTextC(cx, 'Var(X) = E(X\u00B2) \u2212 E(X)\u00B2', varX + cardW / 2, cardY + 42, '12px monospace', YELLOW);
+  drawTextC(cx, T('dla B(n, p):', 'for B(n, p):'), varX + cardW / 2, cardY + 62, '10px monospace', 'rgba(255,255,255,0.55)');
+  drawTextC(cx, 'Var(X) = np(1\u2212p) = ' + va.toFixed(3), varX + cardW / 2, cardY + 82, 'bold 14px monospace', ORANGE);
+  drawTextC(cx, '\u03C3 = ' + Math.sqrt(va).toFixed(3), varX + cardW / 2, cardY + 100, '10px monospace', 'rgba(255,255,255,0.7)');
+
+  // Worked example block
+  const wY = cardY + cardH + 18;
+  cx.save();
+  cx.fillStyle = 'rgba(255,255,255,0.03)';
+  cx.fillRect(20, wY, W - 40, H - wY - 20);
+  cx.strokeStyle = 'rgba(255,255,255,0.1)';
+  cx.strokeRect(20, wY, W - 40, H - wY - 20);
+  cx.restore();
+  drawTextC(cx, T('Przyk\u0142ad obliczenia dla n=' + n + ', p=' + p.toFixed(2), 'Worked example for n=' + n + ', p=' + p.toFixed(2)),
+    30, wY + 16, 'bold 11px monospace', PURPLE, 'left');
+
+  // Show up to first 6 terms of E(X) computation
+  let ey = wY + 38;
+  drawTextC(cx, T('E(X) = \u2211 k\u00B7p(k):', 'E(X) = \u2211 k\u00B7p(k):'), 30, ey, '11px monospace', 'rgba(255,255,255,0.75)', 'left');
+  ey += 18;
+  let sumExp = 0;
+  const limit = Math.min(n, 5);
+  for (let k = 0; k <= limit; k++) {
+    const pk = binomPmf(n, k, p);
+    sumExp += k * pk;
+    drawTextC(cx, '  k=' + k + ' \u2192 ' + k + '\u00B7' + pk.toFixed(4) + ' = ' + (k * pk).toFixed(4),
+      30, ey, '10px monospace', 'rgba(255,255,255,0.7)', 'left');
+    ey += 14;
+  }
+  if (n > 5) drawTextC(cx, '  ... (' + (n - 5) + T(' wi\u0119cej sk\u0142adnik\u00F3w)', ' more terms)'), 30, ey, '10px monospace', 'rgba(255,255,255,0.5)', 'left');
+  drawTextC(cx, T('suma = np = ', 'sum = np = ') + ex.toFixed(3), 30, wY + 155, 'bold 11px monospace', GREEN, 'left');
+}
+
+// ── Stage 4: Poisson (dla ciekawskich) ─────────────────────────
+
+function drawPoisson(cx, W, H, vals, proof) {
+  const lambda = vals.lambda;
+  const convN = Math.round(vals.convN);
+  const convP = lambda / convN;  // hold np = lambda
+
+  drawTextC(cx, T('Rozk\u0142ad Poissona  X \u223C P(\u03BB)   (dla ciekawskich)', 'Poisson  X \u223C P(\u03BB)   (for the curious)'),
+    W / 2, 20, 'bold 13px monospace', CYAN);
+  drawTextC(cx, T('Granica rozk\u0142adu dwumianowego: n\u2192\u221E, p\u21920, \u03BB = np sta\u0142e.', 'Limit of binomial: n\u2192\u221E, p\u21920, \u03BB = np held constant.'),
+    W / 2, 38, '10px monospace', PURPLE);
+
+  // Bar chart of Poisson + overlay of binomial with matching lambda
+  const plotL = 50, plotR = W - 20, plotT = 56, plotB = H - 65;
+  const plotW = plotR - plotL, plotH = plotB - plotT;
+  const K = Math.min(20, Math.ceil(lambda + 4 * Math.sqrt(lambda)) + 2);
+
+  let maxPmf = 0;
+  const poisPmfs = [], binPmfs = [];
+  for (let k = 0; k <= K; k++) {
+    const pp = poissonPmf(lambda, k);
+    const bp = binomPmf(convN, k, convP);
+    poisPmfs.push(pp);
+    binPmfs.push(bp);
+    if (pp > maxPmf) maxPmf = pp;
+    if (bp > maxPmf) maxPmf = bp;
+  }
+
+  cx.strokeStyle = 'rgba(255,255,255,0.2)';
+  cx.beginPath();
+  cx.moveTo(plotL, plotB); cx.lineTo(plotR, plotB);
+  cx.moveTo(plotL, plotT); cx.lineTo(plotL, plotB);
+  cx.stroke();
+
+  const slot = plotW / (K + 1);
+  for (let k = 0; k <= K; k++) {
+    const pp = poisPmfs[k], bp = binPmfs[k];
+    const xC = plotL + (k + 0.5) * slot;
+    const poisH = (pp / maxPmf) * plotH * 0.9;
+    const binH  = (bp / maxPmf) * plotH * 0.9;
+
+    // Poisson filled bar
+    cx.fillStyle = 'rgba(192,128,255,0.6)';
+    cx.fillRect(xC - slot * 0.35, plotB - poisH, slot * 0.7, poisH);
+
+    // Binomial outline
+    cx.save();
+    cx.strokeStyle = CYAN;
+    cx.lineWidth = 1.5;
+    cx.strokeRect(xC - slot * 0.42, plotB - binH, slot * 0.84, binH);
+    cx.restore();
+
+    if (K <= 15 || k % 2 === 0) {
+      drawTextC(cx, String(k), xC, plotB + 10, '9px monospace', 'rgba(255,255,255,0.6)');
+    }
+  }
+
+  // Legend
+  drawTextC(cx, T('\u25A0 Poisson(\u03BB=' + lambda.toFixed(1) + ')', '\u25A0 Poisson(\u03BB=' + lambda.toFixed(1) + ')'),
+    plotR - 10, plotT + 10, 'bold 10px monospace', PURPLE, 'right');
+  drawTextC(cx, T('\u25A1 B(' + convN + ', ' + convP.toFixed(3) + ')', '\u25A1 B(' + convN + ', ' + convP.toFixed(3) + ')'),
+    plotR - 10, plotT + 24, 'bold 10px monospace', CYAN, 'right');
+
+  drawTextC(cx, T('E(X) = Var(X) = \u03BB', 'E(X) = Var(X) = \u03BB'), plotL + 4, plotT + 10, 'bold 11px monospace', GREEN, 'left');
+
+  // Proof click target
+  const ptileX = plotL + 4, ptileY = plotT + 28, ptileW = 200, ptileH = 30;
+  cx.save();
+  cx.fillStyle = 'rgba(192,128,255,0.1)';
+  cx.fillRect(ptileX, ptileY, ptileW, ptileH);
+  cx.strokeStyle = 'rgba(192,128,255,0.4)';
+  cx.strokeRect(ptileX, ptileY, ptileW, ptileH);
+  cx.restore();
+  drawTextC(cx, 'e\u207B\u1D40 \u00B7 \u03BB\u1D4F / k!', ptileX + ptileW / 2, ptileY + 12, 'bold 11px monospace', YELLOW);
+  drawTextC(cx, T('kliknij \u2192 granica Poissona', 'click \u2192 Poisson limit proof'), ptileX + ptileW / 2, ptileY + 24, '9px monospace', 'rgba(192,128,255,0.7)');
+  proof.registerCell(ptileX, ptileY, ptileW, ptileH, PROOF_POISSON_LIMIT);
+
+  drawTextC(cx, T('Rzadkie zdarzenia: trz\u0119sienia ziemi, po\u0142\u0105czenia do call center, mutacje DNA.', 'Rare events: earthquakes, call center arrivals, DNA mutations.'),
+    W / 2, H - 14, 'italic 10px monospace', 'rgba(255,255,255,0.6)');
+}
+
+// ── Stage 5: Normal ────────────────────────────────────────────
+
+function drawNormal(cx, W, H, vals, proof) {
+  const mu = vals.mu;
+  const sigma = vals.sigma;
+
+  drawTextC(cx, T('Rozk\u0142ad normalny  X \u223C N(\u03BC, \u03C3\u00B2)', 'Normal distribution  X \u223C N(\u03BC, \u03C3\u00B2)'),
+    W / 2, 20, 'bold 13px monospace', CYAN);
+
+  const plotL = 40, plotR = W - 40, plotT = 48, plotB = H - 75;
+  const plotW = plotR - plotL, plotH = plotB - plotT;
+
+  // x-range: center on mu, show +-4 sigma
+  const xMin = mu - 5 * sigma, xMax = mu + 5 * sigma;
+
+  // Find max density (at x = mu)
+  const maxDensity = normalPdf(mu, mu, sigma);
+
+  // Draw shaded 1-sigma, 2-sigma, 3-sigma bands
+  const bands = [
+    { k: 3, color: 'rgba(224,112,144,0.15)' },
+    { k: 2, color: 'rgba(255,107,53,0.18)' },
+    { k: 1, color: 'rgba(131,193,103,0.22)' },
+  ];
+  bands.forEach(({ k, color }) => {
+    cx.save();
+    cx.fillStyle = color;
+    cx.beginPath();
+    cx.moveTo(plotL + ((mu - k * sigma - xMin) / (xMax - xMin)) * plotW, plotB);
+    for (let i = 0; i <= 100; i++) {
+      const t = i / 100;
+      const x = mu - k * sigma + t * 2 * k * sigma;
+      const sx = plotL + ((x - xMin) / (xMax - xMin)) * plotW;
+      const sy = plotB - (normalPdf(x, mu, sigma) / maxDensity) * plotH * 0.9;
+      cx.lineTo(sx, sy);
+    }
+    cx.lineTo(plotL + ((mu + k * sigma - xMin) / (xMax - xMin)) * plotW, plotB);
+    cx.closePath();
+    cx.fill();
+    cx.restore();
+  });
+
+  // Curve
+  cx.save();
+  cx.strokeStyle = CYAN;
+  cx.lineWidth = 2;
+  cx.beginPath();
+  const steps = 200;
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const x = xMin + t * (xMax - xMin);
+    const sx = plotL + t * plotW;
+    const sy = plotB - (normalPdf(x, mu, sigma) / maxDensity) * plotH * 0.9;
+    if (i === 0) cx.moveTo(sx, sy); else cx.lineTo(sx, sy);
+  }
+  cx.stroke();
+  cx.restore();
+
+  // Axis
+  cx.strokeStyle = 'rgba(255,255,255,0.2)';
+  cx.lineWidth = 1;
+  cx.beginPath();
+  cx.moveTo(plotL, plotB); cx.lineTo(plotR, plotB);
+  cx.stroke();
+
+  // Ticks at mu, mu±σ, mu±2σ, mu±3σ
+  for (let k = -3; k <= 3; k++) {
+    const x = mu + k * sigma;
+    const sx = plotL + ((x - xMin) / (xMax - xMin)) * plotW;
+    cx.strokeStyle = k === 0 ? CYAN : 'rgba(255,255,255,0.4)';
+    cx.lineWidth = k === 0 ? 1.5 : 1;
+    cx.beginPath();
+    cx.moveTo(sx, plotB - 3); cx.lineTo(sx, plotB + 3);
+    cx.stroke();
+    const label = k === 0 ? '\u03BC' : (k > 0 ? '\u03BC+' + k + '\u03C3' : '\u03BC' + k + '\u03C3');
+    drawTextC(cx, label, sx, plotB + 14, '9px monospace', k === 0 ? CYAN : 'rgba(255,255,255,0.55)');
+  }
+
+  // 68-95-99.7 annotations
+  drawTextC(cx, '68%', plotL + ((mu - xMin) / (xMax - xMin)) * plotW, plotT + plotH * 0.55, 'bold 13px monospace', GREEN);
+  drawTextC(cx, '95%', plotL + ((mu - xMin) / (xMax - xMin)) * plotW, plotT + plotH * 0.75, 'bold 11px monospace', ORANGE);
+  drawTextC(cx, '99.7%', plotL + ((mu - xMin) / (xMax - xMin)) * plotW, plotT + plotH * 0.9, 'bold 10px monospace', PINK);
+
+  // Title parameters readout
+  drawTextC(cx, '\u03BC = ' + mu.toFixed(2) + '   \u03C3 = ' + sigma.toFixed(2),
+    plotR - 10, plotT + 12, 'bold 11px monospace', 'rgba(255,255,255,0.9)', 'right');
+
+  // Click tile for 68-95-99.7 proof
+  const ptileX = plotL + 4, ptileY = plotT + 4, ptileW = 190, ptileH = 30;
+  cx.save();
+  cx.fillStyle = 'rgba(192,128,255,0.1)';
+  cx.fillRect(ptileX, ptileY, ptileW, ptileH);
+  cx.strokeStyle = 'rgba(192,128,255,0.4)';
+  cx.strokeRect(ptileX, ptileY, ptileW, ptileH);
+  cx.restore();
+  drawTextC(cx, T('Regu\u0142a 68\u201395\u201399.7', '68\u201395\u201399.7 rule'), ptileX + ptileW / 2, ptileY + 12, 'bold 11px monospace', YELLOW);
+  drawTextC(cx, T('kliknij \u2192 dow\u00F3d', 'click \u2192 proof'), ptileX + ptileW / 2, ptileY + 24, '9px monospace', 'rgba(192,128,255,0.7)');
+  proof.registerCell(ptileX, ptileY, ptileW, ptileH, PROOF_NORMAL_68_95);
+
+  drawTextC(cx, 'f(x) = 1/(\u03C3\u221A(2\u03C0)) \u00B7 e\u207B\u207D\u02E3\u207B\u1D4D\u207E\u00B2\u1D65\u00B2\u1D2A\u00B2',
+    W / 2, H - 15, '11px monospace', 'rgba(255,255,255,0.7)');
+}
+
+// ── Stages ─────────────────────────────────────────────────────
+
+const stages = [
+  {
+    title: () => T('Zmienna losowa \u2014 dyskretna vs ci\u0105g\u0142a', 'Random variable \u2014 discrete vs continuous'),
+    desc: () => T(
+      'Zmienna losowa X przypisuje wynik liczb\u0119. Rozr\u00F3\u017Cniamy dyskretne (p(k) \u2014 masa prawd.) i ci\u0105g\u0142e (f(x) \u2014 g\u0119sto\u015B\u0107). W obu: suma/ca\u0142ka = 1.',
+      'A random variable X assigns a number to each outcome. Discrete (p(k) \u2014 pmf) vs continuous (f(x) \u2014 density). Both sum/integrate to 1.'
+    ),
+    sliders: [],
+    draw: drawIntro,
+  },
+  {
+    title: () => T('Rozk\u0142ad dwumianowy B(n, p)', 'Binomial distribution B(n, p)'),
+    desc: () => T(
+      'Liczba sukces\u00F3w w n niezale\u017Cnych pr\u00F3bach Bernoulliego z prawdopodobie\u0144stwem sukcesu p. Kliknij wz\u00F3r \u2014 zobaczysz sk\u0105d si\u0119 bierze.',
+      'Number of successes in n independent Bernoulli trials with success probability p. Click the formula to see why it works.'
+    ),
+    sliders: [
+      { id: 'n', lbl: 'n', color: CYAN,   min: 1, max: 40, step: 1,   val: state.binN },
+      { id: 'p', lbl: 'p', color: ORANGE, min: 0, max: 1,  step: 0.01, val: state.binP },
+    ],
+    draw: drawBinomial,
+  },
+  {
+    title: () => T('E(X), Var(X)  dla B(n, p)', 'E(X), Var(X)  for B(n, p)'),
+    desc: () => T(
+      'E(X) = np \u2014 \u201E\u015Brednia\u201D sukces\u00F3w. Var(X) = np(1\u2212p) \u2014 rozrzut. Klikni\u0119cie w kart\u0119 pokazuje dow\u00F3d przez liniowo\u015B\u0107 warto\u015Bci oczekiwanej.',
+      'E(X) = np is the "average" successes. Var(X) = np(1\u2212p) is the spread. Click the card to see the linearity-of-expectation proof.'
+    ),
+    sliders: [
+      { id: 'n', lbl: 'n', color: CYAN,   min: 1, max: 20, step: 1,   val: state.binN },
+      { id: 'p', lbl: 'p', color: ORANGE, min: 0, max: 1,  step: 0.01, val: state.binP },
+    ],
+    draw: drawExpectation,
+  },
+  {
+    title: () => T('Rozk\u0142ad Poissona (dla ciekawskich)', 'Poisson distribution (for the curious)'),
+    desc: () => T(
+      'Gdy n \u2192 \u221E, p \u2192 0, \u03BB = np sta\u0142e, rozk\u0142ad dwumianowy zbiega do Poissona. Zwi\u0119ksz n suwakiem \u2014 \u201Eramka\u201D (dwumianowy) zlewa si\u0119 ze s\u0142upkami (Poisson).',
+      'As n \u2192 \u221E, p \u2192 0, \u03BB = np fixed, the binomial converges to Poisson. Increase n \u2014 the binomial outline merges with Poisson bars.'
+    ),
+    sliders: [
+      { id: 'lambda', lbl: '\u03BB',     color: PURPLE, min: 0.5, max: 12,  step: 0.1, val: state.poisLambda },
+      { id: 'convN',  lbl: 'n (konw.)', color: CYAN,   min: 5,   max: 300, step: 1,   val: state.convN },
+    ],
+    draw: drawPoisson,
+  },
+  {
+    title: () => T('Rozk\u0142ad normalny  N(\u03BC, \u03C3\u00B2)', 'Normal distribution  N(\u03BC, \u03C3\u00B2)'),
+    desc: () => T(
+      'Najwa\u017Cniejszy rozk\u0142ad ci\u0105g\u0142y. Regu\u0142a 68\u201395\u201399.7: w przedzia\u0142ach \u00B11\u03C3, \u00B12\u03C3, \u00B13\u03C3 wok\u00F3\u0142 \u03BC le\u017Cy odpowiednio tyle prawdopodobie\u0144stwa.',
+      'The most important continuous distribution. 68\u201395\u201399.7 rule: that\u2019s the probability within \u00B11\u03C3, \u00B12\u03C3, \u00B13\u03C3 of \u03BC.'
+    ),
+    sliders: [
+      { id: 'mu',    lbl: '\u03BC', color: CYAN,   min: -5, max: 5,  step: 0.1, val: state.normMu },
+      { id: 'sigma', lbl: '\u03C3', color: ORANGE, min: 0.3, max: 3, step: 0.05, val: state.normSigma },
+    ],
+    draw: drawNormal,
+  },
+];
+
+VizCore.init({
+  title: 'Rozkłady prawdopodobieństwa — Eksplorator',
+  H: 400,
+  stages,
+});
+</script>
+</body>
+</html>

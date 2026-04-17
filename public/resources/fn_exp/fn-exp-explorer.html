@@ -22,8 +22,8 @@ const { cx, W, H } = VizCore.init({
     {
       title: () => T('Sk\u0105d bierze si\u0119 a\u02E3?', 'Where does a\u02E3 come from?'),
       desc:  () => T(
-        'a\u207F = a\u00B7a\u00B7...\u00B7a (n razy). St\u0105d a\u207F\u207A\u1D50 = a\u207F\u00B7a\u1D50 \u2014 po prostu sklejamy dwie grupy mno\u017Ce\u0144. To wymusza: a\u2070=1, a\u207B\u207F=1/a\u207F, a^(1/n)=\u207F\u221Aa.',
-        'a\u207F = a\u00B7a\u00B7...\u00B7a (n times). So a\u207F\u207A\u1D50 = a\u207F\u00B7a\u1D50 \u2014 just joining two groups of multiplications. This forces: a\u2070=1, a\u207B\u207F=1/a\u207F, a^(1/n)=\u207F\u221Aa.'
+        'a^n = a\u00B7a\u00B7...\u00B7a (n razy). St\u0105d a^(n+m) = a^n\u00B7a^m \u2014 po prostu sklejamy dwie grupy mno\u017Ce\u0144. To wymusza: a^0 = 1,  a^(\u2212n) = 1/a^n,  a^(1/n) = n-ty pierwiastek z a.',
+        'a^n = a\u00B7a\u00B7...\u00B7a (n times). So a^(n+m) = a^n\u00B7a^m \u2014 just joining two groups of multiplications. This forces: a^0 = 1,  a^(\u2212n) = 1/a^n,  a^(1/n) = n-th root of a.'
       ),
       sliders: [
         { id: 'n', lbl: 'n', color: COLORS.CYAN,   min: 1, max: 6, step: 1, val: 3 },
@@ -84,9 +84,9 @@ const { cx, W, H } = VizCore.init({
         cx.fillText(T('Wymuszone przez prawo dodawania a^n\u00B7a^m = a^(n+m):',
                       'Forced by the addition law a^n\u00B7a^m = a^(n+m):'), 20, rY);
         const rules = [
-          [COLORS.CYAN,   'a\u2070 = 1',        T('bo a\u2070\u00B7a\u207F = a\u207F  \u27F9  a\u2070 = 1', 'since a\u2070\u00B7a\u207F = a\u207F  \u27F9  a\u2070 = 1')],
-          [COLORS.ORANGE, 'a\u207B\u207F = 1/a\u207F', T('bo a\u207F\u00B7a\u207B\u207F = a\u2070 = 1', 'since a\u207F\u00B7a\u207B\u207F = a\u2070 = 1')],
-          [COLORS.GREEN,  'a^(1/n) = \u207F\u221Aa', T('bo (a^(1/n))\u207F = a^(n/n) = a', 'since (a^(1/n))\u207F = a^(n/n) = a')],
+          [COLORS.CYAN,   'a^0 = 1',           T('bo a^0\u00B7a^n = a^n  \u27F9  a^0 = 1', 'since a^0\u00B7a^n = a^n  \u27F9  a^0 = 1')],
+          [COLORS.ORANGE, 'a^(\u2212n) = 1/a^n', T('bo a^n\u00B7a^(\u2212n) = a^0 = 1', 'since a^n\u00B7a^(\u2212n) = a^0 = 1')],
+          [COLORS.GREEN,  'a^(1/n) = n-ty pierw. z a', T('bo (a^(1/n))^n = a^(n/n) = a', 'since (a^(1/n))^n = a^(n/n) = a')],
         ];
         rules.forEach(([col, lbl, note], i) => {
           cx.fillStyle = col; cx.font = 'bold 11px monospace';

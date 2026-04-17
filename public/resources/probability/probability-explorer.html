@@ -87,6 +87,13 @@ const stages=[
       {id:'t1',lbl:'P(A) =',min:0.05,max:0.95,step:0.01,val:0.6,color:CYAN},
       {id:'t2',lbl:'P(X|A)=',min:0.05,max:0.95,step:0.01,val:0.7,color:YELLOW},
       {id:'t3',lbl:'P(X|B)=',min:0.05,max:0.95,step:0.01,val:0.3,color:GREEN}
+    ]},
+  { title:T('W\u0142\u0105czenia\u2013wy\u0142\u0105czenia dla 3 zdarze\u0144','Inclusion\u2013exclusion for 3 events'),
+    desc:T('Trzy niezale\u017Cne zdarzenia A, B, C. Aby policzy\u0107 P(A\u222aB\u222aC), dodajemy prawdopodobie\u0144stwa, odejmujemy parami-wsp\u00F3lne i dodajemy z powrotem trzy-wsp\u00F3lne (bo je odjeli\u015Bmy 3 razy). Suma obszar\u00F3w = 1.','Three independent events A, B, C. To compute P(A\u222aB\u222aC) we add the singles, subtract the pairwise overlaps, and add back the triple (since we subtracted it 3 times). All regions sum to 1.'),
+    sliders:[
+      {id:'ie_a',lbl:'P(A) =',min:0.05,max:0.9,step:0.01,val:0.45,color:CYAN},
+      {id:'ie_b',lbl:'P(B) =',min:0.05,max:0.9,step:0.01,val:0.4, color:YELLOW},
+      {id:'ie_c',lbl:'P(C) =',min:0.05,max:0.9,step:0.01,val:0.35,color:PINK}
     ]}
 ];
 
@@ -494,6 +501,115 @@ function drawStage4(){
   cx.fillText('\u2211 = '+total.toFixed(3),W-15,H-12);
 }
 
+// ── Stage 5: Inclusion-exclusion for 3 events ─────────────────
+function drawStage5(){
+  const a=vals['ie_a']||0.45, b=vals['ie_b']||0.4, c=vals['ie_c']||0.35;
+  // Assume independence: all 8 region probabilities
+  const pABC = a*b*c;
+  const pAB_nC = a*b*(1-c);
+  const pAC_nB = a*c*(1-b);
+  const pBC_nA = b*c*(1-a);
+  const pA_only = a*(1-b)*(1-c);
+  const pB_only = b*(1-a)*(1-c);
+  const pC_only = c*(1-a)*(1-b);
+  const pNone = (1-a)*(1-b)*(1-c);
+  const pUnion = 1 - pNone;
+  const pAB = a*b, pAC = a*c, pBC = b*c;
+
+  // Three circle centers + radius (symmetric arrangement)
+  const cxA = 220, cyA = 115;
+  const cxB = 310, cyB = 115;
+  const cxC = 265, cyC = 190;
+  const R = 65;
+
+  // Shade each circle
+  const bg = (col, alpha) => {
+    const m = col.match(/#(..)(..)(..)/);
+    if (!m) return col;
+    return 'rgba(' + parseInt(m[1],16) + ',' + parseInt(m[2],16) + ',' + parseInt(m[3],16) + ',' + alpha + ')';
+  };
+  cx.save();
+  cx.globalCompositeOperation='lighter';
+  [[cxA,cyA,CYAN],[cxB,cyB,YELLOW],[cxC,cyC,PINK]].forEach(([x,y,col])=>{
+    cx.fillStyle=bg(col,0.25);
+    cx.beginPath();cx.arc(x,y,R,0,Math.PI*2);cx.fill();
+  });
+  cx.restore();
+
+  // Circle outlines
+  [[cxA,cyA,CYAN,'A'],[cxB,cyB,YELLOW,'B'],[cxC,cyC,PINK,'C']].forEach(([x,y,col,lbl])=>{
+    cx.save();
+    cx.strokeStyle=col;cx.lineWidth=1.5;
+    cx.beginPath();cx.arc(x,y,R,0,Math.PI*2);cx.stroke();
+    cx.restore();
+    // Circle label outside
+    cx.font='bold 14px monospace';cx.fillStyle=col;cx.textAlign='center';cx.textBaseline='middle';
+    const lx = x + (x===cxA?-R-10 : x===cxB?R+10 : 0);
+    const ly = y + (x===cxC?R+14:-R-14);
+    cx.fillText(lbl, lx, ly);
+  });
+
+  // Region labels — probability at each region centroid
+  const lbl = (x, y, val, col) => {
+    cx.save();
+    cx.font='bold 10px monospace';cx.fillStyle=col;cx.textAlign='center';cx.textBaseline='middle';
+    cx.fillText(val.toFixed(3), x, y);
+    cx.restore();
+  };
+  // approximate centroids
+  lbl(cxA - 30, cyA - 15, pA_only, CYAN);        // A only
+  lbl(cxB + 30, cyB - 15, pB_only, YELLOW);      // B only
+  lbl(cxC,      cyC + 32, pC_only, PINK);        // C only
+  lbl(265,      cyA,      pAB_nC, '#FFE07A');    // A∩B only
+  lbl(cxA + 2,  cyA + 38, pAC_nB, '#9FD2D8');    // A∩C only
+  lbl(cxB - 2,  cyB + 38, pBC_nA, '#E8B0B8');    // B∩C only
+  lbl(265,      cyA + 30, pABC,   '#FFFFFF');    // A∩B∩C (center)
+
+  // Title on the left column
+  cx.font='bold 13px monospace';cx.fillStyle='#58C4DD';cx.textAlign='left';cx.textBaseline='middle';
+  cx.fillText('P(A\u222aB\u222aC)', 15, 28);
+
+  // Formula, line by line
+  const fx = 15;
+  let fy = 55;
+  cx.font='11px monospace';cx.fillStyle='rgba(255,255,255,0.65)';cx.textAlign='left';
+  cx.fillText('= P(A)+P(B)+P(C)', fx, fy); fy+=16;
+  cx.fillText('  \u2212 P(A\u2229B) \u2212 P(A\u2229C) \u2212 P(B\u2229C)', fx, fy); fy+=16;
+  cx.fillText('  + P(A\u2229B\u2229C)', fx, fy); fy+=20;
+
+  // Numeric breakdown
+  cx.font='10px monospace';cx.fillStyle='rgba(131,193,103,0.9)';
+  cx.fillText('= '+a.toFixed(3)+'+'+b.toFixed(3)+'+'+c.toFixed(3), fx, fy); fy+=14;
+  cx.fillStyle='rgba(255,107,53,0.9)';
+  cx.fillText('  \u2212 '+pAB.toFixed(3)+' \u2212 '+pAC.toFixed(3)+' \u2212 '+pBC.toFixed(3), fx, fy); fy+=14;
+  cx.fillStyle='rgba(192,128,255,0.9)';
+  cx.fillText('  + '+pABC.toFixed(3), fx, fy); fy+=22;
+
+  cx.font='bold 15px monospace';cx.fillStyle=YELLOW;
+  cx.fillText('= '+pUnion.toFixed(3), fx, fy);
+
+  // Right side panel — WHY does this work
+  const rx = W - 175;
+  cx.save();
+  cx.fillStyle='rgba(192,128,255,0.08)';
+  cx.fillRect(rx-5, 260, 170, 44);
+  cx.strokeStyle='rgba(192,128,255,0.3)';
+  cx.strokeRect(rx-5, 260, 170, 44);
+  cx.restore();
+  cx.font='bold 10px monospace';cx.fillStyle=PURPLE;cx.textAlign='left';
+  cx.fillText(T('Dlaczego w\u0142\u0105czenia-wy\u0142\u0105czenia?','Why inclusion-exclusion?'), rx, 272);
+  cx.font='9px monospace';cx.fillStyle='rgba(255,255,255,0.7)';
+  cx.fillText(T('A\u2229B\u2229C policzyli\u015Bmy 3\u00D7 w singlach,','A\u2229B\u2229C counted 3\u00D7 in singles,'), rx, 285);
+  cx.fillText(T('odj\u0119li\u015Bmy 3\u00D7 w parach \u2192 0, dodajemy.','subtracted 3\u00D7 in pairs \u2192 0, add back.'), rx, 296);
+
+  // Sanity check — sum of all 8 regions
+  const total = pABC+pAB_nC+pAC_nB+pBC_nA+pA_only+pB_only+pC_only+pNone;
+  cx.font='10px monospace';cx.fillStyle='rgba(255,255,255,0.35)';cx.textAlign='right';
+  cx.fillText('\u2211 wszystkich obszar\u00F3w = '+total.toFixed(3),W-10,H-8);
+  cx.fillStyle='rgba(255,255,255,0.5)';cx.textAlign='left';
+  cx.fillText('P(\u2205 ka\u017Cde) = '+pNone.toFixed(3),10,H-8);
+}
+
 // ── Main render loop ───────────────────────────────────────────
 function tick(){
   animT+=1/60;
@@ -505,6 +621,7 @@ function tick(){
     case 2: drawStage2(); break;
     case 3: drawStage3(); break;
     case 4: drawStage4(); break;
+    case 5: drawStage5(); break;
   }
 
   requestAnimationFrame(tick);
