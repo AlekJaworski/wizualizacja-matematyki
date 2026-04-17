@@ -53,6 +53,8 @@ let midAB, midBC, midCA;
 let circumO, circumCircle;
 let segOA, segOB, segOC;
 let triSegAB, triSegBC, triSegCA;
+// Three-house "search it yourself" stage
+let tri3P, dTA, dTB, dTC;
 // Construction stage
 let arcA, arcB, intP1, intP2, constructLine;
 let conA, conB, conM, conSeg, conBisector, conRightAngle, conEqMA, conEqMB;
@@ -111,6 +113,13 @@ function setup(cx) {
   segOB = scene.segment(circumO, triB, { color: 'rgba(131,193,103,0.3)', lineWidth: 1.5 });
   segOC = scene.segment(circumO, triC, { color: 'rgba(131,193,103,0.3)', lineWidth: 1.5 });
 
+  // ── Three-house "search it yourself" stage ────────────────────
+  // Draggable trial point; same triA/triB/triC as the circumcircle stage
+  tri3P = scene.point(1.0, 0.5, { drag: true, label: '', color: '#FFD166', radius: 10 });
+  dTA = scene.distance(tri3P, triA);
+  dTB = scene.distance(tri3P, triB);
+  dTC = scene.distance(tri3P, triC);
+
   // ── Stage 4: Construction ─────────────────────────────────────
   conA = scene.point(-3, 0, { drag: false, label: 'A', color: COLORS.CYAN, radius: 5 });
   conB = scene.point(3, 0, { drag: false, label: 'B', color: COLORS.ORANGE, radius: 5 });
@@ -158,10 +167,16 @@ function applyStageVisibility(idx) {
     // Discovery: + bisector, midpoint, right-angle, equal marks
     setVisible([A, B, segAB, P, dA_meas, dB_meas, bisector, M, rightAngle, eqMA, eqMB], true);
   } else if (idx === 2) {
-    // Proof/fold: handled entirely in draw (custom overlay), but show nothing from scene
-    // We'll draw the proof stage manually using scene coords for positioning
+    // Pythagoras proof — scene objects handled in draw (custom mini-scene)
   } else if (idx === 3) {
-    // Three houses: triangle, bisectors, circumcircle
+    // Three houses — SEARCH: triangle + draggable trial point only
+    setVisible([
+      triA, triB, triC,
+      triSegAB, triSegBC, triSegCA,
+      tri3P, dTA, dTB, dTC,
+    ], true);
+  } else if (idx === 4) {
+    // Three houses — REVEAL: + bisectors, circumcircle, radii
     setVisible([
       triA, triB, triC,
       triSegAB, triSegBC, triSegCA,
@@ -170,7 +185,7 @@ function applyStageVisibility(idx) {
       circumO, circumCircle,
       segOA, segOB, segOC,
     ], true);
-  } else if (idx === 4) {
+  } else if (idx === 5) {
     // Construction: step-based reveal handled in draw
     setVisible([conA, conB, conSeg], true);
   }
@@ -317,100 +332,190 @@ const result = VizCore.init({
       },
     },
 
-    // ── Stage 2: Why does it work? (Fold proof) ────────────────
+    // ── Stage 2: Why does it work? (Pythagoras proof) ──────────
     {
-      title: () => T('Dlaczego to dziala?', 'Why Does It Work?'),
+      title: () => T('Dlaczego to dziala? Dow\u00f3d przez Pitagorasa', 'Why Does It Work? Pythagoras Proof'),
       desc: () => T(
-        'Z\u0142\u00f3\u017c odcinek AB wzd\u0142u\u017c symetralnej \u2014 punkt A pokryje B! Ka\u017cdy punkt na symetralnej jest osi\u0105 symetrii odcinka. Dlatego odleg\u0142o\u015bci od A i B s\u0105 identyczne \u2014 symetria to gwarantuje.',
-        'Fold segment AB along the bisector \u2014 A lands on B! Every point on the bisector is an axis of symmetry. That\'s why distances to A and B are always identical.'
+        'Dow\u00f3d rygorystyczny: dla punktu P na symetralnej tworzymy dwa tr\u00f3jk\u0105ty prostok\u0105tne \u2014 PMA i PMB. Oba maj\u0105 k\u0105t prosty przy M oraz wsp\u00f3ln\u0105 przyprostok\u0105tn\u0105 PM. Z Pitagorasa: PA\u00b2 = PM\u00b2 + MA\u00b2  oraz  PB\u00b2 = PM\u00b2 + MB\u00b2. Poniewa\u017c MA = MB, wi\u0119c PA\u00b2 = PB\u00b2, czyli PA = PB. Przesu\u0144 P wzd\u0142u\u017c symetralnej \u2014 r\u00f3wnanie zawsze si\u0119 zgadza.',
+        'Rigorous proof: for any P on the bisector, we form two right triangles \u2014 PMA and PMB. Both have the right angle at M and share leg PM. Pythagoras gives PA\u00b2 = PM\u00b2 + MA\u00b2  and  PB\u00b2 = PM\u00b2 + MB\u00b2. Since MA = MB, PA\u00b2 = PB\u00b2, hence PA = PB. Move P along the bisector \u2014 the equation always checks out.'
       ),
       sliders: [
-        { id: 'fold', lbl: T('skladanie', 'fold'), color: COLORS.YELLOW, min: 0, max: 1, step: 0.01, val: 0 },
+        { id: 'py', lbl: T('P_y', 'P_y'), color: COLORS.PURPLE, min: 0.5, max: 3.5, step: 0.05, val: 2.5 },
       ],
       draw(cx, W, H, vals) {
-        // This stage uses a dedicated mini-scene for the proof diagram
-        // We build it fresh each frame to keep things simple (it's lightweight).
-        const ps = new GeoScene(cx, W, H, { originX: OX, originY: 250, scale: SCALE });
-        const pA = ps.point(-3, 0, { label: '', color: COLORS.CYAN, radius: 6 });
-        const pB = ps.point(3, 0, { label: '', color: COLORS.ORANGE, radius: 6 });
-        const pM = ps.midpoint(pA, pB, { label: 'M', color: COLORS.YELLOW, radius: 4 });
-        const pSeg = ps.segment(pA, pB, { color: 'rgba(255,255,255,0.4)', lineWidth: 2 });
-        const pBis = ps.perpBisector(pA, pB, { color: COLORS.GREEN, lineWidth: 2, dash: [6, 4] });
-        const pP = ps.point(0, 3.5, { label: 'P', color: COLORS.PURPLE, radius: 6, labelOffset: [-16, -4] });
+        const py = vals.py;
 
-        // Congruent triangles PMA and PMB — fill
-        const pRA = ps.rightAngleMarker(pM, pA, pP, { color: COLORS.GREEN, size: 12 });
-        const pEqMA = ps.equalMarker(pM, pA, 1, { color: COLORS.YELLOW });
-        const pEqMB = ps.equalMarker(pM, pB, 1, { color: COLORS.YELLOW });
+        const ps = new GeoScene(cx, W, H, { originX: OX, originY: 225, scale: SCALE });
+        const pA = ps.point(-3, 0, { label: 'A', color: COLORS.CYAN, radius: 6, labelOffset: [-14, 14] });
+        const pB = ps.point(3, 0, { label: 'B', color: COLORS.ORANGE, radius: 6, labelOffset: [10, 14] });
+        const pM = ps.midpoint(pA, pB, { label: 'M', color: COLORS.YELLOW, radius: 4, labelOffset: [6, 14] });
+        const pSeg = ps.segment(pA, pB, { color: 'rgba(255,255,255,0.45)', lineWidth: 2 });
+        const pBis = ps.perpBisector(pA, pB, { color: 'rgba(131,193,103,0.55)', lineWidth: 1.5, dash: [6, 4] });
+        const pP = ps.point(0, py, { label: 'P', color: COLORS.PURPLE, radius: 7, labelOffset: [-18, -4] });
 
-        ps.clear();
+        // Mark right angle at M, equal midpoint halves
+        ps.rightAngleMarker(pM, pA, pP, { color: COLORS.GREEN, size: 14 });
+        ps.equalMarker(pM, pA, 1, { color: COLORS.YELLOW });
+        ps.equalMarker(pM, pB, 1, { color: COLORS.YELLOW });
+
         ps.update();
 
-        // Triangle fills
+        // ── Draw the two right triangles as colored fills ──
         const spA = ps.toScreen(pA.wx, pA.wy);
         const spB = ps.toScreen(pB.wx, pB.wy);
         const spM = ps.toScreen(pM.wx, pM.wy);
         const spP = ps.toScreen(pP.wx, pP.wy);
 
+        // PMA triangle (cyan)
         cx.beginPath(); cx.moveTo(spP.x, spP.y); cx.lineTo(spM.x, spM.y); cx.lineTo(spA.x, spA.y); cx.closePath();
-        cx.fillStyle = 'rgba(88,196,221,0.08)'; cx.fill();
-        cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 1.5; cx.stroke();
+        cx.fillStyle = 'rgba(88,196,221,0.14)'; cx.fill();
+        cx.strokeStyle = COLORS.CYAN; cx.lineWidth = 1.7; cx.stroke();
 
+        // PMB triangle (orange)
         cx.beginPath(); cx.moveTo(spP.x, spP.y); cx.lineTo(spM.x, spM.y); cx.lineTo(spB.x, spB.y); cx.closePath();
-        cx.fillStyle = 'rgba(255,107,53,0.08)'; cx.fill();
-        cx.strokeStyle = COLORS.ORANGE; cx.lineWidth = 1.5; cx.stroke();
+        cx.fillStyle = 'rgba(255,107,53,0.14)'; cx.fill();
+        cx.strokeStyle = COLORS.ORANGE; cx.lineWidth = 1.7; cx.stroke();
 
-        // Render engine objects on top
         for (const obj of ps.objects) if (obj.opts.visible) obj.render(cx);
 
-        // PM common-side marks
-        const pmMid = ps.toScreen((pP.wx + pM.wx) / 2, (pP.wy + pM.wy) / 2);
-        cx.font = '11px monospace'; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+        // Label the shared leg PM
+        cx.font = 'bold 11px monospace'; cx.textAlign = 'center'; cx.textBaseline = 'middle';
         cx.fillStyle = COLORS.YELLOW;
-        cx.fillText('||', pmMid.x + 8, pmMid.y);
+        cx.fillText('PM', (spP.x + spM.x) / 2 + 10, (spP.y + spM.y) / 2);
 
-        // Fold animation: A slides toward B
-        const fold = vals.fold;
-        const foldedAx = spA.x + (spB.x - spA.x) * fold;
-        const foldedAy = spA.y + (spB.y - spA.y) * fold;
+        // Labels for legs MA, MB (small, midpoint of edge)
+        cx.font = '10px monospace'; cx.fillStyle = 'rgba(255,255,255,0.6)';
+        cx.fillText('MA', (spM.x + spA.x) / 2, spM.y + 14);
+        cx.fillText('MB', (spM.x + spB.x) / 2, spM.y + 14);
 
-        // Draw folding A
-        cx.beginPath(); cx.arc(foldedAx, foldedAy, 6, 0, Math.PI * 2);
-        cx.fillStyle = COLORS.CYAN; cx.shadowColor = COLORS.CYAN; cx.shadowBlur = 8; cx.fill(); cx.shadowBlur = 0;
+        // Hypotenuse labels PA, PB on the slanted sides
+        cx.fillStyle = COLORS.CYAN;
+        cx.fillText('PA', (spP.x + spA.x) / 2 - 14, (spP.y + spA.y) / 2 - 4);
+        cx.fillStyle = COLORS.ORANGE;
+        cx.fillText('PB', (spP.x + spB.x) / 2 + 14, (spP.y + spB.y) / 2 - 4);
 
-        if (fold < 0.5) {
-          cx.font = '14px monospace'; cx.fillStyle = COLORS.CYAN;
-          cx.fillText('A', foldedAx - 16, foldedAy);
-        } else {
-          cx.font = '12px monospace'; cx.fillStyle = COLORS.CYAN;
-          cx.fillText('A\u2192B', foldedAx + 20, foldedAy - 6);
-        }
+        // ── Live numeric values (all scaled by 10 for "km-ish" feel) ──
+        const scale = 10;
+        const PM = Math.abs(pP.wy - pM.wy) * scale;
+        const MA = Math.abs(pA.wx - pM.wx) * scale;
+        const MB = Math.abs(pB.wx - pM.wx) * scale;
+        const PA = Math.hypot(pP.wx - pA.wx, pP.wy - pA.wy) * scale;
+        const PB = Math.hypot(pP.wx - pB.wx, pP.wy - pB.wy) * scale;
 
-        cx.font = '14px monospace'; cx.fillStyle = COLORS.ORANGE;
-        cx.fillText('B', spB.x + 16, spB.y);
+        // ── Side panel: Pythagoras applied to both triangles ──
+        const lx = 16;
+        let ly = 22;
+        cx.textAlign = 'left'; cx.textBaseline = 'alphabetic';
+        cx.font = 'bold 11px monospace'; cx.fillStyle = COLORS.PURPLE;
+        cx.fillText(T('Dow\u00f3d (Pitagoras):', 'Proof (Pythagoras):'), lx, ly); ly += 18;
 
-        // Proof annotations
-        const paD = Math.hypot(pP.wx - pA.wx, pP.wy - pA.wy);
-        const pbD = Math.hypot(pP.wx - pB.wx, pP.wy - pB.wy);
+        cx.font = '11px monospace'; cx.fillStyle = COLORS.CYAN;
+        cx.fillText('\u25B3PMA:  PA\u00b2 = PM\u00b2 + MA\u00b2', lx, ly); ly += 14;
+        cx.fillStyle = 'rgba(255,255,255,0.55)';
+        cx.fillText('  ' + PA.toFixed(1) + '\u00b2 = ' + PM.toFixed(1) + '\u00b2 + ' + MA.toFixed(1) + '\u00b2', lx, ly); ly += 14;
+        cx.fillText('  ' + (PA*PA).toFixed(1) + ' = ' + (PM*PM).toFixed(1) + ' + ' + (MA*MA).toFixed(1), lx, ly); ly += 18;
+
+        cx.fillStyle = COLORS.ORANGE;
+        cx.fillText('\u25B3PMB:  PB\u00b2 = PM\u00b2 + MB\u00b2', lx, ly); ly += 14;
+        cx.fillStyle = 'rgba(255,255,255,0.55)';
+        cx.fillText('  ' + PB.toFixed(1) + '\u00b2 = ' + PM.toFixed(1) + '\u00b2 + ' + MB.toFixed(1) + '\u00b2', lx, ly); ly += 14;
+        cx.fillText('  ' + (PB*PB).toFixed(1) + ' = ' + (PM*PM).toFixed(1) + ' + ' + (MB*MB).toFixed(1), lx, ly); ly += 18;
+
+        cx.fillStyle = COLORS.YELLOW;
+        cx.fillText('MA = MB (' + T('M to \u015Brodek AB', 'M is midpoint of AB') + ')', lx, ly); ly += 18;
+
+        cx.font = 'bold 12px monospace'; cx.fillStyle = COLORS.GREEN;
+        cx.fillText('\u21D2 PA\u00b2 = PB\u00b2  \u21D2  PA = PB   \u220E', lx, ly);
+
+        // ── Bottom: live equality check ──
+        cx.font = 'bold 13px monospace'; cx.textAlign = 'center';
+        const equal = Math.abs(PA - PB) < 0.05;
+        cx.fillStyle = equal ? COLORS.GREEN : 'rgba(255,209,102,0.85)';
+        cx.shadowColor = equal ? COLORS.GREEN : 'transparent';
+        cx.shadowBlur = equal ? 10 : 0;
+        cx.fillText('PA = ' + PA.toFixed(2) + '  =  PB = ' + PB.toFixed(2), W / 2, H - 14);
+        cx.shadowBlur = 0;
+      },
+    },
+
+    // ── Stage 3: Three Houses — SEARCH (find equidistant point) ──
+    {
+      title: () => T('Trzy domy \u2014 poszukaj sam', 'Three Houses \u2014 Find It Yourself'),
+      desc: () => T(
+        'Troje przyjaci\u00f3\u0142 buduje w tr\u00f3jk\u0105cie. Gdzie postawi\u0107 domek, \u017ceby by\u0142o sprawiedliwie wzgl\u0119dem WSZYSTKICH TRZECH? Przeci\u0105gnij zielon\u0105 kropk\u0119 \u2014 szukaj punktu, dla kt\u00f3rego wszystkie trzy odleg\u0142o\u015bci s\u0105 r\u00f3wne. Mo\u017cesz te\u017c przeci\u0105gn\u0105\u0107 domy.',
+        'Three friends build in a triangle. Where goes the fair house equidistant from ALL THREE? Drag the green dot \u2014 search for the point where all three distances match. Houses are draggable too.'
+      ),
+      sliders: [],
+      draw(cx, W, H) {
+        scene.clear();
+        scene.update();
+
+        // Distances (engine-maintained)
+        const scale = 10;
+        const dA = dTA.value * scale;
+        const dB = dTB.value * scale;
+        const dC = dTC.value * scale;
+        const maxD = Math.max(dA, dB, dC);
+        const minD = Math.min(dA, dB, dC);
+        const spread = (maxD - minD) / maxD;
+        const fair = spread < 0.03;
+
+        // Recolor trial point by fairness
+        tri3P.opts.color = fair ? COLORS.GREEN : '#FFD166';
+
+        // Render scene
+        for (const obj of scene.objects) if (obj.opts.visible) obj.render(cx);
+
+        // Houses (cosmetic)
+        const sA = scene.toScreen(triA.wx, triA.wy);
+        const sB = scene.toScreen(triB.wx, triB.wy);
+        const sC = scene.toScreen(triC.wx, triC.wy);
+        const sP = scene.toScreen(tri3P.wx, tri3P.wy);
+        drawHouse(cx, sA.x, sA.y, COLORS.CYAN);
+        drawHouse(cx, sB.x, sB.y, COLORS.ORANGE);
+        drawHouse(cx, sC.x, sC.y, COLORS.YELLOW);
+
+        // Dashed distance lines from P to each house
+        cx.save();
+        cx.setLineDash([4, 4]); cx.lineWidth = 1.5;
+        cx.strokeStyle = COLORS.CYAN;
+        cx.beginPath(); cx.moveTo(sP.x, sP.y); cx.lineTo(sA.x, sA.y); cx.stroke();
+        cx.strokeStyle = COLORS.ORANGE;
+        cx.beginPath(); cx.moveTo(sP.x, sP.y); cx.lineTo(sB.x, sB.y); cx.stroke();
+        cx.strokeStyle = COLORS.YELLOW;
+        cx.beginPath(); cx.moveTo(sP.x, sP.y); cx.lineTo(sC.x, sC.y); cx.stroke();
+        cx.setLineDash([]);
+        cx.restore();
+
+        // Distance readouts
         cx.font = '12px monospace'; cx.textAlign = 'left'; cx.textBaseline = 'alphabetic';
-        cx.fillStyle = COLORS.CYAN;  cx.fillText('PA = ' + (paD * 10).toFixed(0), 16, 22);
-        cx.fillStyle = COLORS.ORANGE; cx.fillText('PB = ' + (pbD * 10).toFixed(0), 16, 38);
-        cx.fillStyle = COLORS.YELLOW;
-        cx.fillText('PM = PM (' + T('wspolny', 'common') + ')', 16, 54);
-        cx.fillText('MA = MB (' + T('srodek', 'midpoint') + ')', 16, 70);
-        cx.fillText(T('\u2220PMA = \u2220PMB = 90\u00b0', '\u2220PMA = \u2220PMB = 90\u00b0'), 16, 86);
+        cx.fillStyle = COLORS.CYAN;   cx.fillText('d(A) = ' + dA.toFixed(1), 16, 22);
+        cx.fillStyle = COLORS.ORANGE; cx.fillText('d(B) = ' + dB.toFixed(1), 16, 38);
+        cx.fillStyle = COLORS.YELLOW; cx.fillText('d(C) = ' + dC.toFixed(1), 16, 54);
 
-        if (fold > 0.9) {
-          cx.font = 'bold 13px monospace'; cx.textAlign = 'center';
+        // Spread indicator
+        cx.font = '11px monospace';
+        cx.fillStyle = fair ? COLORS.GREEN : 'rgba(255,255,255,0.45)';
+        cx.fillText(T('rozrzut: ', 'spread: ') + (spread * 100).toFixed(1) + '%', 16, 74);
+
+        // Live hint
+        if (fair) {
+          cx.font = 'bold 14px monospace'; cx.textAlign = 'center';
           cx.fillStyle = COLORS.GREEN;
           cx.shadowColor = COLORS.GREEN; cx.shadowBlur = 12;
-          cx.fillText(T('A pokrywa B \u2014 symetria!', 'A lands on B \u2014 symmetry!'), W / 2, H - 16);
+          cx.fillText(T('Wszystkie r\u00f3wne \u2014 to TEN punkt!', 'All three equal \u2014 THIS is the point!'), W / 2, H - 16);
           cx.shadowBlur = 0;
+        } else {
+          cx.font = '11px monospace'; cx.textAlign = 'center';
+          cx.fillStyle = 'rgba(255,255,255,0.35)';
+          cx.fillText(T('Przeci\u0105gnij zielon\u0105 kropk\u0119. W nast\u0119pnym kroku poka\u017cemy, jak j\u0105 znale\u017a\u0107 konstrukcyjnie.',
+                        'Drag the green dot. Next step shows how to construct it.'),
+            W / 2, H - 14);
         }
       },
     },
 
-    // ── Stage 3: Three Houses — Circumcircle ───────────────────
+    // ── Stage 4: Three Houses — REVEAL (circumcircle from bisectors) ──
     {
       title: () => T('Trzy domy \u2014 okr\u0105g opisany', 'Three Houses \u2014 Circumscribed Circle'),
       desc: () => T(
@@ -536,8 +641,9 @@ const observer = new MutationObserver(() => {
   if (title.includes('Problem') || title.includes('The Problem')) newStage = 0;
   else if (title.includes('Odkrycie') || title.includes('Discovery')) newStage = 1;
   else if (title.includes('Dlaczego') || title.includes('Why')) newStage = 2;
-  else if (title.includes('Trzy') || title.includes('Three')) newStage = 3;
-  else if (title.includes('Konstrukcja') || title.includes('Construction')) newStage = 4;
+  else if (title.includes('poszukaj') || title.includes('Find It')) newStage = 3;
+  else if (title.includes('okr\u0105g') || title.includes('Circumscribed')) newStage = 4;
+  else if (title.includes('Konstrukcja') || title.includes('Construction')) newStage = 5;
 
   if (newStage !== -1 && newStage !== currentStage) {
     currentStage = newStage;
