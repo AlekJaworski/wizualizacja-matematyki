@@ -348,11 +348,11 @@
 
       const textColor = r.pass ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)';
 
-      // Divisor label (left) — stars for "easy" rules
-      const dLabel = '\u00F7' + r.d + (r.easy ? ' \u2605' : '');
-      drawTextC(dLabel, x + 16, y + 18, 'bold 15px monospace', textColor, 'left');
+      // Divisor label (words, not ÷ symbol) — stars for "easy" rules
+      const dLabel = T('Podzielne przez ', 'Divisible by ') + r.d + (r.easy ? '  \u2605' : '');
+      drawTextC(dLabel, x + 14, y + 18, 'bold 12px monospace', textColor, 'left');
 
-      // Check/cross badge (right) — drawn as canvas path for reliable rendering
+      // Badge on the right (canvas path, no Unicode)
       drawBadge(x + cellW - 22, y + 18, r.pass, 9);
 
       // Rule (small dim)
@@ -386,27 +386,28 @@
 
     drawGlow(String(n), W / 2, 28, 'bold 24px monospace', CYAN);
 
+    const passMark = (ok) => ok ? T(' \u2014 spe\u0142nione', ' \u2014 yes') : '';
     const rules = [
       { d: 2,  easy: true,  pass: n % 2 === 0, rule: T('ostatnia cyfra parzysta', 'last digit even'),
-        detail: T('ostatnia: ' + lastDigit, 'last: ' + lastDigit),
+        detail: T('ostatnia cyfra: ' + lastDigit, 'last digit: ' + lastDigit),
         why: T('bo 10 \u2261 0 (mod 2)', 'because 10 \u2261 0 (mod 2)') },
-      { d: 3,  easy: true,  pass: n % 3 === 0, rule: T('suma cyfr \u00F7 3', 'digit sum \u00F7 3'),
-        detail: digits.join('+') + ' = ' + dSum + (n % 3 === 0 ? ' \u2713' : ''),
+      { d: 3,  easy: true,  pass: n % 3 === 0, rule: T('suma cyfr dzieli si\u0119 przez 3', 'digit sum divides by 3'),
+        detail: digits.join('+') + ' = ' + dSum + passMark(n % 3 === 0),
         why: T('bo 10 \u2261 1 (mod 3)', 'because 10 \u2261 1 (mod 3)') },
-      { d: 4,  easy: false, pass: n % 4 === 0, rule: T('ostatnie 2 cyfry \u00F7 4', 'last 2 digits \u00F7 4'),
-        detail: (n >= 100 ? '...' : '') + String(lastTwo).padStart(2, '0') + ' \u00F7 4 = ' + (lastTwo / 4).toFixed(lastTwo % 4 === 0 ? 0 : 1),
+      { d: 4,  easy: false, pass: n % 4 === 0, rule: T('ostatnie 2 cyfry dziel\u0105 si\u0119 przez 4', 'last 2 digits divide by 4'),
+        detail: (n >= 100 ? '...' : '') + String(lastTwo).padStart(2, '0') + ' : 4 = ' + (lastTwo / 4).toFixed(lastTwo % 4 === 0 ? 0 : 1),
         why: T('bo 100 \u2261 0 (mod 4)', 'because 100 \u2261 0 (mod 4)') },
-      { d: 5,  easy: true,  pass: n % 5 === 0, rule: T('ostatnia 0 lub 5', 'last digit 0 or 5'),
-        detail: T('ostatnia: ' + lastDigit, 'last: ' + lastDigit),
+      { d: 5,  easy: true,  pass: n % 5 === 0, rule: T('ostatnia cyfra: 0 lub 5', 'last digit: 0 or 5'),
+        detail: T('ostatnia cyfra: ' + lastDigit, 'last digit: ' + lastDigit),
         why: T('bo 10 \u2261 0 (mod 5)', 'because 10 \u2261 0 (mod 5)') },
-      { d: 7,  easy: false, pass: n % 7 === 0, rule: T('|a\u22122b| \u00F7 7 (a=reszta, b=ost.)', '|a\u22122b| \u00F7 7 (a=rest, b=last)'),
-        detail: a7 + '\u22122\u00B7' + b7 + ' = ' + val7 + (n % 7 === 0 ? ' \u2713' : ''),
+      { d: 7,  easy: false, pass: n % 7 === 0, rule: T('|a\u22122b| dzieli si\u0119 przez 7', '|a\u22122b| divides by 7'),
+        detail: 'a=' + a7 + ', b=' + b7 + '  \u2192  ' + a7 + '\u22122\u00B7' + b7 + ' = ' + val7,
         why: T('bo 21 = 3\u00B77', 'because 21 = 3\u00B77') },
-      { d: 9,  easy: true,  pass: n % 9 === 0, rule: T('suma cyfr \u00F7 9', 'digit sum \u00F7 9'),
-        detail: digits.join('+') + ' = ' + dSum + (n % 9 === 0 ? ' \u2713' : ''),
+      { d: 9,  easy: true,  pass: n % 9 === 0, rule: T('suma cyfr dzieli si\u0119 przez 9', 'digit sum divides by 9'),
+        detail: digits.join('+') + ' = ' + dSum + passMark(n % 9 === 0),
         why: T('bo 10 \u2261 1 (mod 9)', 'because 10 \u2261 1 (mod 9)') },
-      { d: 11, easy: true,  pass: n % 11 === 0, rule: T('suma naprzemienna \u00F7 11', 'alt. digit sum \u00F7 11'),
-        detail: 'alt = ' + altSum + (n % 11 === 0 ? ' \u2713' : ''),
+      { d: 11, easy: true,  pass: n % 11 === 0, rule: T('suma naprzemienna cyfr dzieli przez 11', 'alt. digit sum divides by 11'),
+        detail: T('suma naprzem. = ', 'alt. sum = ') + altSum + passMark(n % 11 === 0),
         why: T('bo 10 \u2261 \u22121 (mod 11)', 'because 10 \u2261 \u22121 (mod 11)') },
     ];
 
@@ -421,26 +422,25 @@
   function drawDivisibilityExtra() {
     const n = divN;
     const digits = String(n).split('').map(Number);
-    const lastDigit = digits[digits.length - 1];
     const lastThree = n % 1000;
 
     drawGlow(String(n), W / 2, 28, 'bold 24px monospace', CYAN);
 
+    const okText = (ok) => ok ? T('TAK', 'YES') : T('NIE', 'NO');
     const rules = [
-      { d: 6,  easy: false, pass: n % 6 === 0, rule: T('\u00F7 2 i \u00F7 3', '\u00F7 2 and \u00F7 3'),
-        detail: (n % 2 === 0 ? '\u27132' : '\u27172') + '  ' + (n % 3 === 0 ? '\u27133' : '\u27173'),
-        why: T('bo 6=2\u00B73, NWD(2,3)=1', 'because 6=2\u00B73, gcd(2,3)=1') },
-      { d: 8,  easy: false, pass: n % 8 === 0, rule: T('ostatnie 3 cyfry \u00F7 8', 'last 3 digits \u00F7 8'),
-        detail: String(lastThree) + ' \u00F7 8 = ' + (lastThree / 8).toFixed(n % 8 === 0 ? 0 : 1),
+      { d: 6,  easy: false, pass: n % 6 === 0,
+        rule: T('podzielne przez 2 oraz przez 3', 'divisible by 2 AND by 3'),
+        detail: T('przez 2: ', 'by 2: ') + okText(n % 2 === 0) + '    ' + T('przez 3: ', 'by 3: ') + okText(n % 3 === 0),
+        why: T('bo 6 = 2\u00B73  i  NWD(2,3) = 1', 'because 6 = 2\u00B73 and gcd(2,3) = 1') },
+      { d: 8,  easy: false, pass: n % 8 === 0,
+        rule: T('ostatnie 3 cyfry dziel\u0105 si\u0119 przez 8', 'last 3 digits divide by 8'),
+        detail: String(lastThree) + ' : 8 = ' + (lastThree / 8).toFixed(n % 8 === 0 ? 0 : 1),
         why: T('bo 1000 \u2261 0 (mod 8)', 'because 1000 \u2261 0 (mod 8)') },
-      { d: 10, easy: false, pass: n % 10 === 0, rule: T('ostatnia cyfra 0', 'last digit 0'),
-        detail: T('ostatnia: ' + lastDigit, 'last: ' + lastDigit),
-        why: T('bo 10 \u2261 0 (mod 10)', 'because 10 \u2261 0 (mod 10)') },
     ];
 
-    // Wide horizontal cells: 3 cols × 1 row
-    const cellW = (W - 40) / 3;
-    const cellH = 170;
+    // Wide horizontal cells: 2 cols × 1 row — roomier since only 2 rules
+    const cellW = (W - 40) / 2;
+    const cellH = 200;
     const startY = 60;
     const startX = 20;
 
@@ -461,40 +461,40 @@
 
       const textColor = r.pass ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.3)';
 
-      // Big divisor number centered at top
-      drawTextC('\u00F7' + r.d, x + cellW / 2, y + 30, 'bold 26px monospace', textColor);
+      // Big heading — full Polish words, no ÷ symbol
+      drawTextC(T('Podzielne przez ', 'Divisible by ') + r.d, x + cellW / 2, y + 32, 'bold 18px monospace', textColor);
 
-      // Badge in top-right corner (drawn, not Unicode)
-      drawBadge(x + cellW - 22, y + 22, r.pass, 11);
+      // Badge (top-right)
+      drawBadge(x + cellW - 26, y + 32, r.pass, 12);
 
-      // Rule (headline)
-      drawTextC(r.rule, x + cellW / 2, y + 70, 'bold 11px monospace',
-        r.pass ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.22)', 'center');
+      // Rule (headline in smaller font)
+      drawTextC(r.rule, x + cellW / 2, y + 72, 'bold 11px monospace',
+        r.pass ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.25)', 'center');
 
       // Detail — the computation
-      drawTextC(r.detail, x + cellW / 2, y + 100, 'bold 12px monospace',
-        r.pass ? YELLOW : 'rgba(255,255,255,0.18)', 'center');
+      drawTextC(r.detail, x + cellW / 2, y + 108, 'bold 13px monospace',
+        r.pass ? YELLOW : 'rgba(255,255,255,0.2)', 'center');
 
       // Why — proof principle in a highlighted box
       cx.save();
-      cx.fillStyle = r.pass ? 'rgba(192,128,255,0.12)' : 'rgba(255,255,255,0.02)';
-      cx.fillRect(x + 12, y + 128, cellW - 24, 28);
-      cx.strokeStyle = r.pass ? 'rgba(192,128,255,0.35)' : 'rgba(255,255,255,0.05)';
+      cx.fillStyle = r.pass ? 'rgba(192,128,255,0.14)' : 'rgba(255,255,255,0.02)';
+      cx.fillRect(x + 16, y + 140, cellW - 32, 44);
+      cx.strokeStyle = r.pass ? 'rgba(192,128,255,0.4)' : 'rgba(255,255,255,0.06)';
       cx.lineWidth = 0.5;
-      cx.strokeRect(x + 12, y + 128, cellW - 24, 28);
+      cx.strokeRect(x + 16, y + 140, cellW - 32, 44);
       cx.restore();
 
-      drawTextC(T('DLACZEGO', 'WHY'), x + cellW / 2, y + 136, 'bold 8px monospace',
-        r.pass ? 'rgba(192,128,255,0.6)' : 'rgba(255,255,255,0.15)', 'center');
-      drawTextC(r.why, x + cellW / 2, y + 150, 'bold 11px monospace',
-        r.pass ? '#C080FF' : 'rgba(255,255,255,0.18)', 'center');
+      drawTextC(T('Dlaczego?', 'Why?'), x + cellW / 2, y + 153, 'bold 10px monospace',
+        r.pass ? 'rgba(192,128,255,0.75)' : 'rgba(255,255,255,0.18)', 'center');
+      drawTextC(r.why, x + cellW / 2, y + 172, 'bold 12px monospace',
+        r.pass ? '#C080FF' : 'rgba(255,255,255,0.2)', 'center');
     });
 
-    // Footer note
-    drawTextC(T('\u00BB Te cechy wywodz\u0105 si\u0119 z podstawowych \u2014 osobny modu\u0142 arytmetyki modulo rozwija to.', '\u00BB These derive from basic rules \u2014 see the modular arithmetic module.'),
-      W / 2, 255, '11px monospace', 'rgba(255,255,255,0.55)');
-    drawTextC(T('6 = 2\u00B73 (wzgl. pierwsze)  \u2022  8 = 2\u00B3 \u2192 potrzeba 10\u00B3  \u2022  10 = 2\u00B75', '6 = 2\u00B73 (coprime)  \u2022  8 = 2\u00B3 \u2192 need 10\u00B3  \u2022  10 = 2\u00B75'),
-      W / 2, 275, '10px monospace', 'rgba(192,128,255,0.75)');
+    // Footer
+    drawTextC(T('Obie cechy wywodz\u0105 si\u0119 z podstawowych \u2014 patrz modu\u0142 "Arytmetyka modulo".', 'Both rules follow from basic ones \u2014 see the "Modular arithmetic" module.'),
+      W / 2, 290, '11px monospace', 'rgba(255,255,255,0.55)');
+    drawTextC(T('6 = 2\u00B73  (2 i 3 s\u0105 wzgl\u0119dnie pierwsze)  \u2022  8 = 2\u00B3, wi\u0119c potrzeba 10\u00B3 = 1000', '6 = 2\u00B73 (2 and 3 are coprime)  \u2022  8 = 2\u00B3, so we need 10\u00B3 = 1000'),
+      W / 2, 312, '10px monospace', 'rgba(192,128,255,0.75)');
 
     drawTextC(T('Cyfry: ', 'Digits: ') + digits.join(', '), W / 2, H - 12, '10px monospace', 'rgba(255,255,255,0.45)');
   }
