@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wzory Viète'a — Warsztat</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; color: rgba(255,255,255,.85); }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+
+  .head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+  .head .step { font-size: 11px; color: rgba(255,255,255,.4); letter-spacing: .04em; }
+  .head .title { font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  .desc { font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); margin-bottom: 10px; min-height: 34px; }
+
+  .pips { display: flex; gap: 14px; flex-wrap: wrap; margin: 4px 0 10px; font-size: 12px; }
+  .pip { display: inline-flex; align-items: center; gap: 6px; color: rgba(255,255,255,.55); }
+  .pip .mark { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(255,255,255,.25); display: inline-flex; align-items: center; justify-content: center; font-size: 10px; line-height: 1; }
+  .pip.ok { color: #83C167; }
+  .pip.ok .mark { background: #83C167; border-color: #83C167; color: #0e0e12; }
+  .pip.ok .mark::before { content: "\2713"; }
+
+  .predict { margin-bottom: 10px; }
+  .predict .q { font-size: 13px; color: rgba(255,255,255,.82); margin-bottom: 8px; line-height: 1.55; }
+  .predict .opts { display: flex; flex-direction: column; gap: 6px; }
+  .predict button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.78); padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; transition: background .15s, border-color .15s; }
+  .predict button:hover { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.4); }
+  .predict button.picked { border-color: #58C4DD; color: #58C4DD; }
+  .predict .feedback { margin-top: 8px; font-size: 12px; line-height: 1.55; color: rgba(255,255,255,.7); padding: 8px 10px; border-left: 2px solid #58C4DD; background: rgba(88,196,221,.06); border-radius: 0 4px 4px 0; }
+
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 36px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+
+  .hints { font-size: 12px; color: rgba(255,255,255,.5); margin: 4px 0 10px; line-height: 1.55; }
+  .hints .hint { padding: 6px 10px; border-left: 2px solid #FFD166; background: rgba(255,209,102,.05); margin-top: 4px; border-radius: 0 4px 4px 0; }
+
+  .nav { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+  .nav button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  .nav button:hover:not(:disabled) { background: rgba(255,255,255,.08); }
+  .nav button:disabled { opacity: .3; cursor: default; }
+  .nav button.primary { border-color: #83C167; color: #83C167; }
+  .nav button.primary:hover { background: rgba(131,193,103,.1); }
+
+  .dots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.15); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  .dot.done { background: #83C167; }
+
+  .solved-note { font-size: 13px; color: #83C167; line-height: 1.55; padding: 8px 10px; border-left: 2px solid #83C167; background: rgba(131,193,103,.06); border-radius: 0 4px 4px 0; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="310"></canvas>
+  <div class="panel">
+    <div class="head">
+      <span class="step" id="step"></span>
+      <div class="dots" id="dots"></div>
+    </div>
+    <p class="title" id="title"></p>
+    <p class="desc" id="desc"></p>
+    <div id="predict"></div>
+    <div id="sliders-wrap"></div>
+    <div class="pips" id="pips"></div>
+    <div class="hints" id="hints"></div>
+    <div id="solved-msg"></div>
+    <div class="nav">
+      <button id="prev">&larr;</button>
+      <button id="next" class="primary">Dalej &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { GraphView } from '../lib/graph-core.js';
+{
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const W = 600, H = 310;
+
+  // ── Colors (match explorer) ─────────────────────────────────
+  const COL_PAR = '#58C4DD';
+  const COL_R1  = '#FF6B6B';
+  const COL_R2  = '#4ECDC4';
+  const COL_SUM = '#FFD166';
+  const COL_PRD = '#C78DFF';
+  const COL_SYM = '#FF9F43';
+  const COL_OK  = '#83C167';
+  const COL_A   = '#E07090';
+
+  // ── GraphView ───────────────────────────────────────────────
+  let view;
+  function initView() {
+    view = new GraphView(ctx, { rect: [0,0,W,H], xRange: [-6,6], yRange: [-3.19,3.81], scale: 50 });
+  }
+
+  // ── Draw helpers ────────────────────────────────────────────
+  function plotParabola(a, b, c, color, alpha, lw) {
+    view.plotFn(x => a*x*x + b*x + c, { color, alpha: alpha ?? 0.85, lineWidth: lw ?? 2.5 });
+  }
+  function dot(x, y, r, col) { view.dot(x, y, { radius: r, color: col }); }
+  function dashed(x1, y1, x2, y2, col, alpha) {
+    view.segment(x1, y1, x2, y2, { color: col, alpha: alpha ?? 0.6, lineWidth: 1.5, dash: [5,4] });
+  }
+  function roundRect(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x+r,y); c.lineTo(x+w-r,y); c.quadraticCurveTo(x+w,y,x+w,y+r);
+    c.lineTo(x+w,y+h-r); c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    c.lineTo(x+r,y+h); c.quadraticCurveTo(x,y+h,x,y+h-r);
+    c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y);
+    c.closePath();
+  }
+  function infoBox(text, sx, sy, col, alpha) {
+    ctx.save();
+    ctx.font = '12px monospace';
+    if (alpha !== undefined) ctx.globalAlpha = alpha;
+    const w = ctx.measureText(text).width + 14;
+    ctx.fillStyle = 'rgba(14,14,18,0.9)';
+    ctx.strokeStyle = col + '60';
+    ctx.lineWidth = 1;
+    roundRect(ctx, sx - w/2, sy - 11, w, 22, 4);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = col;
+    ctx.textAlign = 'center';
+    ctx.fillText(text, sx, sy + 4);
+    ctx.restore();
+  }
+  function fmt(v) {
+    if (Math.abs(v - Math.round(v)) < 0.01) return Math.round(v).toString();
+    return v.toFixed(2);
+  }
+  function buildEq(a, b, c) {
+    let parts = [];
+    if (a === 1) parts.push('x\u00B2');
+    else if (a === -1) parts.push('-x\u00B2');
+    else parts.push(fmt(a) + 'x\u00B2');
+    if (b !== 0) {
+      const ab = Math.abs(b);
+      parts.push((b > 0 ? ' + ' : ' \u2212 ') + (ab === 1 ? '' : fmt(ab)) + 'x');
+    }
+    if (c !== 0) {
+      const ac = Math.abs(c);
+      parts.push((c > 0 ? ' + ' : ' \u2212 ') + fmt(ac));
+    }
+    return parts.join('');
+  }
+  const near = (a, b, eps = 0.02) => Math.abs(a - b) < eps;
+
+  // ── Challenge state ─────────────────────────────────────────
+  const LS_KEY = 'warsztat:vieta:completed';
+  const completed = new Set(JSON.parse(localStorage.getItem(LS_KEY) || '[]'));
+  function markCompleted(id) {
+    completed.add(id);
+    localStorage.setItem(LS_KEY, JSON.stringify([...completed]));
+  }
+
+  // Per-challenge runtime state, reset on challenge switch
+  const S = {
+    r1: 0, r2: 0, a: 1,
+    aTested: new Set(),
+    predictAnswer: null,     // index into options, null if not answered
+    predictConfirmed: false, // set true after feedback shown — allows entry to working phase
+    phase: 'predict',        // 'predict' | 'working' | 'solved'
+    hintLevel: 0,
+    startTime: 0,
+    // ch5 reveal animation
+    revealT: null,
+  };
+
+  // ── Challenges ──────────────────────────────────────────────
+  const challenges = [
+    // ─── Ch.1: Shift axis of symmetry ─────────────────────────
+    {
+      id: 'ch1',
+      title: 'Przesuń oś symetrii do x = 2',
+      desc: 'Pierwszy pierwiastek jest ustalony: r\u2081 = 1. Przesuwaj drugi tak, by oś symetrii paraboli wylądowała w x = 2.',
+      init() { S.r1 = 1; S.r2 = -1; },
+      predict: {
+        question: 'Zanim przesuniesz suwak — zgadnij. Dla r\u2081 = 1, gdzie musi być r\u2082, żeby oś symetrii była w x = 2?',
+        options: [
+          { label: 'r\u2082 = 2', correct: false, why: 'To dałoby oś w (1+2)/2 = 1.5. Oś symetrii to średnia pierwiastków.' },
+          { label: 'r\u2082 = 3', correct: true,  why: 'Tak — (1+3)/2 = 2. Oś symetrii to średnia pierwiastków, więc suma = 2·(oś) = 4.' },
+          { label: 'r\u2082 = 4', correct: false, why: 'To dałoby oś w (1+4)/2 = 2.5. Oś symetrii to średnia pierwiastków.' },
+        ],
+      },
+      sliders: [
+        { id: 'r2', lbl: 'r\u2082', color: COL_R2, min: -4, max: 4, step: 0.5, get: () => S.r2, set: v => S.r2 = v },
+      ],
+      pips() {
+        const axis = (S.r1 + S.r2) / 2;
+        return [{ label: 'o\u015B symetrii w x = 2', ok: near(axis, 2) }];
+      },
+      solved() { return near((S.r1 + S.r2) / 2, 2); },
+      hints: [
+        'Oś symetrii to średnia dwóch pierwiastków: x = (r\u2081 + r\u2082) / 2.',
+        'Masz r\u2081 = 1. Chcesz (1 + r\u2082) / 2 = 2, więc 1 + r\u2082 = 4.',
+        'Rozwiąż: r\u2082 = 3.',
+      ],
+      solvedMsg: 'Świetnie. Suma pierwiastków decyduje, GDZIE parabola siedzi na osi X.',
+      draw() {
+        const s = S.r1 + S.r2, p = S.r1 * S.r2;
+        const mid = s / 2;
+        plotParabola(1, -s, p, COL_PAR, 0.8);
+        // target axis (vertical dashed green at x=2)
+        dashed(2, -4, 2, 6, COL_OK, 0.45);
+        view.label('cel: x=2', 2.15, 3.6, { color: COL_OK, align: 'left', font: '10px monospace' });
+        // current axis
+        dashed(mid, -4, mid, 6, COL_SYM, 0.65);
+        view.label('oś: x=' + fmt(mid), mid + 0.15, 3.2, { color: COL_SYM, align: 'left', font: '10px monospace' });
+        // roots
+        dot(S.r1, 0, 6, COL_R1); dot(S.r2, 0, 6, COL_R2);
+        view.label('r\u2081=' + fmt(S.r1), S.r1, 0.45, { color: COL_R1, align: 'center', font: '11px monospace' });
+        view.label('r\u2082=' + fmt(S.r2), S.r2, 0.45, { color: COL_R2, align: 'center', font: '11px monospace' });
+        infoBox('f(x) = ' + buildEq(1, -s, p), W/2, 22, COL_PAR);
+      },
+    },
+
+    // ─── Ch.2: Flip product sign while keeping sum positive ──
+    {
+      id: 'ch2',
+      title: 'Odwróć znak iloczynu — ale zachowaj dodatnią sumę',
+      desc: 'Start: oba pierwiastki dodatnie (iloczyn dodatni, suma dodatnia). Przesuń pierwiastki tak, by iloczyn był UJEMNY, a suma dalej DODATNIA.',
+      init() { S.r1 = 2; S.r2 = 3; },
+      predict: {
+        question: 'Żeby iloczyn był ujemny, a suma dodatnia, pierwiastki muszą być...',
+        options: [
+          { label: 'oba dodatnie', correct: false, why: 'Iloczyn dwóch dodatnich jest dodatni.' },
+          { label: 'oba ujemne', correct: false, why: 'Iloczyn dwóch ujemnych jest dodatni, a suma ujemna.' },
+          { label: 'różnych znaków, z dodatnim o większej wartości bezwzględnej', correct: true, why: 'Tak. Różne znaki dają ujemny iloczyn; żeby suma była dodatnia, dodatni pierwiastek musi przeważyć.' },
+          { label: 'różnych znaków, z ujemnym o większej wartości bezwzględnej', correct: false, why: 'Iloczyn by się zgadzał (ujemny), ale suma wyszłaby ujemna.' },
+        ],
+      },
+      sliders: [
+        { id: 'r1', lbl: 'r\u2081', color: COL_R1, min: -4, max: 4, step: 0.5, get: () => S.r1, set: v => S.r1 = v },
+        { id: 'r2', lbl: 'r\u2082', color: COL_R2, min: -4, max: 4, step: 0.5, get: () => S.r2, set: v => S.r2 = v },
+      ],
+      pips() {
+        const s = S.r1 + S.r2, p = S.r1 * S.r2;
+        return [
+          { label: 'suma > 0', ok: s > 0.01 },
+          { label: 'iloczyn < 0', ok: p < -0.01 },
+        ];
+      },
+      solved() {
+        const s = S.r1 + S.r2, p = S.r1 * S.r2;
+        return s > 0.01 && p < -0.01;
+      },
+      hints: [
+        'Iloczyn jest ujemny tylko wtedy, gdy pierwiastki mają różne znaki.',
+        'Spróbuj jeden pierwiastek ujemny, drugi dodatni. Żeby suma była dodatnia — dodatni musi być większy co do wartości bezwzględnej.',
+        'Na przykład r\u2081 = −1, r\u2082 = 3.',
+      ],
+      solvedMsg: 'Dokładnie tak. Znak iloczynu mówi CI, czy pierwiastki są po tej samej stronie zera. Znak sumy mówi, która strona przeważa.',
+      draw() {
+        const s = S.r1 + S.r2, p = S.r1 * S.r2;
+        plotParabola(1, -s, p, COL_PAR, 0.8);
+        // y-intercept = product (for a=1)
+        dot(0, p, 6, COL_PRD);
+        dashed(0, 0, 0, p, COL_PRD, 0.35);
+        infoBox('iloczyn = ' + fmt(p), px(0) + 80, py(p), COL_PRD);
+        // roots
+        dot(S.r1, 0, 6, COL_R1); dot(S.r2, 0, 6, COL_R2);
+        view.label('r\u2081=' + fmt(S.r1), S.r1, 0.45, { color: COL_R1, align: 'center', font: '11px monospace' });
+        view.label('r\u2082=' + fmt(S.r2), S.r2, 0.45, { color: COL_R2, align: 'center', font: '11px monospace' });
+        infoBox('suma = ' + fmt(s), W*0.3, 22, COL_SUM);
+        infoBox('iloczyn = ' + fmt(p), W*0.7, 22, COL_PRD);
+      },
+    },
+
+    // ─── Ch.3: Build f(x) = x² − 5x + 6 ──────────────────────
+    {
+      id: 'ch3',
+      title: 'Zbuduj f(x) = x² − 5x + 6',
+      desc: 'Znajdź pierwiastki, których suma i iloczyn dadzą właśnie te współczynniki. Bez wzoru na deltę, bez kwadratowego rozwiązywania — tylko Viète.',
+      init() { S.r1 = 0; S.r2 = 0; },
+      predict: {
+        question: 'Dla x² − 5x + 6 = 0: ile wynoszą suma i iloczyn pierwiastków?',
+        options: [
+          { label: 'suma = 5, iloczyn = 6', correct: true,  why: 'Tak. Dla a=1: suma = −b, iloczyn = c. Tu b = −5, c = 6, więc suma = 5, iloczyn = 6.' },
+          { label: 'suma = −5, iloczyn = 6', correct: false, why: 'Pamiętaj: suma = −b. Jeśli b = −5, to −b = +5.' },
+          { label: 'suma = 5, iloczyn = −6', correct: false, why: 'Iloczyn = c (dla a=1). Tu c = +6, więc iloczyn dodatni.' },
+          { label: 'suma = −5, iloczyn = −6', correct: false, why: 'Dwie pomyłki: suma = −b = +5, iloczyn = c = +6.' },
+        ],
+      },
+      sliders: [
+        { id: 'r1', lbl: 'r\u2081', color: COL_R1, min: -4, max: 4, step: 0.5, get: () => S.r1, set: v => S.r1 = v },
+        { id: 'r2', lbl: 'r\u2082', color: COL_R2, min: -4, max: 4, step: 0.5, get: () => S.r2, set: v => S.r2 = v },
+      ],
+      pips() {
+        const s = S.r1 + S.r2, p = S.r1 * S.r2;
+        return [
+          { label: 'suma = 5', ok: near(s, 5) },
+          { label: 'iloczyn = 6', ok: near(p, 6) },
+        ];
+      },
+      solved() {
+        const s = S.r1 + S.r2, p = S.r1 * S.r2;
+        return near(s, 5) && near(p, 6);
+      },
+      hints: [
+        'Szukasz dwóch liczb, które sumują się do 5 i mnożą do 6.',
+        'Rozłóż 6 na pary: 1·6, 2·3. Która para sumuje się do 5?',
+        '2 + 3 = 5, 2 · 3 = 6. Pierwiastki to 2 i 3.',
+      ],
+      solvedMsg: 'Bez wzoru kwadratowego, bez delty. Dla wielu zadań maturalnych to szybsza droga.',
+      draw() {
+        const s = S.r1 + S.r2, p = S.r1 * S.r2;
+        // target parabola (dashed, dim)
+        view.plotFn(x => x*x - 5*x + 6, { color: COL_OK, alpha: 0.3, lineWidth: 2, dash: [5,4] });
+        // current
+        plotParabola(1, -s, p, COL_PAR, 0.8);
+        dot(S.r1, 0, 6, COL_R1); dot(S.r2, 0, 6, COL_R2);
+        view.label('r\u2081=' + fmt(S.r1), S.r1, 0.45, { color: COL_R1, align: 'center', font: '11px monospace' });
+        view.label('r\u2082=' + fmt(S.r2), S.r2, 0.45, { color: COL_R2, align: 'center', font: '11px monospace' });
+        infoBox('cel: f(x) = x\u00B2 \u2212 5x + 6', W/2, 22, COL_OK);
+        infoBox('twoje: f(x) = ' + buildEq(1, -s, p), W/2, H - 20, COL_PAR);
+      },
+    },
+
+    // ─── Ch.5: The many-to-one rupture ───────────────────────
+    {
+      id: 'ch5',
+      title: 'Ile wielomianów ma pierwiastki 1 i 3?',
+      desc: 'Pierwiastki są ustalone: r\u2081 = 1, r\u2082 = 3. Tym razem suwak steruje współczynnikiem a. Zbadaj co najmniej dwie różne wartości a ≠ 0.',
+      init() { S.r1 = 1; S.r2 = 3; S.a = 1; S.aTested = new Set(); S.revealT = null; },
+      predict: {
+        question: 'Przed dotknięciem suwaka — zgadnij. Ile RÓŻNYCH wielomianów (z a ≠ 0) ma pierwiastki dokładnie w 1 i 3?',
+        options: [
+          { label: 'dokładnie jeden', correct: false, why: 'To najczęstsza intuicja — i myli. Zobacz sam: każda wartość a ≠ 0 daje inny wielomian z tymi samymi pierwiastkami.' },
+          { label: 'nieskończenie wiele', correct: true,  why: 'Tak. f(x) = a·(x−1)(x−3) dla dowolnego a ≠ 0 to osobny wielomian — wszystkie z pierwiastkami 1 i 3. Przesuwaj a i zobacz rodzinę.' },
+          { label: 'dokładnie dwa', correct: false, why: 'Nie — jest ich nieskończenie wiele. Każda wartość a ≠ 0 daje inny wielomian.' },
+        ],
+      },
+      sliders: [
+        { id: 'a', lbl: 'a', color: COL_A, min: -2, max: 2, step: 0.25, get: () => S.a, set: v => {
+            S.a = v;
+            if (Math.abs(v) > 0.01) S.aTested.add(v.toFixed(2));
+        } },
+      ],
+      pips() {
+        const n = S.aTested.size;
+        return [{ label: 'zbadano wartości a: ' + Math.min(n, 2) + '/2', ok: n >= 2 }];
+      },
+      solved() { return S.aTested.size >= 2; },
+      hints: [
+        'Każda wartość a daje inny wielomian: f(x) = a·(x−1)(x−3).',
+        'Przesuwaj suwak a. Zauważ: pierwiastki zostają w 1 i 3, ale parabola zmienia rozwarcie i kierunek.',
+        'Spróbuj a = 1 i a = 2 — porównaj kształty.',
+      ],
+      solvedMsg: 'Tu jest sedno. Sama para pierwiastków NIE wyznacza wielomianu — to rodzina nieskończona. Na maturze zawsze dostajesz coś dodatkowego (współczynnik wiodący, wartość w punkcie, wierzchołek), co jednoznacznie wybiera jeden z tych wielomianów.',
+      draw() {
+        // Ghost family: sweep a from -2 to 2 as dim trail
+        const family = [-2, -1.5, -1, -0.5, 0.5, 1, 1.5, 2];
+        family.forEach(av => {
+          if (av === S.a) return;
+          const b = -av * (S.r1 + S.r2);
+          const c = av * S.r1 * S.r2;
+          plotParabola(av, b, c, COL_A, 0.15, 1.2);
+        });
+        // Current parabola
+        const b = -S.a * (S.r1 + S.r2);
+        const c = S.a * S.r1 * S.r2;
+        if (Math.abs(S.a) > 0.01) {
+          plotParabola(S.a, b, c, COL_PAR, 0.9, 2.5);
+        }
+        // Roots — fixed, bold
+        dot(S.r1, 0, 7, COL_R1); dot(S.r2, 0, 7, COL_R2);
+        view.label('r\u2081=1', S.r1, 0.45, { color: COL_R1, align: 'center', font: '11px monospace' });
+        view.label('r\u2082=3', S.r2, 0.45, { color: COL_R2, align: 'center', font: '11px monospace' });
+        // Equation in current form
+        if (Math.abs(S.a) > 0.01) {
+          infoBox('f(x) = ' + buildEq(S.a, b, c), W/2, 22, COL_PAR);
+        } else {
+          infoBox('a = 0 — to już nie jest wielomian kwadratowy', W/2, 22, COL_A);
+        }
+        // Family label
+        ctx.save();
+        ctx.font = '10px monospace';
+        ctx.fillStyle = COL_A + '90';
+        ctx.textAlign = 'right';
+        ctx.fillText('rodzina: a\u00B7(x\u22121)(x\u22123)', W - 12, H - 10);
+        ctx.restore();
+      },
+    },
+  ];
+
+  // px/py helpers need view
+  function px(x) { return view.px(x); }
+  function py(y) { return view.py(y); }
+
+  // ── DOM refs ────────────────────────────────────────────────
+  const stepEl = document.getElementById('step');
+  const titleEl = document.getElementById('title');
+  const descEl = document.getElementById('desc');
+  const predictEl = document.getElementById('predict');
+  const slWrap = document.getElementById('sliders-wrap');
+  const pipsEl = document.getElementById('pips');
+  const hintsEl = document.getElementById('hints');
+  const solvedEl = document.getElementById('solved-msg');
+  const dotsEl = document.getElementById('dots');
+  const prevBtn = document.getElementById('prev');
+  const nextBtn = document.getElementById('next');
+
+  let currentIdx = 0;
+
+  // ── Rendering the challenge UI ──────────────────────────────
+  function renderHead() {
+    stepEl.textContent = 'Wyzwanie ' + (currentIdx + 1) + ' / ' + challenges.length;
+    titleEl.textContent = challenges[currentIdx].title;
+    descEl.textContent = challenges[currentIdx].desc;
+  }
+
+  function renderDots() {
+    dotsEl.innerHTML = challenges.map((ch, i) => {
+      let cls = 'dot';
+      if (i === currentIdx) cls += ' active';
+      else if (completed.has(ch.id)) cls += ' done';
+      return '<span class="' + cls + '" data-i="' + i + '"></span>';
+    }).join('');
+    dotsEl.querySelectorAll('.dot').forEach(d => {
+      d.addEventListener('click', () => goTo(+d.dataset.i));
+    });
+  }
+
+  function renderPredict() {
+    const ch = challenges[currentIdx];
+    if (!ch.predict || S.phase !== 'predict') {
+      predictEl.innerHTML = '';
+      return;
+    }
+    const picked = S.predictAnswer;
+    const showFeedback = picked !== null;
+    let html = '<div class="predict"><div class="q">' + ch.predict.question + '</div><div class="opts">';
+    ch.predict.options.forEach((opt, i) => {
+      const cls = picked === i ? 'picked' : '';
+      html += '<button class="' + cls + '" data-i="' + i + '" ' + (showFeedback ? 'disabled' : '') + '>' + opt.label + '</button>';
+    });
+    html += '</div>';
+    if (showFeedback) {
+      const opt = ch.predict.options[picked];
+      const prefix = opt.correct ? '✓ ' : '✗ ';
+      html += '<div class="feedback">' + prefix + opt.why + '</div>';
+    }
+    html += '</div>';
+    predictEl.innerHTML = html;
+    predictEl.querySelectorAll('.predict button[data-i]').forEach(b => {
+      b.addEventListener('click', () => {
+        S.predictAnswer = +b.dataset.i;
+        renderPredict();
+        renderNav();
+      });
+    });
+  }
+
+  function renderSliders() {
+    if (S.phase === 'predict') { slWrap.innerHTML = ''; return; }
+    const ch = challenges[currentIdx];
+    let html = '<div class="sliders">';
+    ch.sliders.forEach(s => {
+      html += '<div class="slider-row">' +
+        '<span class="lbl" style="color:' + s.color + '">' + s.lbl + ' =</span>' +
+        '<input type="range" id="s_' + s.id + '" min="' + s.min + '" max="' + s.max + '" step="' + s.step + '" value="' + s.get() + '">' +
+        '<span class="val" id="v_' + s.id + '" style="color:' + s.color + '">' + fmtSlider(s.get(), s.step) + '</span>' +
+      '</div>';
+    });
+    html += '</div>';
+    slWrap.innerHTML = html;
+    ch.sliders.forEach(s => {
+      const el = document.getElementById('s_' + s.id);
+      const valEl = document.getElementById('v_' + s.id);
+      el.addEventListener('input', () => {
+        const v = +el.value;
+        valEl.textContent = fmtSlider(v, s.step);
+        s.set(v);
+        // Re-check solved
+        if (S.phase === 'working' && ch.solved()) {
+          onSolve();
+        }
+      });
+    });
+  }
+
+  function fmtSlider(v, step) { return step < 1 ? v.toFixed(2).replace(/\.?0+$/, '') || v.toFixed(0) : v.toFixed(0); }
+
+  function renderPips() {
+    if (S.phase === 'predict') { pipsEl.innerHTML = ''; return; }
+    const ch = challenges[currentIdx];
+    const pips = ch.pips();
+    pipsEl.innerHTML = pips.map(p => {
+      return '<span class="pip ' + (p.ok ? 'ok' : '') + '"><span class="mark"></span>' + p.label + '</span>';
+    }).join('');
+  }
+
+  function renderHints() {
+    if (S.phase !== 'working') { hintsEl.innerHTML = ''; return; }
+    const ch = challenges[currentIdx];
+    const elapsed = (Date.now() - S.startTime) / 1000;
+    const thresholds = [20, 45, 90];
+    let level = 0;
+    for (let i = 0; i < thresholds.length; i++) if (elapsed >= thresholds[i]) level = i + 1;
+    level = Math.max(level, S.hintLevel);
+    S.hintLevel = level;
+    const shown = ch.hints.slice(0, level);
+    hintsEl.innerHTML = shown.map(h => '<div class="hint">💡 ' + h + '</div>').join('');
+  }
+
+  function renderSolvedMsg() {
+    if (S.phase !== 'solved') { solvedEl.innerHTML = ''; return; }
+    const ch = challenges[currentIdx];
+    solvedEl.innerHTML = '<div class="solved-note">' + ch.solvedMsg + '</div>';
+  }
+
+  function renderNav() {
+    prevBtn.disabled = currentIdx === 0;
+    const atLast = currentIdx === challenges.length - 1;
+    if (S.phase === 'predict') {
+      nextBtn.textContent = 'Sprawdź \u2192';
+      nextBtn.disabled = S.predictAnswer === null;
+      nextBtn.classList.toggle('primary', S.predictAnswer !== null);
+    } else if (S.phase === 'working') {
+      nextBtn.textContent = 'Dalej \u2192';
+      nextBtn.disabled = true;
+      nextBtn.classList.remove('primary');
+    } else {
+      nextBtn.textContent = atLast ? 'Koniec' : 'Dalej \u2192';
+      nextBtn.disabled = atLast;
+      nextBtn.classList.add('primary');
+    }
+  }
+
+  function renderAll() {
+    renderHead();
+    renderDots();
+    renderPredict();
+    renderSliders();
+    renderPips();
+    renderHints();
+    renderSolvedMsg();
+    renderNav();
+  }
+
+  // ── Phase transitions ───────────────────────────────────────
+  function goTo(idx) {
+    currentIdx = Math.max(0, Math.min(challenges.length - 1, idx));
+    const ch = challenges[currentIdx];
+    S.aTested = new Set();
+    S.predictAnswer = null;
+    S.predictConfirmed = false;
+    S.phase = ch.predict ? 'predict' : 'working';
+    S.hintLevel = 0;
+    S.startTime = Date.now();
+    S.revealT = null;
+    ch.init();
+    renderAll();
+  }
+
+  function advance() {
+    if (S.phase === 'predict' && S.predictAnswer !== null) {
+      S.phase = 'working';
+      S.startTime = Date.now();
+      // Check if already solved on entry (unlikely but safe)
+      if (challenges[currentIdx].solved()) { onSolve(); return; }
+      renderAll();
+      return;
+    }
+    if (S.phase === 'solved') {
+      if (currentIdx < challenges.length - 1) goTo(currentIdx + 1);
+      return;
+    }
+  }
+
+  function onSolve() {
+    S.phase = 'solved';
+    markCompleted(challenges[currentIdx].id);
+    renderAll();
+  }
+
+  prevBtn.addEventListener('click', () => {
+    if (currentIdx > 0) goTo(currentIdx - 1);
+  });
+  nextBtn.addEventListener('click', advance);
+
+  // ── Render loop ─────────────────────────────────────────────
+  function tick() {
+    initView();
+    view.clear();
+    view.drawGrid({ color: 'rgba(255,255,255,0.04)' });
+    view.drawAxes({ color: 'rgba(255,255,255,0.2)', arrows: false, labels: true, tickSize: 3 });
+    challenges[currentIdx].draw();
+    renderPips();  // live update
+    renderHints(); // hint timers
+    requestAnimationFrame(tick);
+  }
+
+  goTo(0);
+  tick();
+}
+</script>
+</body>
+</html>
