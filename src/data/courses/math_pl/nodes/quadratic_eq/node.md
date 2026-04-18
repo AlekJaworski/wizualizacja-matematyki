@@ -9,6 +9,7 @@ y: 390
 resources:
   - "interactive|resources/fn_quadratic/quadratic-derivation.html|Parabola Explorer — Quadratic Formula|Eksplorator paraboli — wzór kwadratowy"
   - "interactive|resources/factoring/factoring-explorer.html|Factoring Explorer — Two Lines × Parabola|Rozkład na czynniki — dwie proste × parabola"
+  - "interactive|quadratic-warsztat.html|Quadratic Warsztat — Find the Error|Równanie kwadratowe — wyłap błąd"
 ---
 Równanie kwadratowe to jedno z najczęstszych równań w matematyce — rozwiązuje się je za pomocą wyróżnika (delty).<br><br>Postać: $ax^2 + bx + c = 0$. Wyróżnik: $\Delta = b^2 - 4ac$. Gdy $\Delta > 0$: dwa rozwiązania $x = \frac{-b \pm \sqrt{\Delta}}{2a}$. Gdy $\Delta = 0$: jedno rozwiązanie $x = \frac{-b}{2a}$. Gdy $\Delta < 0$: brak rozwiązań rzeczywistych.<br><br>Alternatywne metody: rozkład na czynniki lub wzory Viete'a.
 

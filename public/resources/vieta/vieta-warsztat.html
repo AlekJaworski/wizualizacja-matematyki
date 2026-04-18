@@ -79,6 +79,7 @@
 
 <script type="module">
 import { GraphView } from '../lib/graph-core.js';
+import { initWarsztat } from '../lib/warsztat-core.js';
 {
   const cv = document.getElementById('cv');
   const ctx = cv.getContext('2d');
@@ -94,7 +95,7 @@ import { GraphView } from '../lib/graph-core.js';
   const COL_OK  = '#83C167';
   const COL_A   = '#E07090';
 
-  // ── GraphView ───────────────────────────────────────────────
+  // ── GraphView (rebuilt each frame so that `view` closures below work) ─
   let view;
   function initView() {
     view = new GraphView(ctx, { rect: [0,0,W,H], xRange: [-6,6], yRange: [-3.19,3.81], scale: 50 });
@@ -151,27 +152,11 @@ import { GraphView } from '../lib/graph-core.js';
     return parts.join('');
   }
   const near = (a, b, eps = 0.02) => Math.abs(a - b) < eps;
+  function px(x) { return view.px(x); }
+  function py(y) { return view.py(y); }
 
-  // ── Challenge state ─────────────────────────────────────────
-  const LS_KEY = 'warsztat:vieta:completed';
-  const completed = new Set(JSON.parse(localStorage.getItem(LS_KEY) || '[]'));
-  function markCompleted(id) {
-    completed.add(id);
-    localStorage.setItem(LS_KEY, JSON.stringify([...completed]));
-  }
-
-  // Per-challenge runtime state, reset on challenge switch
-  const S = {
-    r1: 0, r2: 0, a: 1,
-    aTested: new Set(),
-    predictAnswer: null,     // index into options, null if not answered
-    predictConfirmed: false, // set true after feedback shown — allows entry to working phase
-    phase: 'predict',        // 'predict' | 'working' | 'solved'
-    hintLevel: 0,
-    startTime: 0,
-    // ch5 reveal animation
-    revealT: null,
-  };
+  // ── Challenge-local state ───────────────────────────────────
+  const C = { r1: 0, r2: 0, a: 1, aTested: new Set() };
 
   // ── Challenges ──────────────────────────────────────────────
   const challenges = [
@@ -180,23 +165,24 @@ import { GraphView } from '../lib/graph-core.js';
       id: 'ch1',
       title: 'Przesuń oś symetrii do x = 2',
       desc: 'Pierwszy pierwiastek jest ustalony: r\u2081 = 1. Przesuwaj drugi tak, by oś symetrii paraboli wylądowała w x = 2.',
-      init() { S.r1 = 1; S.r2 = -1; },
+      drawBackground: 'graph',
+      init() { C.r1 = 1; C.r2 = -1; },
       predict: {
         question: 'Zanim przesuniesz suwak — zgadnij. Dla r\u2081 = 1, gdzie musi być r\u2082, żeby oś symetrii była w x = 2?',
         options: [
-          { label: 'r\u2082 = 2', correct: false, why: 'To dałoby oś w (1+2)/2 = 1.5. Oś symetrii to średnia pierwiastków.' },
+          { label: 'r\u2082 = 2', correct: false, why: 'Spróbujmy razem: (1+2)/2 = 1.5 — to trochę za mało. Oś symetrii to średnia pierwiastków.' },
           { label: 'r\u2082 = 3', correct: true,  why: 'Tak — (1+3)/2 = 2. Oś symetrii to średnia pierwiastków, więc suma = 2·(oś) = 4.' },
-          { label: 'r\u2082 = 4', correct: false, why: 'To dałoby oś w (1+4)/2 = 2.5. Oś symetrii to średnia pierwiastków.' },
+          { label: 'r\u2082 = 4', correct: false, why: 'Blisko, ale (1+4)/2 = 2.5 — o pół za dużo. Oś symetrii to średnia pierwiastków.' },
         ],
       },
       sliders: [
-        { id: 'r2', lbl: 'r\u2082', color: COL_R2, min: -4, max: 4, step: 0.5, get: () => S.r2, set: v => S.r2 = v },
+        { id: 'r2', lbl: 'r\u2082', color: COL_R2, min: -4, max: 4, step: 0.5, get: () => C.r2, set: v => C.r2 = v },
       ],
       pips() {
-        const axis = (S.r1 + S.r2) / 2;
+        const axis = (C.r1 + C.r2) / 2;
         return [{ label: 'o\u015B symetrii w x = 2', ok: near(axis, 2) }];
       },
-      solved() { return near((S.r1 + S.r2) / 2, 2); },
+      solved() { return near((C.r1 + C.r2) / 2, 2); },
       hints: [
         'Oś symetrii to średnia dwóch pierwiastków: x = (r\u2081 + r\u2082) / 2.',
         'Masz r\u2081 = 1. Chcesz (1 + r\u2082) / 2 = 2, więc 1 + r\u2082 = 4.',
@@ -204,19 +190,16 @@ import { GraphView } from '../lib/graph-core.js';
       ],
       solvedMsg: 'Świetnie. Suma pierwiastków decyduje, GDZIE parabola siedzi na osi X.',
       draw() {
-        const s = S.r1 + S.r2, p = S.r1 * S.r2;
+        const s = C.r1 + C.r2, p = C.r1 * C.r2;
         const mid = s / 2;
         plotParabola(1, -s, p, COL_PAR, 0.8);
-        // target axis (vertical dashed green at x=2)
         dashed(2, -4, 2, 6, COL_OK, 0.45);
         view.label('cel: x=2', 2.15, 3.6, { color: COL_OK, align: 'left', font: '10px monospace' });
-        // current axis
         dashed(mid, -4, mid, 6, COL_SYM, 0.65);
         view.label('oś: x=' + fmt(mid), mid + 0.15, 3.2, { color: COL_SYM, align: 'left', font: '10px monospace' });
-        // roots
-        dot(S.r1, 0, 6, COL_R1); dot(S.r2, 0, 6, COL_R2);
-        view.label('r\u2081=' + fmt(S.r1), S.r1, 0.45, { color: COL_R1, align: 'center', font: '11px monospace' });
-        view.label('r\u2082=' + fmt(S.r2), S.r2, 0.45, { color: COL_R2, align: 'center', font: '11px monospace' });
+        dot(C.r1, 0, 6, COL_R1); dot(C.r2, 0, 6, COL_R2);
+        view.label('r\u2081=' + fmt(C.r1), C.r1, 0.45, { color: COL_R1, align: 'center', font: '11px monospace' });
+        view.label('r\u2082=' + fmt(C.r2), C.r2, 0.45, { color: COL_R2, align: 'center', font: '11px monospace' });
         infoBox('f(x) = ' + buildEq(1, -s, p), W/2, 22, COL_PAR);
       },
     },
@@ -226,48 +209,47 @@ import { GraphView } from '../lib/graph-core.js';
       id: 'ch2',
       title: 'Odwróć znak iloczynu — ale zachowaj dodatnią sumę',
       desc: 'Start: oba pierwiastki dodatnie (iloczyn dodatni, suma dodatnia). Przesuń pierwiastki tak, by iloczyn był UJEMNY, a suma dalej DODATNIA.',
-      init() { S.r1 = 2; S.r2 = 3; },
+      drawBackground: 'graph',
+      init() { C.r1 = 2; C.r2 = 3; },
       predict: {
         question: 'Żeby iloczyn był ujemny, a suma dodatnia, pierwiastki muszą być...',
         options: [
-          { label: 'oba dodatnie', correct: false, why: 'Iloczyn dwóch dodatnich jest dodatni.' },
-          { label: 'oba ujemne', correct: false, why: 'Iloczyn dwóch ujemnych jest dodatni, a suma ujemna.' },
+          { label: 'oba dodatnie', correct: false, why: 'Sprawdźmy: gdy oba są dodatnie, iloczyn też wyjdzie dodatni — a my chcemy ujemny.' },
+          { label: 'oba ujemne', correct: false, why: 'Tu iloczyn byłby dodatni (minus razy minus), a suma ujemna — oba warunki nie pasują.' },
           { label: 'różnych znaków, z dodatnim o większej wartości bezwzględnej', correct: true, why: 'Tak. Różne znaki dają ujemny iloczyn; żeby suma była dodatnia, dodatni pierwiastek musi przeważyć.' },
-          { label: 'różnych znaków, z ujemnym o większej wartości bezwzględnej', correct: false, why: 'Iloczyn by się zgadzał (ujemny), ale suma wyszłaby ujemna.' },
+          { label: 'różnych znaków, z ujemnym o większej wartości bezwzględnej', correct: false, why: 'Iloczyn owszem wyjdzie ujemny — ale suma też, bo ujemny ma większą wagę.' },
         ],
       },
       sliders: [
-        { id: 'r1', lbl: 'r\u2081', color: COL_R1, min: -4, max: 4, step: 0.5, get: () => S.r1, set: v => S.r1 = v },
-        { id: 'r2', lbl: 'r\u2082', color: COL_R2, min: -4, max: 4, step: 0.5, get: () => S.r2, set: v => S.r2 = v },
+        { id: 'r1', lbl: 'r\u2081', color: COL_R1, min: -4, max: 4, step: 0.5, get: () => C.r1, set: v => C.r1 = v },
+        { id: 'r2', lbl: 'r\u2082', color: COL_R2, min: -4, max: 4, step: 0.5, get: () => C.r2, set: v => C.r2 = v },
       ],
       pips() {
-        const s = S.r1 + S.r2, p = S.r1 * S.r2;
+        const s = C.r1 + C.r2, p = C.r1 * C.r2;
         return [
           { label: 'suma > 0', ok: s > 0.01 },
           { label: 'iloczyn < 0', ok: p < -0.01 },
         ];
       },
       solved() {
-        const s = S.r1 + S.r2, p = S.r1 * S.r2;
+        const s = C.r1 + C.r2, p = C.r1 * C.r2;
         return s > 0.01 && p < -0.01;
       },
       hints: [
         'Iloczyn jest ujemny tylko wtedy, gdy pierwiastki mają różne znaki.',
         'Spróbuj jeden pierwiastek ujemny, drugi dodatni. Żeby suma była dodatnia — dodatni musi być większy co do wartości bezwzględnej.',
-        'Na przykład r\u2081 = −1, r\u2082 = 3.',
+        'Na przykład r\u2081 = \u22121, r\u2082 = 3.',
       ],
       solvedMsg: 'Dokładnie tak. Znak iloczynu mówi CI, czy pierwiastki są po tej samej stronie zera. Znak sumy mówi, która strona przeważa.',
       draw() {
-        const s = S.r1 + S.r2, p = S.r1 * S.r2;
+        const s = C.r1 + C.r2, p = C.r1 * C.r2;
         plotParabola(1, -s, p, COL_PAR, 0.8);
-        // y-intercept = product (for a=1)
         dot(0, p, 6, COL_PRD);
         dashed(0, 0, 0, p, COL_PRD, 0.35);
         infoBox('iloczyn = ' + fmt(p), px(0) + 80, py(p), COL_PRD);
-        // roots
-        dot(S.r1, 0, 6, COL_R1); dot(S.r2, 0, 6, COL_R2);
-        view.label('r\u2081=' + fmt(S.r1), S.r1, 0.45, { color: COL_R1, align: 'center', font: '11px monospace' });
-        view.label('r\u2082=' + fmt(S.r2), S.r2, 0.45, { color: COL_R2, align: 'center', font: '11px monospace' });
+        dot(C.r1, 0, 6, COL_R1); dot(C.r2, 0, 6, COL_R2);
+        view.label('r\u2081=' + fmt(C.r1), C.r1, 0.45, { color: COL_R1, align: 'center', font: '11px monospace' });
+        view.label('r\u2082=' + fmt(C.r2), C.r2, 0.45, { color: COL_R2, align: 'center', font: '11px monospace' });
         infoBox('suma = ' + fmt(s), W*0.3, 22, COL_SUM);
         infoBox('iloczyn = ' + fmt(p), W*0.7, 22, COL_PRD);
       },
@@ -278,29 +260,30 @@ import { GraphView } from '../lib/graph-core.js';
       id: 'ch3',
       title: 'Zbuduj f(x) = x² − 5x + 6',
       desc: 'Znajdź pierwiastki, których suma i iloczyn dadzą właśnie te współczynniki. Bez wzoru na deltę, bez kwadratowego rozwiązywania — tylko Viète.',
-      init() { S.r1 = 0; S.r2 = 0; },
+      drawBackground: 'graph',
+      init() { C.r1 = 0; C.r2 = 0; },
       predict: {
         question: 'Dla x² − 5x + 6 = 0: ile wynoszą suma i iloczyn pierwiastków?',
         options: [
           { label: 'suma = 5, iloczyn = 6', correct: true,  why: 'Tak. Dla a=1: suma = −b, iloczyn = c. Tu b = −5, c = 6, więc suma = 5, iloczyn = 6.' },
-          { label: 'suma = −5, iloczyn = 6', correct: false, why: 'Pamiętaj: suma = −b. Jeśli b = −5, to −b = +5.' },
-          { label: 'suma = 5, iloczyn = −6', correct: false, why: 'Iloczyn = c (dla a=1). Tu c = +6, więc iloczyn dodatni.' },
-          { label: 'suma = −5, iloczyn = −6', correct: false, why: 'Dwie pomyłki: suma = −b = +5, iloczyn = c = +6.' },
+          { label: 'suma = −5, iloczyn = 6', correct: false, why: 'Uwaga na znak: suma = −b, a nie b. Jeśli b = −5, to −b = +5.' },
+          { label: 'suma = 5, iloczyn = −6', correct: false, why: 'Iloczyn = c (dla a=1), a tu c = +6 — więc dodatni, nie ujemny.' },
+          { label: 'suma = −5, iloczyn = −6', correct: false, why: 'Warto sprawdzić oba razem: suma = −b = +5, iloczyn = c = +6. Znak daje się łatwo pomylić.' },
         ],
       },
       sliders: [
-        { id: 'r1', lbl: 'r\u2081', color: COL_R1, min: -4, max: 4, step: 0.5, get: () => S.r1, set: v => S.r1 = v },
-        { id: 'r2', lbl: 'r\u2082', color: COL_R2, min: -4, max: 4, step: 0.5, get: () => S.r2, set: v => S.r2 = v },
+        { id: 'r1', lbl: 'r\u2081', color: COL_R1, min: -4, max: 4, step: 0.5, get: () => C.r1, set: v => C.r1 = v },
+        { id: 'r2', lbl: 'r\u2082', color: COL_R2, min: -4, max: 4, step: 0.5, get: () => C.r2, set: v => C.r2 = v },
       ],
       pips() {
-        const s = S.r1 + S.r2, p = S.r1 * S.r2;
+        const s = C.r1 + C.r2, p = C.r1 * C.r2;
         return [
           { label: 'suma = 5', ok: near(s, 5) },
           { label: 'iloczyn = 6', ok: near(p, 6) },
         ];
       },
       solved() {
-        const s = S.r1 + S.r2, p = S.r1 * S.r2;
+        const s = C.r1 + C.r2, p = C.r1 * C.r2;
         return near(s, 5) && near(p, 6);
       },
       hints: [
@@ -309,15 +292,21 @@ import { GraphView } from '../lib/graph-core.js';
         '2 + 3 = 5, 2 · 3 = 6. Pierwiastki to 2 i 3.',
       ],
       solvedMsg: 'Bez wzoru kwadratowego, bez delty. Dla wielu zadań maturalnych to szybsza droga.',
+      predictAfter: {
+        question: 'Szybki test: zmień $c$ z 6 na 12, $b$ zostaje $-5$. Co się stanie z pierwiastkami?',
+        options: [
+          { label: 'nadal 2 i 3', correct: false, why: 'Pierwiastki zależą od c — zmiana c = 12 zmienia też iloczyn. Trzeba sprawdzić, czy dwie liczby o sumie 5 i iloczynie 12 w ogóle istnieją.' },
+          { label: 'rzeczywiste, ale inne', correct: false, why: 'Policz deltę: $\u0394 = 25 - 48 = -23 < 0$. Ujemna delta oznacza, że nie ma rzeczywistych pierwiastków.' },
+          { label: 'nieistniejące (\u0394 < 0)', correct: true, why: 'Tak. Szukasz liczb o sumie 5, iloczynie 12 — ale $5^2/4 = 6{,}25 < 12$, więc takich liczb rzeczywistych nie ma. Formalnie: $\u0394 = 25 - 48 = -23$.' },
+        ],
+      },
       draw() {
-        const s = S.r1 + S.r2, p = S.r1 * S.r2;
-        // target parabola (dashed, dim)
+        const s = C.r1 + C.r2, p = C.r1 * C.r2;
         view.plotFn(x => x*x - 5*x + 6, { color: COL_OK, alpha: 0.3, lineWidth: 2, dash: [5,4] });
-        // current
         plotParabola(1, -s, p, COL_PAR, 0.8);
-        dot(S.r1, 0, 6, COL_R1); dot(S.r2, 0, 6, COL_R2);
-        view.label('r\u2081=' + fmt(S.r1), S.r1, 0.45, { color: COL_R1, align: 'center', font: '11px monospace' });
-        view.label('r\u2082=' + fmt(S.r2), S.r2, 0.45, { color: COL_R2, align: 'center', font: '11px monospace' });
+        dot(C.r1, 0, 6, COL_R1); dot(C.r2, 0, 6, COL_R2);
+        view.label('r\u2081=' + fmt(C.r1), C.r1, 0.45, { color: COL_R1, align: 'center', font: '11px monospace' });
+        view.label('r\u2082=' + fmt(C.r2), C.r2, 0.45, { color: COL_R2, align: 'center', font: '11px monospace' });
         infoBox('cel: f(x) = x\u00B2 \u2212 5x + 6', W/2, 22, COL_OK);
         infoBox('twoje: f(x) = ' + buildEq(1, -s, p), W/2, H - 20, COL_PAR);
       },
@@ -328,26 +317,27 @@ import { GraphView } from '../lib/graph-core.js';
       id: 'ch5',
       title: 'Ile wielomianów ma pierwiastki 1 i 3?',
       desc: 'Pierwiastki są ustalone: r\u2081 = 1, r\u2082 = 3. Tym razem suwak steruje współczynnikiem a. Zbadaj co najmniej dwie różne wartości a ≠ 0.',
-      init() { S.r1 = 1; S.r2 = 3; S.a = 1; S.aTested = new Set(); S.revealT = null; },
+      drawBackground: 'graph',
+      init() { C.r1 = 1; C.r2 = 3; C.a = 1; C.aTested = new Set(); },
       predict: {
         question: 'Przed dotknięciem suwaka — zgadnij. Ile RÓŻNYCH wielomianów (z a ≠ 0) ma pierwiastki dokładnie w 1 i 3?',
         options: [
-          { label: 'dokładnie jeden', correct: false, why: 'To najczęstsza intuicja — i myli. Zobacz sam: każda wartość a ≠ 0 daje inny wielomian z tymi samymi pierwiastkami.' },
+          { label: 'dokładnie jeden', correct: false, why: 'To najczęstsza intuicja. Zobaczmy razem dlaczego nie — przesuń suwak a. Dla każdego a ≠ 0 dostajesz inny wielomian z tymi samymi pierwiastkami 1 i 3.' },
           { label: 'nieskończenie wiele', correct: true,  why: 'Tak. f(x) = a·(x−1)(x−3) dla dowolnego a ≠ 0 to osobny wielomian — wszystkie z pierwiastkami 1 i 3. Przesuwaj a i zobacz rodzinę.' },
-          { label: 'dokładnie dwa', correct: false, why: 'Nie — jest ich nieskończenie wiele. Każda wartość a ≠ 0 daje inny wielomian.' },
+          { label: 'dokładnie dwa', correct: false, why: 'Jest ich więcej, niż się wydaje. Przesuwając a zobaczysz całą rodzinę — każda wartość a ≠ 0 to osobny wielomian.' },
         ],
       },
       sliders: [
-        { id: 'a', lbl: 'a', color: COL_A, min: -2, max: 2, step: 0.25, get: () => S.a, set: v => {
-            S.a = v;
-            if (Math.abs(v) > 0.01) S.aTested.add(v.toFixed(2));
+        { id: 'a', lbl: 'a', color: COL_A, min: -2, max: 2, step: 0.25, get: () => C.a, set: v => {
+            C.a = v;
+            if (Math.abs(v) > 0.01) C.aTested.add(v.toFixed(2));
         } },
       ],
       pips() {
-        const n = S.aTested.size;
+        const n = C.aTested.size;
         return [{ label: 'zbadano wartości a: ' + Math.min(n, 2) + '/2', ok: n >= 2 }];
       },
-      solved() { return S.aTested.size >= 2; },
+      solved() { return C.aTested.size >= 2; },
       hints: [
         'Każda wartość a daje inny wielomian: f(x) = a·(x−1)(x−3).',
         'Przesuwaj suwak a. Zauważ: pierwiastki zostają w 1 i 3, ale parabola zmienia rozwarcie i kierunek.',
@@ -355,31 +345,26 @@ import { GraphView } from '../lib/graph-core.js';
       ],
       solvedMsg: 'Tu jest sedno. Sama para pierwiastków NIE wyznacza wielomianu — to rodzina nieskończona. Na maturze zawsze dostajesz coś dodatkowego (współczynnik wiodący, wartość w punkcie, wierzchołek), co jednoznacznie wybiera jeden z tych wielomianów.',
       draw() {
-        // Ghost family: sweep a from -2 to 2 as dim trail
         const family = [-2, -1.5, -1, -0.5, 0.5, 1, 1.5, 2];
         family.forEach(av => {
-          if (av === S.a) return;
-          const b = -av * (S.r1 + S.r2);
-          const c = av * S.r1 * S.r2;
+          if (av === C.a) return;
+          const b = -av * (C.r1 + C.r2);
+          const c = av * C.r1 * C.r2;
           plotParabola(av, b, c, COL_A, 0.15, 1.2);
         });
-        // Current parabola
-        const b = -S.a * (S.r1 + S.r2);
-        const c = S.a * S.r1 * S.r2;
-        if (Math.abs(S.a) > 0.01) {
-          plotParabola(S.a, b, c, COL_PAR, 0.9, 2.5);
+        const b = -C.a * (C.r1 + C.r2);
+        const c = C.a * C.r1 * C.r2;
+        if (Math.abs(C.a) > 0.01) {
+          plotParabola(C.a, b, c, COL_PAR, 0.9, 2.5);
         }
-        // Roots — fixed, bold
-        dot(S.r1, 0, 7, COL_R1); dot(S.r2, 0, 7, COL_R2);
-        view.label('r\u2081=1', S.r1, 0.45, { color: COL_R1, align: 'center', font: '11px monospace' });
-        view.label('r\u2082=3', S.r2, 0.45, { color: COL_R2, align: 'center', font: '11px monospace' });
-        // Equation in current form
-        if (Math.abs(S.a) > 0.01) {
-          infoBox('f(x) = ' + buildEq(S.a, b, c), W/2, 22, COL_PAR);
+        dot(C.r1, 0, 7, COL_R1); dot(C.r2, 0, 7, COL_R2);
+        view.label('r\u2081=1', C.r1, 0.45, { color: COL_R1, align: 'center', font: '11px monospace' });
+        view.label('r\u2082=3', C.r2, 0.45, { color: COL_R2, align: 'center', font: '11px monospace' });
+        if (Math.abs(C.a) > 0.01) {
+          infoBox('f(x) = ' + buildEq(C.a, b, c), W/2, 22, COL_PAR);
         } else {
           infoBox('a = 0 — to już nie jest wielomian kwadratowy', W/2, 22, COL_A);
         }
-        // Family label
         ctx.save();
         ctx.font = '10px monospace';
         ctx.fillStyle = COL_A + '90';
@@ -390,216 +375,19 @@ import { GraphView } from '../lib/graph-core.js';
     },
   ];
 
-  // px/py helpers need view
-  function px(x) { return view.px(x); }
-  function py(y) { return view.py(y); }
-
-  // ── DOM refs ────────────────────────────────────────────────
-  const stepEl = document.getElementById('step');
-  const titleEl = document.getElementById('title');
-  const descEl = document.getElementById('desc');
-  const predictEl = document.getElementById('predict');
-  const slWrap = document.getElementById('sliders-wrap');
-  const pipsEl = document.getElementById('pips');
-  const hintsEl = document.getElementById('hints');
-  const solvedEl = document.getElementById('solved-msg');
-  const dotsEl = document.getElementById('dots');
-  const prevBtn = document.getElementById('prev');
-  const nextBtn = document.getElementById('next');
-
-  let currentIdx = 0;
-
-  // ── Rendering the challenge UI ──────────────────────────────
-  function renderHead() {
-    stepEl.textContent = 'Wyzwanie ' + (currentIdx + 1) + ' / ' + challenges.length;
-    titleEl.textContent = challenges[currentIdx].title;
-    descEl.textContent = challenges[currentIdx].desc;
-  }
-
-  function renderDots() {
-    dotsEl.innerHTML = challenges.map((ch, i) => {
-      let cls = 'dot';
-      if (i === currentIdx) cls += ' active';
-      else if (completed.has(ch.id)) cls += ' done';
-      return '<span class="' + cls + '" data-i="' + i + '"></span>';
-    }).join('');
-    dotsEl.querySelectorAll('.dot').forEach(d => {
-      d.addEventListener('click', () => goTo(+d.dataset.i));
-    });
-  }
-
-  function renderPredict() {
-    const ch = challenges[currentIdx];
-    if (!ch.predict || S.phase !== 'predict') {
-      predictEl.innerHTML = '';
-      return;
-    }
-    const picked = S.predictAnswer;
-    const showFeedback = picked !== null;
-    let html = '<div class="predict"><div class="q">' + ch.predict.question + '</div><div class="opts">';
-    ch.predict.options.forEach((opt, i) => {
-      const cls = picked === i ? 'picked' : '';
-      html += '<button class="' + cls + '" data-i="' + i + '" ' + (showFeedback ? 'disabled' : '') + '>' + opt.label + '</button>';
-    });
-    html += '</div>';
-    if (showFeedback) {
-      const opt = ch.predict.options[picked];
-      const prefix = opt.correct ? '✓ ' : '✗ ';
-      html += '<div class="feedback">' + prefix + opt.why + '</div>';
-    }
-    html += '</div>';
-    predictEl.innerHTML = html;
-    predictEl.querySelectorAll('.predict button[data-i]').forEach(b => {
-      b.addEventListener('click', () => {
-        S.predictAnswer = +b.dataset.i;
-        renderPredict();
-        renderNav();
-      });
-    });
-  }
-
-  function renderSliders() {
-    if (S.phase === 'predict') { slWrap.innerHTML = ''; return; }
-    const ch = challenges[currentIdx];
-    let html = '<div class="sliders">';
-    ch.sliders.forEach(s => {
-      html += '<div class="slider-row">' +
-        '<span class="lbl" style="color:' + s.color + '">' + s.lbl + ' =</span>' +
-        '<input type="range" id="s_' + s.id + '" min="' + s.min + '" max="' + s.max + '" step="' + s.step + '" value="' + s.get() + '">' +
-        '<span class="val" id="v_' + s.id + '" style="color:' + s.color + '">' + fmtSlider(s.get(), s.step) + '</span>' +
-      '</div>';
-    });
-    html += '</div>';
-    slWrap.innerHTML = html;
-    ch.sliders.forEach(s => {
-      const el = document.getElementById('s_' + s.id);
-      const valEl = document.getElementById('v_' + s.id);
-      el.addEventListener('input', () => {
-        const v = +el.value;
-        valEl.textContent = fmtSlider(v, s.step);
-        s.set(v);
-        // Re-check solved
-        if (S.phase === 'working' && ch.solved()) {
-          onSolve();
-        }
-      });
-    });
-  }
-
-  function fmtSlider(v, step) { return step < 1 ? v.toFixed(2).replace(/\.?0+$/, '') || v.toFixed(0) : v.toFixed(0); }
-
-  function renderPips() {
-    if (S.phase === 'predict') { pipsEl.innerHTML = ''; return; }
-    const ch = challenges[currentIdx];
-    const pips = ch.pips();
-    pipsEl.innerHTML = pips.map(p => {
-      return '<span class="pip ' + (p.ok ? 'ok' : '') + '"><span class="mark"></span>' + p.label + '</span>';
-    }).join('');
-  }
-
-  function renderHints() {
-    if (S.phase !== 'working') { hintsEl.innerHTML = ''; return; }
-    const ch = challenges[currentIdx];
-    const elapsed = (Date.now() - S.startTime) / 1000;
-    const thresholds = [20, 45, 90];
-    let level = 0;
-    for (let i = 0; i < thresholds.length; i++) if (elapsed >= thresholds[i]) level = i + 1;
-    level = Math.max(level, S.hintLevel);
-    S.hintLevel = level;
-    const shown = ch.hints.slice(0, level);
-    hintsEl.innerHTML = shown.map(h => '<div class="hint">💡 ' + h + '</div>').join('');
-  }
-
-  function renderSolvedMsg() {
-    if (S.phase !== 'solved') { solvedEl.innerHTML = ''; return; }
-    const ch = challenges[currentIdx];
-    solvedEl.innerHTML = '<div class="solved-note">' + ch.solvedMsg + '</div>';
-  }
-
-  function renderNav() {
-    prevBtn.disabled = currentIdx === 0;
-    const atLast = currentIdx === challenges.length - 1;
-    if (S.phase === 'predict') {
-      nextBtn.textContent = 'Sprawdź \u2192';
-      nextBtn.disabled = S.predictAnswer === null;
-      nextBtn.classList.toggle('primary', S.predictAnswer !== null);
-    } else if (S.phase === 'working') {
-      nextBtn.textContent = 'Dalej \u2192';
-      nextBtn.disabled = true;
-      nextBtn.classList.remove('primary');
-    } else {
-      nextBtn.textContent = atLast ? 'Koniec' : 'Dalej \u2192';
-      nextBtn.disabled = atLast;
-      nextBtn.classList.add('primary');
-    }
-  }
-
-  function renderAll() {
-    renderHead();
-    renderDots();
-    renderPredict();
-    renderSliders();
-    renderPips();
-    renderHints();
-    renderSolvedMsg();
-    renderNav();
-  }
-
-  // ── Phase transitions ───────────────────────────────────────
-  function goTo(idx) {
-    currentIdx = Math.max(0, Math.min(challenges.length - 1, idx));
-    const ch = challenges[currentIdx];
-    S.aTested = new Set();
-    S.predictAnswer = null;
-    S.predictConfirmed = false;
-    S.phase = ch.predict ? 'predict' : 'working';
-    S.hintLevel = 0;
-    S.startTime = Date.now();
-    S.revealT = null;
-    ch.init();
-    renderAll();
-  }
-
-  function advance() {
-    if (S.phase === 'predict' && S.predictAnswer !== null) {
-      S.phase = 'working';
-      S.startTime = Date.now();
-      // Check if already solved on entry (unlikely but safe)
-      if (challenges[currentIdx].solved()) { onSolve(); return; }
-      renderAll();
-      return;
-    }
-    if (S.phase === 'solved') {
-      if (currentIdx < challenges.length - 1) goTo(currentIdx + 1);
-      return;
-    }
-  }
-
-  function onSolve() {
-    S.phase = 'solved';
-    markCompleted(challenges[currentIdx].id);
-    renderAll();
-  }
-
-  prevBtn.addEventListener('click', () => {
-    if (currentIdx > 0) goTo(currentIdx - 1);
+  initWarsztat({
+    canvasId: 'cv',
+    challenges,
+    lsKey: 'warsztat:vieta:completed',
+    onFrame({ ch }) {
+      initView();
+      view.clear();
+      if (ch.drawBackground === 'graph') {
+        view.drawGrid({ color: 'rgba(255,255,255,0.04)' });
+        view.drawAxes({ color: 'rgba(255,255,255,0.2)', arrows: false, labels: true, tickSize: 3 });
+      }
+    },
   });
-  nextBtn.addEventListener('click', advance);
-
-  // ── Render loop ─────────────────────────────────────────────
-  function tick() {
-    initView();
-    view.clear();
-    view.drawGrid({ color: 'rgba(255,255,255,0.04)' });
-    view.drawAxes({ color: 'rgba(255,255,255,0.2)', arrows: false, labels: true, tickSize: 3 });
-    challenges[currentIdx].draw();
-    renderPips();  // live update
-    renderHints(); // hint timers
-    requestAnimationFrame(tick);
-  }
-
-  goTo(0);
-  tick();
 }
 </script>
 </body>

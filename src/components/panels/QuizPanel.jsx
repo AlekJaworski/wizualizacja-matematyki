@@ -65,17 +65,20 @@ export function QuizPanel({ nodeId, nodes, questionBank, onAnswer, onSkip, lang,
     <span dangerouslySetInnerHTML={{ __html: renderLatex(text) }} />
   );
 
-  const panelStyle = isMobile ? {
+  // Outer: positioning only. Inner: scrolling. Splitting these avoids a known
+  // Chromium bug on Android/Brave where `position:fixed + maxHeight + overflow:auto`
+  // renders children off-screen without allowing touch scroll.
+  const panelOuter = isMobile ? {
     position: "fixed",
     left: 0, right: 0, bottom: 0,
-    maxHeight: "70vh",
+    height: "70dvh",
     background: COLORS.surface,
     border: `1px solid ${color}40`,
     borderRadius: "14px 14px 0 0",
-    padding: "14px 16px 24px",
     color: COLORS.textBody,
     boxShadow: "0 -8px 32px rgba(0,0,0,0.5)",
-    overflowY: "auto",
+    display: "flex",
+    flexDirection: "column",
     zIndex: 30,
     boxSizing: "border-box",
   } : {
@@ -88,22 +91,37 @@ export function QuizPanel({ nodeId, nodes, questionBank, onAnswer, onSkip, lang,
     backdropFilter: "blur(6px)",
     border: `1px solid ${color}40`,
     borderRadius: 10,
-    padding: "14px 16px",
     color: COLORS.textBody,
     boxShadow: "0 12px 40px rgba(0,0,0,0.5)",
-    overflowY: "auto",
+    display: "flex",
+    flexDirection: "column",
     zIndex: 30,
     boxSizing: "border-box",
   };
 
+  const panelInner = isMobile ? {
+    flex: 1,
+    minHeight: 0, // critical: lets flex child actually shrink so overflow:auto kicks in
+    overflowY: "auto",
+    WebkitOverflowScrolling: "touch",
+    overscrollBehavior: "contain",
+    padding: "14px 16px calc(24px + env(safe-area-inset-bottom))",
+  } : {
+    flex: 1,
+    minHeight: 0,
+    overflowY: "auto",
+    padding: "14px 16px",
+  };
+
   return (
-    <div style={panelStyle}>
-      {/* Mobile drag handle */}
+    <div style={panelOuter}>
+      {/* Mobile drag handle (outside scroll area so it's always visible) */}
       {isMobile && (
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
+        <div style={{ display: "flex", justifyContent: "center", padding: "8px 0 0", flexShrink: 0 }}>
           <div style={{ width: 36, height: 4, borderRadius: 2, background: COLORS.textFaint }} />
         </div>
       )}
+      <div style={panelInner}>
 
       {/* Header */}
       <div style={{
@@ -248,6 +266,7 @@ export function QuizPanel({ nodeId, nodes, questionBank, onAnswer, onSkip, lang,
           )}
         </>
       )}
+      </div>
     </div>
   );
 }
