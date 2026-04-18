@@ -400,12 +400,21 @@ function EvidenceBlock({ nodeId, status, evidence, adjacency, belief, nodes, lan
   );
 }
 
-/** Description block with optional collapsible "nie kumam?" example */
+/** Description block with optional collapsible "nie kumam?" example + "najczęstsze błędy". */
 function NodeDescription({ body, lang }) {
   const [showExample, setShowExample] = useState(false);
-  const parts = body.split("<!-- example -->");
-  const description = parts[0]?.trim();
-  const example = parts[1]?.trim();
+  const [showMistakes, setShowMistakes] = useState(false);
+  // Split body into up to three sections by HTML comments.
+  // Authors: put `<!-- example -->` before the worked example, and
+  // `<!-- mistakes -->` before a bulleted "najczęstsze błędy" section.
+  const afterExample   = body.split("<!-- example -->");
+  const description    = afterExample[0]?.trim();
+  const afterMistakes  = (afterExample[1] ?? "").split("<!-- mistakes -->");
+  const example        = afterMistakes[0]?.trim();
+  // mistakes can appear with or without an example section preceding it
+  const mistakesBlock  = afterMistakes[1]?.trim()
+    ?? (body.split("<!-- mistakes -->")[1]?.trim() ?? "");
+  const mistakes       = mistakesBlock || null;
 
   if (!description) return null;
 
@@ -446,6 +455,40 @@ function NodeDescription({ body, lang }) {
                 color: "#e8d5a0", lineHeight: 1.7,
               }}
               dangerouslySetInnerHTML={{ __html: renderLatex(example) }}
+            />
+          )}
+        </>
+      )}
+      {mistakes && (
+        <>
+          <button
+            onClick={() => setShowMistakes(v => !v)}
+            style={{
+              marginTop: 8, marginLeft: example ? 8 : 0,
+              padding: "10px 14px",
+              fontSize: 12, fontFamily: FONT,
+              borderRadius: 6,
+              border: `1px solid ${showMistakes ? "#e74c3c40" : COLORS.border}`,
+              background: showMistakes ? "#e74c3c10" : "transparent",
+              color: showMistakes ? "#ff6b6b" : COLORS.textDim,
+              cursor: "pointer",
+              transition: "all 0.15s",
+            }}
+          >
+            {showMistakes
+              ? (lang === "pl" ? "Schowaj najczęstsze błędy" : "Hide common mistakes")
+              : (lang === "pl" ? "Najczęstsze błędy" : "Common mistakes")}
+          </button>
+          {showMistakes && (
+            <div
+              style={{
+                marginTop: 10, padding: "12px 14px",
+                borderRadius: 8, fontSize: 13,
+                background: "#e74c3c08",
+                border: "1px solid #e74c3c20",
+                color: "#f3b4b0", lineHeight: 1.7,
+              }}
+              dangerouslySetInnerHTML={{ __html: renderLatex(mistakes) }}
             />
           )}
         </>

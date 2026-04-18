@@ -87,6 +87,7 @@ export const RAW_EDGES = [
   ["sets",           "logic_basics"],
   ["logic_basics",   "proof"],
   ["sets",           "proof"],
+  ["matura_pytania", "proof"],
 
   // ── Combinatorics ────────────────────────────────────────────
   ["counting",       "permutations"],

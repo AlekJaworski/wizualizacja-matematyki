@@ -11,6 +11,7 @@ import {
 import { getQuestion } from "../../data/courseLoader.js";
 import { renderLatex } from "../../utils/latex.js";
 import { Permutation } from "../../utils/permutation.js";
+import { formatSource } from "../../utils/formatSource.js";
 
 /**
  * Full-screen quiz flow. No graph — just questions.
@@ -303,6 +304,24 @@ export function QuizFlow({ RAW_NODES, RAW_EDGES, QUESTION_BANK, lang, quizPreset
           </div>
         ) : (
           <>
+            {/* CKE source badge */}
+            {question.source && (() => {
+              const label = formatSource(question.source, lang);
+              if (!label || label === "CKE") return null;
+              return (
+                <div style={{
+                  display: "inline-block",
+                  marginBottom: 14,
+                  padding: "3px 8px",
+                  borderRadius: 4,
+                  fontSize: 10, fontWeight: 600,
+                  letterSpacing: "0.04em",
+                  background: "#FFD16618", color: "#FFD166",
+                  border: "1px solid #FFD16640",
+                }}>{label}</div>
+              );
+            })()}
+
             {/* Question text */}
             <div style={{
               fontSize: 16, color: COLORS.textPrimary,
@@ -403,18 +422,32 @@ export function QuizFlow({ RAW_NODES, RAW_EDGES, QUESTION_BANK, lang, quizPreset
 
             {/* Action button */}
             {phase === "answering" ? (
-              <button
-                onClick={handleCheck}
-                disabled={picked === null}
-                style={{
-                  ...ctaStyle("#4a9eff"),
-                  width: "100%",
-                  opacity: picked === null ? 0.3 : 1,
-                }}
-              >
-                {t("quizCheck", lang)}
-                <span style={{ fontSize: 11, opacity: 0.5, marginLeft: 8 }}>Enter</span>
-              </button>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button
+                  onClick={handleCheck}
+                  disabled={picked === null}
+                  style={{
+                    ...ctaStyle("#4a9eff"),
+                    flex: 1,
+                    opacity: picked === null ? 0.3 : 1,
+                  }}
+                >
+                  {t("quizCheck", lang)}
+                  <span style={{ fontSize: 11, opacity: 0.5, marginLeft: 8 }}>Enter</span>
+                </button>
+                <button
+                  onClick={() => handleSelfAssess(false)}
+                  style={{
+                    ...ctaStyle(COLORS.textDim),
+                    padding: "14px 16px",
+                    fontSize: 13,
+                    fontWeight: 500,
+                  }}
+                  title={lang === "pl" ? "Liczymy jako niewiadomą — bez zgadywania" : "Counts as unknown — no guessing"}
+                >
+                  {t("quizDontKnow", lang)}
+                </button>
+              </div>
             ) : (
               <button
                 onClick={handleContinue}

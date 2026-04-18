@@ -13,3 +13,8 @@ Układ równań liniowych to dwie (lub więcej) prostych na płaszczyźnie — s
 
 <!-- example -->
 Na przykład: $y = 2x + 1$ i $y = -x + 4$.<br><br>Podstawiamy: $2x + 1 = -x + 4$, więc $3x = 3$, $x = 1$, $y = 3$. Rozwiązanie: $(1, 3)$.<br><br>Sprawdzenie: $3 = 2 \cdot 1 + 1$ ✓ i $3 = -1 + 4$ ✓.
+
+<!-- mistakes -->
+- **Procenty jako ułamki dziesiętne**: "60% drzew" to $0{,}60 \cdot x$, nie $60x$ ani $60/x$. Persona notorycznie myli te zapisy.
+- **Czytanie warunków w zadaniach z treścią**: "o 3 więcej" to $+3$, "3 razy więcej" to $\cdot 3$. Sprawdź przed pisaniem równania.
+- **Liczba niewiadomych = liczba równań**: żeby mieć jednoznaczne rozwiązanie. Mniej równań → nieskończenie wiele; więcej → sprzeczność możliwa.

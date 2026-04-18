@@ -4,6 +4,7 @@ import { renderLatex } from "../../utils/latex.js";
 import { Permutation } from "../../utils/permutation.js";
 import { ansBtn, COLORS } from "../../styles/tokens.js";
 import { t } from "../../i18n.js";
+import { formatSource } from "../../utils/formatSource.js";
 
 /**
  * Quiz card shown in diagnostic mode when a node is selected.
@@ -166,6 +167,24 @@ export function QuizPanel({ nodeId, nodes, questionBank, onAnswer, onSkip, lang,
         </>
       ) : (
         <>
+          {/* CKE source badge (year + task number) */}
+          {q.source && (() => {
+            const label = formatSource(q.source, lang);
+            if (!label || label === "CKE") return null;
+            return (
+              <div style={{
+                display: "inline-block",
+                marginBottom: 10,
+                padding: "3px 8px",
+                borderRadius: 4,
+                fontSize: 10, fontWeight: 600,
+                letterSpacing: "0.04em",
+                background: "#FFD16618", color: "#FFD166",
+                border: "1px solid #FFD16640",
+              }}>{label}</div>
+            );
+          })()}
+
           {/* Question text */}
           <div style={{ fontSize: 13, color: COLORS.textBody, marginBottom: 12, lineHeight: 1.65 }}>
             {render(q.q)}

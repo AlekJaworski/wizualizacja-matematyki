@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ciągi arytmetyczne i geometryczne</title>
+</head>
+<body>
+<script type="module">
+import { VizCore, T, COLORS, drawTextC, drawGlow } from '../lib/viz-core.js';
+import { GraphView } from '../lib/graph-core.js';
+
+const H = 440;
+
+// Common params
+const A1 = 1;        // a_1
+const N_TERMS = 8;   // how many terms to show
+
+// ── Stage 1: Arytmetyczny — schody ────────────────────────────────
+const stage1 = {
+  title: () => 'Ciąg arytmetyczny — schody o stałej wysokości d',
+  desc:  () => 'Każdy następny wyraz to poprzedni + d. Punkty (n, aₙ) leżą na prostej — to funkcja liniowa n.',
+  sliders: [
+    { id: 'd', lbl: 'd', color: COLORS.CYAN, min: -2, max: 3, step: 0.1, val: 1 },
+  ],
+  draw(cx, W, H, v) {
+    const d = v.d;
+    const terms = [];
+    for (let i = 1; i <= N_TERMS; i++) terms.push(A1 + (i - 1) * d);
+    const yMin = Math.min(-1, ...terms) - 1;
+    const yMax = Math.max(2, ...terms) + 1;
+
+    const gv = new GraphView(cx, {
+      rect: [20, 20, W - 40, H - 100],
+      xRange: [0, N_TERMS + 1], yRange: [yMin, yMax],
+    });
+    gv.drawGrid({ color: 'rgba(255,255,255,0.04)' });
+    gv.drawAxes({ color: 'rgba(255,255,255,0.25)' });
+
+    // Draw line a1 + (n-1)d as continuous reference
+    gv.plotFn(x => A1 + (x - 1) * d, {
+      color: 'rgba(88,196,221,0.35)', lineWidth: 1.5, domain: [0, N_TERMS + 1],
+    });
+
+    // Draw "stair steps"
+    cx.save();
+    cx.strokeStyle = 'rgba(131,193,103,0.7)';
+    cx.lineWidth = 2;
+    for (let i = 1; i < N_TERMS; i++) {
+      const x0 = gv.px(i), y0 = gv.py(terms[i - 1]);
+      const x1 = gv.px(i + 1), y1 = gv.py(terms[i]);
+      cx.beginPath();
+      cx.moveTo(x0, y0);
+      cx.lineTo(x1, y0); // horizontal tread
+      cx.lineTo(x1, y1); // vertical riser (+d)
+      cx.stroke();
+    }
+    cx.restore();
+
+    // Points + labels
+    for (let i = 1; i <= N_TERMS; i++) {
+      gv.dot(i, terms[i - 1], { radius: 5, color: COLORS.CYAN });
+    }
+
+    // d label on first riser
+    if (Math.abs(d) > 0.05) {
+      const x0 = gv.px(2);
+      const y0 = gv.py(terms[0]);
+      const y1 = gv.py(terms[1]);
+      drawTextC(cx, `+d = ${d.toFixed(1)}`, x0 + 28, (y0 + y1) / 2,
+        'bold 12px monospace', COLORS.GREEN, 'left');
+    }
+
+    // Formula bar
+    const bY = H - 70;
+    cx.fillStyle = 'rgba(255,255,255,0.04)';
+    cx.fillRect(20, bY, W - 40, 56);
+    drawTextC(cx, `a₁ = ${A1},   d = ${d.toFixed(1)}`,
+      W / 2, bY + 16, 'bold 13px monospace', COLORS.CYAN);
+    drawTextC(cx, `aₙ = a₁ + (n−1)·d  =  ${A1} + (n−1)·(${d.toFixed(1)})`,
+      W / 2, bY + 36, '13px monospace', 'rgba(255,255,255,0.75)');
+  },
+};
+
+// ── Stage 2: Geometryczny — wieża ─────────────────────────────────
+const stage2 = {
+  title: () => 'Ciąg geometryczny — mnożenie przez q',
+  desc:  () => 'Każdy następny wyraz to poprzedni · q. q<1 → maleje do 0; q=1 → stały; q>1 → rośnie wykładniczo.',
+  sliders: [
+    { id: 'q', lbl: 'q', color: COLORS.ORANGE, min: -1.5, max: 3, step: 0.05, val: 1.5 },
+  ],
+  draw(cx, W, H, v) {
+    const q = v.q;
+    const terms = [];
+    for (let i = 1; i <= N_TERMS; i++) terms.push(A1 * Math.pow(q, i - 1));
+    const absMax = Math.max(...terms.map(t => Math.abs(t)), 2);
+    const yMax = absMax * 1.15;
+    const yMin = Math.min(0, ...terms) - 0.5;
+
+    const gv = new GraphView(cx, {
+      rect: [20, 20, W - 40, H - 100],
+      xRange: [0, N_TERMS + 1], yRange: [yMin, yMax],
+    });
+    gv.drawGrid({ color: 'rgba(255,255,255,0.04)' });
+    gv.drawAxes({ color: 'rgba(255,255,255,0.25)' });
+
+    // Block column for each term
+    for (let i = 1; i <= N_TERMS; i++) {
+      const val = terms[i - 1];
+      const xC = gv.px(i);
+      const bw = Math.max(8, gv.sc * 0.35);
+      const yTop = gv.py(Math.max(0, val));
+      const yBot = gv.py(Math.min(0, val));
+      cx.fillStyle = val >= 0 ? 'rgba(255,107,53,0.35)' : 'rgba(224,112,144,0.35)';
+      cx.fillRect(xC - bw / 2, yTop, bw, yBot - yTop);
+      cx.strokeStyle = val >= 0 ? COLORS.ORANGE : COLORS.PINK;
+      cx.lineWidth = 1;
+      cx.strokeRect(xC - bw / 2, yTop, bw, yBot - yTop);
+    }
+
+    // Smooth exp curve reference (if q>0)
+    if (q > 0) {
+      gv.plotFn(x => A1 * Math.pow(q, x - 1), {
+        color: 'rgba(255,209,102,0.5)', lineWidth: 1.5, domain: [0.5, N_TERMS + 1],
+      });
+    }
+
+    // Points
+    for (let i = 1; i <= N_TERMS; i++) {
+      gv.dot(i, terms[i - 1], { radius: 5, color: COLORS.YELLOW });
+    }
+
+    // Regime label
+    let regime, regCol;
+    if (Math.abs(q) < 0.98) { regime = '|q| < 1  →  maleje do 0'; regCol = COLORS.GREEN; }
+    else if (Math.abs(q - 1) < 0.03) { regime = 'q = 1  →  ciąg stały'; regCol = COLORS.CYAN; }
+    else if (q > 1) { regime = 'q > 1  →  rośnie wykładniczo'; regCol = COLORS.ORANGE; }
+    else { regime = 'q < 0  →  znaki się przeplatają'; regCol = COLORS.PINK; }
+
+    const bY = H - 70;
+    cx.fillStyle = 'rgba(255,255,255,0.04)';
+    cx.fillRect(20, bY, W - 40, 56);
+    drawTextC(cx, `a₁ = ${A1},   q = ${q.toFixed(2)}`,
+      W / 2, bY + 16, 'bold 13px monospace', COLORS.ORANGE);
+    drawTextC(cx, `aₙ = a₁ · q^(n−1)    [${regime}]`,
+      W / 2, bY + 36, '13px monospace', regCol);
+  },
+};
+
+// ── Stage 3: Suma Sn (arytm. + geom. jako słupki) ─────────────────
+const stage3 = {
+  title: () => 'Suma n wyrazów  Sₙ',
+  desc:  () => 'Arytm.: Sₙ = n(a₁+aₙ)/2.  Geom.: Sₙ = a₁·(1−qⁿ)/(1−q).  Słupki pokazują wkłady kolejnych wyrazów.',
+  sliders: [
+    { id: 'n', lbl: 'n', color: COLORS.GREEN, min: 1, max: N_TERMS, step: 1, val: 5 },
+    { id: 'd', lbl: 'd', color: COLORS.CYAN, min: -1, max: 3, step: 0.1, val: 1 },
+    { id: 'q', lbl: 'q', color: COLORS.ORANGE, min: 0.3, max: 2.2, step: 0.05, val: 1.4 },
+  ],
+  draw(cx, W, H, v) {
+    const n = Math.round(v.n);
+    const d = v.d, q = v.q;
+
+    // Split canvas: left = arith, right = geom
+    const midX = W / 2;
+
+    // ── Arithmetic (left) ──
+    const aTerms = [];
+    for (let i = 1; i <= N_TERMS; i++) aTerms.push(A1 + (i - 1) * d);
+    const aMax = Math.max(2, ...aTerms) + 0.5;
+    const aMin = Math.min(0, ...aTerms) - 0.5;
+    const gvA = new GraphView(cx, {
+      rect: [10, 30, midX - 20, H - 130],
+      xRange: [0, N_TERMS + 1], yRange: [aMin, aMax],
+    });
+    gvA.drawGrid({ color: 'rgba(255,255,255,0.04)' });
+    gvA.drawAxes({ color: 'rgba(255,255,255,0.2)' });
+
+    let Sa = 0;
+    for (let i = 1; i <= N_TERMS; i++) {
+      const val = aTerms[i - 1];
+      const xC = gvA.px(i);
+      const bw = Math.max(6, gvA.sc * 0.3);
+      const yTop = gvA.py(Math.max(0, val));
+      const yBot = gvA.py(Math.min(0, val));
+      const active = i <= n;
+      cx.fillStyle = active ? 'rgba(88,196,221,0.45)' : 'rgba(88,196,221,0.08)';
+      cx.fillRect(xC - bw / 2, yTop, bw, yBot - yTop);
+      cx.strokeStyle = active ? COLORS.CYAN : 'rgba(88,196,221,0.2)';
+      cx.lineWidth = 1;
+      cx.strokeRect(xC - bw / 2, yTop, bw, yBot - yTop);
+      if (active) Sa += val;
+    }
+
+    drawTextC(cx, 'ciąg arytmetyczny', midX / 2, 16,
+      'bold 13px monospace', COLORS.CYAN);
+
+    // ── Geometric (right) ──
+    const gTerms = [];
+    for (let i = 1; i <= N_TERMS; i++) gTerms.push(A1 * Math.pow(q, i - 1));
+    const gMax = Math.max(2, ...gTerms) + 0.5;
+    const gvG = new GraphView(cx, {
+      rect: [midX + 10, 30, midX - 20, H - 130],
+      xRange: [0, N_TERMS + 1], yRange: [0, gMax],
+    });
+    gvG.drawGrid({ color: 'rgba(255,255,255,0.04)' });
+    gvG.drawAxes({ color: 'rgba(255,255,255,0.2)' });
+
+    let Sg = 0;
+    for (let i = 1; i <= N_TERMS; i++) {
+      const val = gTerms[i - 1];
+      const xC = gvG.px(i);
+      const bw = Math.max(6, gvG.sc * 0.3);
+      const yTop = gvG.py(val);
+      const yBot = gvG.py(0);
+      const active = i <= n;
+      cx.fillStyle = active ? 'rgba(255,107,53,0.45)' : 'rgba(255,107,53,0.08)';
+      cx.fillRect(xC - bw / 2, yTop, bw, yBot - yTop);
+      cx.strokeStyle = active ? COLORS.ORANGE : 'rgba(255,107,53,0.2)';
+      cx.lineWidth = 1;
+      cx.strokeRect(xC - bw / 2, yTop, bw, yBot - yTop);
+      if (active) Sg += val;
+    }
+
+    drawTextC(cx, 'ciąg geometryczny', midX + midX / 2, 16,
+      'bold 13px monospace', COLORS.ORANGE);
+
+    // Bottom bar with formulas + live numbers
+    const bY = H - 92;
+    cx.fillStyle = 'rgba(255,255,255,0.04)';
+    cx.fillRect(10, bY, W - 20, 80);
+
+    const an = A1 + (n - 1) * d;
+    const aFormula = `S${n} = ${n}·(${A1}+${an.toFixed(1)})/2 = ${Sa.toFixed(2)}`;
+    drawTextC(cx, 'Sₙ = n(a₁ + aₙ) / 2', midX / 2, bY + 20,
+      '12px monospace', 'rgba(255,255,255,0.55)');
+    drawTextC(cx, aFormula, midX / 2, bY + 40,
+      'bold 13px monospace', COLORS.CYAN);
+
+    let gText;
+    if (Math.abs(q - 1) < 0.01) {
+      gText = `S${n} = n·a₁ = ${(n * A1).toFixed(2)}`;
+    } else {
+      const num = 1 - Math.pow(q, n);
+      const den = 1 - q;
+      gText = `S${n} = ${A1}·(1−${q.toFixed(2)}^${n})/(1−${q.toFixed(2)}) = ${(A1 * num / den).toFixed(2)}`;
+    }
+    drawTextC(cx, 'Sₙ = a₁·(1 − qⁿ)/(1 − q)', midX + midX / 2, bY + 20,
+      '12px monospace', 'rgba(255,255,255,0.55)');
+    drawTextC(cx, gText, midX + midX / 2, bY + 40,
+      'bold 13px monospace', COLORS.ORANGE);
+
+    drawTextC(cx, `n = ${n}`, W / 2, bY + 66,
+      'bold 13px monospace', COLORS.GREEN);
+  },
+};
+
+// ── Stage 4: Granica szeregu geom. ───────────────────────────────
+const stage4 = {
+  title: () => 'Granica — szereg geometryczny zbieżny',
+  desc:  () => '|q| < 1  ⇒  S∞ = a₁ / (1 − q). Sumy częściowe Sₙ zbiegają do tej wartości.',
+  sliders: [
+    { id: 'q', lbl: 'q', color: COLORS.ORANGE, min: -0.95, max: 0.95, step: 0.02, val: 0.6 },
+  ],
+  draw(cx, W, H, v) {
+    const q = v.q;
+    const N = 30;
+    const partials = [];
+    let S = 0;
+    for (let i = 1; i <= N; i++) {
+      S += A1 * Math.pow(q, i - 1);
+      partials.push(S);
+    }
+    const Sinf = A1 / (1 - q);
+
+    // Plot partial sums
+    const yAll = [...partials, Sinf, 0];
+    const yMin = Math.min(...yAll) - 0.3;
+    const yMax = Math.max(...yAll) + 0.3;
+
+    const gv = new GraphView(cx, {
+      rect: [20, 20, W - 40, H - 110],
+      xRange: [0, N + 1], yRange: [yMin, yMax],
+    });
+    gv.drawGrid({ color: 'rgba(255,255,255,0.04)' });
+    gv.drawAxes({ color: 'rgba(255,255,255,0.25)' });
+
+    // Limit line
+    gv.horizontalLine(Sinf, { color: COLORS.GREEN, lineWidth: 1.5, dash: [5, 4] });
+    drawTextC(cx, `S∞ = ${Sinf.toFixed(3)}`, gv.px(N), gv.py(Sinf) - 10,
+      'bold 12px monospace', COLORS.GREEN, 'right');
+
+    // Partial sum dots + connecting polyline
+    cx.save();
+    cx.strokeStyle = 'rgba(255,107,53,0.5)';
+    cx.lineWidth = 1.5;
+    cx.beginPath();
+    for (let i = 1; i <= N; i++) {
+      const x = gv.px(i), y = gv.py(partials[i - 1]);
+      if (i === 1) cx.moveTo(x, y); else cx.lineTo(x, y);
+    }
+    cx.stroke();
+    cx.restore();
+
+    for (let i = 1; i <= N; i++) {
+      gv.dot(i, partials[i - 1], { radius: 3, color: COLORS.ORANGE });
+    }
+
+    // Formula bar
+    const bY = H - 82;
+    cx.fillStyle = 'rgba(255,255,255,0.04)';
+    cx.fillRect(20, bY, W - 40, 66);
+
+    drawTextC(cx, 'Warunek zbieżności:  |q| < 1',
+      W / 2, bY + 16, '13px monospace', 'rgba(255,255,255,0.6)');
+    drawTextC(cx, `S∞ = a₁ / (1 − q) = ${A1} / (1 − ${q.toFixed(2)}) = ${Sinf.toFixed(4)}`,
+      W / 2, bY + 36, 'bold 13px monospace', COLORS.GREEN);
+
+    const err = Math.abs(partials[N - 1] - Sinf);
+    drawTextC(cx, `|S${N} − S∞| = ${err.toExponential(2)}`,
+      W / 2, bY + 54, '12px monospace', 'rgba(255,255,255,0.5)');
+  },
+};
+
+VizCore.init({
+  title: 'Ciągi arytmetyczne i geometryczne',
+  H,
+  stages: [stage1, stage2, stage3, stage4],
+});
+</script>
+</body>
+</html>

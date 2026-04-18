@@ -13,3 +13,8 @@ Wartość bezwzględna mierzy odległość liczby od zera na osi liczbowej — n
 
 <!-- example -->
 Na przykład: $|-5| = 5$, bo $-5$ jest w odległości 5 od zera.<br><br>Równanie $|x| = 3$ daje $x = 3$ lub $x = -3$.<br><br>Nierówność $|x - 2| < 3$ oznacza $-1 < x < 5$, czyli wszystkie punkty bliżej niż 3 od punktu 2.
+
+<!-- mistakes -->
+- **Dwa przypadki**: równanie/nierówność z $|\cdot|$ rozbijamy na 2 przypadki ($\geq 0$ i $< 0$), a nie jeden "zdjęcie modułu".
+- **$|a-b| \neq |a| - |b|$**: to nie jest liniowe. Na przykład $|3 - 5| = 2$, ale $|3| - |5| = -2$.
+- **Nierówność $|x| < a$**: to $-a < x < a$, nie $x < a$. Minus często gubi się w rachunku.

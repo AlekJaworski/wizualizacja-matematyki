@@ -157,11 +157,12 @@ const STRINGS = {
                          en: "You can switch language in the filter bar (PL / EN)." },
 
   // ── Hero screen ──────────────────────────────────────────────────
-  heroTitle:     { pl: "Matura coraz bliżej — co jeszcze powtórzyć?",
-                   en: "Find your gaps in mathematics" },
-  heroSub:       { pl: "Odpowiedz na kilkanaście pytań. Pokażemy, od czego zacząć, żeby Twoja wiedza stała na solidnych fundamentach.",
-                   en: "Answer a handful of questions. We'll show you exactly where to start so your knowledge stands on solid foundations." },
+  heroTitle:     { pl: "Nie wiesz, od czego zacząć powtórki?",
+                   en: "Don't know where to start reviewing?" },
+  heroSub:       { pl: "Odpowiedz na 10 pytań — pokażemy 3 tematy, które dadzą Ci największy skok punktów. Nie oceniamy; zawsze możesz kliknąć „Nie wiem\".",
+                   en: "Answer 10 questions — we'll show 3 topics that will give you the biggest score lift. No judgement; you can always click \"I don't know\"." },
   heroStart:     { pl: "Sprawdź się",        en: "Start assessment" },
+  quizDontKnow:  { pl: "Nie wiem",            en: "I don't know" },
   heroBrowse:    { pl: "Przeglądaj mapę →",  en: "Browse the map →" },
   heroMore:      { pl: "Więcej opcji",      en: "More options" },
   heroLength:    { pl: "Czas:",            en: "Length:" },

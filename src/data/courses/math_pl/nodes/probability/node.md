@@ -13,3 +13,8 @@ Prawdopodobieństwo mierzy szansę zajścia zdarzenia — od 0 (niemożliwe) do 
 
 <!-- example -->
 Na przykład: kostka sześcienna. Zdarzenia parzyste: $\{2, 4, 6\}$, więc $P(\text{parzysta}) = \frac{3}{6} = \frac{1}{2}$.<br><br>Zdarzenie przeciwne: $P(\text{NIE parzysta}) = 1 - \frac{1}{2} = \frac{1}{2}$.
+
+<!-- mistakes -->
+- **Ze zwracaniem vs bez zwracania**: w zadaniu z urną musisz wyraźnie sprawdzić, czy kula wraca. Inaczej $|\Omega|$ się różni.
+- **"Co najmniej 1" przez dopełnienie**: $P(\geq 1) = 1 - P(0)$, nie suma $P(1)+P(2)+\ldots$ — to chyba najszybszy trick na maturze.
+- **Sumowanie niezależnych zdarzeń**: $P(A \cup B)$ to NIE zawsze $P(A) + P(B)$. Odejmij iloczyn, jeśli mogą wystąpić razem.

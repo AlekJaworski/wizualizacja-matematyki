@@ -13,3 +13,8 @@ Kombinacja to sposób wyboru $k$ elementów z $n$, w którym kolejność nie ma 
 
 <!-- example -->
 Na przykład: ile 2-osobowych par z grupy $\{A, B, C\}$?<br><br>To AB, AC, BC — 3 pary $= C(3,2) = \frac{3!}{2! \cdot 1!} = 3$. Kolejność nie ma znaczenia: AB to to samo co BA.
+
+<!-- mistakes -->
+- **Kolejność**: kombinacja NIE uwzględnia kolejności, permutacja uwzględnia. "Delegacja 3-osobowa" = kombinacja; "kolejność na podium" = permutacja.
+- **$\binom{n}{k}$ vs $k!$**: $\binom{5}{3} = 10$ (wybieram 3 z 5), ale $5! = 120$ (ustawiam wszystkie 5). Zupełnie różne liczby.
+- **Powtórzenia**: w kombinacji domyślnie bez powtórzeń. Jeśli powtórzenia wolno, używa się innego wzoru ($\binom{n+k-1}{k}$) — i to rzadko na podstawie.

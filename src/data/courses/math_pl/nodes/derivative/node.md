@@ -15,3 +15,8 @@ Pochodna mówi, jak szybko zmienia się funkcja w danym punkcie — to tempo zmi
 
 <!-- example -->
 Policz $f'(x)$ dla $f(x) = 3x^4 - 2x + 7$.<br><br>Rozbij na składniki: $(3x^4)' - (2x)' + (7)'$.<br><br>$(3x^4)' = 3 \cdot 4x^3 = 12x^3 \Rightarrow (2x)' = 2 \Rightarrow (7)' = 0$.<br><br>Składamy: $f'(x) = 12x^3 - 2$.
+
+<!-- mistakes -->
+- **Pochodna stałej = 0**: $(c)' = 0$, nie $c$. Błąd "$(7)' = 7$" kosztuje punkty co roku.
+- **Pochodna iloczynu**: $(f \cdot g)' = f'g + fg'$, nie $f' \cdot g'$. Mnożenie pochodnych to błąd.
+- **Reguła łańcuchowa**: $(f(g(x)))' = f'(g(x)) \cdot g'(x)$ — pochodna zewnętrznej RAZY pochodna wewnętrznej. Pomijanie drugiego czynnika to klasyk.
