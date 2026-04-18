@@ -184,23 +184,78 @@ export function ResultsScreen({
 
         {/* Actions */}
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
-          {/* Primary: learning path for top gap (if gaps exist) */}
-          {hasGaps && lowestGaps[0] && onStartPath && (
-            <button
-              onClick={() => onStartPath(lowestGaps[0].id)}
-              style={{
-                width: "100%", padding: "14px 24px",
-                fontSize: 14, fontWeight: 600, fontFamily: FONT,
-                borderRadius: 8,
-                border: "1px solid #f39c1250",
-                background: "#f39c1218",
-                color: "#f39c12",
-                cursor: "pointer",
-              }}
-            >
-              {t("resultsStartPath", lang)}
-            </button>
-          )}
+          {/* Primary: concrete 20-min task for the top gap (if gaps exist) */}
+          {hasGaps && lowestGaps[0] && onStartPath && (() => {
+            const topic = lowestGaps[0];
+            const topicLabel = getLabel(topic.id) ?? topic.id;
+            return (
+              <div style={{
+                padding: "18px 18px 16px", borderRadius: 12,
+                background: "#f39c1212",
+                border: "1px solid #f39c1240",
+                marginBottom: 8,
+              }}>
+                <div style={{
+                  fontSize: 11, color: "#f39c12", fontWeight: 700,
+                  letterSpacing: "0.08em", textTransform: "uppercase",
+                  marginBottom: 6,
+                }}>
+                  {t("results20minTitle", lang)}
+                </div>
+                <div
+                  style={{
+                    fontSize: 16, color: COLORS.textPrimary, fontWeight: 600,
+                    marginBottom: 6, lineHeight: 1.3,
+                  }}
+                  dangerouslySetInnerHTML={{ __html: renderLatex(topicLabel) }}
+                />
+                <div style={{
+                  fontSize: 12, color: COLORS.textDim,
+                  marginBottom: 14, lineHeight: 1.55,
+                }}>
+                  {t("results20minSub", lang)}
+                </div>
+                <ol style={{
+                  margin: "0 0 14px", padding: 0, listStyle: "none",
+                  display: "flex", flexDirection: "column", gap: 6,
+                }}>
+                  {[
+                    { n: "1", t: t("results20minStep1", lang) },
+                    { n: "2", t: t("results20minStep2", lang) },
+                    { n: "3", t: t("results20minStep3", lang) },
+                  ].map(step => (
+                    <li key={step.n} style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      fontSize: 12, color: COLORS.textBody,
+                    }}>
+                      <span style={{
+                        width: 20, height: 20, borderRadius: "50%",
+                        background: "#f39c1220",
+                        border: "1px solid #f39c1260",
+                        display: "inline-flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 10, color: "#f39c12", fontWeight: 700, flexShrink: 0,
+                      }}>{step.n}</span>
+                      <span>{step.t}</span>
+                    </li>
+                  ))}
+                </ol>
+                <button
+                  onClick={() => onStartPath(topic.id)}
+                  style={{
+                    width: "100%", padding: "12px 18px",
+                    fontSize: 14, fontWeight: 600, fontFamily: FONT,
+                    borderRadius: 8,
+                    border: "1px solid #f39c1260",
+                    background: "#f39c12",
+                    color: "#0e0e12",
+                    cursor: "pointer",
+                  }}
+                >
+                  {t("results20minCta", lang)}
+                </button>
+              </div>
+            );
+          })()}
 
           {/* Secondary: see map */}
           <button

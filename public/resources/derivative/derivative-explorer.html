@@ -166,7 +166,7 @@ function drawStage0(){
     gv.segment(x0, y0, x1, y0, {color:'rgba(255,255,255,.2)', lineWidth:1, dash:[3,3]});
     gv.segment(x1, y0, x1, y1, {color:'rgba(255,255,255,.2)', lineWidth:1, dash:[3,3]});
     // labels
-    cx.fillStyle='rgba(255,255,255,.5)';cx.font='11px monospace';cx.textAlign='center';
+    cx.fillStyle='rgba(255,255,255,.5)';cx.font='12px monospace';cx.textAlign='center';
     cx.fillText('\u0394x='+sDx.toFixed(2), (gv.px(x0)+gv.px(x1))/2, gv.py(y0)+14);
     cx.fillText('\u0394y='+(y1-y0).toFixed(2), gv.px(x1)+30, (gv.py(y0)+gv.py(y1))/2);
   }
@@ -179,7 +179,7 @@ function drawStage0(){
     cx.fillText('= f\u2032(1) = 2',14,42);
   }
   // True derivative reference
-  cx.fillStyle='rgba(255,255,255,.3)';cx.font='11px monospace';cx.textAlign='right';
+  cx.fillStyle='rgba(255,255,255,.3)';cx.font='12px monospace';cx.textAlign='right';
   cx.fillText(T('dok\u0142adne','true')+' f\u2032(1) = 2.000',W-10,24);
 }
 
@@ -212,12 +212,12 @@ function drawStage1(){
   cx.beginPath();cx.moveTo(barX,barY0+20);cx.lineTo(barX,barY0-barH);cx.stroke();
   // marker
   const markerY=Math.max(barY0-barH,Math.min(barY0+20, gv.py(0)-slope*gv.scale/4*2));
-  cx.fillStyle=DERIV;cx.font='11px monospace';cx.textAlign='right';
+  cx.fillStyle=DERIV;cx.font='12px monospace';cx.textAlign='right';
   cx.fillText('f\u2032='+slope.toFixed(2),barX-6,markerY+4);
   gv.dotScreen(barX,markerY,{radius:4,color:DERIV});
 
   // Point coordinates
-  cx.fillStyle='rgba(255,255,255,.4)';cx.font='11px monospace';cx.textAlign='left';
+  cx.fillStyle='rgba(255,255,255,.4)';cx.font='12px monospace';cx.textAlign='left';
   cx.fillText('('+x0.toFixed(2)+', '+y0.toFixed(2)+')', gv.px(x0)+10, gv.py(y0)-8);
 }
 
@@ -280,7 +280,7 @@ function drawStage2(){
     const cpx=top.px(cx0);
     if(cpy_top>0&&cpy_top<topH){
       top.dot(cx0, f(cx0), {radius:4, color:ROOT});
-      cx.fillStyle=ROOT;cx.font='10px monospace';cx.textAlign='center';
+      cx.fillStyle=ROOT;cx.font='12px monospace';cx.textAlign='center';
       cx.fillText(cx0===-1?T('maks.','max'):T('min.','min'), cpx, cpy_top+(cx0===-1?-10:14));
     }
     bot.dot(cx0, 0, {radius:4, color:ROOT});
@@ -292,14 +292,14 @@ function drawStage2(){
   cx.fillStyle=DERIV;cx.fillText('f\u2032(x) = 3x\u00B2 \u2212 3',10,botTop+16);
 
   // Values at sync point
-  cx.fillStyle='rgba(255,255,255,.5)';cx.font='11px monospace';cx.textAlign='right';
+  cx.fillStyle='rgba(255,255,255,.5)';cx.font='12px monospace';cx.textAlign='right';
   cx.fillText('f('+x.toFixed(2)+') = '+yf.toFixed(2),W-10,16);
   cx.fillText('f\u2032('+x.toFixed(2)+') = '+yfp.toFixed(2),W-10,botTop+16);
 
   // Sign indicator
   const sign=yfp>0.01?T('> 0  (rosn\u0105ca)','> 0  (increasing)'):yfp<-0.01?T('< 0  (malej\u0105ca)','< 0  (decreasing)'):T('\u2248 0  (ekstremum)','\u2248 0  (extremum)');
   const signCol=yfp>0.01?TANG:yfp<-0.01?'#FF6B6B':ROOT;
-  cx.fillStyle=signCol;cx.font='11px monospace';cx.textAlign='right';
+  cx.fillStyle=signCol;cx.font='12px monospace';cx.textAlign='right';
   cx.fillText('f\u2032 '+sign,W-10,botTop+32);
 }
 
@@ -332,7 +332,7 @@ function drawStage3(){
   }
 
   // Legend
-  cx.fillStyle=CURVE;cx.font='11px monospace';cx.textAlign='right';
+  cx.fillStyle=CURVE;cx.font='12px monospace';cx.textAlign='right';
   cx.fillText('\u2500\u2500 f(x)',W-10,24);
   cx.fillStyle=DERIV;
   cx.fillText('\u2500\u2500 f\u2032(x)',W-10,40);
@@ -341,7 +341,7 @@ function drawStage3(){
   const x1=1,y1=f(x1),yp1=fp(x1);
   gv.dot(x1, y1, {radius:4, color:CURVE});
   gv.dot(x1, yp1, {radius:4, color:DERIV});
-  cx.fillStyle='rgba(255,255,255,.4)';cx.font='10px monospace';cx.textAlign='left';
+  cx.fillStyle='rgba(255,255,255,.4)';cx.font='12px monospace';cx.textAlign='left';
   cx.fillText('f(1)='+y1.toFixed(0), gv.px(x1)+8, gv.py(y1)-4);
   cx.fillText('f\u2032(1)='+yp1.toFixed(0), gv.px(x1)+8, gv.py(yp1)+14);
 }
@@ -375,9 +375,9 @@ function drawStage4(){
 
     // Label
     const cpx=gv.px(cp.x), cpy=gv.py(f(cp.x));
-    cx.fillStyle=ROOT;cx.font='bold 11px monospace';cx.textAlign='center';
+    cx.fillStyle=ROOT;cx.font='bold 12px monospace';cx.textAlign='center';
     cx.fillText(cp.label,cpx,cpy+cp.yOff);
-    cx.fillStyle='rgba(255,255,255,.4)';cx.font='10px monospace';
+    cx.fillStyle='rgba(255,255,255,.4)';cx.font='12px monospace';
     cx.fillText('('+cp.x+', '+f(cp.x).toFixed(1)+')',cpx,cpy+cp.yOff+(cp.yOff>0?14:-14));
   });
 
@@ -387,7 +387,7 @@ function drawStage4(){
   cx.strokeStyle='rgba(255,255,255,.1)';cx.lineWidth=0.5;
   cx.strokeRect(8,H-48,240,42);
 
-  cx.font='11px monospace';cx.textAlign='left';
+  cx.font='12px monospace';cx.textAlign='left';
   cx.fillStyle='rgba(255,255,255,.5)';cx.fillText(T('znak f\u2032:','f\u2032 sign:'),16,H-32);
   cx.fillStyle=TANG;cx.fillText('+ + +',76,H-32);
   cx.fillStyle='rgba(255,255,255,.3)';cx.fillText('|',118,H-32);
@@ -395,7 +395,7 @@ function drawStage4(){
   cx.fillStyle='rgba(255,255,255,.3)';cx.fillText('|',168,H-32);
   cx.fillStyle=TANG;cx.fillText('+ + +',176,H-32);
 
-  cx.fillStyle='rgba(255,255,255,.35)';cx.font='10px monospace';
+  cx.fillStyle='rgba(255,255,255,.35)';cx.font='12px monospace';
   cx.fillText('x<\u22121',82,H-16);
   cx.fillText('\u22121<x<1',122,H-16);
   cx.fillText('x>1',182,H-16);
@@ -406,9 +406,9 @@ function drawStage4(){
   cx.fillStyle=DERIV;cx.fillText('f\u2032(x) = 3x\u00B2 \u2212 3',14,38);
 
   // f'(x)=0 label
-  cx.fillStyle='rgba(255,255,255,.4)';cx.font='11px monospace';cx.textAlign='right';
+  cx.fillStyle='rgba(255,255,255,.4)';cx.font='12px monospace';cx.textAlign='right';
   cx.fillText(T('f\u2032(x) = 0 dla x = \u00B11','f\u2032(x) = 0 at x = \u00B11'),W-10,20);
-  cx.fillStyle='rgba(255,255,255,.28)';cx.font='10px monospace';
+  cx.fillStyle='rgba(255,255,255,.28)';cx.font='12px monospace';
   cx.fillText(T('zmiana znaku f\u2032 \u2192 ekstremum','sign change of f\u2032 \u2192 extremum'),W-10,34);
 }
 
