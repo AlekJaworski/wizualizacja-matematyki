@@ -67,7 +67,7 @@ const { cx, W, H } = VizCore.init({
         'f(x) = x²,  g(x) = 2x+1. To compute f(g(x)): substitute g(x) in place of x in f. So f(g(x)) = (g(x))² = (2x+1)².'
       ),
       sliders: [
-        { id: 'step', lbl: 'krok', color: COLORS.CYAN, min: 0, max: 4, step: 1, val: 0 },
+        { id: 'step', lbl: 'krok', color: COLORS.CYAN, min: 0, max: 4, step: 1, val: 0, stepper: true },
       ],
       draw(cx, W, H, vals) {
         const step = Math.round(vals.step);

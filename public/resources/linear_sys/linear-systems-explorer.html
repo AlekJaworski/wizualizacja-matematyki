@@ -17,6 +17,12 @@
   .slider-row span.lbl { font-family: monospace; min-width: 36px; }
   .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
   .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+  .stepper-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .stepper-row span.lbl { font-family: monospace; min-width: 36px; }
+  .stepper-row .stepper { display: flex; gap: 6px; flex: 1; }
+  .stepper-row .stepper button { min-width: 28px; padding: 4px 8px; background: transparent; color: rgba(255,255,255,.5); border: 1px solid rgba(255,255,255,.18); border-radius: 6px; cursor: pointer; font-family: monospace; font-size: 12px; transition: all .15s; }
+  .stepper-row .stepper button.active { color: #58C4DD; border-color: #58C4DD; background: rgba(88,196,221,.12); }
+  .stepper-row .stepper button:hover:not(.active) { color: rgba(255,255,255,.8); border-color: rgba(255,255,255,.3); }
   .nav { display: flex; align-items: center; justify-content: space-between; }
   button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
   button:hover { background: rgba(255,255,255,.08); }
@@ -364,7 +370,7 @@ import { GraphView } from '../lib/graph-core.js';
         { id: 'b1s', lbl: 'b\u2081', color: COL_L1, min: -4, max: 4, step: 1, get: function() { return b1; }, set: function(v) { b1 = v; } },
         { id: 'm2s', lbl: 'm\u2082', color: COL_L2, min: -3, max: 3, step: 0.5, get: function() { return m2; }, set: function(v) { m2 = v; } },
         { id: 'b2s', lbl: 'b\u2082', color: COL_L2, min: -4, max: 4, step: 1, get: function() { return b2; }, set: function(v) { b2 = v; } },
-        { id: 'substep', lbl: T('krok', 'step'), color: COL_YEL, min: 0, max: 4, step: 1, get: function() { return substStep; }, set: function(v) { substStep = v; } },
+        { id: 'substep', lbl: T('krok', 'step'), color: COL_YEL, min: 0, max: 4, step: 1, stepper: true, get: function() { return substStep; }, set: function(v) { substStep = v; } },
       ],
       draw: function() {
         // Show lines dimmed
@@ -445,24 +451,55 @@ import { GraphView } from '../lib/graph-core.js';
     var html = '<div class="sliders">';
     defs.forEach(function(s) {
       var v = s.get();
-      html += '<div class="slider-row">' +
-        '<span class="lbl" style="color:' + s.color + '">' + s.lbl + ' =</span>' +
-        '<input type="range" id="s_' + s.id + '" min="' + s.min + '" max="' + s.max + '" step="' + s.step + '" value="' + v + '">' +
-        '<span class="val" id="v_' + s.id + '" style="color:' + s.color + '"></span>' +
-      '</div>';
+      if (s.stepper) {
+        var count = (s.max - s.min) + 1;
+        var accent = s.color || '#58C4DD';
+        var btns = '';
+        for (var i = 0; i < count; i++) {
+          var vv = s.min + i;
+          btns += '<button type="button" data-step="' + vv + '"' + (vv === v ? ' class="active"' : '') +
+                  ' style="' + (vv === v ? 'color:' + accent + ';border-color:' + accent + ';background:' + accent + '1f;' : '') + '">' + (i + 1) + '</button>';
+        }
+        html += '<div class="stepper-row">' +
+          '<span class="lbl" style="color:' + accent + '">' + s.lbl + '</span>' +
+          '<div class="stepper" id="s_' + s.id + '">' + btns + '</div>' +
+        '</div>';
+      } else {
+        html += '<div class="slider-row">' +
+          '<span class="lbl" style="color:' + s.color + '">' + s.lbl + ' =</span>' +
+          '<input type="range" id="s_' + s.id + '" min="' + s.min + '" max="' + s.max + '" step="' + s.step + '" value="' + v + '">' +
+          '<span class="val" id="v_' + s.id + '" style="color:' + s.color + '"></span>' +
+        '</div>';
+      }
     });
     html += '</div>';
     slWrap.innerHTML = html;
 
     defs.forEach(function(s) {
-      var el = document.getElementById('s_' + s.id);
-      var valEl = document.getElementById('v_' + s.id);
-      valEl.textContent = fmtSlider(+el.value, s.step);
-      el.addEventListener('input', function() {
-        var v = +this.value;
-        valEl.textContent = fmtSlider(v, s.step);
-        s.set(v);
-      });
+      if (s.stepper) {
+        var accent = s.color || '#58C4DD';
+        var host = document.getElementById('s_' + s.id);
+        host.querySelectorAll('button').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            var nv = +btn.dataset.step;
+            s.set(nv);
+            host.querySelectorAll('button').forEach(function(b) {
+              var on = +b.dataset.step === nv;
+              b.classList.toggle('active', on);
+              b.style.cssText = on ? 'color:' + accent + ';border-color:' + accent + ';background:' + accent + '1f;' : '';
+            });
+          });
+        });
+      } else {
+        var el = document.getElementById('s_' + s.id);
+        var valEl = document.getElementById('v_' + s.id);
+        valEl.textContent = fmtSlider(+el.value, s.step);
+        el.addEventListener('input', function() {
+          var v = +this.value;
+          valEl.textContent = fmtSlider(v, s.step);
+          s.set(v);
+        });
+      }
     });
   }
 

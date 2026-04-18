@@ -72,7 +72,7 @@ const { cx, W, H } = VizCore.init({
         'Question: 2 to what power gives x? Answer: log₂(x) = 3 means 2³ = x. Step by step.'
       ),
       sliders: [
-        { id: 'step', lbl: 'krok', color: COLORS.CYAN, min: 0, max: 3, step: 1, val: 0 },
+        { id: 'step', lbl: 'krok', color: COLORS.CYAN, min: 0, max: 3, step: 1, val: 0, stepper: true },
       ],
       draw(cx, W, H, vals) {
         const step = Math.round(vals.step);
@@ -93,7 +93,7 @@ const { cx, W, H } = VizCore.init({
         'Use the rule log(A)+log(B)=log(A·B) to merge the logarithms, then convert to exponential form.'
       ),
       sliders: [
-        { id: 'step', lbl: 'krok', color: COLORS.CYAN, min: 0, max: 5, step: 1, val: 0 },
+        { id: 'step', lbl: 'krok', color: COLORS.CYAN, min: 0, max: 5, step: 1, val: 0, stepper: true },
       ],
       draw(cx, W, H, vals) {
         const step = Math.round(vals.step);
@@ -116,7 +116,7 @@ const { cx, W, H } = VizCore.init({
         'Exponential equation: bring both sides to the same base. If aˣ = aⁿ, then x = n.'
       ),
       sliders: [
-        { id: 'step', lbl: 'krok', color: COLORS.CYAN, min: 0, max: 3, step: 1, val: 0 },
+        { id: 'step', lbl: 'krok', color: COLORS.CYAN, min: 0, max: 3, step: 1, val: 0, stepper: true },
       ],
       draw(cx, W, H, vals) {
         const step = Math.round(vals.step);
@@ -137,7 +137,7 @@ const { cx, W, H } = VizCore.init({
         'Harder: the exponent contains the variable. Bring to the same base, then solve the linear equation for the exponent.'
       ),
       sliders: [
-        { id: 'step', lbl: 'krok', color: COLORS.CYAN, min: 0, max: 4, step: 1, val: 0 },
+        { id: 'step', lbl: 'krok', color: COLORS.CYAN, min: 0, max: 4, step: 1, val: 0, stepper: true },
       ],
       draw(cx, W, H, vals) {
         const step = Math.round(vals.step);
@@ -159,7 +159,7 @@ const { cx, W, H } = VizCore.init({
         'Key: 4ˣ = (2²)ˣ = (2ˣ)². Substitute t = 2ˣ and get a quadratic equation!'
       ),
       sliders: [
-        { id: 'step', lbl: 'krok', color: COLORS.CYAN, min: 0, max: 6, step: 1, val: 0 },
+        { id: 'step', lbl: 'krok', color: COLORS.CYAN, min: 0, max: 6, step: 1, val: 0, stepper: true },
       ],
       draw(cx, W, H, vals) {
         const step = Math.round(vals.step);

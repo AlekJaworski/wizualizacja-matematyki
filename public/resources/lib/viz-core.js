@@ -237,6 +237,17 @@ canvas.draggable:active { cursor: grabbing; }
 .slider-row span.lbl { font-family: monospace; min-width: 36px; }
 .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
 .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+.stepper-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); flex-wrap: wrap; }
+.stepper-row span.lbl { font-family: monospace; min-width: 36px; }
+.stepper-row .stepper { display: flex; gap: 6px; flex: 1; }
+.stepper-row .stepper button { min-width: 28px; padding: 4px 8px; background: transparent; color: rgba(255,255,255,.5); border: 1px solid rgba(255,255,255,.18); border-radius: 6px; cursor: pointer; font-family: monospace; font-size: 12px; transition: all .15s; }
+.stepper-row .stepper button.active { color: #58C4DD; border-color: #58C4DD; background: rgba(88,196,221,.12); }
+.stepper-row .stepper button:hover:not(.active) { color: rgba(255,255,255,.8); border-color: rgba(255,255,255,.3); }
+.stepper-row .step-nav { display: flex; align-items: center; gap: 8px; flex: 1; }
+.stepper-row .step-nav button { min-width: 32px; padding: 4px 10px; background: transparent; color: rgba(255,255,255,.6); border: 1px solid rgba(255,255,255,.18); border-radius: 6px; cursor: pointer; font-family: monospace; font-size: 13px; }
+.stepper-row .step-nav button:hover:not(:disabled) { color: #58C4DD; border-color: #58C4DD; }
+.stepper-row .step-nav button:disabled { opacity: .25; cursor: default; }
+.stepper-row .step-nav .step-label { font-family: monospace; color: rgba(255,255,255,.6); font-size: 12px; min-width: 80px; text-align: center; }
 .nav { display: flex; align-items: center; justify-content: space-between; }
 button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
 button:hover { background: rgba(255,255,255,.08); }
@@ -303,21 +314,78 @@ export const VizCore = {
       if (!defs || !defs.length) { slWrap.innerHTML = ''; return; }
       let html = '<div class="sliders">';
       defs.forEach(s => {
-        html += `<div class="slider-row">
-          <span class="lbl" style="color:${s.color}">${s.lbl} =</span>
-          <input type="range" id="s_${s.id}" min="${s.min}" max="${s.max}" step="${s.step}" value="${s.val}">
-          <span class="val" id="v_${s.id}" style="color:${s.color}"></span>
-        </div>`;
+        if (s.stepper) {
+          const count = (s.max - s.min) + 1;
+          const accent = s.color || '#58C4DD';
+          if (count <= 6) {
+            // Pattern A: numbered buttons
+            let btns = '';
+            for (let i = 0; i < count; i++) {
+              const v = s.min + i;
+              btns += `<button type="button" data-step="${v}" data-sid="${s.id}"${v === s.val ? ' class="active"' : ''} style="${v === s.val ? `color:${accent};border-color:${accent};background:${accent}1f;` : ''}">${i + 1}</button>`;
+            }
+            html += `<div class="stepper-row">
+              <span class="lbl" style="color:${accent}">${s.lbl}</span>
+              <div class="stepper" id="s_${s.id}">${btns}</div>
+            </div>`;
+          } else {
+            // Pattern B: prev/next with label
+            html += `<div class="stepper-row">
+              <span class="lbl" style="color:${accent}">${s.lbl}</span>
+              <div class="step-nav" id="s_${s.id}">
+                <button type="button" data-nav="prev" data-sid="${s.id}">&larr;</button>
+                <span class="step-label" id="sl_${s.id}"></span>
+                <button type="button" data-nav="next" data-sid="${s.id}">&rarr;</button>
+              </div>
+            </div>`;
+          }
+        } else {
+          html += `<div class="slider-row">
+            <span class="lbl" style="color:${s.color}">${s.lbl} =</span>
+            <input type="range" id="s_${s.id}" min="${s.min}" max="${s.max}" step="${s.step}" value="${s.val}">
+            <span class="val" id="v_${s.id}" style="color:${s.color}"></span>
+          </div>`;
+        }
       });
       html += '</div>';
       slWrap.innerHTML = html;
       defs.forEach(s => {
-        const el = document.getElementById('s_' + s.id);
-        document.getElementById('v_' + s.id).textContent = fmtVal(s.step, el.value);
-        el.addEventListener('input', function () {
-          s.val = +this.value;
-          document.getElementById('v_' + s.id).textContent = fmtVal(s.step, this.value);
-        });
+        if (s.stepper) {
+          const count = (s.max - s.min) + 1;
+          const accent = s.color || '#58C4DD';
+          const host = document.getElementById('s_' + s.id);
+          if (count <= 6) {
+            host.querySelectorAll('button').forEach(btn => {
+              btn.addEventListener('click', () => {
+                s.val = +btn.dataset.step;
+                host.querySelectorAll('button').forEach(b => {
+                  const on = +b.dataset.step === s.val;
+                  b.classList.toggle('active', on);
+                  b.style.cssText = on ? `color:${accent};border-color:${accent};background:${accent}1f;` : '';
+                });
+              });
+            });
+          } else {
+            const lbl = document.getElementById('sl_' + s.id);
+            const updateLabel = () => { lbl.textContent = `${s.lbl} ${s.val - s.min + 1} / ${count}`; };
+            const prev = host.querySelector('[data-nav="prev"]');
+            const next = host.querySelector('[data-nav="next"]');
+            const syncBtns = () => {
+              prev.disabled = s.val <= s.min;
+              next.disabled = s.val >= s.max;
+            };
+            updateLabel(); syncBtns();
+            prev.addEventListener('click', () => { if (s.val > s.min) { s.val--; updateLabel(); syncBtns(); } });
+            next.addEventListener('click', () => { if (s.val < s.max) { s.val++; updateLabel(); syncBtns(); } });
+          }
+        } else {
+          const el = document.getElementById('s_' + s.id);
+          document.getElementById('v_' + s.id).textContent = fmtVal(s.step, el.value);
+          el.addEventListener('input', function () {
+            s.val = +this.value;
+            document.getElementById('v_' + s.id).textContent = fmtVal(s.step, this.value);
+          });
+        }
       });
     }
 
