@@ -19,10 +19,10 @@ import { t } from "../../i18n.js";
  *   lang
  *   isMobile
  */
-export function QuizPanel({ nodeId, nodes, questionBank, onAnswer, onSkip, lang, excludeIndices = [], isMobile }) {
+export function QuizPanel({ nodeId, nodes, questionBank, onAnswer, onSkip, lang, excludeIndices = [], isMobile, sourceFilter = null }) {
   const node  = nodes.find(n => n.id === nodeId);
-  const q     = useMemo(() => getQuestion(questionBank, nodeId, excludeIndices), [nodeId, excludeIndices]);
-  const color = "#4a9eff";
+  const q     = useMemo(() => getQuestion(questionBank, nodeId, excludeIndices, sourceFilter), [nodeId, excludeIndices, sourceFilter]);
+  const color = sourceFilter === "cke" ? "#FFD166" : "#4a9eff";
   const lbl   = node ? (lang === "pl" ? node.labelPl : node.label) : nodeId;
 
   // Stable shuffle for this question
@@ -105,7 +105,17 @@ export function QuizPanel({ nodeId, nodes, questionBank, onAnswer, onSkip, lang,
         display: "flex", justifyContent: "space-between",
         alignItems: "center", marginBottom: 10,
       }}>
-        <div style={{ color, fontWeight: 700, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{lbl}</div>
+        <div style={{ color, fontWeight: 700, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+          {lbl}
+          {sourceFilter === "cke" && (
+            <span style={{
+              marginLeft: 8, fontSize: 10, fontWeight: 600,
+              padding: "2px 6px", borderRadius: 4,
+              background: `${color}22`, color, border: `1px solid ${color}40`,
+              letterSpacing: "0.04em",
+            }}>CKE</span>
+          )}
+        </div>
         <button
           onClick={() => onSkip(q?.index ?? -1)}
           style={{

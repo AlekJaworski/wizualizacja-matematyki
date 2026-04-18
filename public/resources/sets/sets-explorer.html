@@ -456,7 +456,47 @@
       }
     },
 
-    // Stage 5: Prawa De Morgana
+    // Stage 5: Wszechświat U i dopełnienie
+    {
+      title: () => T('Wszechświat U i dopełnienie', 'Universe U and complement'),
+      desc: () => T(
+        'U — wszechświat — to zbiór, w którym „żyją" wszystkie nasze zbiory (tutaj: wszyscy uczniowie klasy). Prostokąt to właśnie U. Dopełnienie A\' to „całe U bez A" — żółty obszar poza kółkiem A. Bez ustalonego U nie da się mówić o dopełnieniu, a bez dopełnienia — o prawach De Morgana.',
+        'U — the universe — is the set all other sets live inside (here: every student in the class). The rectangle is U. The complement A\' is "all of U except A" — the yellow region outside circle A. Without a fixed U you cannot talk about complement, and without complement there are no De Morgan\'s laws.'
+      ),
+      sliders: [
+        { id: 'sA', lbl: '|A|', color: COL_A, min: 1, max: 25, step: 1, val: sA },
+        { id: 'sB', lbl: '|B|', color: COL_B, min: 1, max: 25, step: 1, val: sB },
+        { id: 'sAB', lbl: '|A∩B|', color: COL_AB, min: 0, max: 15, step: 1, val: sAB },
+      ],
+      buttons: [],
+      draw() {
+        const r = regionCounts();
+        drawUniverseBox(0.8);
+
+        // Highlight complement of A (everything in U outside circle A)
+        const compColor = COL_YELLOW;
+        fillRegion((x, y) => !inCircleA(x, y) && x > 30 && x < 570 && y > 15 && y < 290, compColor, 0.13);
+
+        drawVennCircles(0.6, 0.35);
+
+        // Dots
+        const dots = getAllDots();
+        dots.dotsOnlyA.forEach(d => drawDot(d.x, d.y, COL_A, 5, true));
+        dots.dotsBoth.forEach(d => drawDot(d.x, d.y, COL_AB, 5, true));
+        dots.dotsOnlyB.forEach(d => drawDot(d.x, d.y, COL_B, 5, true, 0.85));
+        dots.dotsNeither.forEach(d => drawDot(d.x, d.y, compColor, 5, true));
+
+        // Labels
+        cx.font = '14px monospace'; cx.textAlign = 'center';
+        cx.fillStyle = compColor;
+        cx.fillText(`A' = U \\ A = ${UNIVERSE - sA}`, W / 2, 22);
+        cx.font = '11px monospace';
+        cx.fillStyle = 'rgba(255,255,255,0.55)';
+        cx.fillText(T('prostokąt = U  •  żółty obszar = A\'', 'rectangle = U  •  yellow region = A\''), W / 2, H - 8);
+      }
+    },
+
+    // Stage 6: Prawa De Morgana
     {
       title: () => T('Prawa De Morgana', 'De Morgan\'s Laws'),
       desc: () => {

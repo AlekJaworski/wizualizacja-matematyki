@@ -60,6 +60,7 @@ export default function CurriculumGraph({
   const [hoveredNode,   setHoveredNode]   = useState(null);
   const [openResourceIdx, setOpenResourceIdx] = useState(null);
   const [pathGoal,      setPathGoal]      = useState(null);
+  const [quizSource,    setQuizSource]    = useState(null);
 
   // ── Modals ──────────────────────────────────────────────────────
   const [showGoalModal,   setShowGoalModal]   = useState(false);
@@ -484,7 +485,8 @@ export default function CurriculumGraph({
             onClose={() => setSelected(null)}
             onNavigate={(id) => setSelected(id)}
             onShowPath={(id) => { setSelected(null); setPathGoal(id); }}
-            onQuizMe={(id) => { setSelected(null); setDiagMode(true); setMode("quick"); setQuizNode(id); }}
+            onQuizMe={(id) => { setSelected(null); setDiagMode(true); setMode("quick"); setQuizSource(null); setQuizNode(id); }}
+            onQuizMatura={(id) => { setSelected(null); setDiagMode(true); setMode("quick"); setQuizSource("cke"); setQuizNode(id); }}
           />
         )}
 
@@ -509,6 +511,7 @@ export default function CurriculumGraph({
             questionBank={QUESTION_BANK}
             excludeIndices={getAnsweredIndices(quizNode)}
             isMobile={isMobile}
+            sourceFilter={quizSource}
             onAnswer={(correct, question, questionIndex) => {
               autoAdvanceRef.current = true;
               handleQuizAnswer(quizNode, correct, question, questionIndex);
@@ -518,6 +521,7 @@ export default function CurriculumGraph({
                 setAnsweredQuestions(prev => new Set([...prev, `${quizNode}:${questionIndex}`]));
               }
               setQuizNode(null);
+              setQuizSource(null);
             }}
           />
         )}

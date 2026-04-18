@@ -9,3 +9,7 @@ y: 880
 resources:
   - "interactive|integral-explorer.html|Integral Explorer|Całki — Eksplorator"
 ---
+Całka to dwie rzeczy w jednym: operacja odwrotna do pochodnej (antypochodna) oraz pole pod wykresem funkcji. Te dwa światy spina wzór Newtona–Leibniza.<br><br>Wzór Newtona–Leibniza: $\int_a^b f(x)\,dx = F(b) - F(a)$, gdzie $F$ jest dowolną antypochodną $f$ (czyli $F' = f$). Używasz go zawsze, gdy liczysz całkę oznaczoną.<br><br>Podstawowe antypochodne — trzeba umieć na pamięć:<br>$\int x^n\,dx = \frac{x^{n+1}}{n+1} + C$ (dla $n \neq -1$) — potęgi.<br>$\int \frac{1}{x}\,dx = \ln|x| + C$ — jedyny wyjątek od reguły potęg.<br>$\int e^x\,dx = e^x + C$ — eksponenta sama sobie.<br>$\int \sin x\,dx = -\cos x + C$, $\int \cos x\,dx = \sin x + C$.<br><br>Uwaga praktyczna: gdy wykres leży poniżej osi $x$, całka wychodzi ujemna — to nie błąd, to "pole ze znakiem".
+
+<!-- example -->
+Policz $\int_0^2 3x^2\,dx$.<br><br>Antypochodna: $F(x) = 3 \cdot \frac{x^3}{3} = x^3 \Rightarrow$ sprawdź: $(x^3)' = 3x^2$ ✓.<br><br>Stosujesz Newtona–Leibniza: $\int_0^2 3x^2\,dx = F(2) - F(0) = 8 - 0 = 8$.

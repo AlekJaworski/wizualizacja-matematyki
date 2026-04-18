@@ -18,7 +18,7 @@ import { ResourcePanel } from "../panels/ResourcePanel.jsx";
 export function TopicView({
   nodeId, nodes, adjacency, lang,
   SCOPE_COLORS, SCOPE_LABELS, SECTIONS,
-  belief, evidence, onClose, onNavigate, onShowPath, onQuizMe, QUESTION_BANK,
+  belief, evidence, onClose, onNavigate, onShowPath, onQuizMe, onQuizMatura, QUESTION_BANK,
 }) {
   const [openResourceIdx, setOpenResourceIdx] = useState(null);
 
@@ -131,26 +131,55 @@ export function TopicView({
         {/* ── Description + "nie kumam" example ─────────────────── */}
         {node.body && <NodeDescription body={node.body} lang={lang} />}
 
-        {/* ── Quiz me button ─────────────────────────────────────── */}
-        {onQuizMe && QUESTION_BANK?.[nodeId]?.length > 0 && (
-          <button
-            onClick={() => onQuizMe(nodeId)}
-            style={{
-              width: "100%", padding: "12px 16px", marginBottom: 20,
-              fontSize: 13, fontWeight: 600, fontFamily: FONT,
-              borderRadius: 8,
-              border: `1px solid ${color}40`,
-              background: `${color}10`,
-              color: color,
-              cursor: "pointer",
-              transition: "background 0.15s",
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = `${color}20`; }}
-            onMouseLeave={e => { e.currentTarget.style.background = `${color}10`; }}
-          >
-            {t("topicQuizMe", lang)}
-          </button>
-        )}
+        {/* ── Quiz me buttons ────────────────────────────────────── */}
+        {onQuizMe && QUESTION_BANK?.[nodeId]?.length > 0 && (() => {
+          const ckeCount = QUESTION_BANK[nodeId].filter(q => q.source === "cke").length;
+          return (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
+              <button
+                onClick={() => onQuizMe(nodeId)}
+                style={{
+                  width: "100%", padding: "12px 16px",
+                  fontSize: 13, fontWeight: 600, fontFamily: FONT,
+                  borderRadius: 8,
+                  border: `1px solid ${color}40`,
+                  background: `${color}10`,
+                  color: color,
+                  cursor: "pointer",
+                  transition: "background 0.15s",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = `${color}20`; }}
+                onMouseLeave={e => { e.currentTarget.style.background = `${color}10`; }}
+              >
+                {t("topicQuizMe", lang)}
+              </button>
+              {ckeCount > 0 && onQuizMatura && (
+                <button
+                  onClick={() => onQuizMatura(nodeId)}
+                  style={{
+                    width: "100%", padding: "12px 16px",
+                    fontSize: 13, fontWeight: 600, fontFamily: FONT,
+                    borderRadius: 8,
+                    border: "1px solid #FFD16640",
+                    background: "#FFD16610",
+                    color: "#FFD166",
+                    cursor: "pointer",
+                    transition: "background 0.15s",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = "#FFD16620"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = "#FFD16610"; }}
+                >
+                  <span>{lang === "pl" ? "Pytania maturalne (CKE)" : "Past matura questions (CKE)"}</span>
+                  <span style={{
+                    fontSize: 11, padding: "2px 6px", borderRadius: 4,
+                    background: "#FFD16622", letterSpacing: "0.04em",
+                  }}>{ckeCount}</span>
+                </button>
+              )}
+            </div>
+          );
+        })()}
 
         {/* ── Prerequisites ──────────────────────────────────────── */}
         <Section title={t("prerequisites", lang)} color="#4a9eff" empty={prereqs.length === 0} emptyText={t("noPrereqs", lang)}>

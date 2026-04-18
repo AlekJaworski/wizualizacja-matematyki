@@ -128,6 +128,7 @@ export function buildQuestionBank(questionFiles, idPattern) {
       options: meta.options ?? [],
       correct: meta.correct ?? 0,
       hint:    meta.hint    ?? "",
+      source:  meta.source  ?? null,
       tests:   (meta.tests && typeof meta.tests === "object" && Object.keys(meta.tests).length > 0)
                  ? meta.tests
                  : { [id]: 1.0 },
@@ -142,7 +143,7 @@ export function buildQuestionBank(questionFiles, idPattern) {
  * @param {string} nodeId
  * @param {number[]} excludeIndices
  */
-export function getQuestion(questionBank, nodeId, excludeIndices = []) {
+export function getQuestion(questionBank, nodeId, excludeIndices = [], sourceFilter = null) {
   const qs = questionBank[nodeId];
   if (!qs || qs.length === 0) return null;
 
@@ -152,7 +153,7 @@ export function getQuestion(questionBank, nodeId, excludeIndices = []) {
 
   const available = qs
     .map((q, i) => ({ q, i }))
-    .filter(({ i }) => !excludeIndices.includes(i));
+    .filter(({ q, i }) => !excludeIndices.includes(i) && (sourceFilter ? q.source === sourceFilter : true));
 
   if (available.length === 0) return null;
 
