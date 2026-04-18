@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prawdopodobieństwo — Warsztat</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; color: rgba(255,255,255,.85); }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+
+  .head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+  .head .step { font-size: 11px; color: rgba(255,255,255,.4); letter-spacing: .04em; }
+  .head .title { font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  .desc { font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); margin-bottom: 10px; min-height: 34px; }
+
+  .pips { display: flex; gap: 14px; flex-wrap: wrap; margin: 4px 0 10px; font-size: 12px; }
+  .pip { display: inline-flex; align-items: center; gap: 6px; color: rgba(255,255,255,.55); }
+  .pip .mark { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(255,255,255,.25); display: inline-flex; align-items: center; justify-content: center; font-size: 10px; line-height: 1; }
+  .pip.ok { color: #83C167; }
+  .pip.ok .mark { background: #83C167; border-color: #83C167; color: #0e0e12; }
+  .pip.ok .mark::before { content: "\2713"; }
+
+  .predict { margin-bottom: 10px; }
+  .predict .q { font-size: 13px; color: rgba(255,255,255,.82); margin-bottom: 8px; line-height: 1.55; }
+  .predict .opts { display: flex; flex-direction: column; gap: 6px; }
+  .predict button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.78); padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; transition: background .15s, border-color .15s; }
+  .predict button:hover { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.4); }
+  .predict button.picked { border-color: #58C4DD; color: #58C4DD; }
+  .predict .feedback { margin-top: 8px; font-size: 12px; line-height: 1.55; color: rgba(255,255,255,.7); padding: 8px 10px; border-left: 2px solid #58C4DD; background: rgba(88,196,221,.06); border-radius: 0 4px 4px 0; }
+
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 36px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+
+  .choices { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .choices button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.78); padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; transition: background .15s, border-color .15s; }
+  .choices button:hover { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.4); }
+  .choices button.picked { border-color: #58C4DD; color: #58C4DD; }
+  .choices button.correct { border-color: #83C167; color: #83C167; }
+  .choices button.wrong { border-color: #FF6B6B; color: #FF6B6B; }
+
+  .hints { font-size: 12px; color: rgba(255,255,255,.5); margin: 4px 0 10px; line-height: 1.55; }
+  .hints .hint { padding: 6px 10px; border-left: 2px solid #FFD166; background: rgba(255,209,102,.05); margin-top: 4px; border-radius: 0 4px 4px 0; }
+
+  .nav { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+  .nav button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  .nav button:hover:not(:disabled) { background: rgba(255,255,255,.08); }
+  .nav button:disabled { opacity: .3; cursor: default; }
+  .nav button.primary { border-color: #83C167; color: #83C167; }
+  .nav button.primary:hover { background: rgba(131,193,103,.1); }
+
+  .dots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.15); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  .dot.done { background: #83C167; }
+
+  .solved-note { font-size: 13px; color: #83C167; line-height: 1.55; padding: 8px 10px; border-left: 2px solid #83C167; background: rgba(131,193,103,.06); border-radius: 0 4px 4px 0; margin-bottom: 8px; }
+  .wrapup-note { font-size: 13px; color: #C78DFF; line-height: 1.55; padding: 10px 12px; border-left: 2px solid #C78DFF; background: rgba(199,141,255,.06); border-radius: 0 4px 4px 0; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="310"></canvas>
+  <div class="panel">
+    <div class="head">
+      <span class="step" id="step"></span>
+      <div class="dots" id="dots"></div>
+    </div>
+    <p class="title" id="title"></p>
+    <p class="desc" id="desc"></p>
+    <div id="predict"></div>
+    <div id="sliders-wrap"></div>
+    <div id="choices-wrap"></div>
+    <div class="pips" id="pips"></div>
+    <div class="hints" id="hints"></div>
+    <div id="solved-msg"></div>
+    <div class="nav">
+      <button id="prev">&larr;</button>
+      <button id="next" class="primary">Dalej &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initWarsztat } from '../lib/warsztat-core.js';
+import { drawProbTree } from '../lib/prob-tree.js';
+{
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const W = 600, H = 310;
+
+  // ── Colors ──────────────────────────────────────────────────
+  const COL_CZ   = '#E07090';
+  const COL_NB   = '#58C4DD';
+  const COL_OK   = '#83C167';
+  const COL_HI   = '#FFD166';
+  const COL_DIM  = 'rgba(255,255,255,0.55)';
+  const COL_TEXT = 'rgba(255,255,255,0.82)';
+  const COL_A    = '#58C4DD'; // parzyste
+  const COL_B    = '#83C167'; // podzielne przez 3
+  const COL_AB   = '#C78DFF'; // część wspólna
+  const COL_NONE = 'rgba(255,255,255,0.22)';
+  const COL_R    = '#FF6B6B';
+
+  // ── Helpers ─────────────────────────────────────────────────
+  function clearBG() {
+    ctx.fillStyle = '#0e0e12';
+    ctx.fillRect(0, 0, W, H);
+  }
+  function roundRect(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x+r,y); c.lineTo(x+w-r,y); c.quadraticCurveTo(x+w,y,x+w,y+r);
+    c.lineTo(x+w,y+h-r); c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    c.lineTo(x+r,y+h); c.quadraticCurveTo(x,y+h,x,y+h-r);
+    c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y);
+    c.closePath();
+  }
+  function centerText(text, sx, sy, col, size) {
+    ctx.save();
+    ctx.font = (size || 14) + 'px monospace';
+    ctx.fillStyle = col;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, sx, sy);
+    ctx.restore();
+  }
+
+  // ── Challenge-local state ──────────────────────────────────
+  const C = {
+    picked: null,       // ch1/ch2/ch4 choices id
+    n: 4,               // ch3 slider
+    predictOK3: false,  // ch3 just proceed
+  };
+
+  // ── Challenges ──────────────────────────────────────────────
+  const challenges = [
+    // ─── Ch.1: Drzewko ze zwracaniem ────────────────────────
+    {
+      id: 'ch1',
+      title: 'Drzewko ze zwracaniem',
+      desc: 'Urna: 3 czerwone + 2 niebieskie. Losujemy 2 razy ZE ZWRACANIEM. Policz $P(CC)$.',
+      drawBackground: 'blank',
+      init() { C.picked = null; },
+      predict: {
+        question: 'Co się dzieje z urną po 1. losowaniu?',
+        options: [
+          { label: 'zostaje taka sama', correct: true,  why: 'Tak — ze zwracaniem kulę wrzucamy z powrotem, więc drugie losowanie zaczyna od tego samego składu 3 cz. / 2 nb.' },
+          { label: 'zostaje 1 mniej kul', correct: false, why: 'Tak byłoby BEZ zwracania (zobaczymy to w następnym wyzwaniu).' },
+          { label: 'zostaje 2 mniej kul', correct: false, why: 'Losujemy tylko 1 kulę za jednym razem.' },
+        ],
+      },
+      choices: {
+        question: 'Wybierz poprawny wzór na $P(CC)$:',
+        options: [
+          { id: 'a', label: 'P(CC) = 3/5 · 3/5 = 9/25',   correct: true  },
+          { id: 'b', label: 'P(CC) = 3/5 · 2/4 = 3/10',   correct: false },
+          { id: 'c', label: 'P(CC) = 3/5 + 3/5 = 6/5',    correct: false },
+        ],
+        pick(id) { C.picked = id; },
+      },
+      pips() { return [{ label: 'wybór prawidłowy', ok: C.picked === 'a' }]; },
+      solved() { return C.picked === 'a'; },
+      hints: [
+        'Każda gałąź to osobne losowanie. Każdy liść to jeden możliwy wynik eksperymentu.',
+        'Prawdopodobieństwa wzdłuż jednej gałęzi mnożymy (AND). Między liśćmi sumujemy (OR).',
+        'P(CC) = 3/5 · 3/5 = 9/25.',
+      ],
+      solvedMsg: 'Ze zwracaniem → każde losowanie niezależne → te same prawdopodobieństwa na każdym poziomie.',
+      predictAfter: {
+        question: 'A gdybyśmy losowali 3 razy ze zwracaniem, ile liści ma drzewko?',
+        options: [
+          { label: '4',  correct: false, why: 'To dla 2 losowań.' },
+          { label: '6',  correct: false, why: 'Liczymy 2·2·2 (dla każdego losowania mnożymy, nie dodajemy). 2+2+2 = 6, ale 2·2·2 = 8.' },
+          { label: '8',  correct: true,  why: 'Tak: 2 wyniki × 2 × 2 = 2³ = 8.' },
+          { label: '9',  correct: false, why: 'To $3^2$, ale mamy tylko 2 wyniki (C lub N), więc $2^n$, nie $n^2$.' },
+        ],
+      },
+      draw() {
+        clearBG();
+        const hl = C.picked === 'a';
+        drawProbTree(ctx, {
+          bounds: { x: 10, y: 10, w: W - 20, h: H - 20 },
+          root: { label: '3 cz. / 2 nb.' },
+          title: 'ze zwracaniem · 2 losowania',
+          levels: [
+            {
+              branches: [
+                { label: 'C', p: '3/5', color: COL_CZ },
+                { label: 'N', p: '2/5', color: COL_NB },
+              ],
+            },
+            {
+              branchesPerParent: [
+                [ { label: 'C', p: '3/5', color: COL_CZ }, { label: 'N', p: '2/5', color: COL_NB } ],
+                [ { label: 'C', p: '3/5', color: COL_CZ }, { label: 'N', p: '2/5', color: COL_NB } ],
+              ],
+            },
+          ],
+          leaves: [
+            { label: 'CC', p: '9/25', highlight: hl },
+            { label: 'CN', p: '6/25' },
+            { label: 'NC', p: '6/25' },
+            { label: 'NN', p: '4/25' },
+          ],
+        });
+      },
+    },
+
+    // ─── Ch.2: Bez zwracania ───────────────────────────────
+    {
+      id: 'ch2',
+      title: 'Drzewko BEZ zwracania',
+      desc: 'Ta sama urna: 3 czerwone + 2 niebieskie. Tym razem 2 losowania BEZ ZWRACANIA. Policz $P(CC)$.',
+      drawBackground: 'blank',
+      init() { C.picked = null; },
+      predict: {
+        question: 'Po wylosowaniu czerwonej, ile kul zostaje w urnie?',
+        options: [
+          { label: '5 (kula wraca)', correct: false, why: 'To byłoby ze zwracaniem — jak w poprzednim wyzwaniu.' },
+          { label: '4 (kula nie wraca)', correct: true, why: 'Tak — po wyjęciu czerwonej zostają 2 czerwone i 2 niebieskie, razem 4.' },
+          { label: '3 (wylosowałem 2)', correct: false, why: 'Losujemy tylko 1 naraz; 3 byłoby po wyjęciu dwóch kul.' },
+        ],
+      },
+      choices: {
+        question: 'Wybierz poprawny wzór na $P(CC)$ bez zwracania:',
+        options: [
+          { id: 'a', label: 'P(CC) = 3/5 · 2/4 = 3/10',   correct: true  },
+          { id: 'b', label: 'P(CC) = 3/5 · 3/5 = 9/25',   correct: false },
+          { id: 'c', label: 'P(CC) = 3/5 · 2/5 = 6/25',   correct: false },
+          { id: 'd', label: 'P(CC) = 3/5 − 2/4 = 1/10',   correct: false },
+        ],
+        pick(id) { C.picked = id; },
+      },
+      pips() { return [{ label: 'wybór prawidłowy', ok: C.picked === 'a' }]; },
+      solved() { return C.picked === 'a'; },
+      hints: [
+        'W drugim losowaniu urna ma JEDNĄ KULĘ MNIEJ — mianownik nie jest już 5.',
+        'Mianownik spada o 1 po każdym losowaniu.',
+        'P(CC) = 3/5 · 2/4 = 3/10.',
+      ],
+      solvedMsg: 'Bez zwracania → prawdopodobieństwa w drugim stopniu zmieniają się w zależności od tego, co wylosowałeś. To już prawdopodobieństwo warunkowe.',
+      predictAfter: {
+        question: 'Co jest większe: $P(CC)$ ze zwracaniem czy bez?',
+        options: [
+          { label: 'Ze zwracaniem WIĘCEJ', correct: true, why: 'Tak: 9/25 = 0,36 > 3/10 = 0,30. Ze zwracaniem pierwszy sukces nie zużywa czerwonych, więc drugi ma nadal 3/5.' },
+          { label: 'Bez zwracania WIĘCEJ', correct: false, why: 'Porównaj: 9/25 = 0,36, 3/10 = 0,30. Ze zwracaniem wychodzi więcej.' },
+          { label: 'Tyle samo',            correct: false, why: 'Porównaj: 9/25 = 0,36, 3/10 = 0,30 — różne.' },
+        ],
+      },
+      draw() {
+        clearBG();
+        const hl = C.picked === 'a';
+        drawProbTree(ctx, {
+          bounds: { x: 10, y: 10, w: W - 20, h: H - 20 },
+          root: { label: '3 cz. / 2 nb.' },
+          title: 'bez zwracania · 2 losowania',
+          levels: [
+            {
+              branches: [
+                { label: 'C', p: '3/5', color: COL_CZ },
+                { label: 'N', p: '2/5', color: COL_NB },
+              ],
+            },
+            {
+              branchesPerParent: [
+                // po C: zostaje 2 cz, 2 nb → 4 kul
+                [ { label: 'C', p: '2/4', color: COL_CZ }, { label: 'N', p: '2/4', color: COL_NB } ],
+                // po N: zostaje 3 cz, 1 nb → 4 kul
+                [ { label: 'C', p: '3/4', color: COL_CZ }, { label: 'N', p: '1/4', color: COL_NB } ],
+              ],
+            },
+          ],
+          leaves: [
+            { label: 'CC', p: '3/10', highlight: hl },
+            { label: 'CN', p: '3/10' },
+            { label: 'NC', p: '3/10' },
+            { label: 'NN', p: '1/10' },
+          ],
+        });
+      },
+    },
+
+    // ─── Ch.3: Dopełnienie "co najmniej 1" ─────────────────
+    {
+      id: 'ch3',
+      title: '"Co najmniej 1" przez dopełnienie',
+      desc: 'Rzucamy symetryczną kostką $n$ razy. Policz $P(\\ge 1\\text{ szóstka})$. Porusz suwakiem $n$ i zobacz, dlaczego dopełnienie to szybsza droga.',
+      drawBackground: 'blank',
+      init() { C.n = 4; C.predictOK3 = false; },
+      predict: {
+        question: 'Jak to policzyć najszybciej?',
+        options: [
+          { label: 'n · 1/6',                                       correct: false, why: 'Nadprzeliczanie. Dla n = 6 dałoby 1 (pewność), ale można rzucić 6 razy bez szóstki.' },
+          { label: '1 − P(żadna szóstka)',                          correct: true,  why: 'Tak — „co najmniej 1" to dopełnienie „żadnej". Jedno odjęcie zamiast sumy n składników.' },
+          { label: 'P(=1) + P(=2) + … + P(=n)',                     correct: false, why: 'Formalnie poprawne, ale n składników zamiast 1. Na maturze strata czasu.' },
+        ],
+      },
+      sliders: [
+        { id: 'n', lbl: 'n', color: COL_HI, min: 1, max: 10, step: 1, get: () => C.n, set: v => { C.n = v; C.predictOK3 = true; } },
+      ],
+      pips() { return [{ label: 'zobacz obie metody', ok: true }]; },
+      solved() { return true; },
+      hints: [
+        '„Co najmniej 1" = DOPEŁNIENIE zdarzenia „zero". Szukaj okazji do tej zamiany.',
+        'P(zero szóstek w n rzutach) = (5/6)^n — niezależne rzuty.',
+        'P(≥ 1) = 1 − (5/6)^n. Dla n = 10: 1 − 0,1615 ≈ 0,84.',
+      ],
+      solvedMsg: 'Dopełnienie to najczęstszy skrót w prawdopodobieństwie maturalnym — dla „co najmniej", „przynajmniej jeden", „choć raz".',
+      predictAfter: {
+        question: 'Dla $n = 10$ rzutów: $P(\\ge 1\\text{ szóstka}) \\approx$ ?',
+        options: [
+          { label: '≈ 0,17', correct: false, why: '(5/6)^10 ≈ 0,1615 — to P(zero szóstek), a nie P(co najmniej 1).' },
+          { label: '≈ 0,50', correct: false, why: 'Dla n = 4 wychodzi ≈ 0,52. Dla n = 10 jest już znacznie więcej.' },
+          { label: '≈ 0,84', correct: true,  why: 'Tak: 1 − (5/6)^10 ≈ 1 − 0,1615 ≈ 0,8385.' },
+          { label: '≈ 0,99', correct: false, why: 'Zbyt duże. Żeby dostać ~0,99, potrzeba ok. n = 25.' },
+        ],
+      },
+      draw() {
+        clearBG();
+        const n = C.n;
+        // headers
+        ctx.fillStyle = COL_TEXT;
+        ctx.font = '13px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText('Metoda bezpośrednia', W * 0.25, 12);
+        ctx.fillText('Metoda dopełnienia', W * 0.75, 12);
+
+        ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(W/2, 32); ctx.lineTo(W/2, H - 52); ctx.stroke();
+
+        // LEFT: stack n terms P(=k) for k=1..n (up to 10)
+        ctx.font = '11px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = COL_DIM;
+        ctx.fillText('suma ' + n + ' składników:', W * 0.25, 36);
+
+        ctx.textAlign = 'left';
+        const lx = 30;
+        const ly0 = 58;
+        const lineH = 14;
+        for (let k = 1; k <= Math.min(n, 10); k++) {
+          const y = ly0 + (k - 1) * lineH;
+          ctx.fillStyle = k === 1 ? COL_TEXT : 'rgba(255,255,255,0.6)';
+          const prefix = k === 1 ? '  ' : '+ ';
+          ctx.fillText(prefix + 'P(=' + k + ')', lx, y);
+        }
+        if (n > 10) {
+          ctx.fillStyle = COL_DIM;
+          ctx.fillText('…', lx, ly0 + 10 * lineH);
+        }
+        // note
+        ctx.textAlign = 'center';
+        ctx.fillStyle = COL_R;
+        ctx.font = '10px monospace';
+        ctx.fillText('dużo wyrazów — łatwo o błąd', W * 0.25, H - 62);
+
+        // RIGHT: 1 − (5/6)^n
+        ctx.textAlign = 'center';
+        ctx.font = '11px monospace';
+        ctx.fillStyle = COL_DIM;
+        ctx.fillText('jedno działanie:', W * 0.75, 36);
+
+        ctx.font = '16px monospace';
+        ctx.fillStyle = COL_OK;
+        ctx.fillText('1 − (5/6)^' + n, W * 0.75, 80);
+
+        const pZero = Math.pow(5/6, n);
+        const pAtLeast1 = 1 - pZero;
+        ctx.font = '12px monospace';
+        ctx.fillStyle = COL_DIM;
+        ctx.fillText('(5/6)^' + n + ' = ' + pZero.toFixed(4), W * 0.75, 112);
+        ctx.fillStyle = COL_OK;
+        ctx.font = '14px monospace';
+        ctx.fillText('= ' + pAtLeast1.toFixed(4), W * 0.75, 140);
+
+        // bottom: unified result
+        ctx.font = '13px monospace';
+        ctx.fillStyle = COL_HI;
+        ctx.fillText('obie metody dają: P(≥ 1 szóstka) ≈ ' + pAtLeast1.toFixed(4), W/2, H - 30);
+        ctx.fillStyle = COL_DIM;
+        ctx.font = '11px monospace';
+        ctx.fillText('n = ' + n + ' rzutów', W/2, H - 12);
+      },
+    },
+
+    // ─── Ch.4: Włączenia i wyłączenia ───────────────────────
+    {
+      id: 'ch4',
+      title: 'Wzór włączeń i wyłączeń',
+      desc: 'Losujemy liczbę od 1 do 20. $A$ = parzysta, $B$ = podzielna przez 3. Policz $P(A \\cup B)$.',
+      drawBackground: 'blank',
+      init() { C.picked = null; },
+      predict: {
+        question: 'Czy zdarzenia $A$ i $B$ się wykluczają?',
+        options: [
+          { label: 'Tak — liczba nie może być parzysta i podzielna przez 3', correct: false, why: 'Spróbuj 6: parzyste ✓, podzielne przez 3 ✓. A ∩ B = {6, 12, 18}. Przecinają się.' },
+          { label: 'Nie — np. 6 jest w obu zbiorach',                         correct: true,  why: 'Tak — 6, 12, 18 są parzyste i podzielne przez 3. A ∩ B ≠ ∅.' },
+          { label: 'Tak dla liczb < 10, nie dla większych',                   correct: false, why: 'Wykluczanie nie zależy od wielkości liczb — tylko od definicji zbiorów.' },
+        ],
+      },
+      choices: {
+        question: 'Który wzór daje $|A \\cup B|$?',
+        options: [
+          { id: 'a', label: '|A ∪ B| = |A| + |B| − |A ∩ B| = 10 + 6 − 3 = 13', correct: true  },
+          { id: 'b', label: '|A ∪ B| = |A| + |B| = 10 + 6 = 16',                 correct: false },
+          { id: 'c', label: '|A ∪ B| = |A| · |B| / 20 = 3',                      correct: false },
+        ],
+        pick(id) { C.picked = id; },
+      },
+      pips() { return [{ label: 'wzór prawidłowy', ok: C.picked === 'a' }]; },
+      solved() { return C.picked === 'a'; },
+      hints: [
+        'Liczby w A ∩ B (podzielne przez 6) są policzone DWA RAZY, jeśli tylko dodasz |A| + |B|.',
+        'Wzór włączeń–wyłączeń odejmuje nadprzeliczenie: |A ∪ B| = |A| + |B| − |A ∩ B|.',
+        '|A| = 10, |B| = 6, |A ∩ B| = 3 (6, 12, 18). |A ∪ B| = 13, więc P = 13/20.',
+      ],
+      solvedMsg: 'Kiedy zdarzenia się przecinają, odejmij część wspólną. Inaczej liczysz ją podwójnie.',
+      predictAfter: {
+        question: 'A jeśli $A \\cap B = \\emptyset$ (zdarzenia się wykluczają)?',
+        options: [
+          { label: 'wzór pozostaje taki sam, odjęcie daje 0', correct: true,  why: 'Tak — jeśli |A ∩ B| = 0, to wzór redukuje się do |A| + |B|. Odjęcie zera jest bezpieczne.' },
+          { label: 'wzór nie działa',                          correct: false, why: 'Działa — odjęcie 0 jest bezpieczne. Wzór z włączeń–wyłączeń obejmuje oba przypadki.' },
+          { label: 'wymaga iloczynu',                          correct: false, why: 'Iloczyn to dla prawdopodobieństwa warunkowego / niezależnego, nie dla sumy zdarzeń.' },
+        ],
+      },
+      draw() {
+        clearBG();
+        // draw 4x5 grid of dots (20 numbers)
+        const cols = 5, rows = 4;
+        const gridX = 40, gridY = 50;
+        const gridW = 320, gridH = 180;
+        const cellW = gridW / cols, cellH = gridH / rows;
+
+        function classify(n) {
+          const a = n % 2 === 0;
+          const b = n % 3 === 0;
+          if (a && b) return 'ab';
+          if (a) return 'a';
+          if (b) return 'b';
+          return 'none';
+        }
+        const colorOf = { a: COL_A, b: COL_B, ab: COL_AB, none: COL_NONE };
+
+        // title
+        ctx.fillStyle = COL_TEXT;
+        ctx.font = '12px monospace';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText('liczby 1–20, A = parzysta, B = podzielna przez 3', 10, 14);
+
+        // dots
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const n = r * cols + c + 1;
+            const cx = gridX + c * cellW + cellW / 2;
+            const cy = gridY + r * cellH + cellH / 2;
+            const cls = classify(n);
+            ctx.beginPath();
+            ctx.arc(cx, cy, 13, 0, Math.PI * 2);
+            ctx.fillStyle = colorOf[cls];
+            ctx.fill();
+            ctx.fillStyle = '#0e0e12';
+            ctx.font = 'bold 11px monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(n.toString(), cx, cy);
+          }
+        }
+
+        // legend on right
+        const lx = 380;
+        let ly = 50;
+        ctx.font = '11px monospace';
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'left';
+        const legend = [
+          { col: COL_A,    lab: 'A \\ B  (tylko parzysta)',     n: 7 },
+          { col: COL_B,    lab: 'B \\ A  (tylko podz. 3)',      n: 3 },
+          { col: COL_AB,   lab: 'A ∩ B  (podz. 6)',             n: 3 },
+          { col: COL_NONE, lab: 'ani A, ani B',                 n: 7 },
+        ];
+        for (const L of legend) {
+          ctx.beginPath();
+          ctx.arc(lx + 8, ly, 7, 0, Math.PI * 2);
+          ctx.fillStyle = L.col;
+          ctx.fill();
+          ctx.fillStyle = COL_TEXT;
+          ctx.fillText(L.lab + ' · ' + L.n, lx + 22, ly);
+          ly += 22;
+        }
+
+        // counts
+        ctx.fillStyle = COL_TEXT;
+        ctx.font = '12px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText('|A| = 10,  |B| = 6,  |A ∩ B| = 3,  |A ∪ B| = 13', W/2, H - 42);
+        ctx.fillStyle = C.picked === 'a' ? COL_OK : COL_DIM;
+        ctx.font = '13px monospace';
+        ctx.fillText('P(A ∪ B) = 13/20 = 0,65', W/2, H - 22);
+      },
+    },
+  ];
+
+  initWarsztat({
+    canvasId: 'cv',
+    challenges,
+    lsKey: 'warsztat:probability:completed',
+    wrapup: 'Cztery schematy pokrywają większość matur z prawdopodobieństwa: <b>drzewko</b>, <b>zwracanie</b>, <b>dopełnienie</b>, <b>przecięcie</b>. Zaczynaj każde zadanie od pytania: <i>czego NIE chcę policzyć?</i>',
+  });
+}
+</script>
+</body>
+</html>
