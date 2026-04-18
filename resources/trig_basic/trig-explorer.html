@@ -173,7 +173,7 @@ function drawUnitCircle(ccx,ccy,cr,ang,showProjections){
   cx.strokeStyle='rgba(255,255,255,.35)';cx.lineWidth=1.2;cx.stroke();
   // angle label
   const labelRad=rad/2;
-  cx.fillStyle='rgba(255,255,255,.5)';cx.font='11px monospace';cx.textAlign='center';
+  cx.fillStyle='rgba(255,255,255,.5)';cx.font='12px monospace';cx.textAlign='center';
   cx.fillText(Math.round(ang)+'\u00b0',ccx+32*Math.cos(-labelRad),ccy+32*Math.sin(-labelRad)+4);
 
   // radius line
@@ -210,7 +210,7 @@ function drawUnitCircle(ccx,ccy,cr,ang,showProjections){
   gdot(px,py,5,'#fff');
 
   // coordinate label
-  cx.fillStyle='rgba(255,255,255,.75)';cx.font='11px monospace';cx.textAlign='left';
+  cx.fillStyle='rgba(255,255,255,.75)';cx.font='12px monospace';cx.textAlign='left';
   cx.fillText('('+cosA.toFixed(2)+', '+sinA.toFixed(2)+')',px+8,py-8);
 }
 
@@ -239,17 +239,17 @@ function drawRightTriangle(ang){
   // angle arc
   cx.beginPath();cx.arc(Ax,Ay,25,0,-rad,true);
   cx.strokeStyle='rgba(255,255,255,.35)';cx.lineWidth=1.2;cx.stroke();
-  cx.fillStyle='rgba(255,255,255,.5)';cx.font='11px monospace';cx.textAlign='left';
+  cx.fillStyle='rgba(255,255,255,.5)';cx.font='12px monospace';cx.textAlign='left';
   cx.fillText('\u03b8',Ax+30,Ay-6);
 
   // side labels
-  cx.font='13px monospace';cx.textAlign='center';
+  cx.font='12px monospace';cx.textAlign='center';
   // przyprostok\u0105tna (bottom)
   cx.fillStyle=COS;
-  cx.fillText(T('przypr.','adj'),(Ax+Bx)/2,Ay+18);
+  cx.fillText(T('przyprostokątna','adj'),(Ax+Bx)/2,Ay+18);
   // naprzeciwleg\u0142a (right side)
   cx.fillStyle=SIN;
-  cx.save();cx.translate(Bx+18,(By+Cy)/2);cx.rotate(-Math.PI/2);cx.fillText(T('naprz.','opp'),0,0);cx.restore();
+  cx.save();cx.translate(Bx+18,(By+Cy)/2);cx.rotate(-Math.PI/2);cx.fillText(T('naprzeciwległa','opp'),0,0);cx.restore();
   // przeciwprostok\u0105tna
   cx.fillStyle='rgba(255,255,255,.6)';
   const hx=(Ax+Cx)/2-14, hy=(Ay+Cy)/2;
@@ -259,20 +259,23 @@ function drawRightTriangle(ang){
   const fx=340, fy=60;
   const sv=sinA.toFixed(3), cv_=cosA.toFixed(3), tv=Math.abs(ang%180-90)<1?'undef':Math.tan(rad).toFixed(3);
 
-  cx.font='14px monospace';cx.textAlign='left';
+  cx.font='12px monospace';cx.textAlign='left';
   cx.fillStyle=SIN;
-  cx.fillText(T('sin(θ) = naprz./przec. = ','sin(θ) = opp/hyp = ')+sv,fx,fy);
+  cx.fillText(T('sin(θ) = naprzeciwległa/przec.','sin(θ) = opp/hyp'),fx,fy);
+  cx.fillText('       = '+sv,fx,fy+14);
   cx.fillStyle=COS;
-  cx.fillText(T('cos(θ) = przypr./przec. = ','cos(θ) = adj/hyp = ')+cv_,fx,fy+28);
+  cx.fillText(T('cos(θ) = przyprostokątna/przec.','cos(θ) = adj/hyp'),fx,fy+30);
+  cx.fillText('       = '+cv_,fx,fy+44);
   cx.fillStyle=TAN;
-  cx.fillText(T('tan(θ) = naprz./przypr. = ','tan(θ) = opp/adj = ')+tv,fx,fy+56);
+  cx.fillText(T('tan(θ) = naprzeciwległa','tan(θ) = opp/adj'),fx,fy+60);
+  cx.fillText(T('       / przyprostokątna = '+tv,'       = '+tv),fx,fy+74);
 
   // ratio visualisation bars
   const barX=fx, barY=fy+80, barW=180, barH=10;
   // sin bar
   cx.fillStyle='rgba(88,196,221,.15)';cx.fillRect(barX,barY,barW,barH);
   cx.fillStyle=SIN;cx.fillRect(barX,barY,barW*Math.abs(sinA),barH);
-  cx.fillStyle='rgba(255,255,255,.4)';cx.font='10px monospace';cx.fillText('sin',barX+barW+5,barY+9);
+  cx.fillStyle='rgba(255,255,255,.4)';cx.font='12px monospace';cx.fillText('sin',barX+barW+5,barY+9);
   // cos bar
   cx.fillStyle='rgba(255,154,60,.15)';cx.fillRect(barX,barY+18,barW,barH);
   cx.fillStyle=COS;cx.fillRect(barX,barY+18,barW*Math.abs(cosA),barH);
@@ -294,7 +297,7 @@ function drawSineGraph(ang){
   gv.drawAxes({ arrows: false, ticks: false, labels: false, color: 'rgba(255,255,255,.2)', lineWidth: 1 });
 
   // custom degree labels
-  cx.fillStyle='rgba(255,255,255,.3)';cx.font='10px monospace';cx.textAlign='center';
+  cx.fillStyle='rgba(255,255,255,.3)';cx.font='12px monospace';cx.textAlign='center';
   cx.fillText('0\u00b0',gv.px(0),gv.py(0)+14);
   cx.fillText('180\u00b0',gv.px(180),gv.py(0)+14);
   cx.fillText('360\u00b0',gv.px(360),gv.py(0)+14);
@@ -310,7 +313,7 @@ function drawSineGraph(ang){
   gv.dot(ang, Math.sin(ang * DEG), { radius: 4, color: SIN });
 
   // amplitude/period annotations
-  cx.fillStyle='rgba(255,255,255,.25)';cx.font='10px monospace';cx.textAlign='left';
+  cx.fillStyle='rgba(255,255,255,.25)';cx.font='12px monospace';cx.textAlign='left';
   cx.fillText(T('amplituda','amplitude')+' = 1',310+270+4,95+10);
   cx.fillText(T('okres','period')+' = 360\u00b0',310+270+4,95+24);
 
@@ -337,7 +340,7 @@ function drawCosineGraph(ang){
 
   gv.drawAxes({ arrows: false, ticks: false, labels: false, color: 'rgba(255,255,255,.2)', lineWidth: 1 });
 
-  cx.fillStyle='rgba(255,255,255,.3)';cx.font='10px monospace';cx.textAlign='center';
+  cx.fillStyle='rgba(255,255,255,.3)';cx.font='12px monospace';cx.textAlign='center';
   cx.fillText('0\u00b0',gv.px(0),gv.py(0)+14);
   cx.fillText('180\u00b0',gv.px(180),gv.py(0)+14);
   cx.fillText('360\u00b0',gv.px(360),gv.py(0)+14);
@@ -356,7 +359,7 @@ function drawCosineGraph(ang){
   gv.dot(ang, Math.cos(ang * DEG), { radius: 4, color: COS });
 
   // phase shift arrow
-  cx.fillStyle='rgba(255,255,255,.25)';cx.font='10px monospace';cx.textAlign='left';
+  cx.fillStyle='rgba(255,255,255,.25)';cx.font='12px monospace';cx.textAlign='left';
   cx.fillText('cos(x) = sin(x+90\u00b0)',310+270+4,95+10);
   cx.fillText(T('przesunięcie fazowe','phase shift')+' = 90\u00b0',310+270+4,95+24);
 
@@ -364,7 +367,7 @@ function drawCosineGraph(ang){
   cx.fillText('y = cos(x)',310,95-14);
 
   // faint sin label
-  cx.fillStyle='rgba(88,196,221,.35)';cx.font='10px monospace';
+  cx.fillStyle='rgba(88,196,221,.35)';cx.font='12px monospace';
   cx.fillText('sin(x)',310+270*0.27,95-3);
 
   drawUnitCircle(145,155,110,ang,true);
@@ -422,7 +425,7 @@ function drawKeyAngles(){
   cx.fillStyle='#58C4DD';
   cx.fillText(T('Kąty specjalne','Key Angles'),fx,fy);
 
-  cx.font='11px monospace';
+  cx.font='12px monospace';
   let ly=fy+28;
   const colW=[50,80,80];
   // header
@@ -486,7 +489,7 @@ function drawKeyAngles(){
   }
 
   // instruction
-  cx.fillStyle='rgba(255,255,255,.25)';cx.font='10px monospace';cx.textAlign='center';
+  cx.fillStyle='rgba(255,255,255,.25)';cx.font='12px monospace';cx.textAlign='center';
   cx.fillText(T('kliknij punkt na okręgu aby wybrać','click a point on the circle to select'),ccx,ccy+cr+28);
 }
 

@@ -426,12 +426,12 @@ function drawStage3(){
 
     // Perp label
     v.label('m\u2082 = '+mPerp.toFixed(2), 2, mPerp*2+bPerp,
-      { color: PURPLE, font: '11px monospace', offsetX: 0, offsetY: -8 });
+      { color: PURPLE, font: '12px monospace', offsetX: 0, offsetY: -8 });
   } else {
     // m=0: perpendicular is vertical
     v.verticalLine(0, { color: PURPLE, lineWidth: 2, dash: [], alpha: 0.7 });
     v.label(T('prostopad\u0142a: x = 0','perpendicular: x = 0'), 0, 0,
-      { color: PURPLE, font: '11px monospace', offsetX: 8, offsetY: -140 });
+      { color: PURPLE, font: '12px monospace', offsetX: 8, offsetY: -140 });
   }
 
   // Y-intercept dots
@@ -544,7 +544,7 @@ function drawStageProof(){
   const bx=298,by=12,bw=294,bh=absM>0.15?152:60;
   cx.fillStyle='rgba(22,22,26,.92)';cx.strokeStyle='rgba(255,255,255,.1)';cx.lineWidth=.8;
   cx.beginPath();cx.roundRect(bx,by,bw,bh,6);cx.fill();cx.stroke();
-  cx.font='11px monospace';cx.textAlign='left';
+  cx.font='12px monospace';cx.textAlign='left';
   cx.fillStyle='rgba(255,255,255,.6)';
   cx.fillText(T('Obracamy tr\u00F3jk\u0105t T1 o 90\u00B0:','Rotate triangle T1 by 90\u00B0:'),bx+10,by+17);
   cx.fillStyle=CYAN;cx.font='bold 12px monospace';
@@ -553,15 +553,15 @@ function drawStageProof(){
     const mp=-1/m;
     cx.fillStyle=PURPLE;
     cx.fillText('m\u2082 = \u2212a/b = \u22121/'+m.toFixed(1)+' = '+mp.toFixed(2),bx+10,by+53);
-    cx.fillStyle='rgba(255,255,255,.3)';cx.font='11px monospace';
+    cx.fillStyle='rgba(255,255,255,.3)';cx.font='12px monospace';
     cx.fillText('\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500',bx+10,by+66);
     cx.fillStyle=GOLD;cx.font='bold 13px monospace';
     cx.fillText('m\u2081\u00B7m\u2082 = '+m.toFixed(1)+'\u00B7('+mp.toFixed(2)+')',bx+10,by+83);
     cx.fillStyle=GREEN;
     cx.fillText('= '+(m*mp).toFixed(1)+' = \u22121 \u2713',bx+10,by+101);
-    cx.fillStyle='rgba(255,255,255,.38)';cx.font='11px monospace';
+    cx.fillStyle='rgba(255,255,255,.38)';cx.font='12px monospace';
     cx.fillText(T('Te same boki (a,b), tylko obr\u00F3cone.','Same legs (a,b), just rotated.'),bx+10,by+121);
-    cx.fillStyle=CYAN;cx.font='11px monospace';
+    cx.fillStyle=CYAN;cx.font='12px monospace';
     cx.fillText('T1: run=a=1, rise=b='+m.toFixed(1),bx+10,by+136);
     cx.fillStyle=PURPLE;
     cx.fillText('T2: run=b='+m.toFixed(1)+', rise=\u2212a=\u22121',bx+10,by+151);

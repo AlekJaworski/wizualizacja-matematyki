@@ -303,7 +303,7 @@ function renderAddition(){
   // overlay
   cx.fillStyle='rgba(22,22,26,.88)';cx.strokeStyle='rgba(255,255,255,.10)';cx.lineWidth=.8;
   cx.beginPath();cx.roundRect(6,6,220,54,6);cx.fill();cx.stroke();
-  cx.font='11px monospace';cx.textAlign='left';
+  cx.font='12px monospace';cx.textAlign='left';
   cx.fillStyle=CYAN;cx.fillText('u = ['+ux.toFixed(1)+', '+uy.toFixed(1)+']',16,22);
   cx.fillStyle=ORANGE;cx.fillText('v = ['+vx.toFixed(1)+', '+vy.toFixed(1)+']',16,37);
   cx.fillStyle=GREEN;cx.fillText('u+v = ['+sx.toFixed(1)+', '+sy.toFixed(1)+']',16,52);
@@ -327,7 +327,7 @@ function renderScalar(){
   // overlay
   cx.fillStyle='rgba(22,22,26,.88)';cx.strokeStyle='rgba(255,255,255,.10)';cx.lineWidth=.8;
   cx.beginPath();cx.roundRect(6,6,230,54,6);cx.fill();cx.stroke();
-  cx.font='11px monospace';cx.textAlign='left';
+  cx.font='12px monospace';cx.textAlign='left';
   cx.fillStyle='rgba(88,196,221,.55)';cx.fillText('v = ['+vx.toFixed(1)+', '+vy.toFixed(1)+']',16,22);
   cx.fillStyle=YELLOW;cx.fillText('k = '+k.toFixed(2),16,37);
   cx.fillText('kv = ['+kx.toFixed(1)+', '+ky.toFixed(1)+']',16,52);
@@ -385,7 +385,7 @@ function renderDotProduct(){
   const isPerp=Math.abs(dot)<0.15;
   cx.fillStyle='rgba(22,22,26,.88)';cx.strokeStyle='rgba(255,255,255,.10)';cx.lineWidth=.8;
   cx.beginPath();cx.roundRect(6,6,240,72,6);cx.fill();cx.stroke();
-  cx.font='11px monospace';cx.textAlign='left';
+  cx.font='12px monospace';cx.textAlign='left';
   cx.fillStyle=isPerp?'#dc5050':'rgba(255,255,255,.7)';
   cx.fillText('u \u00B7 v = '+dot.toFixed(2)+(isPerp?T(' \u2248 0 (prostopadłe!)',' \u2248 0 (perpendicular!)'):''),16,22);
   cx.fillStyle='rgba(255,255,255,.5)';
@@ -444,7 +444,7 @@ function renderLinComb(){
   // overlay
   cx.fillStyle='rgba(22,22,26,.88)';cx.strokeStyle='rgba(255,255,255,.10)';cx.lineWidth=.8;
   cx.beginPath();cx.roundRect(6,6,250,54,6);cx.fill();cx.stroke();
-  cx.font='11px monospace';cx.textAlign='left';
+  cx.font='12px monospace';cx.textAlign='left';
   cx.fillStyle='rgba(255,255,255,.6)';
   cx.fillText('w = '+a.toFixed(1)+'\u00B7u + '+b.toFixed(1)+'\u00B7v',16,22);
   cx.fillStyle=GREEN;
