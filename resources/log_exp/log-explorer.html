@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Logarytm — lustro potęgi</title>
+</head>
+<body>
+<script type="module">
+import { VizCore, T, COLORS, drawTextC, drawGlow } from '../lib/viz-core.js';
+import { GraphView } from '../lib/graph-core.js';
+
+const H = 420;
+
+// ── Stage 1: Pytanie -> odpowiedź ─────────────────────────────────
+const stage1 = {
+  title: () => '2^? = 8   —   logarytm jako pytanie',
+  desc:  () => 'Przesuwaj wykładnik, aż wynik to 8. Znaleziona liczba to właśnie log₂ 8.',
+  sliders: [
+    { id: 'k', lbl: 'k', color: COLORS.CYAN, min: 0, max: 5, step: 0.1, val: 1.5 },
+  ],
+  draw(cx, W, H, v) {
+    const k = v.k;
+    const val = Math.pow(2, k);
+    const hit = Math.abs(k - 3) < 0.06;
+
+    // Top: question bar
+    drawTextC(cx, 'Szukamy wykładnika k takiego, że:', W / 2, 34,
+      '13px monospace', 'rgba(255,255,255,0.55)');
+
+    // Hero equation: 2^k = val
+    const baseCol = COLORS.CYAN;
+    const expCol  = hit ? COLORS.GREEN : COLORS.YELLOW;
+    const resCol  = hit ? COLORS.GREEN : COLORS.ORANGE;
+
+    cx.save();
+    cx.textAlign = 'center';
+    cx.textBaseline = 'middle';
+    const yH = 90;
+
+    // "2"
+    cx.font = 'bold 44px monospace';
+    cx.fillStyle = baseCol;
+    cx.fillText('2', W / 2 - 110, yH);
+
+    // superscript k
+    cx.font = 'bold 28px monospace';
+    cx.fillStyle = expCol;
+    cx.shadowColor = expCol; cx.shadowBlur = 12;
+    cx.fillText(k.toFixed(2), W / 2 - 60, yH - 14);
+    cx.shadowBlur = 0;
+
+    // "="
+    cx.font = 'bold 36px monospace';
+    cx.fillStyle = 'rgba(255,255,255,0.55)';
+    cx.fillText('=', W / 2 + 10, yH);
+
+    // result
+    cx.font = 'bold 44px monospace';
+    cx.fillStyle = resCol;
+    cx.shadowColor = resCol; cx.shadowBlur = hit ? 18 : 8;
+    cx.fillText(val.toFixed(2), W / 2 + 90, yH);
+    cx.shadowBlur = 0;
+    cx.restore();
+
+    // Target marker
+    drawTextC(cx, 'cel:  2^k = 8', W / 2, 140,
+      '13px monospace', 'rgba(255,255,255,0.5)');
+
+    // Visual bar: current 2^k vs target 8
+    const barX = 60, barY = 180, barW = W - 120, barH = 26;
+    const maxV = 10;
+    cx.fillStyle = 'rgba(255,255,255,0.06)';
+    cx.fillRect(barX, barY, barW, barH);
+    const fill = Math.min(1, val / maxV) * barW;
+    cx.fillStyle = resCol;
+    cx.globalAlpha = 0.7;
+    cx.fillRect(barX, barY, fill, barH);
+    cx.globalAlpha = 1;
+    // target line at x=8
+    const tx = barX + (8 / maxV) * barW;
+    cx.strokeStyle = COLORS.GREEN;
+    cx.lineWidth = 2;
+    cx.setLineDash([4, 4]);
+    cx.beginPath(); cx.moveTo(tx, barY - 6); cx.lineTo(tx, barY + barH + 6); cx.stroke();
+    cx.setLineDash([]);
+    drawTextC(cx, '8', tx, barY - 16, 'bold 13px monospace', COLORS.GREEN);
+    drawTextC(cx, '0', barX, barY + barH + 18, '12px monospace', 'rgba(255,255,255,0.4)');
+    drawTextC(cx, '10', barX + barW, barY + barH + 18, '12px monospace', 'rgba(255,255,255,0.4)');
+
+    // Curve below: y = 2^x with moving point
+    const gTop = 240;
+    const gv = new GraphView(cx, {
+      rect: [40, gTop, W - 80, H - gTop - 20],
+      xRange: [-0.5, 5.2], yRange: [-1, 11],
+    });
+    gv.drawGrid({ color: 'rgba(255,255,255,0.04)' });
+    gv.drawAxes({ color: 'rgba(255,255,255,0.25)' });
+    gv.plotFn(x => Math.pow(2, x), { color: COLORS.CYAN, lineWidth: 2, domain: [-0.5, 5.2] });
+
+    // target horizontal line at y=8
+    gv.horizontalLine(8, { color: 'rgba(131,193,103,0.4)', lineWidth: 1, dash: [4, 4] });
+    // point
+    gv.dot(k, val, { radius: 6, color: resCol });
+    // drop lines
+    gv.verticalLine(k, { color: 'rgba(255,255,255,0.12)', lineWidth: 1, dash: [3, 3] });
+
+    // Hit message
+    if (hit) {
+      drawGlow(cx, '2^3 = 8   ⇒   log₂ 8 = 3', W / 2, H - 30,
+        'bold 17px monospace', COLORS.GREEN);
+    } else {
+      drawTextC(cx,
+        'Logarytm to pytanie: "do której potęgi podnieść 2, żeby dostać 8?"',
+        W / 2, H - 30, '12px monospace', 'rgba(255,255,255,0.45)');
+    }
+  },
+};
+
+// ── Stage 2: Lustro nad y = x ─────────────────────────────────────
+const stage2 = {
+  title: () => 'Lustro nad prostą y = x',
+  desc:  () => 'Wykres y = 2^x i y = log₂ x to odbicia względem y = x. Dziedziny zamieniają się miejscami.',
+  sliders: [
+    { id: 'a', lbl: 'a', color: COLORS.YELLOW, min: -2, max: 3, step: 0.05, val: 1.2 },
+  ],
+  draw(cx, W, H, v) {
+    const a = v.a;
+    const expA = Math.pow(2, a);
+
+    const gv = new GraphView(cx, {
+      rect: [20, 20, W - 40, H - 60],
+      xRange: [-4, 9], yRange: [-4, 9],
+    });
+    gv.drawGrid({ color: 'rgba(255,255,255,0.04)' });
+    gv.drawAxes({ color: 'rgba(255,255,255,0.25)' });
+
+    // y = x mirror
+    gv.line(-4, -4, 9, 9, { color: 'rgba(255,255,255,0.25)', lineWidth: 1, dash: [5, 5] });
+    drawTextC(cx, 'y = x', gv.px(7.5) + 6, gv.py(7.5) - 10,
+      '12px monospace', 'rgba(255,255,255,0.45)', 'left');
+
+    // y = 2^x
+    gv.plotFn(x => Math.pow(2, x), { color: COLORS.CYAN, lineWidth: 2, domain: [-4, 4] });
+    // y = log_2 x
+    gv.plotFn(x => Math.log(x) / Math.log(2), { color: COLORS.ORANGE, lineWidth: 2, domain: [0.01, 9] });
+
+    // mirror points
+    gv.dot(a, expA, { radius: 6, color: COLORS.CYAN });
+    gv.dot(expA, a, { radius: 6, color: COLORS.ORANGE });
+
+    // connector line between the two mirror points
+    cx.save();
+    cx.strokeStyle = 'rgba(255,255,255,0.25)';
+    cx.setLineDash([3, 3]);
+    cx.beginPath();
+    cx.moveTo(gv.px(a), gv.py(expA));
+    cx.lineTo(gv.px(expA), gv.py(a));
+    cx.stroke();
+    cx.setLineDash([]);
+    cx.restore();
+
+    // labels for points
+    cx.fillStyle = COLORS.CYAN;
+    cx.font = '12px monospace';
+    cx.textAlign = 'left';
+    cx.fillText(`(${a.toFixed(2)}, ${expA.toFixed(2)})`, gv.px(a) + 10, gv.py(expA) - 8);
+    cx.fillStyle = COLORS.ORANGE;
+    cx.fillText(`(${expA.toFixed(2)}, ${a.toFixed(2)})`, gv.px(expA) + 10, gv.py(a) + 16);
+
+    // curve labels
+    drawTextC(cx, 'y = 2^x', gv.px(2.4) + 10, gv.py(Math.pow(2, 2.4)),
+      'bold 12px monospace', COLORS.CYAN, 'left');
+    drawTextC(cx, 'y = log₂ x', gv.px(7) + 4, gv.py(Math.log2(7)) - 12,
+      'bold 12px monospace', COLORS.ORANGE, 'left');
+
+    // Footer explanation
+    drawTextC(cx,
+      'Dziedzina 2^x to ℝ;  dziedzina log₂ x to (0, ∞) — przeciwdziedzina zostaje dziedziną.',
+      W / 2, H - 20, '12px monospace', 'rgba(255,255,255,0.55)');
+  },
+};
+
+// ── Stage 3: Zmień podstawę ──────────────────────────────────────
+const stage3 = {
+  title: () => 'Zmiana podstawy — ten sam kształt',
+  desc:  () => 'Przesuń podstawę b. Oba wykresy zachowują kształt — zmienia się tylko stromość.',
+  sliders: [
+    { id: 'b', lbl: 'b', color: COLORS.PURPLE, min: 2, max: 10, step: 0.1, val: 2 },
+  ],
+  draw(cx, W, H, v) {
+    const b = v.b;
+
+    const gv = new GraphView(cx, {
+      rect: [20, 20, W - 40, H - 60],
+      xRange: [-3, 9], yRange: [-4, 9],
+    });
+    gv.drawGrid({ color: 'rgba(255,255,255,0.04)' });
+    gv.drawAxes({ color: 'rgba(255,255,255,0.25)' });
+
+    // mirror y=x
+    gv.line(-3, -3, 9, 9, { color: 'rgba(255,255,255,0.15)', lineWidth: 1, dash: [5, 5] });
+
+    // y = b^x
+    gv.plotFn(x => Math.pow(b, x), { color: COLORS.CYAN, lineWidth: 2.2, domain: [-3, 4] });
+    // y = log_b x
+    gv.plotFn(x => Math.log(x) / Math.log(b), { color: COLORS.ORANGE, lineWidth: 2.2, domain: [0.01, 9] });
+
+    // reference point (1, b) on exp and (b, 1) on log
+    gv.dot(1, b, { radius: 5, color: COLORS.CYAN });
+    gv.dot(b, 1, { radius: 5, color: COLORS.ORANGE });
+
+    // labels
+    cx.fillStyle = COLORS.CYAN;
+    cx.font = '12px monospace';
+    cx.textAlign = 'left';
+    cx.fillText(`(1, ${b.toFixed(1)})`, gv.px(1) + 8, gv.py(b) - 6);
+    cx.fillStyle = COLORS.ORANGE;
+    cx.fillText(`(${b.toFixed(1)}, 1)`, gv.px(b) + 8, gv.py(1) + 16);
+
+    drawTextC(cx, `y = ${b.toFixed(1)}^x`, 110, 40,
+      'bold 13px monospace', COLORS.CYAN, 'left');
+    drawTextC(cx, `y = log_${b.toFixed(1)} x`, W - 110, 40,
+      'bold 13px monospace', COLORS.ORANGE, 'right');
+
+    // Footer
+    drawTextC(cx,
+      'Im większa podstawa, tym szybciej rośnie potęga i wolniej — logarytm.',
+      W / 2, H - 20, '12px monospace', 'rgba(255,255,255,0.55)');
+  },
+};
+
+// ── Stage 4: Dziedzina ────────────────────────────────────────────
+const stage4 = {
+  title: () => 'Dziedzina logarytmu — argument > 0',
+  desc:  () => 'Pionowa asymptota w x = 0. Rozwiązując równanie log, najpierw sprawdź dziedzinę!',
+  sliders: [
+    { id: 'x', lbl: 'x', color: COLORS.YELLOW, min: -2, max: 8, step: 0.02, val: 2 },
+  ],
+  draw(cx, W, H, v) {
+    const xv = v.x;
+    const valid = xv > 0;
+    const logVal = valid ? Math.log2(xv) : NaN;
+
+    const gv = new GraphView(cx, {
+      rect: [20, 20, W - 40, H - 90],
+      xRange: [-3, 9], yRange: [-5, 4],
+    });
+    gv.drawGrid({ color: 'rgba(255,255,255,0.04)' });
+    gv.drawAxes({ color: 'rgba(255,255,255,0.25)' });
+
+    // Shade forbidden zone x ≤ 0
+    cx.save();
+    cx.fillStyle = 'rgba(255,107,53,0.10)';
+    cx.fillRect(gv.px(-3), gv.py(4), gv.px(0) - gv.px(-3), gv.py(-5) - gv.py(4));
+    cx.restore();
+    drawTextC(cx, 'x ≤ 0   poza dziedziną', gv.px(-1.5), gv.py(3),
+      'bold 12px monospace', 'rgba(255,107,53,0.85)');
+
+    // asymptote x=0
+    gv.verticalLine(0, { color: COLORS.ORANGE, lineWidth: 2, dash: [5, 4] });
+    drawTextC(cx, 'asymptota  x = 0', gv.px(0) + 8, gv.py(-4.3),
+      '12px monospace', COLORS.ORANGE, 'left');
+
+    // log_2 curve
+    gv.plotFn(x => Math.log2(x), { color: COLORS.CYAN, lineWidth: 2.2, domain: [0.005, 9] });
+
+    // point
+    if (valid) {
+      gv.dot(xv, logVal, { radius: 6, color: COLORS.GREEN });
+      gv.verticalLine(xv, { color: 'rgba(255,255,255,0.15)', lineWidth: 1, dash: [3, 3] });
+    } else {
+      // mark invalid x on axis
+      cx.fillStyle = '#FF6B6B';
+      cx.beginPath(); cx.arc(gv.px(xv), gv.py(0), 6, 0, Math.PI * 2); cx.fill();
+    }
+
+    // Status bar
+    const barY = H - 60;
+    cx.fillStyle = valid ? 'rgba(131,193,103,0.12)' : 'rgba(255,107,53,0.15)';
+    cx.fillRect(20, barY, W - 40, 44);
+    cx.strokeStyle = valid ? COLORS.GREEN : COLORS.ORANGE;
+    cx.lineWidth = 1;
+    cx.strokeRect(20, barY, W - 40, 44);
+
+    if (valid) {
+      drawTextC(cx, `log₂(${xv.toFixed(2)}) = ${logVal.toFixed(3)}`,
+        W / 2, barY + 16, 'bold 14px monospace', COLORS.GREEN);
+      drawTextC(cx, 'argument dodatni — wolno liczyć',
+        W / 2, barY + 32, '12px monospace', 'rgba(131,193,103,0.8)');
+    } else {
+      drawTextC(cx, `log₂(${xv.toFixed(2)})   —   nieokreślone`,
+        W / 2, barY + 16, 'bold 14px monospace', COLORS.ORANGE);
+      drawTextC(cx, 'argument ≤ 0 nie należy do dziedziny',
+        W / 2, barY + 32, '12px monospace', 'rgba(255,107,53,0.85)');
+    }
+  },
+};
+
+VizCore.init({
+  title: 'Logarytm — lustro potęgi',
+  H,
+  stages: [stage1, stage2, stage3, stage4],
+});
+</script>
+</body>
+</html>
