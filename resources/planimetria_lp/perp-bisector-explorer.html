@@ -601,7 +601,7 @@ const result = VizCore.init({
         'How to draw it? Open the compass wider than half the segment. Draw two arcs \u2014 from A and from B. They intersect at two points. Connect them \u2014 that\'s the perpendicular bisector!'
       ),
       sliders: [
-        { id: 'step', lbl: T('krok', 'step'), color: COLORS.CYAN, min: 0, max: 4, step: 1, val: 0 },
+        { id: 'step', lbl: T('krok', 'step'), color: COLORS.CYAN, min: 0, max: 4, step: 1, val: 0, stepper: true },
       ],
       draw(cx, W, H, vals) {
         const step = Math.round(vals.step);

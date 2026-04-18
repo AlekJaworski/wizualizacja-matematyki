@@ -169,7 +169,7 @@ const { cx, W, H } = VizCore.init({
         '2sin(x) + 1 = 0  →  sin(x) = −½  →  x = −π/6 + 2kπ or x = π + π/6 + 2kπ. Step by step.'
       ),
       sliders: [
-        { id: 'step', lbl: 'krok', color: COLORS.CYAN, min: 0, max: 4, step: 1, val: 0 },
+        { id: 'step', lbl: 'krok', color: COLORS.CYAN, min: 0, max: 4, step: 1, val: 0, stepper: true },
       ],
       draw(cx, W, H, vals) {
         const step = Math.round(vals.step);
