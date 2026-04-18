@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Równanie kwadratowe — Wyłap błąd</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; color: rgba(255,255,255,.85); }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+
+  .head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+  .head .step { font-size: 11px; color: rgba(255,255,255,.4); letter-spacing: .04em; }
+  .head .title { font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  .desc { font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); margin-bottom: 10px; min-height: 34px; }
+
+  .pips { display: flex; gap: 14px; flex-wrap: wrap; margin: 4px 0 10px; font-size: 12px; }
+  .pip { display: inline-flex; align-items: center; gap: 6px; color: rgba(255,255,255,.55); }
+  .pip .mark { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(255,255,255,.25); display: inline-flex; align-items: center; justify-content: center; font-size: 10px; line-height: 1; }
+  .pip.ok { color: #83C167; }
+  .pip.ok .mark { background: #83C167; border-color: #83C167; color: #0e0e12; }
+  .pip.ok .mark::before { content: "\2713"; }
+
+  .predict { margin-bottom: 10px; }
+  .predict .q { font-size: 13px; color: rgba(255,255,255,.82); margin-bottom: 8px; line-height: 1.55; }
+  .predict .opts { display: flex; flex-direction: column; gap: 6px; }
+  .predict button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.78); padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; transition: background .15s, border-color .15s; }
+  .predict button:hover { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.4); }
+  .predict button.picked { border-color: #58C4DD; color: #58C4DD; }
+  .predict .feedback { margin-top: 8px; font-size: 12px; line-height: 1.55; color: rgba(255,255,255,.7); padding: 8px 10px; border-left: 2px solid #58C4DD; background: rgba(88,196,221,.06); border-radius: 0 4px 4px 0; }
+
+  /* Debug widget */
+  .debug { margin-bottom: 10px; }
+  .debug-task { font-size: 13px; color: rgba(255,255,255,.82); margin-bottom: 10px; line-height: 1.55; padding: 8px 10px; border-left: 2px solid #58C4DD; background: rgba(88,196,221,.06); border-radius: 0 4px 4px 0; }
+  .debug-steps { display: flex; flex-direction: column; gap: 4px; }
+  .debug-step { display: flex; align-items: flex-start; gap: 10px; background: transparent; border: 0.5px solid rgba(255,255,255,.15); color: rgba(255,255,255,.8); padding: 8px 12px; font-size: 13px; line-height: 1.5; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; transition: background .15s, border-color .15s; }
+  .debug-step:hover:not(:disabled) { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.45); }
+  .debug-step:disabled { cursor: default; opacity: .85; }
+  .debug-step .debug-n { color: rgba(255,255,255,.4); min-width: 20px; }
+  .debug-step .debug-text { flex: 1; }
+  .debug-step.wrong { border-color: #FF6B6B; background: rgba(255,107,107,.08); color: #FF6B6B; }
+  .debug-step.correct { border-color: #83C167; background: rgba(131,193,103,.1); color: #83C167; }
+  .debug-feedback { margin-top: 10px; font-size: 12px; line-height: 1.55; padding: 8px 10px; border-radius: 0 4px 4px 0; }
+  .debug-feedback.ok { color: rgba(255,255,255,.82); border-left: 2px solid #83C167; background: rgba(131,193,103,.06); }
+  .debug-feedback.bad { color: rgba(255,255,255,.78); border-left: 2px solid #FF6B6B; background: rgba(255,107,107,.06); }
+
+  .hints { font-size: 12px; color: rgba(255,255,255,.5); margin: 4px 0 10px; line-height: 1.55; }
+  .hints .hint { padding: 6px 10px; border-left: 2px solid #FFD166; background: rgba(255,209,102,.05); margin-top: 4px; border-radius: 0 4px 4px 0; }
+
+  .nav { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+  .nav button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  .nav button:hover:not(:disabled) { background: rgba(255,255,255,.08); }
+  .nav button:disabled { opacity: .3; cursor: default; }
+  .nav button.primary { border-color: #83C167; color: #83C167; }
+  .nav button.primary:hover { background: rgba(131,193,103,.1); }
+
+  .dots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.15); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  .dot.done { background: #83C167; }
+
+  .solved-note { font-size: 13px; color: #83C167; line-height: 1.55; padding: 8px 10px; border-left: 2px solid #83C167; background: rgba(131,193,103,.06); border-radius: 0 4px 4px 0; margin-bottom: 8px; }
+  .wrapup-note { font-size: 13px; color: #C78DFF; line-height: 1.55; padding: 10px 12px; border-left: 2px solid #C78DFF; background: rgba(199,141,255,.06); border-radius: 0 4px 4px 0; margin-bottom: 8px; }
+
+  .banner { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-bottom: 0; border-radius: 10px 10px 0 0; padding: 14px 18px; color: rgba(255,255,255,.72); font-size: 13px; line-height: 1.6; }
+  .banner b { color: #58C4DD; font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="banner">
+    <b>Warsztat: wyłap błąd.</b> Każde wyzwanie pokazuje cudze (błędne) rozwiązanie równania kwadratowego. Twoje zadanie: kliknij ten krok, w którym pojawia się błąd.
+  </div>
+  <div class="panel">
+    <div class="head">
+      <span class="step" id="step"></span>
+      <div class="dots" id="dots"></div>
+    </div>
+    <p class="title" id="title"></p>
+    <p class="desc" id="desc"></p>
+    <div id="predict"></div>
+    <div id="sliders-wrap"></div>
+    <div id="choices-wrap"></div>
+    <div id="debug-wrap"></div>
+    <div class="pips" id="pips"></div>
+    <div class="hints" id="hints"></div>
+    <div id="solved-msg"></div>
+    <div class="nav">
+      <button id="prev">&larr;</button>
+      <button id="next" class="primary">Dalej &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initWarsztat } from '../lib/warsztat-core.js';
+{
+  // No canvas for this warsztat — debug-type challenges are purely textual.
+  // We still need a hidden canvas because initWarsztat expects one.
+  const cv = document.createElement('canvas');
+  cv.id = 'cv';
+  cv.width = 1; cv.height = 1;
+  cv.style.display = 'none';
+  document.body.appendChild(cv);
+
+  const noop = () => {};
+
+  const challenges = [
+    // ─── Ch.1: Vieta sign error ─────────────────────────────────
+    {
+      id: 'ch1',
+      title: 'Wyłap błąd — znak w Vieta',
+      desc: 'Sprawdź rozumowanie Jana krok po kroku. Który krok nie jest prawdą?',
+      init: noop,
+      debug: {
+        task: 'Jan rozwiązał <b>x\u00B2 + 5x + 6 = 0</b> i dostał pierwiastki 2 i 3. Gdzie popełnił błąd?',
+        steps: [
+          { n: 1, text: 'x\u00B2 + 5x + 6 = 0   (czyli a = 1, b = 5, c = 6)' },
+          { n: 2, text: 'Wzory Vi\u00E8ta: szukamy dw\u00F3ch liczb o sumie = 5 i iloczynie = 6.' },
+          { n: 3, text: 'Pary o iloczynie 6: (1, 6) \u2192 suma 7; (2, 3) \u2192 suma 5. \u2713' },
+          { n: 4, text: 'Wi\u0119c pierwiastki to 2 i 3.' },
+        ],
+        errorLine: 2,
+        wrongChoice: {
+          general: 'Ten krok jest rachunkowo zgodny z poprzednim — ale b\u0142\u0105d le\u017Cy wy\u017Cej. Wr\u00F3\u0107 i sprawd\u017A za\u0142o\u017Cenia.',
+          1: 'Wsp\u00F3\u0142czynniki wypisane poprawnie: a=1, b=5, c=6. Szukaj dalej.',
+          3: 'Rachunek (2+3=5, 2\u00B73=6) jest poprawny — ale zgadza si\u0119 z <i>b\u0142\u0119dnym</i> za\u0142o\u017Ceniem z kroku 2. Cofnij si\u0119.',
+          4: 'Krok 4 tylko powtarza wynik z kroku 3. Przyczyna b\u0142\u0119du jest wcze\u015Bniej.',
+        },
+        correctExplanation: 'Krok 2 zawiera b\u0142\u0105d znaku. Wzory Vi\u00E8ta m\u00F3wi\u0105: <b>x\u2081 + x\u2082 = \u2212b/a</b> (z minusem!), nie b/a. Dla b = 5 wi\u0119c suma = \u22125. Prawid\u0142owo: szukamy dw\u00F3ch liczb o sumie \u22125 i iloczynie 6 \u2192 to \u22122 i \u22123. Pierwiastki r\u00F3wnania to \u22122 i \u22123 (sprawd\u017A: (\u22122)\u00B2 + 5\u00B7(\u22122) + 6 = 4 \u2212 10 + 6 = 0 \u2713).',
+      },
+      pips: () => [],
+      solved: () => false, // core's renderDebug calls onSolve() directly on success
+      hints: [
+        'Zapisz wz\u00F3r Vi\u00E8ta dok\u0142adnie: jaki znak ma suma pierwiastk\u00F3w?',
+        'Dla ax\u00B2 + bx + c = 0: x\u2081 + x\u2082 = \u2212b/a. Minus z przodu.',
+        'Przy b = 5 suma to \u22125, nie +5. W kt\u00F3rym kroku Jan zgubi\u0142 minus?',
+      ],
+      solvedMsg: 'Dobrze wy\u0142apane. Znak w Vi\u00E8ta to klasyczna pu\u0142apka maturalna — suma = \u2212b/a, iloczyn = c/a.',
+      draw: noop,
+    },
+
+    // ─── Ch.2: Delta sign error ─────────────────────────────────
+    {
+      id: 'ch2',
+      title: 'Wyłap błąd — znak w delcie',
+      desc: 'Ola policzy\u0142a delt\u0119 i wysz\u0142o jej, \u017Ce nie ma pierwiastk\u00F3w. Sprawd\u017A, gdzie si\u0119 pomyli\u0142a.',
+      init: noop,
+      debug: {
+        task: 'Ola obliczy\u0142a \u0394 dla <b>2x\u00B2 \u2212 3x \u2212 5 = 0</b> i dostała \u0394 = \u221231. Co zrobi\u0142a \u017Ale?',
+        steps: [
+          { n: 1, text: 'a = 2,  b = \u22123,  c = \u22125' },
+          { n: 2, text: '\u0394 = b\u00B2 \u2212 4ac = (\u22123)\u00B2 \u2212 4\u00B72\u00B7(\u22125)' },
+          { n: 3, text: '\u0394 = 9 \u2212 40 = \u221231' },
+          { n: 4, text: 'Zatem \u0394 < 0 \u2192 r\u00F3wnanie nie ma pierwiastk\u00F3w rzeczywistych.' },
+        ],
+        errorLine: 3,
+        wrongChoice: {
+          general: 'Ten krok jest poprawny — szukaj w\u015Br\u00F3d pozosta\u0142ych.',
+          1: 'Wsp\u00F3\u0142czynniki przepisane poprawnie: a=2, b=\u22123, c=\u22125.',
+          2: 'Wz\u00F3r \u0394 = b\u00B2 \u2212 4ac i podstawienie warto\u015Bci te\u017C jest OK. B\u0142\u0105d dopiero przy upraszczaniu.',
+          4: 'Wniosek z delty jest logicznie poprawny <i>je\u015Bli</i> sama delta by\u0142aby ujemna. Sprawd\u017A, czy aby na pewno jest.',
+        },
+        correctExplanation: 'Krok 3 uproszczony \u017Ale. W kroku 2 stoi <b>\u2212 4\u00B72\u00B7(\u22125)</b>. Minus razy minus daje plus: \u22124\u00B72\u00B7(\u22125) = <b>+40</b>. Wi\u0119c \u0394 = 9 + 40 = <b>49</b>, czyli \u0394 > 0 — r\u00F3wnanie ma dwa pierwiastki rzeczywiste (\u221A49 = 7, wi\u0119c x = (3\u00B17)/4 \u2192 x\u2081 = 2.5, x\u2082 = \u22121).',
+      },
+      pips: () => [],
+      solved: () => false,
+      hints: [
+        'Pomn\u00F3\u017C powoli: \u22124 \u00B7 2 \u00B7 (\u22125). Ile minus\u00F3w?',
+        'Dwa minusy: jeden przed 4, jeden w c = \u22125. Minus razy minus = plus.',
+        'Wi\u0119c \u22124\u00B72\u00B7(\u22125) = +40, nie \u221240. W kt\u00F3rym kroku to poszło nie tak?',
+      ],
+      solvedMsg: 'Tak. Przy podstawianiu ujemnych wsp\u00F3\u0142czynnik\u00F3w pilnuj znak\u00F3w — nawias (\u22125) trzyma minus, kt\u00F3ry \u0142\u0105czy si\u0119 z minusem z przodu \u22124.',
+      draw: noop,
+    },
+
+    // ─── Ch.3: Forgot 2a in quadratic formula ───────────────────
+    {
+      id: 'ch3',
+      title: 'Wyłap błąd — mianownik wzoru kwadratowego',
+      desc: 'Kuba u\u017Cy\u0142 wzoru na pierwiastki, ale co\u015B mu nie gra. Kt\u00F3ry krok jest podejrzany?',
+      init: noop,
+      debug: {
+        task: 'Kuba rozwi\u0105za\u0142 <b>2x\u00B2 + 3x \u2212 2 = 0</b> wzorem x = (\u2212b \u00B1 \u221A\u0394) / a i wysz\u0142o mu x\u2081 = 1, x\u2082 = \u22124. Gdzie b\u0142\u0105d?',
+        steps: [
+          { n: 1, text: 'a = 2, b = 3, c = \u22122.  \u0394 = 9 \u2212 4\u00B72\u00B7(\u22122) = 9 + 16 = 25,  \u221A\u0394 = 5.' },
+          { n: 2, text: 'x = (\u2212b \u00B1 \u221A\u0394) / a = (\u22123 \u00B1 5) / 2' },
+          { n: 3, text: 'x\u2081 = (\u22123 + 5) / 2 = 1;   x\u2082 = (\u22123 \u2212 5) / 2 = \u22124.' },
+          { n: 4, text: 'Zatem pierwiastki to 1 i \u22124.' },
+        ],
+        errorLine: 2,
+        wrongChoice: {
+          general: 'Wszystko poza jednym krokiem si\u0119 zgadza — szukaj dalej.',
+          1: 'Delta policzona poprawnie: \u0394 = 25, \u221A\u0394 = 5.',
+          3: 'Same rachunki (\u22123+5)/2 = 1 i (\u22123\u22125)/2 = \u22124 s\u0105 poprawne — ale wychodz\u0105 z b\u0142\u0119dnej formuły powy\u017Cej.',
+          4: 'To tylko przepisanie wynik\u00F3w z kroku 3. B\u0142\u0105d jest wcze\u015Bniej.',
+        },
+        correctExplanation: 'Krok 2 ma z\u0142y wz\u00F3r. Prawdziwy wz\u00F3r kwadratowy to <b>x = (\u2212b \u00B1 \u221A\u0394) / (2a)</b>, nie /a. Kuba zapomnia\u0142 o dw\u00F3jce w mianowniku. Poprawnie: x = (\u22123 \u00B1 5) / (2\u00B72) = (\u22123 \u00B1 5) / 4 \u2192 x\u2081 = 0.5, x\u2082 = \u22122. (Sprawd\u017A: 2\u00B7(0.5)\u00B2 + 3\u00B70.5 \u2212 2 = 0.5 + 1.5 \u2212 2 = 0 \u2713.)',
+      },
+      pips: () => [],
+      solved: () => false,
+      hints: [
+        'Przypomnij sobie dok\u0142adnie wz\u00F3r na pierwiastki. Co stoi w mianowniku?',
+        'W mianowniku jest <b>2a</b>, nie samo a. Dla a = 2 mianownik to 4.',
+        'W kt\u00F3rym kroku Kuba napisał /a zamiast /(2a)?',
+      ],
+      solvedMsg: 'Tak. Cz\u0119sta pu\u0142apka przy a \u2260 1: je\u015Bli zapomnisz o 2a, dla a = 2 wyniki wyjd\u0105 dok\u0142adnie dwa razy za du\u017Ce co do warto\u015Bci bezwzgl\u0119dnej.',
+      draw: noop,
+    },
+
+    // ─── Ch.4: Dropped a solution in factoring ──────────────────
+    {
+      id: 'ch4',
+      title: 'Wyłap błąd — zgubione rozwiązanie',
+      desc: 'Marta dosta\u0142a r\u00F3wnanie w postaci iloczynowej i zatrzyma\u0142a si\u0119 za wcze\u015Bnie. W kt\u00F3rym miejscu?',
+      init: noop,
+      debug: {
+        task: 'Marta rozwi\u0105za\u0142a <b>(x\u22122)(x+3) = 0</b>. Napisa\u0142a: "x = 2". Czy to wystarczy?',
+        steps: [
+          { n: 1, text: '(x \u2212 2)(x + 3) = 0' },
+          { n: 2, text: 'Iloczyn jest zerem wtedy i tylko wtedy, gdy przynajmniej jeden z czynnik\u00F3w jest zerem.' },
+          { n: 3, text: 'x \u2212 2 = 0, wi\u0119c x = 2.' },
+          { n: 4, text: 'Odpowied\u017A: x = 2.' },
+        ],
+        errorLine: 4,
+        wrongChoice: {
+          general: 'Ten krok sam w sobie jest poprawny. Pomy\u015Bl o ca\u0142o\u015Bci rozumowania.',
+          1: 'Przepisane r\u00F3wnanie bez zmian — wszystko OK.',
+          2: 'To prawdziwa w\u0142asno\u015B\u0107 iloczynu (tzw. zero-product property). Nie tu b\u0142\u0105d.',
+          3: 'Rzeczywi\u015Bcie z x \u2212 2 = 0 wynika x = 2. Ale czy to <i>wszystko</i>, co wynika z kroku 2?',
+        },
+        correctExplanation: 'Krok 4 jest niepełny — Marta zgubi\u0142a drugi przypadek. Krok 2 m\u00F3wi: <i>przynajmniej jeden</i> czynnik jest zerem, a Marta rozpatrzy\u0142a tylko x\u22122=0. Drugi czynnik te\u017C może by\u0107 zerem: <b>x + 3 = 0 \u2192 x = \u22123</b>. Pe\u0142ny zbi\u00F3r rozwi\u0105za\u0144: <b>x \u2208 {2, \u22123}</b>.',
+      },
+      pips: () => [],
+      solved: () => false,
+      hints: [
+        'Iloczyn dw\u00F3ch czynnik\u00F3w jest zerem, gdy jeden <i>lub</i> drugi jest zerem — oba przypadki trzeba rozpatrze\u0107.',
+        'Marta rozpatrzy\u0142a x \u2212 2 = 0. A drugi czynnik, x + 3?',
+        'Z x + 3 = 0 wychodzi x = \u22123. To drugie rozwi\u0105zanie \u2014 w kt\u00F3rym kroku Marta je pomin\u0119\u0142a?',
+      ],
+      solvedMsg: 'Dok\u0142adnie. Przy postaci iloczynowej zawsze rozpatrujemy ka\u017Cdy czynnik z osobna — r\u00F3wnanie mo\u017Ce mie\u0107 wi\u0119cej ni\u017C jedno rozwi\u0105zanie.',
+      draw: noop,
+    },
+  ];
+
+  initWarsztat({
+    canvasId: 'cv',
+    challenges,
+    lsKey: 'warsztat:quadratic-debug:completed',
+    wrapup: 'Cztery klasyczne b\u0142\u0119dy: <b>znak w Vi\u00E8ta</b> (suma = \u2212b/a), <b>znak w delcie</b> (\u22124ac z ujemnym c daje plus), <b>2a w mianowniku</b> wzoru kwadratowego, <b>zgubiony pierwiastek</b> w postaci iloczynowej. Przed oddaniem pracy: sprawd\u017A podstawieniem.',
+  });
+}
+</script>
+</body>
+</html>

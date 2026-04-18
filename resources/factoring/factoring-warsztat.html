@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rozkład na czynniki — Warsztat</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; color: rgba(255,255,255,.85); }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+
+  .head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+  .head .step { font-size: 11px; color: rgba(255,255,255,.4); letter-spacing: .04em; }
+  .head .title { font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  .desc { font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); margin-bottom: 10px; min-height: 34px; }
+
+  .pips { display: flex; gap: 14px; flex-wrap: wrap; margin: 4px 0 10px; font-size: 12px; }
+  .pip { display: inline-flex; align-items: center; gap: 6px; color: rgba(255,255,255,.55); }
+  .pip .mark { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(255,255,255,.25); display: inline-flex; align-items: center; justify-content: center; font-size: 10px; line-height: 1; }
+  .pip.ok { color: #83C167; }
+  .pip.ok .mark { background: #83C167; border-color: #83C167; color: #0e0e12; }
+  .pip.ok .mark::before { content: "\2713"; }
+
+  .predict { margin-bottom: 10px; }
+  .predict .q { font-size: 13px; color: rgba(255,255,255,.82); margin-bottom: 8px; line-height: 1.55; }
+  .predict .opts { display: flex; flex-direction: column; gap: 6px; }
+  .predict button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.78); padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; transition: background .15s, border-color .15s; }
+  .predict button:hover { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.4); }
+  .predict button.picked { border-color: #58C4DD; color: #58C4DD; }
+  .predict .feedback { margin-top: 8px; font-size: 12px; line-height: 1.55; color: rgba(255,255,255,.7); padding: 8px 10px; border-left: 2px solid #58C4DD; background: rgba(88,196,221,.06); border-radius: 0 4px 4px 0; }
+
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 36px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+
+  .choices { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .choices button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.78); padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; transition: background .15s, border-color .15s; }
+  .choices button:hover { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.4); }
+  .choices button.picked { border-color: #58C4DD; color: #58C4DD; }
+  .choices button.correct { border-color: #83C167; color: #83C167; }
+  .choices button.wrong { border-color: #FF6B6B; color: #FF6B6B; }
+
+  .hints { font-size: 12px; color: rgba(255,255,255,.5); margin: 4px 0 10px; line-height: 1.55; }
+  .hints .hint { padding: 6px 10px; border-left: 2px solid #FFD166; background: rgba(255,209,102,.05); margin-top: 4px; border-radius: 0 4px 4px 0; }
+
+  .nav { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+  .nav button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  .nav button:hover:not(:disabled) { background: rgba(255,255,255,.08); }
+  .nav button:disabled { opacity: .3; cursor: default; }
+  .nav button.primary { border-color: #83C167; color: #83C167; }
+  .nav button.primary:hover { background: rgba(131,193,103,.1); }
+
+  .dots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.15); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  .dot.done { background: #83C167; }
+
+  .solved-note { font-size: 13px; color: #83C167; line-height: 1.55; padding: 8px 10px; border-left: 2px solid #83C167; background: rgba(131,193,103,.06); border-radius: 0 4px 4px 0; margin-bottom: 8px; }
+  .wrapup-note { font-size: 13px; color: #C78DFF; line-height: 1.55; padding: 10px 12px; border-left: 2px solid #C78DFF; background: rgba(199,141,255,.06); border-radius: 0 4px 4px 0; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="310"></canvas>
+  <div class="panel">
+    <div class="head">
+      <span class="step" id="step"></span>
+      <div class="dots" id="dots"></div>
+    </div>
+    <p class="title" id="title"></p>
+    <p class="desc" id="desc"></p>
+    <div id="predict"></div>
+    <div id="sliders-wrap"></div>
+    <div id="choices-wrap"></div>
+    <div class="pips" id="pips"></div>
+    <div class="hints" id="hints"></div>
+    <div id="solved-msg"></div>
+    <div class="nav">
+      <button id="prev">&larr;</button>
+      <button id="next" class="primary">Dalej &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { GraphView } from '../lib/graph-core.js';
+import { initWarsztat } from '../lib/warsztat-core.js';
+{
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const W = 600, H = 310;
+
+  // ── Colors ──────────────────────────────────────────────────
+  const COL_PAR = '#58C4DD';
+  const COL_TARGET = '#83C167';
+  const COL_R1  = '#FF6B6B';
+  const COL_R2  = '#4ECDC4';
+  const COL_GCF = '#FFD166';
+  const COL_A   = '#E07090';
+  const COL_B   = '#C78DFF';
+  const COL_OK  = '#83C167';
+
+  // ── GraphView ───────────────────────────────────────────────
+  let view;
+  function initView() {
+    view = new GraphView(ctx, { rect: [0,0,W,H], xRange: [-7,7], yRange: [-4.2,4.2], scale: 42 });
+  }
+
+  // ── Draw helpers ────────────────────────────────────────────
+  function dot(x, y, r, col) { view.dot(x, y, { radius: r, color: col }); }
+  function dashed(x1, y1, x2, y2, col, alpha) {
+    view.segment(x1, y1, x2, y2, { color: col, alpha: alpha ?? 0.6, lineWidth: 1.5, dash: [5,4] });
+  }
+  function roundRect(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x+r,y); c.lineTo(x+w-r,y); c.quadraticCurveTo(x+w,y,x+w,y+r);
+    c.lineTo(x+w,y+h-r); c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    c.lineTo(x+r,y+h); c.quadraticCurveTo(x,y+h,x,y+h-r);
+    c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y);
+    c.closePath();
+  }
+  function infoBox(text, sx, sy, col, alpha) {
+    ctx.save();
+    ctx.font = '12px monospace';
+    if (alpha !== undefined) ctx.globalAlpha = alpha;
+    const w = ctx.measureText(text).width + 14;
+    ctx.fillStyle = 'rgba(14,14,18,0.9)';
+    ctx.strokeStyle = col + '60';
+    ctx.lineWidth = 1;
+    roundRect(ctx, sx - w/2, sy - 11, w, 22, 4);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = col;
+    ctx.textAlign = 'center';
+    ctx.fillText(text, sx, sy + 4);
+    ctx.restore();
+  }
+  function centerText(text, sx, sy, col, size) {
+    ctx.save();
+    ctx.font = (size || 14) + 'px monospace';
+    ctx.fillStyle = col;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, sx, sy);
+    ctx.restore();
+  }
+  function fmt(v) {
+    if (Math.abs(v - Math.round(v)) < 0.01) return Math.round(v).toString();
+    return v.toFixed(2);
+  }
+  const near = (a, b, eps = 0.02) => Math.abs(a - b) < eps;
+
+  // ── Challenge-local state ───────────────────────────────────
+  const C = {
+    gcfPick: null,
+    a: 1, b: 1,
+    x1: 0, x2: 0,
+    groupPick: null,
+  };
+
+  // ── Challenges ──────────────────────────────────────────────
+  const challenges = [
+    // ─── Ch.1: Wspólny czynnik ──────────────────────────────
+    {
+      id: 'ch1',
+      title: 'Wyłącz wspólny czynnik: 6x² + 9x',
+      desc: 'Zanim sięgniesz po wzory — zawsze sprawdź, czy da się wyciągnąć wspólny czynnik. Znajdź największy czynnik dzielący oba wyrazy.',
+      drawBackground: 'blank',
+      init() { C.gcfPick = null; },
+      predict: {
+        question: 'Co jest największym wspólnym dzielnikiem wyrazów 6x² i 9x?',
+        options: [
+          { label: '3',   correct: false, why: 'Prawie — 3 dzieli obie liczby, ale zapominasz o x. W 6x² i 9x jest jeszcze wspólne x.' },
+          { label: '3x',  correct: true,  why: 'Tak. NWD liczb to 3, a najmniejsza potęga x to x¹. Razem: 3x. Wyciągasz 3x przed nawias.' },
+          { label: 'x',   correct: false, why: 'Tylko częściowo — 3 też dzieli oba wyrazy (6 = 3·2, 9 = 3·3), więc GCF to 3x, nie samo x.' },
+          { label: '9x',  correct: false, why: '9 nie dzieli 6. GCF musi dzielić OBA wyrazy — a 6x² / 9x nie jest całkowite.' },
+        ],
+      },
+      choices: {
+        question: 'Wybierz poprawny rozkład:',
+        options: [
+          { id: 'a', label: '3x · (2x + 3)',   correct: true  },
+          { id: 'b', label: '3 · (2x² + 3x)',  correct: false },
+          { id: 'c', label: 'x · (6x + 9)',    correct: false },
+          { id: 'd', label: '3x · (2x² + 3)',  correct: false },
+        ],
+        pick(id) { C.gcfPick = id; },
+      },
+      pips() {
+        return [{ label: 'wybrano poprawny rozkład', ok: C.gcfPick === 'a' }];
+      },
+      solved() { return C.gcfPick === 'a'; },
+      hints: [
+        'Spójrz na liczby: jaki jest NWD(6, 9)? A teraz na x-y: ile x-ów jest w każdym wyrazie?',
+        'NWD(6, 9) = 3. W 6x² są dwa x, w 9x jeden x — wspólne to x¹.',
+        'Wyciągasz 3x: 6x² = 3x · 2x, 9x = 3x · 3. Razem: 3x · (2x + 3).',
+      ],
+      solvedMsg: 'Tak — wyłączenie wspólnego czynnika to zawsze pierwszy krok przy rozkładzie.',
+      draw() {
+        const isOK = C.gcfPick === 'a';
+        centerText('6x² + 9x', W*0.25, 60, COL_PAR, 20);
+        centerText('=', W*0.5, 60, 'rgba(255,255,255,0.5)', 22);
+        ctx.save();
+        ctx.font = '20px monospace';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        const rx = W*0.62;
+        ctx.fillStyle = COL_GCF;
+        ctx.fillText('3x', rx, 60);
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.fillText(' · (2x + 3)', rx + 30, 60);
+        ctx.restore();
+
+        ctx.save();
+        ctx.font = '13px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.fillText('6x² = ', W*0.18, 130);
+        ctx.fillStyle = COL_GCF;
+        ctx.fillText('3x', W*0.28, 130);
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.fillText(' · 2x', W*0.36, 130);
+
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.fillText('9x  = ', W*0.58, 130);
+        ctx.fillStyle = COL_GCF;
+        ctx.fillText('3x', W*0.68, 130);
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.fillText(' · 3', W*0.75, 130);
+        ctx.restore();
+
+        centerText('wspólne: 3x', W*0.5, 175, COL_GCF, 13);
+
+        ctx.save();
+        ctx.font = '12px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.fillText('sprawdź: 3x · 2x = 6x²,   3x · 3 = 9x   \u2713', W*0.5, 220);
+        ctx.restore();
+
+        if (isOK) {
+          centerText('\u2713 rozkład poprawny', W*0.5, 265, COL_OK, 14);
+        } else if (C.gcfPick) {
+          centerText('spróbuj jeszcze raz', W*0.5, 265, COL_R1, 13);
+        } else {
+          centerText('wybierz rozkład pod spodem \u2193', W*0.5, 265, 'rgba(255,255,255,0.35)', 12);
+        }
+      },
+    },
+
+    // ─── Ch.2: Różnica kwadratów ─────────────────────────────
+    {
+      id: 'ch2',
+      title: 'Wzór: a² − b² = (a−b)(a+b)',
+      desc: 'Cel: x² − 25. Ustaw a i b tak, żeby wzór a² − b² pasował do celu. Zobacz, jak pierwiastki pojawiają się przy ±b.',
+      drawBackground: 'graph',
+      init() { C.a = 1; C.b = 1; },
+      predict: {
+        question: 'Który wzór pasuje do x² − 25?',
+        options: [
+          { label: '(x − 5)(x + 5)',     correct: true,  why: 'Tak. 25 = 5², więc x² − 25 to różnica kwadratów: (x − 5)(x + 5). Pierwiastki w ±5.' },
+          { label: '(x − 5)²',            correct: false, why: '(x − 5)² = x² − 10x + 25 — to kwadrat dwumianu, nie różnica kwadratów. Jest środkowy wyraz.' },
+          { label: '(x + 5)²',            correct: false, why: '(x + 5)² = x² + 10x + 25 — znowu kwadrat sumy, ze środkowym wyrazem. I plus zamiast minus.' },
+          { label: '(x² − 5)(x² + 5)',    correct: false, why: 'To dałoby x⁴ − 25 (różnica kwadratów z x², nie z x). Tu a = x, b = 5.' },
+        ],
+      },
+      sliders: [
+        { id: 'b', lbl: 'b', color: COL_B, min: 0, max: 8, step: 1, get: () => C.b, set: v => C.b = v },
+      ],
+      pips() {
+        return [
+          { label: 'a = 1 (bo mamy x², więc a² = 1·x²)', ok: true },
+          { label: 'b² = 25 ⇒ b = 5', ok: C.b === 5 },
+        ];
+      },
+      solved() { return C.b === 5; },
+      hints: [
+        '25 to kwadrat którejś liczby. Której?',
+        'Wzór mówi: x² − b² = (x − b)(x + b). Tu x² − 25 = x² − b².',
+        'b² = 25, więc b = 5. Ustaw suwak na 5.',
+      ],
+      solvedMsg: 'Różnica kwadratów — zawsze patrz na to pierwsze, gdy widzisz minus między dwoma kwadratami.',
+      draw() {
+        const scale = 8;
+        view.plotFn(x => (x*x - 25) / scale, { color: COL_TARGET, alpha: 0.35, lineWidth: 2, dash: [5,4] });
+        view.plotFn(x => (x*x - C.b*C.b) / scale, { color: COL_PAR, alpha: 0.9, lineWidth: 2.5 });
+
+        if (C.b > 0) {
+          dot(-C.b, 0, 6, COL_R1); dot(C.b, 0, 6, COL_R2);
+          view.label('\u2212' + C.b, -C.b, 0.45, { color: COL_R1, align: 'center', font: '11px monospace' });
+          view.label('+' + C.b, C.b, 0.45, { color: COL_R2, align: 'center', font: '11px monospace' });
+        }
+        dashed(-5, -4, -5, 4, COL_TARGET, 0.4);
+        dashed(5, -4, 5, 4, COL_TARGET, 0.4);
+        view.label('cel: ±5', 5.2, 3.6, { color: COL_TARGET, align: 'left', font: '10px monospace' });
+
+        infoBox('cel: x² \u2212 25', W*0.3, 22, COL_TARGET);
+        infoBox('twoje: x² \u2212 ' + (C.b*C.b) + '  =  (x \u2212 ' + C.b + ')(x + ' + C.b + ')', W*0.7, 22, COL_PAR);
+      },
+    },
+
+    // ─── Ch.3: Trójmian kwadratowy ───────────────────────────
+    {
+      id: 'ch3',
+      title: 'Rozłóż: x² − 5x + 6',
+      desc: 'Zasuwaj pierwiastkami x₁, x₂ tak, by ich suma i iloczyn pasowały do współczynników. Vieta robi to, czego wzór kwadratowy nie musi.',
+      drawBackground: 'graph',
+      init() { C.x1 = 0; C.x2 = 0; },
+      predict: {
+        question: 'Dla x² − 5x + 6 — jakich liczb szukasz?',
+        options: [
+          { label: 'suma 5, iloczyn 6',    correct: true,  why: 'Tak. Dla a=1: x₁ + x₂ = −b = 5, x₁ · x₂ = c = 6. Szukasz pary liczb spełniających OBA warunki.' },
+          { label: 'suma −5, iloczyn 6',   correct: false, why: 'Znak sumy idzie z −b. Tu b = −5, więc −b = +5. Suma to +5, nie −5.' },
+          { label: 'suma 5, iloczyn −6',   correct: false, why: 'Iloczyn = c (dla a=1). Tu c = +6, więc iloczyn dodatni.' },
+          { label: 'suma 6, iloczyn 5',    correct: false, why: 'Przestawione role. Suma idzie z b, iloczyn z c — nie odwrotnie.' },
+        ],
+      },
+      sliders: [
+        { id: 'x1', lbl: 'x₁', color: COL_R1, min: -6, max: 6, step: 1, get: () => C.x1, set: v => C.x1 = v },
+        { id: 'x2', lbl: 'x₂', color: COL_R2, min: -6, max: 6, step: 1, get: () => C.x2, set: v => C.x2 = v },
+      ],
+      pips() {
+        const s = C.x1 + C.x2, p = C.x1 * C.x2;
+        return [
+          { label: 'suma = 5', ok: near(s, 5) },
+          { label: 'iloczyn = 6', ok: near(p, 6) },
+        ];
+      },
+      solved() {
+        const s = C.x1 + C.x2, p = C.x1 * C.x2;
+        return near(s, 5) && near(p, 6);
+      },
+      hints: [
+        'Szukasz dwóch liczb — nie dwóch osobnych równań. OBIE warunki muszą zachodzić naraz.',
+        'x₁ + x₂ = 5   I   x₁ · x₂ = 6. Które pary liczb dają iloczyn 6?',
+        'Pary o iloczynie 6: (1,6), (2,3), (−1,−6), (−2,−3). Która daje sumę 5? Para (2, 3).',
+      ],
+      solvedMsg: 'Vieta w akcji — współczynniki mówią wprost, jakie pierwiastki tkwią w trójmianie. x² − 5x + 6 = (x − 2)(x − 3).',
+      draw() {
+        view.plotFn(x => x*x - 5*x + 6, { color: COL_TARGET, alpha: 0.35, lineWidth: 2, dash: [5,4] });
+        const s = C.x1 + C.x2, p = C.x1 * C.x2;
+        view.plotFn(x => x*x - s*x + p, { color: COL_PAR, alpha: 0.9, lineWidth: 2.5 });
+
+        dot(C.x1, 0, 6, COL_R1); dot(C.x2, 0, 6, COL_R2);
+        view.label('x₁=' + fmt(C.x1), C.x1, 0.5, { color: COL_R1, align: 'center', font: '11px monospace' });
+        view.label('x₂=' + fmt(C.x2), C.x2, 0.5, { color: COL_R2, align: 'center', font: '11px monospace' });
+
+        dashed(2, -4, 2, 4, COL_TARGET, 0.3);
+        dashed(3, -4, 3, 4, COL_TARGET, 0.3);
+
+        infoBox('cel: x² \u2212 5x + 6', W*0.28, 22, COL_TARGET);
+        const sgn = s >= 0 ? ' \u2212 ' : ' + ';
+        const eq = 'twoje: x²' + sgn + fmt(Math.abs(s)) + 'x' + (p >= 0 ? ' + ' : ' \u2212 ') + fmt(Math.abs(p));
+        infoBox(eq, W*0.72, 22, COL_PAR);
+
+        infoBox('suma = ' + fmt(s), W*0.3, H - 20, COL_GCF);
+        infoBox('iloczyn = ' + fmt(p), W*0.7, H - 20, COL_B);
+      },
+    },
+
+    // ─── Ch.4: Grupowanie ────────────────────────────────────
+    {
+      id: 'ch4',
+      title: 'Grupowanie: x³ + 2x² + 3x + 6',
+      desc: 'Cztery wyrazy — zgrupuj je w pary tak, by po wyłączeniu czynników z każdej pary został ten sam nawias.',
+      drawBackground: 'blank',
+      init() { C.groupPick = null; },
+      predict: {
+        question: 'Jak najrozsądniej zgrupować wyrazy?',
+        options: [
+          { label: 'pary sąsiednie: (x³+2x²) + (3x+6)', correct: true,  why: 'Tak. Z pierwszej pary wyciągasz x² (zostaje x+2), z drugiej wyciągasz 3 (zostaje x+2). Ten sam nawias — grupowanie zadziałało.' },
+          { label: 'co drugi: (x³+3x) + (2x²+6)',       correct: false, why: 'Tutaj też by zadziałało (x(x²+3) + 2(x²+3)), ale jako pierwszy odruch próbuj par sąsiednich — to prostsze i częściej działa.' },
+          { label: 'wszystko w jedną grupę',            correct: false, why: 'To nie jest grupowanie — to samo wyrażenie. Grupowanie wymaga co najmniej dwóch grup, z których każda ma wspólny czynnik.' },
+          { label: 'po jednym wyrazie osobno',          correct: false, why: 'Pojedyncze wyrazy nie mają „wspólnego" czynnika z niczym. Sensem grupowania jest znalezienie wspólnego czynnika WEWNĄTRZ pary.' },
+        ],
+      },
+      choices: {
+        question: 'Wybierz grupowanie prowadzące do rozkładu:',
+        options: [
+          { id: 'a', label: '(x³ + 2x²) + (3x + 6)  →  x²(x+2) + 3(x+2)  →  (x+2)(x²+3)', correct: true  },
+          { id: 'b', label: '(x³ + 3x) + (2x² + 6)  →  x(x²+3) + 2(x²+3)  →  (x²+3)(x+2)', correct: true  },
+          { id: 'c', label: '(x³ + 6) + (2x² + 3x)  →  brak wspólnego nawiasu',              correct: false },
+          { id: 'd', label: 'nie da się zgrupować',                                           correct: false },
+        ],
+        pick(id) { C.groupPick = id; },
+      },
+      pips() {
+        const ok = C.groupPick === 'a' || C.groupPick === 'b';
+        return [{ label: 'wybrano działające grupowanie', ok }];
+      },
+      solved() { return C.groupPick === 'a' || C.groupPick === 'b'; },
+      hints: [
+        'Wyciągnij wspólny czynnik z każdej pary osobno. Jaki zostaje nawias?',
+        'Z (x³ + 2x²) wyciągasz x² → x²(x + 2). Z (3x + 6) wyciągasz 3 → 3(x + 2).',
+        'Obydwa kończą się tym samym (x + 2) — wyciągasz go przed nawias: (x + 2)(x² + 3).',
+      ],
+      solvedMsg: 'Grupowanie działa, gdy po wyłączeniu czynników z obu grup zostaje ten sam nawias. Jeśli nie zostaje — zmień grupowanie.',
+      draw() {
+        ctx.save();
+        ctx.font = '18px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const pick = C.groupPick;
+        const showB = pick === 'b';
+        const showC = pick === 'c';
+
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.fillText('x³ + 2x² + 3x + 6', W/2, 40);
+
+        ctx.font = '16px monospace';
+        if (showB) {
+          ctx.fillStyle = COL_A;
+          ctx.fillText('( x³ + 3x )', W*0.28, 90);
+          ctx.fillStyle = COL_B;
+          ctx.fillText('+ ( 2x² + 6 )', W*0.68, 90);
+          ctx.fillStyle = COL_A;
+          ctx.fillText('x · (x² + 3)', W*0.28, 140);
+          ctx.fillStyle = COL_B;
+          ctx.fillText('+ 2 · (x² + 3)', W*0.68, 140);
+          ctx.fillStyle = COL_OK;
+          ctx.font = '18px monospace';
+          ctx.fillText('=  (x² + 3)(x + 2)', W/2, 200);
+        } else if (showC) {
+          ctx.fillStyle = COL_A;
+          ctx.fillText('( x³ + 6 )', W*0.28, 90);
+          ctx.fillStyle = COL_B;
+          ctx.fillText('+ ( 2x² + 3x )', W*0.68, 90);
+          ctx.fillStyle = COL_A;
+          ctx.fillText('brak wspólnego czynnika', W*0.28, 140);
+          ctx.fillStyle = COL_B;
+          ctx.fillText('x(2x + 3)', W*0.68, 140);
+          ctx.fillStyle = COL_R1;
+          ctx.font = '14px monospace';
+          ctx.fillText('nawiasy się nie pokrywają — to grupowanie nie działa', W/2, 200);
+        } else {
+          ctx.fillStyle = COL_A;
+          ctx.fillText('( x³ + 2x² )', W*0.28, 90);
+          ctx.fillStyle = COL_B;
+          ctx.fillText('+ ( 3x + 6 )', W*0.68, 90);
+          ctx.fillStyle = COL_A;
+          ctx.fillText('x² · (x + 2)', W*0.28, 140);
+          ctx.fillStyle = COL_B;
+          ctx.fillText('+ 3 · (x + 2)', W*0.68, 140);
+          ctx.fillStyle = COL_GCF;
+          ctx.font = '13px monospace';
+          ctx.fillText('\u2191 wspólne: (x + 2) \u2191', W/2, 170);
+          ctx.fillStyle = pick === 'a' ? COL_OK : 'rgba(255,255,255,0.55)';
+          ctx.font = '18px monospace';
+          ctx.fillText('=  (x + 2)(x² + 3)', W/2, 210);
+        }
+
+        ctx.font = '12px monospace';
+        ctx.textBaseline = 'middle';
+        if (!pick) {
+          ctx.fillStyle = 'rgba(255,255,255,0.4)';
+          ctx.fillText('wybierz grupowanie pod spodem \u2193', W/2, 265);
+        } else if (pick === 'a' || pick === 'b') {
+          ctx.fillStyle = COL_OK;
+          ctx.fillText('\u2713 grupowanie działa', W/2, 265);
+        } else {
+          ctx.fillStyle = COL_R1;
+          ctx.fillText('to grupowanie nie prowadzi do rozkładu', W/2, 265);
+        }
+        ctx.restore();
+      },
+    },
+  ];
+
+  initWarsztat({
+    canvasId: 'cv',
+    challenges,
+    lsKey: 'warsztat:factoring:completed',
+    wrapup: 'Trzy główne ścieżki rozkładu: <b>wspólny czynnik</b> → <b>wzór skróconego mnożenia</b> → <b>Vieta / grupowanie</b>. Zawsze zacznij od wspólnego czynnika — to jedyne narzędzie, które NIGDY nie zaszkodzi.',
+    onFrame({ ch }) {
+      initView();
+      view.clear();
+      if (ch.drawBackground === 'graph') {
+        view.drawGrid({ color: 'rgba(255,255,255,0.04)' });
+        view.drawAxes({ color: 'rgba(255,255,255,0.2)', arrows: false, labels: true, tickSize: 3 });
+      }
+    },
+  });
+}
+</script>
+</body>
+</html>
