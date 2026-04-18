@@ -4,11 +4,12 @@ import { useEffect, useCallback, useRef } from "react";
  * Lightweight hash-based router.
  *
  * URL scheme (all under window.location.hash):
- *   #/<lang>/                                → graph explore
- *   #/<lang>/node/<nodeId>                   → node selected (InfoPanel open)
- *   #/<lang>/node/<nodeId>/resource/<index>  → resource viewer open
- *   #/<lang>/diagnostic/quick                → quick diagnostic mode
- *   #/<lang>/diagnostic/deepdive/<goalNode>  → deep-dive mode with goal
+ *   #/<lang>/                                  → graph explore
+ *   #/<lang>/node/<nodeId>                     → node selected (InfoPanel open)
+ *   #/<lang>/node/<nodeId>/resource/<index>    → resource viewer open
+ *   #/<lang>/node/<nodeId>/question/<qIndex>   → quiz panel open at a specific question
+ *   #/<lang>/diagnostic/quick                  → quick diagnostic mode
+ *   #/<lang>/diagnostic/deepdive/<goalNode>    → deep-dive mode with goal
  *
  * <lang> is "pl" or "en". Falls back to "pl" if missing.
  */
@@ -31,6 +32,9 @@ export function parseHash(hash) {
     const nodeId = decodeURIComponent(rest[1]);
     if (rest[2] === "resource" && rest[3] != null) {
       return { view: "resource", nodeId, resourceIndex: parseInt(rest[3], 10), lang };
+    }
+    if (rest[2] === "question" && rest[3] != null) {
+      return { view: "question", nodeId, questionIndex: parseInt(rest[3], 10), lang };
     }
     return { view: "node", nodeId, lang };
   }
@@ -55,6 +59,8 @@ export function buildHash(route) {
       return `#/${lang}/node/${encodeURIComponent(route.nodeId)}`;
     case "resource":
       return `#/${lang}/node/${encodeURIComponent(route.nodeId)}/resource/${route.resourceIndex}`;
+    case "question":
+      return `#/${lang}/node/${encodeURIComponent(route.nodeId)}/question/${route.questionIndex}`;
     case "diagnostic":
       if (route.mode === "deepdive" && route.goalNode)
         return `#/${lang}/diagnostic/deepdive/${encodeURIComponent(route.goalNode)}`;

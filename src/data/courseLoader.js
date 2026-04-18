@@ -128,6 +128,7 @@ export function buildQuestionBank(questionFiles, idPattern) {
       options: meta.options ?? [],
       correct: meta.correct ?? 0,
       hint:    meta.hint    ?? "",
+      hints:   Array.isArray(meta.hints) ? meta.hints : (meta.hint ? [meta.hint] : []),
       source:  meta.source  ?? null,
       tests:   (meta.tests && typeof meta.tests === "object" && Object.keys(meta.tests).length > 0)
                  ? meta.tests
@@ -143,9 +144,14 @@ export function buildQuestionBank(questionFiles, idPattern) {
  * @param {string} nodeId
  * @param {number[]} excludeIndices
  */
-export function getQuestion(questionBank, nodeId, excludeIndices = [], sourceFilter = null) {
+export function getQuestion(questionBank, nodeId, excludeIndices = [], sourceFilter = null, forceIndex = null) {
   const qs = questionBank[nodeId];
   if (!qs || qs.length === 0) return null;
+
+  // Forced index (used by deep-linked question routes) — bypass filters so a shared URL always resolves.
+  if (typeof forceIndex === "number" && qs[forceIndex]) {
+    return { ...qs[forceIndex], index: forceIndex };
+  }
 
   // Sentinel -1 means "node was manually classified with no question available".
   // Treat the node as fully exhausted so it won't be re-asked.

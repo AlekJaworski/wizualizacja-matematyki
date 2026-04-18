@@ -19,9 +19,9 @@ import { t } from "../../i18n.js";
  *   lang
  *   isMobile
  */
-export function QuizPanel({ nodeId, nodes, questionBank, onAnswer, onSkip, lang, excludeIndices = [], isMobile, sourceFilter = null }) {
+export function QuizPanel({ nodeId, nodes, questionBank, onAnswer, onSkip, lang, excludeIndices = [], isMobile, sourceFilter = null, forceIndex = null }) {
   const node  = nodes.find(n => n.id === nodeId);
-  const q     = useMemo(() => getQuestion(questionBank, nodeId, excludeIndices, sourceFilter), [nodeId, excludeIndices, sourceFilter]);
+  const q     = useMemo(() => getQuestion(questionBank, nodeId, excludeIndices, sourceFilter, forceIndex), [nodeId, excludeIndices, sourceFilter, forceIndex]);
   const color = sourceFilter === "cke" ? "#FFD166" : "#4a9eff";
   const lbl   = node ? (lang === "pl" ? node.labelPl : node.label) : nodeId;
 
@@ -39,14 +39,19 @@ export function QuizPanel({ nodeId, nodes, questionBank, onAnswer, onSkip, lang,
     [perm, q]
   );
 
-  const [picked,   setPicked]   = useState(null);
-  const [revealed, setRevealed] = useState(false);
+  const [picked,     setPicked]     = useState(null);
+  const [revealed,   setRevealed]   = useState(false);
+  const [hintsShown, setHintsShown] = useState(1);
+
+  // Reset hint ladder when the question changes
+  useEffect(() => { setHintsShown(1); }, [q]);
 
   const submit  = () => { if (picked !== null) setRevealed(true); };
   const confirm = () => {
     onAnswer(picked === correctDisplayIndex, q, q.index);
     setPicked(null);
     setRevealed(false);
+    setHintsShown(1);
   };
 
   // Close on Escape
@@ -183,15 +188,46 @@ export function QuizPanel({ nodeId, nodes, questionBank, onAnswer, onSkip, lang,
             })}
           </div>
 
-          {/* Hint */}
-          {revealed && q.hint && (
-            <div style={{
-              fontSize: 11, color: COLORS.textMuted, marginBottom: 10,
-              padding: "8px 10px", background: "#ffffff08", borderRadius: 6, lineHeight: 1.6,
-            }}>
-              {render(q.hint)}
-            </div>
-          )}
+          {/* Hints — progressive ladder (①②③) matching vieta-warsztat `.hints .hint` styling */}
+          {revealed && (() => {
+            const hintList = Array.isArray(q.hints) && q.hints.length > 0
+              ? q.hints
+              : (q.hint ? [q.hint] : []);
+            if (hintList.length === 0) return null;
+            const shown = Math.min(hintsShown, hintList.length);
+            return (
+              <div style={{ marginBottom: 10 }}>
+                {hintList.slice(0, shown).map((h, i) => (
+                  <div key={i} style={{
+                    padding: "6px 10px",
+                    borderLeft: "2px solid #FFD166",
+                    background: "rgba(255,209,102,.05)",
+                    borderRadius: "0 4px 4px 0",
+                    marginTop: i === 0 ? 0 : 4,
+                    fontSize: 12,
+                    lineHeight: 1.55,
+                    color: "rgba(255,255,255,.7)",
+                  }}>
+                    {render(h)}
+                  </div>
+                ))}
+                {shown < hintList.length && (
+                  <button
+                    onClick={() => setHintsShown(s => s + 1)}
+                    style={{
+                      ...ansBtn("#FFD166"),
+                      marginTop: 6,
+                      fontSize: 11,
+                      padding: "5px 10px",
+                      opacity: 0.75,
+                    }}
+                  >
+                    {lang === "pl" ? "Pokaż kolejną wskazówkę" : "Show next hint"}
+                  </button>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Action */}
           {!revealed ? (

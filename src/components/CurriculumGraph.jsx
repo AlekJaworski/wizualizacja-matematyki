@@ -61,6 +61,7 @@ export default function CurriculumGraph({
   const [openResourceIdx, setOpenResourceIdx] = useState(null);
   const [pathGoal,      setPathGoal]      = useState(null);
   const [quizSource,    setQuizSource]    = useState(null);
+  const [forceQIndex,   setForceQIndex]   = useState(null);
 
   // ── Modals ──────────────────────────────────────────────────────
   const [showGoalModal,   setShowGoalModal]   = useState(false);
@@ -147,6 +148,13 @@ export default function CurriculumGraph({
     } else if (route.view === "resource") {
       setSelected(route.nodeId);
       setOpenResourceIdx(route.resourceIndex);
+    } else if (route.view === "question") {
+      setSelected(null);
+      setDiagMode(true);
+      setMode("quick");
+      setQuizSource(null);
+      setForceQIndex(route.questionIndex);
+      setQuizNode(route.nodeId);
     } else if (route.view === "diagnostic") {
       if (route.mode === "quick") {
         setDiagMode(true);
@@ -166,7 +174,9 @@ export default function CurriculumGraph({
 
   // Sync state → hash (when state changes via UI, not via hash)
   useEffect(() => {
-    if (diagMode) {
+    if (diagMode && quizNode && forceQIndex != null) {
+      setRoute({ view: "question", nodeId: quizNode, questionIndex: forceQIndex, lang });
+    } else if (diagMode) {
       if (mode === "deepdive" && targetNode) {
         setRoute({ view: "diagnostic", mode: "deepdive", goalNode: targetNode, lang });
       } else {
@@ -181,7 +191,7 @@ export default function CurriculumGraph({
     } else {
       setRoute({ view: "graph", lang });
     }
-  }, [selected, openResourceIdx, diagMode, mode, targetNode, lang, setRoute]);
+  }, [selected, openResourceIdx, diagMode, mode, targetNode, quizNode, forceQIndex, lang, setRoute]);
 
   // ── Derived display state ───────────────────────────────────────
   const filteredIds = useMemo(() => {
@@ -512,8 +522,10 @@ export default function CurriculumGraph({
             excludeIndices={getAnsweredIndices(quizNode)}
             isMobile={isMobile}
             sourceFilter={quizSource}
+            forceIndex={forceQIndex}
             onAnswer={(correct, question, questionIndex) => {
               autoAdvanceRef.current = true;
+              setForceQIndex(null);
               handleQuizAnswer(quizNode, correct, question, questionIndex);
             }}
             onSkip={(questionIndex) => {
@@ -522,6 +534,7 @@ export default function CurriculumGraph({
               }
               setQuizNode(null);
               setQuizSource(null);
+              setForceQIndex(null);
             }}
           />
         )}
