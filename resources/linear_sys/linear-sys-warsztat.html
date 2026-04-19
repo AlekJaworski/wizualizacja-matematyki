@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<title>Układy równań: zadania z treścią — Warsztat</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; color: rgba(255,255,255,.85); }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+
+  .head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+  .head .step { font-size: 11px; color: rgba(255,255,255,.4); letter-spacing: .04em; }
+  .head .title { font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  .desc { font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); margin-bottom: 10px; min-height: 34px; }
+
+  .pips { display: flex; gap: 14px; flex-wrap: wrap; margin: 4px 0 10px; font-size: 12px; }
+  .pip { display: inline-flex; align-items: center; gap: 6px; color: rgba(255,255,255,.55); }
+  .pip .mark { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(255,255,255,.25); display: inline-flex; align-items: center; justify-content: center; font-size: 10px; line-height: 1; }
+  .pip.ok { color: #83C167; }
+  .pip.ok .mark { background: #83C167; border-color: #83C167; color: #0e0e12; }
+  .pip.ok .mark::before { content: "\2713"; }
+
+  .predict { margin-bottom: 10px; }
+  .predict .q { font-size: 13px; color: rgba(255,255,255,.82); margin-bottom: 8px; line-height: 1.55; }
+  .predict .opts { display: flex; flex-direction: column; gap: 6px; }
+  .predict button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.78); padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; transition: background .15s, border-color .15s; }
+  .predict button:hover { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.4); }
+  .predict button.picked { border-color: #58C4DD; color: #58C4DD; }
+  .predict .feedback { margin-top: 8px; font-size: 12px; line-height: 1.55; color: rgba(255,255,255,.7); padding: 8px 10px; border-left: 2px solid #58C4DD; background: rgba(88,196,221,.06); border-radius: 0 4px 4px 0; }
+
+  .choices { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .choices button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.78); padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; transition: background .15s, border-color .15s; }
+  .choices button:hover { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.4); }
+  .choices button.picked { border-color: #58C4DD; color: #58C4DD; }
+  .choices button.correct { border-color: #83C167; color: #83C167; }
+  .choices button.wrong { border-color: #FF6B6B; color: #FF6B6B; }
+
+  .hints { font-size: 12px; color: rgba(255,255,255,.5); margin: 4px 0 10px; line-height: 1.55; }
+  .hints .hint { padding: 6px 10px; border-left: 2px solid #FFD166; background: rgba(255,209,102,.05); margin-top: 4px; border-radius: 0 4px 4px 0; }
+
+  .nav { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+  .nav button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  .nav button:hover:not(:disabled) { background: rgba(255,255,255,.08); }
+  .nav button:disabled { opacity: .3; cursor: default; }
+  .nav button.primary { border-color: #83C167; color: #83C167; }
+  .nav button.primary:hover { background: rgba(131,193,103,.1); }
+
+  .dots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.15); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  .dot.done { background: #83C167; }
+
+  .solved-note { font-size: 13px; color: #83C167; line-height: 1.55; padding: 8px 10px; border-left: 2px solid #83C167; background: rgba(131,193,103,.06); border-radius: 0 4px 4px 0; margin-bottom: 8px; }
+  .wrapup-note { font-size: 13px; color: #C78DFF; line-height: 1.55; padding: 10px 12px; border-left: 2px solid #C78DFF; background: rgba(199,141,255,.06); border-radius: 0 4px 4px 0; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="310"></canvas>
+  <div class="panel">
+    <div class="head">
+      <span class="step" id="step"></span>
+      <div class="dots" id="dots"></div>
+    </div>
+    <p class="title" id="title"></p>
+    <p class="desc" id="desc"></p>
+    <div id="predict"></div>
+    <div id="sliders-wrap"></div>
+    <div id="choices-wrap"></div>
+    <div class="pips" id="pips"></div>
+    <div class="hints" id="hints"></div>
+    <div id="solved-msg"></div>
+    <div class="nav">
+      <button id="prev">&larr;</button>
+      <button id="next" class="primary">Dalej &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initWarsztat } from '../lib/warsztat-core.js';
+{
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const W = 600, H = 310;
+
+  // ── Colors ──────────────────────────────────────────────────
+  const COL_PAR    = '#58C4DD';
+  const COL_TARGET = '#83C167';
+  const COL_R1     = '#FF6B6B';
+  const COL_R2     = '#4ECDC4';
+  const COL_GCF    = '#FFD166';
+  const COL_A      = '#E07090';
+  const COL_B      = '#C78DFF';
+  const COL_OK     = '#83C167';
+  const COL_DIM    = 'rgba(255,255,255,0.45)';
+  const COL_TXT    = 'rgba(255,255,255,0.78)';
+
+  // ── Draw helpers ────────────────────────────────────────────
+  function textLeft(s, x, y, col, size) {
+    ctx.save();
+    ctx.font = (size || 13) + 'px monospace';
+    ctx.fillStyle = col;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(s, x, y);
+    ctx.restore();
+  }
+  function textCenter(s, x, y, col, size) {
+    ctx.save();
+    ctx.font = (size || 13) + 'px monospace';
+    ctx.fillStyle = col;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(s, x, y);
+    ctx.restore();
+  }
+
+  // ── Challenge-local state ───────────────────────────────────
+  const C = {
+    percentPick: null,
+    mixPick: null,
+    agePick: null,
+    speedPick: null,
+  };
+
+  // ── Challenges ──────────────────────────────────────────────
+  const challenges = [
+    // ─── Ch.1: Procent (sad) ────────────────────────────────
+    {
+      id: 'ch1',
+      title: 'Procent: jabłonie i grusze',
+      desc: 'W sadzie było $x$ jabłoni i $y$ grusz. Wycięto $5\\%$ jabłoni i $10\\%$ grusz — zostało razem $880$ drzew. Ponadto $60\\%$ tego, co zostało z grusz, to $132$ drzewa. Zapisz układ równań.',
+      drawBackground: 'blank',
+      init() { C.percentPick = null; },
+      predict: {
+        question: 'Po wycięciu $5\\%$ jabłoni zostaje:',
+        options: [
+          { label: '$0{,}05x$',  correct: false, why: 'To jest liczba jabłoni, które **wycięto** ($5\\%$ z $x$). A pytamy o to, co **zostało**.' },
+          { label: '$0{,}95x$',  correct: true,  why: 'Tak. Skoro wycięto $5\\%$, to zostało $95\\%$, czyli $0{,}95x$. Zawsze pracujemy z tym, co zostało.' },
+          { label: '$x - 5$',    correct: false, why: 'Procent to **ułamek**, nie liczba bezwzględna. $5\\%$ jabłoni to $0{,}05x$, nie $5$ sztuk.' },
+        ],
+      },
+      choices: {
+        question: 'Wybierz poprawny układ równań:',
+        options: [
+          { id: 'a', label: '$\\{0{,}95x + 0{,}9y = 880;\\; 0{,}6 \\cdot 0{,}9y = 132\\}$', correct: true  },
+          { id: 'b', label: '$\\{0{,}05x + 0{,}1y = 880;\\; 0{,}6y = 132\\}$',               correct: false },
+          { id: 'c', label: '$\\{x + y = 880;\\; 0{,}6y = 132\\}$',                          correct: false },
+        ],
+        pick(id) { C.percentPick = id; },
+      },
+      pips() {
+        return [{ label: 'wybrano poprawny układ', ok: C.percentPick === 'a' }];
+      },
+      solved() { return C.percentPick === 'a'; },
+      hints: [
+        "① 'Wycięto $5\\%$' znaczy: zostało $95\\%$, czyli $0{,}95x$. Zawsze operuj tym, co **zostało**, nie tym, co wycięto.",
+        "② '$60\\%$ tego, co zostało w sadzie grusz' — grusz zostało $0{,}9y$, więc $60\\%$ z tego: $0{,}6 \\cdot 0{,}9y$.",
+        "③ Układ: $0{,}95x + 0{,}9y = 880$ oraz $0{,}54y = 132$. [Zadanie z CKE 2023 — rozwiązanie: $x = 600, y = 200$, sprawdź arytmetykę samodzielnie.]",
+      ],
+      solvedMsg: "W procentach: 'wycięto $p\\%$' = 'zostało $(100-p)\\%$'. Zawsze zapisuj równanie na tym, **co zostało**, bo o to pyta zadanie.",
+      draw() {
+        textCenter('Sad — rozłożenie zadania', W/2, 26, COL_PAR, 14);
+        let y = 60;
+        textLeft('Było:', 40, y, COL_DIM, 13);
+        textLeft('x jabłoni,  y grusz', 120, y, COL_TXT, 13);
+        y += 28;
+        textLeft('Wycięto:', 40, y, COL_DIM, 13);
+        textLeft('5% jabłoni → zostało 0,95x', 120, y, COL_GCF, 13);
+        y += 22;
+        textLeft('10% grusz   → zostało 0,9y',  120, y, COL_GCF, 13);
+        y += 28;
+        textLeft('Razem 880:', 40, y, COL_DIM, 13);
+        textLeft('0,95x + 0,9y = 880', 160, y, COL_TARGET, 14);
+        y += 28;
+        textLeft('60% grusz:', 40, y, COL_DIM, 13);
+        textLeft('0,6 · (0,9y) = 132', 160, y, COL_TARGET, 14);
+        y += 30;
+        const pick = C.percentPick;
+        if (pick === 'a') {
+          textCenter('✓ układ poprawny', W/2, y + 6, COL_OK, 13);
+        } else if (pick) {
+          textCenter('spróbuj jeszcze raz', W/2, y + 6, COL_R1, 13);
+        } else {
+          textCenter('wybierz układ pod spodem ↓', W/2, y + 6, 'rgba(255,255,255,0.35)', 12);
+        }
+      },
+    },
+
+    // ─── Ch.2: Mieszanina (dwie solanki) ────────────────────
+    {
+      id: 'ch2',
+      title: 'Mieszanina: dwie solanki',
+      desc: 'Zmieszano $x$ kg roztworu $20\\%$ z $y$ kg roztworu $50\\%$. Otrzymano $60$ kg roztworu $40\\%$. Zapisz układ równań.',
+      drawBackground: 'blank',
+      init() { C.mixPick = null; },
+      predict: {
+        question: 'Masa soli w $x$ kg $20\\%$ roztworu to:',
+        options: [
+          { label: '$x$',                correct: false, why: 'Nie — $x$ to masa całego roztworu (woda + sól). Sól to tylko część, mianowicie procent masy.' },
+          { label: '$20\\%$ to $0{,}2$ kg', correct: false, why: 'Procent to **ułamek masy**, nie liczba bezwzględna. Gdy $x$ = $10$ kg, soli jest $0{,}2 \\cdot 10 = 2$ kg, nie $0{,}2$ kg.' },
+          { label: '$0{,}2 \\cdot x$ kg', correct: true,  why: 'Tak. Procent ⋅ masa roztworu = masa składnika (tu: soli). To reguła wszystkich zadań o mieszaninach.' },
+        ],
+      },
+      choices: {
+        question: 'Wybierz poprawny układ:',
+        options: [
+          { id: 'a', label: '$\\{x + y = 60;\\; 0{,}2x + 0{,}5y = 0{,}4 \\cdot 60\\}$', correct: true  },
+          { id: 'b', label: '$\\{x + y = 60;\\; 20 + 50 = 40\\}$',                      correct: false },
+          { id: 'c', label: '$\\{0{,}2 + 0{,}5 = 0{,}4;\\; x + y = 60\\}$',             correct: false },
+        ],
+        pick(id) { C.mixPick = id; },
+      },
+      pips() {
+        return [{ label: 'wybrano poprawny układ', ok: C.mixPick === 'a' }];
+      },
+      solved() { return C.mixPick === 'a'; },
+      hints: [
+        '① Sól w każdej mieszance: procent ⋅ masa mieszaniny. Po zmieszaniu: suma soli = procent nowy ⋅ masa nowa.',
+        '② $x + y = 60$ (masa). $0{,}2x + 0{,}5y = 24$ (sól).',
+        '③ Rozwiązanie: $y = 40, x = 20$.',
+      ],
+      solvedMsg: 'W mieszaninach: bilans **masy** + bilans **składnika**. Procenty nie dodają się bezpośrednio — waży je masa roztworu.',
+      draw() {
+        textCenter('Bilans soli i masy', W/2, 26, COL_PAR, 14);
+        // Two beakers
+        let y = 70;
+        textLeft('Roztwór 1:', 40, y, COL_DIM, 13);
+        textLeft('x kg · 20%  →  sól = 0,2x', 160, y, COL_A, 13);
+        y += 24;
+        textLeft('Roztwór 2:', 40, y, COL_DIM, 13);
+        textLeft('y kg · 50%  →  sól = 0,5y', 160, y, COL_B, 13);
+        y += 24;
+        textLeft('Mieszanka:', 40, y, COL_DIM, 13);
+        textLeft('60 kg · 40%  →  sól = 24 kg', 160, y, COL_GCF, 13);
+        y += 30;
+        textLeft('Masa:', 40, y, COL_DIM, 13);
+        textLeft('x + y = 60', 160, y, COL_TARGET, 14);
+        y += 24;
+        textLeft('Sól:',  40, y, COL_DIM, 13);
+        textLeft('0,2x + 0,5y = 24', 160, y, COL_TARGET, 14);
+        y += 28;
+        const pick = C.mixPick;
+        if (pick === 'a') {
+          textCenter('✓ układ poprawny', W/2, y + 4, COL_OK, 13);
+        } else if (pick) {
+          textCenter('spróbuj jeszcze raz', W/2, y + 4, COL_R1, 13);
+        } else {
+          textCenter('wybierz układ pod spodem ↓', W/2, y + 4, 'rgba(255,255,255,0.35)', 12);
+        }
+      },
+    },
+
+    // ─── Ch.3: Wiek (Jan i Kasia) ────────────────────────────
+    {
+      id: 'ch3',
+      title: 'Wiek: Jan i Kasia',
+      desc: 'Jan jest $3$ razy starszy od Kasi. Za $10$ lat Jan będzie $2$ razy starszy od Kasi. Zapisz układ równań.',
+      drawBackground: 'blank',
+      init() { C.agePick = null; },
+      predict: {
+        question: "'$3$ razy starszy' oznacza:",
+        options: [
+          { label: '$J = K + 3$',   correct: false, why: "To znaczy '$3$ **lata** starszy' — dodawanie. '$3$ razy' to mnożenie." },
+          { label: '$J = 3K$',      correct: true,  why: "Tak. '$n$ razy starszy' = mnożenie wieku przez $n$. Jan ma trzy razy tyle lat, co Kasia." },
+          { label: '$J/K = 3\\%$',  correct: false, why: 'Procenty do tego nie należą. To zwyczajny stosunek: $J = 3K$.' },
+        ],
+      },
+      choices: {
+        question: 'Wybierz poprawny układ:',
+        options: [
+          { id: 'a', label: '$\\{J = 3K;\\; J + 10 = 2(K + 10)\\}$', correct: true  },
+          { id: 'b', label: '$\\{J = 3K;\\; J = 2K + 10\\}$',         correct: false },
+          { id: 'c', label: '$\\{J = K + 3;\\; J = 2K\\}$',           correct: false },
+        ],
+        pick(id) { C.agePick = id; },
+      },
+      pips() {
+        return [{ label: 'wybrano poprawny układ', ok: C.agePick === 'a' }];
+      },
+      solved() { return C.agePick === 'a'; },
+      hints: [
+        "① 'Dwa razy starszy' = mnożenie. 'O 2 lata starszy' = dodawanie. Różnica kluczowa.",
+        "② 'Za $10$ lat': dodaj $10$ do KAŻDEGO wieku. Jan za $10$ lat: $J+10$. Kasia: $K+10$.",
+        "③ Układ: $J = 3K$ oraz $J + 10 = 2(K+10)$. Podstaw: $3K + 10 = 2K + 20 \\Rightarrow K = 10, J = 30$.",
+      ],
+      solvedMsg: "'Razy' ≠ 'o tyle i tyle'. Gdy mija czas — dodaj go do OBU wieków, zanim zapiszesz warunek.",
+      draw() {
+        textCenter('Oś czasu', W/2, 26, COL_PAR, 14);
+        // Timeline
+        const yTop = 80, yBot = 180;
+        // Now box
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(60, yTop - 30, 180, 110);
+        ctx.strokeRect(W - 240, yTop - 30, 180, 110);
+        ctx.restore();
+
+        textCenter('TERAZ', 150, yTop - 10, COL_DIM, 12);
+        textLeft('Jan:   J',    80, yTop + 20, COL_A, 14);
+        textLeft('Kasia: K',    80, yTop + 44, COL_B, 14);
+        textLeft('J = 3K', 80, yTop + 68, COL_TARGET, 13);
+
+        textCenter('ZA 10 LAT', W - 150, yTop - 10, COL_DIM, 12);
+        textLeft('Jan:   J + 10',    W - 230, yTop + 20, COL_A, 14);
+        textLeft('Kasia: K + 10',    W - 230, yTop + 44, COL_B, 14);
+        textLeft('J+10 = 2(K+10)', W - 230, yTop + 68, COL_TARGET, 13);
+
+        // Arrow
+        ctx.save();
+        ctx.strokeStyle = COL_GCF;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(245, yTop + 25);
+        ctx.lineTo(W - 245, yTop + 25);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(W - 245, yTop + 25);
+        ctx.lineTo(W - 253, yTop + 20);
+        ctx.lineTo(W - 253, yTop + 30);
+        ctx.closePath();
+        ctx.fillStyle = COL_GCF;
+        ctx.fill();
+        ctx.restore();
+        textCenter('+10 lat', W/2, yTop + 10, COL_GCF, 12);
+
+        const pick = C.agePick;
+        let y = yBot + 40;
+        if (pick === 'a') {
+          textCenter('✓ układ poprawny   (rozwiązanie: K = 10, J = 30)', W/2, y, COL_OK, 13);
+        } else if (pick) {
+          textCenter('spróbuj jeszcze raz', W/2, y, COL_R1, 13);
+        } else {
+          textCenter('wybierz układ pod spodem ↓', W/2, y, 'rgba(255,255,255,0.35)', 12);
+        }
+      },
+    },
+
+    // ─── Ch.4: Prędkość i czas ──────────────────────────────
+    {
+      id: 'ch4',
+      title: 'Ruch: turysta i rowerzysta',
+      desc: 'Miejscowości $A$ i $B$ dzieli $60$ km. Z $A$ wychodzi turysta idący $5$ km/h, z $B$ rowerzysta jadący $15$ km/h naprzeciw. Po ilu godzinach się spotkają?',
+      drawBackground: 'blank',
+      init() { C.speedPick = null; },
+      predict: {
+        question: 'W ruchu przeciwległym prędkość zbliżania to:',
+        options: [
+          { label: '$15 - 5 = 10$ km/h',        correct: false, why: 'Odejmowanie dotyczy ruchu w **tę samą** stronę (pościg). Tu idą naprzeciw siebie.' },
+          { label: '$15 + 5 = 20$ km/h',        correct: true,  why: 'Tak. Idąc naprzeciw siebie, zbliżają się z sumą prędkości — każdy zjada kawałek $60$ km.' },
+          { label: '$\\sqrt{15^2 + 5^2}$ km/h', correct: false, why: 'Pitagoras nie ma tu nic do rzeczy — to nie jest ruch prostopadły, tylko wzdłuż jednej prostej.' },
+        ],
+      },
+      choices: {
+        question: 'Wybierz poprawne równanie:',
+        options: [
+          { id: 'a', label: '$60 = 20 \\cdot t \\Rightarrow t = 3$', correct: true  },
+          { id: 'b', label: '$60 = 10 \\cdot t \\Rightarrow t = 6$', correct: false },
+          { id: 'c', label: '$60 = 15 \\cdot t \\Rightarrow t = 4$', correct: false },
+        ],
+        pick(id) { C.speedPick = id; },
+      },
+      pips() {
+        return [{ label: 'wybrano poprawne równanie', ok: C.speedPick === 'a' }];
+      },
+      solved() { return C.speedPick === 'a'; },
+      hints: [
+        '① Ruch **przeciwległy** → prędkości się dodają (zbliżają się do siebie szybciej).',
+        '② $v_{\\text{zbl}} = 15 + 5 = 20$ km/h. Odległość do pokonania: $60$ km.',
+        '③ $t = \\frac{\\text{odległość}}{\\text{prędkość}} = \\frac{60}{20} = 3$ godziny.',
+      ],
+      solvedMsg: 'Przeciwległy: **dodaj** prędkości. W tę samą stronę: **odejmij**. Proste jak okiem mrugnąć, ale na maturze wielu się myli.',
+      draw() {
+        textCenter('Trasa A ─── B (60 km)', W/2, 26, COL_PAR, 14);
+        // Road
+        const y = 120;
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(70, y);
+        ctx.lineTo(W - 70, y);
+        ctx.stroke();
+        // endpoints
+        ctx.fillStyle = COL_GCF;
+        ctx.beginPath(); ctx.arc(70, y, 6, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(W - 70, y, 6, 0, Math.PI*2); ctx.fill();
+        ctx.restore();
+        textCenter('A', 70, y - 20, COL_GCF, 13);
+        textCenter('B', W - 70, y - 20, COL_GCF, 13);
+        textCenter('60 km', W/2, y - 20, COL_DIM, 12);
+
+        // Walker arrow →
+        ctx.save();
+        ctx.strokeStyle = COL_A; ctx.fillStyle = COL_A; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(85, y + 22); ctx.lineTo(175, y + 22); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(175, y+22); ctx.lineTo(168, y+18); ctx.lineTo(168, y+26); ctx.closePath(); ctx.fill();
+        ctx.restore();
+        textLeft('5 km/h (pieszy)', 90, y + 40, COL_A, 12);
+
+        // Cyclist arrow ←
+        ctx.save();
+        ctx.strokeStyle = COL_B; ctx.fillStyle = COL_B; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(W - 85, y + 22); ctx.lineTo(W - 175, y + 22); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(W - 175, y+22); ctx.lineTo(W - 168, y+18); ctx.lineTo(W - 168, y+26); ctx.closePath(); ctx.fill();
+        ctx.restore();
+        textLeft('15 km/h (rower)', W - 200, y + 40, COL_B, 12);
+
+        // Formula
+        let yy = y + 80;
+        textCenter('v_zbl = 5 + 15 = 20 km/h', W/2, yy, COL_GCF, 14);
+        yy += 24;
+        textCenter('t = 60 / 20 = 3 godziny', W/2, yy, COL_TARGET, 14);
+
+        const pick = C.speedPick;
+        yy += 26;
+        if (pick === 'a') {
+          textCenter('✓ poprawnie', W/2, yy, COL_OK, 13);
+        } else if (pick) {
+          textCenter('spróbuj jeszcze raz', W/2, yy, COL_R1, 13);
+        } else {
+          textCenter('wybierz równanie pod spodem ↓', W/2, yy, 'rgba(255,255,255,0.35)', 12);
+        }
+      },
+    },
+  ];
+
+  initWarsztat({
+    canvasId: 'cv',
+    challenges,
+    lsKey: 'warsztat:linear-sys:completed',
+    wrapup: 'Dwa kroki słownych zadań linearnych: (1) **wyłap warunki** (\'$p\\%$ wycięto\', \'dwa razy starszy\') — każdy staje się równaniem; (2) **zapisz w zmiennych**, nie w słowach — gramatykę polską tłumacz na matematyczną.',
+    onFrame() {
+      ctx.clearRect(0, 0, W, H);
+      // subtle backdrop
+      ctx.save();
+      ctx.fillStyle = '#0e0e12';
+      ctx.fillRect(0, 0, W, H);
+      ctx.restore();
+    },
+  });
+}
+</script>
+</body>
+</html>

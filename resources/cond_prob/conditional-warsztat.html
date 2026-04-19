@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<title>Prawdopodobieństwo warunkowe — Warsztat</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; color: rgba(255,255,255,.85); }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+
+  .head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+  .head .step { font-size: 11px; color: rgba(255,255,255,.4); letter-spacing: .04em; }
+  .head .title { font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  .desc { font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); margin-bottom: 10px; min-height: 34px; }
+
+  .pips { display: flex; gap: 14px; flex-wrap: wrap; margin: 4px 0 10px; font-size: 12px; }
+  .pip { display: inline-flex; align-items: center; gap: 6px; color: rgba(255,255,255,.55); }
+  .pip .mark { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(255,255,255,.25); display: inline-flex; align-items: center; justify-content: center; font-size: 10px; line-height: 1; }
+  .pip.ok { color: #83C167; }
+  .pip.ok .mark { background: #83C167; border-color: #83C167; color: #0e0e12; }
+  .pip.ok .mark::before { content: "\2713"; }
+
+  .predict { margin-bottom: 10px; }
+  .predict .q { font-size: 13px; color: rgba(255,255,255,.82); margin-bottom: 8px; line-height: 1.55; }
+  .predict .opts { display: flex; flex-direction: column; gap: 6px; }
+  .predict button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.78); padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; transition: background .15s, border-color .15s; }
+  .predict button:hover { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.4); }
+  .predict button.picked { border-color: #58C4DD; color: #58C4DD; }
+  .predict .feedback { margin-top: 8px; font-size: 12px; line-height: 1.55; color: rgba(255,255,255,.7); padding: 8px 10px; border-left: 2px solid #58C4DD; background: rgba(88,196,221,.06); border-radius: 0 4px 4px 0; }
+
+  .choices { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .choices button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.78); padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; transition: background .15s, border-color .15s; }
+  .choices button:hover { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.4); }
+  .choices button.picked { border-color: #58C4DD; color: #58C4DD; }
+  .choices button.correct { border-color: #83C167; color: #83C167; }
+  .choices button.wrong { border-color: #FF6B6B; color: #FF6B6B; }
+
+  .debug { margin-bottom: 8px; }
+  .debug-task { font-size: 13px; color: rgba(255,255,255,.8); margin-bottom: 8px; line-height: 1.55; padding: 8px 10px; border-left: 2px solid #FFD166; background: rgba(255,209,102,.05); border-radius: 0 4px 4px 0; }
+  .debug-steps { display: flex; flex-direction: column; gap: 4px; }
+  .debug-step { background: transparent; border: 0.5px solid rgba(255,255,255,.18); color: rgba(255,255,255,.78); padding: 7px 10px; font-size: 12px; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; display: flex; gap: 8px; align-items: baseline; }
+  .debug-step:hover:not(:disabled) { background: rgba(255,255,255,.04); }
+  .debug-step .debug-n { color: rgba(255,255,255,.4); min-width: 14px; }
+  .debug-step.correct { border-color: #83C167; color: #83C167; }
+  .debug-step.wrong { border-color: #FF6B6B; color: #FF6B6B; }
+  .debug-feedback { margin-top: 8px; font-size: 12px; line-height: 1.55; padding: 8px 10px; border-radius: 0 4px 4px 0; }
+  .debug-feedback.ok { color: #83C167; border-left: 2px solid #83C167; background: rgba(131,193,103,.06); }
+  .debug-feedback.bad { color: #FF6B6B; border-left: 2px solid #FF6B6B; background: rgba(255,107,107,.06); }
+
+  .hints { font-size: 12px; color: rgba(255,255,255,.5); margin: 4px 0 10px; line-height: 1.55; }
+  .hints .hint { padding: 6px 10px; border-left: 2px solid #FFD166; background: rgba(255,209,102,.05); margin-top: 4px; border-radius: 0 4px 4px 0; }
+
+  .nav { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+  .nav button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  .nav button:hover:not(:disabled) { background: rgba(255,255,255,.08); }
+  .nav button:disabled { opacity: .3; cursor: default; }
+  .nav button.primary { border-color: #83C167; color: #83C167; }
+  .nav button.primary:hover { background: rgba(131,193,103,.1); }
+
+  .dots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.15); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  .dot.done { background: #83C167; }
+
+  .solved-note { font-size: 13px; color: #83C167; line-height: 1.55; padding: 8px 10px; border-left: 2px solid #83C167; background: rgba(131,193,103,.06); border-radius: 0 4px 4px 0; margin-bottom: 8px; }
+  .wrapup-note { font-size: 13px; color: #C78DFF; line-height: 1.55; padding: 10px 12px; border-left: 2px solid #C78DFF; background: rgba(199,141,255,.06); border-radius: 0 4px 4px 0; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="340"></canvas>
+  <div class="panel">
+    <div class="head">
+      <span class="step" id="step"></span>
+      <div class="dots" id="dots"></div>
+    </div>
+    <p class="title" id="title"></p>
+    <p class="desc" id="desc"></p>
+    <div id="predict"></div>
+    <div id="sliders-wrap"></div>
+    <div id="choices-wrap"></div>
+    <div id="debug-wrap"></div>
+    <div class="pips" id="pips"></div>
+    <div class="hints" id="hints"></div>
+    <div id="solved-msg"></div>
+    <div class="nav">
+      <button id="prev">&larr;</button>
+      <button id="next" class="primary">Dalej &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initWarsztat } from '../lib/warsztat-core.js';
+import { drawProbTree } from '../lib/prob-tree.js';
+{
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const W = 600, H = 340;
+
+  // ── Colors ──────────────────────────────────────────────────
+  const COL_POS  = '#E07090'; // positive / ill
+  const COL_NEG  = '#58C4DD'; // negative / healthy
+  const COL_OK   = '#83C167';
+  const COL_HI   = '#FFD166';
+  const COL_DIM  = 'rgba(255,255,255,0.55)';
+  const COL_TEXT = 'rgba(255,255,255,0.82)';
+  const COL_GIRL = '#E07090';
+  const COL_BOY  = '#58C4DD';
+  const COL_URN1 = '#FFD166';
+  const COL_URN2 = '#C78DFF';
+  const COL_WHITE = 'rgba(255,255,255,0.85)';
+  const COL_BLACK = 'rgba(255,255,255,0.35)';
+
+  function clearBG() {
+    ctx.fillStyle = '#0e0e12';
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // ── Challenge-local state ──────────────────────────────────
+  const C = {
+    picked2: null,
+    picked4: null,
+  };
+
+  // ── Challenges ──────────────────────────────────────────────
+  const challenges = [
+    // ─── Ch.1: Paradoks podstawy ────────────────────────────
+    {
+      id: 'ch1',
+      title: 'Paradoks wyniku fałszywie dodatniego',
+      desc: 'Rzadka choroba dotyka $1$ na $1000$ osób. Test wykrywa chorobę z dokładnością $99\\%$ (czułość i swoistość). Twój test wyszedł DODATNI. Jakie prawdopodobieństwo, że NAPRAWDĘ jesteś chory?',
+      drawBackground: 'blank',
+      init() {},
+      predict: {
+        question: 'Test jest $99\\%$ dokładny, choroba dotyka $1$ na $1000$. Test wyszedł pozytywny. Jakie $P(\\text{chory} \\mid \\text{test +})$?',
+        options: [
+          { label: 'około $99\\%$', correct: false, why: 'To najczęstsza intuicja, ale myląca. Dokładność testu $\\neq P(\\text{chory} \\mid +)$.' },
+          { label: 'około $90\\%$', correct: false, why: 'Nadal za wysoko. Kluczem jest *podstawa* — jak rzadka choroba.' },
+          { label: 'około $50\\%$', correct: false, why: 'Już bliżej, ale wciąż źle. Zobacz wynik w drzewku.' },
+          { label: 'około $9\\%$',  correct: true,  why: 'Tak. Gdy choroba jest bardzo rzadka, nawet dobry test daje więcej fałszywych alarmów niż prawdziwych trafień.' },
+        ],
+      },
+      pips() { return [{ label: 'przewidywanie trafione', ok: true }]; },
+      solved() { return true; },
+      hints: [
+        '① Narysuj drzewko: $10000$ osób → $1/1000$ chorych = $10$, reszta zdrowych = $9990$.',
+        '② Z $10$ chorych — $99\\%$ testów pozytywnych $= 9{,}9$ prawdziwie dodatnich. Z $9990$ zdrowych — $1\\%$ testów fałszywie dodatnich $= 99{,}9$ błędnych alarmów.',
+        '③ Z $\\approx 110$ osób z testem $+$ tylko $9{,}9$ to naprawdę chorzy: $P \\approx 9\\%$. Rzadkość choroby $\\gg$ dokładność testu.',
+      ],
+      solvedMsg: 'To jest **paradoks podstawy**: przy rzadkich chorobach liczba błędnych alarmów przewyższa liczbę trafień. Jedyny ratunek to *bardzo* niska fałszywa dodatnia.',
+      predictAfter: {
+        question: 'Jaka częstość choroby sprawia, że $P(\\text{chory}|+) \\approx 50\\%$?',
+        options: [
+          { label: '$1$ na $10$',     correct: false, why: 'Za częsta — wtedy $P(\\text{chory}|+)$ jest już bliskie $99\\%$.' },
+          { label: '$1$ na $100$',    correct: true,  why: 'Tak — wtedy liczba prawdziwie dodatnich $\\approx$ liczba fałszywie dodatnich.' },
+          { label: '$1$ na $10000$',  correct: false, why: 'Za rzadka — wtedy $P(\\text{chory}|+)$ spada poniżej $1\\%$.' },
+          { label: 'zależy od testu', correct: false, why: 'Nie — zależy od *podstawy* (częstości choroby), przy ustalonej dokładności testu.' },
+        ],
+      },
+      draw() {
+        clearBG();
+        drawProbTree(ctx, {
+          bounds: { x: 10, y: 10, w: W - 20, h: H - 60 },
+          root: { label: '10000 osób' },
+          title: 'rzadka choroba · test 99% dokładny',
+          levels: [
+            {
+              branches: [
+                { label: 'chory',  p: '1/1000', color: COL_POS },
+                { label: 'zdrowy', p: '999/1000', color: COL_NEG },
+              ],
+            },
+            {
+              branchesPerParent: [
+                // chorzy (10) → test+ 99% (9.9), test− 1% (0.1)
+                [ { label: 'test +', p: '0.99', color: COL_POS },
+                  { label: 'test −', p: '0.01', color: COL_NEG } ],
+                // zdrowi (9990) → test+ 1% (99.9), test− 99% (9890.1)
+                [ { label: 'test +', p: '0.01', color: COL_POS },
+                  { label: 'test −', p: '0.99', color: COL_NEG } ],
+              ],
+            },
+          ],
+          leaves: [
+            { label: 'chory & +',   p: '9.9 osób',    highlight: true  },
+            { label: 'chory & −',   p: '0.1 osób' },
+            { label: 'zdrowy & +',  p: '99.9 osób',   highlight: true  },
+            { label: 'zdrowy & −',  p: '9890.1 osób' },
+          ],
+        });
+        // formula at the bottom
+        ctx.fillStyle = COL_HI;
+        ctx.font = '13px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('P(chory | +) = 9.9 / (9.9 + 99.9) ≈ 9%', W/2, H - 30);
+        ctx.fillStyle = COL_DIM;
+        ctx.font = '11px monospace';
+        ctx.fillText('zielone liście: osoby z testem DODATNIM', W/2, H - 12);
+      },
+    },
+
+    // ─── Ch.2: Kierunek warunku ─────────────────────────────
+    {
+      id: 'ch2',
+      title: 'Kierunek warunku ma znaczenie',
+      desc: 'Wśród uczniów $60\\%$ to dziewczyny. Wśród dziewczyn $40\\%$ gra w szachy. Wśród chłopców $30\\%$ gra w szachy. Oblicz $P(C \\mid S)$ — prawdopodobieństwo, że uczeń to chłopak, skoro gra w szachy.',
+      drawBackground: 'blank',
+      init() { C.picked2 = null; },
+      predict: {
+        question: 'Które z poniższych to *warunkowe prawdopodobieństwo*, że wylosowany uczeń to chłopak ($C$), skoro gra w szachy ($S$)?',
+        options: [
+          { label: '$P(C \\cap S) = P(C) \\cdot P(S)$',               correct: false, why: 'To wzór na prawdopodobieństwo PRZECIĘCIA dla zdarzeń niezależnych. Tu pytamy o warunek.' },
+          { label: '$P(C \\mid S) = \\frac{P(C \\cap S)}{P(S)}$',     correct: true,  why: 'Definicja prawdopodobieństwa warunkowego: „spośród tych, co grają w szachy, jaka część to chłopcy".' },
+          { label: '$P(S \\mid C)$',                                   correct: false, why: 'To *odwrotny* warunek: „spośród chłopców jaka część gra w szachy". Kierunek ma znaczenie.' },
+          { label: '$P(C) \\cdot P(S \\mid C)$',                       correct: false, why: 'To $P(C \\cap S)$ przez wzór łańcuchowy — liczba, nie prawdopodobieństwo warunkowe.' },
+        ],
+      },
+      choices: {
+        question: 'Jaka jest wartość $P(C \\mid S)$?',
+        options: [
+          { id: 'a', label: '$\\frac{0{,}6 \\cdot 0{,}4}{0{,}6 \\cdot 0{,}4 + 0{,}4 \\cdot 0{,}3} = \\frac{0{,}24}{0{,}36} = \\frac{2}{3}$ — to $P(D|S)$, nie $P(C|S)$', correct: false },
+          { id: 'b', label: '$\\frac{0{,}4 \\cdot 0{,}3}{0{,}6 \\cdot 0{,}4 + 0{,}4 \\cdot 0{,}3} = \\frac{0{,}12}{0{,}36} = \\frac{1}{3}$',                           correct: true  },
+          { id: 'c', label: '$0{,}3$ — to $P(S|C)$, mylony kierunek',                                                                                                    correct: false },
+          { id: 'd', label: '$0{,}4 \\cdot 0{,}6 = 0{,}24$ — to $P(D \\cap S)$, nie warunkowe',                                                                         correct: false },
+        ],
+        pick(id) { C.picked2 = id; },
+      },
+      pips() { return [{ label: 'wybór prawidłowy', ok: C.picked2 === 'b' }]; },
+      solved() { return C.picked2 === 'b'; },
+      hints: [
+        '① $P(C|S)$ czyta się: „prawdopodobieństwo $C$ *pod warunkiem* $S$". Kierunek: $S$ już się zdarzyło, pytamy o $C$.',
+        '② $P(C|S) = \\frac{P(C \\cap S)}{P(S)}$. Licznik: chłopak I szachy. Mianownik: ktokolwiek z szachami.',
+        '③ Licznik $= 0{,}4 \\cdot 0{,}3 = 0{,}12$; mianownik $= 0{,}6 \\cdot 0{,}4 + 0{,}4 \\cdot 0{,}3 = 0{,}36$. Stąd $P(C|S) = \\frac{0{,}12}{0{,}36} = \\frac{1}{3}$.',
+      ],
+      solvedMsg: 'Prawdopodobieństwo warunkowe *zawęża przestrzeń* do tych, co spełniają warunek. Wybieram tylko spośród grających w szachy — a z nich ilu to chłopcy?',
+      draw() {
+        clearBG();
+        const hl = C.picked2 === 'b';
+        drawProbTree(ctx, {
+          bounds: { x: 10, y: 10, w: W - 20, h: H - 60 },
+          root: { label: '100 uczniów' },
+          title: 'dziewczyny 60% · chłopcy 40%',
+          levels: [
+            {
+              branches: [
+                { label: 'D', p: '0.6', color: COL_GIRL },
+                { label: 'C', p: '0.4', color: COL_BOY },
+              ],
+            },
+            {
+              branchesPerParent: [
+                [ { label: 'S',  p: '0.4', color: COL_OK }, { label: '¬S', p: '0.6', color: COL_DIM } ],
+                [ { label: 'S',  p: '0.3', color: COL_OK }, { label: '¬S', p: '0.7', color: COL_DIM } ],
+              ],
+            },
+          ],
+          leaves: [
+            { label: 'D & S',   p: '0.24' },
+            { label: 'D & ¬S',  p: '0.36' },
+            { label: 'C & S',   p: '0.12', highlight: hl },
+            { label: 'C & ¬S',  p: '0.28' },
+          ],
+        });
+        ctx.fillStyle = hl ? COL_OK : COL_DIM;
+        ctx.font = '13px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('P(C | S) = 0.12 / (0.24 + 0.12) = 1/3', W/2, H - 30);
+        ctx.fillStyle = COL_DIM;
+        ctx.font = '11px monospace';
+        ctx.fillText('mianownik P(S) = P(D∩S) + P(C∩S) = 0.36', W/2, H - 12);
+      },
+    },
+
+    // ─── Ch.3: Debug ─────────────────────────────────────────
+    {
+      id: 'ch3',
+      title: 'Debug: wzór Bayesa źle zastosowany',
+      desc: 'Znajdź błąd w rozumowaniu Marty.',
+      drawBackground: 'blank',
+      init() {},
+      debug: {
+        task: 'Marta pisze: jeśli $P(B|A) = 0{,}8$ i $P(A) = 0{,}5$, to $P(A|B) = 0{,}8 \\cdot 0{,}5 = 0{,}4$. Gdzie popełniła błąd?',
+        steps: [
+          { n: 1, text: '$P(B|A) = 0{,}8$' },
+          { n: 2, text: '$P(A) = 0{,}5$' },
+          { n: 3, text: 'Z wzoru łańcuchowego: $P(A \\cap B) = P(B|A) \\cdot P(A) = 0{,}4$' },
+          { n: 4, text: '$P(A|B) = P(A \\cap B) = 0{,}4$' },
+        ],
+        errorLine: 4,
+        wrongChoice: {
+          1: 'Krok 1 to tylko dana — nie ma tu błędu.',
+          2: 'Krok 2 to również dana.',
+          3: 'Krok 3 jest POPRAWNY — to standardowy wzór łańcuchowy.',
+        },
+        correctExplanation: 'Krok 4 jest niepełny: $P(A|B) = \\frac{P(A \\cap B)}{P(B)}$, a nie $P(A|B) = P(A \\cap B)$. Marta pominęła dzielenie przez $P(B)$. Żeby policzyć $P(A|B)$ potrzeba jeszcze $P(B)$ (np. z prawdopodobieństwa całkowitego).',
+      },
+      pips() { return [{ label: 'błąd znaleziony', ok: false }]; },
+      solved() { return false; },
+      hints: [
+        '① Porównaj: czym różni się $P(A \\cap B)$ od $P(A|B)$?',
+        '② Definicja: $P(A|B) = \\frac{P(A \\cap B)}{P(B)}$. Jeśli pominę mianownik — dostaję $P(A \\cap B)$, nie warunek.',
+        '③ Żeby policzyć $P(A|B)$ potrzeba jeszcze $P(B)$ — np. z prawdopodobieństwa całkowitego.',
+      ],
+      solvedMsg: '$P(A|B)$ i $P(A \\cap B)$ to DWIE RÓŻNE rzeczy — różnią się dzieleniem przez $P(B)$. Częsty błąd: traktować „iloczyn zdarzeń" jako „warunek".',
+      draw() {
+        clearBG();
+        // Simple illustration: two boxes side by side showing the difference.
+        ctx.fillStyle = COL_TEXT;
+        ctx.font = '14px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText('Dwa różne obiekty', W/2, 18);
+
+        // Left box: P(A ∩ B)
+        ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(40, 60, 240, 200);
+        ctx.fillStyle = COL_HI;
+        ctx.font = '14px monospace';
+        ctx.fillText('P(A ∩ B)', 160, 78);
+        ctx.fillStyle = COL_DIM;
+        ctx.font = '11px monospace';
+        ctx.fillText('iloczyn zdarzeń', 160, 100);
+
+        ctx.fillStyle = COL_TEXT;
+        ctx.font = '13px monospace';
+        ctx.fillText('= P(B|A) · P(A)', 160, 140);
+        ctx.fillText('= 0,8 · 0,5', 160, 162);
+        ctx.fillStyle = COL_OK;
+        ctx.font = '16px monospace';
+        ctx.fillText('= 0,4', 160, 190);
+        ctx.fillStyle = COL_DIM;
+        ctx.font = '10px monospace';
+        ctx.fillText('(bezwarunkowa „A oraz B")', 160, 225);
+
+        // Right box: P(A|B)
+        ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+        ctx.strokeRect(320, 60, 240, 200);
+        ctx.fillStyle = COL_HI;
+        ctx.font = '14px monospace';
+        ctx.fillText('P(A|B)', 440, 78);
+        ctx.fillStyle = COL_DIM;
+        ctx.font = '11px monospace';
+        ctx.fillText('warunek', 440, 100);
+
+        ctx.fillStyle = COL_TEXT;
+        ctx.font = '13px monospace';
+        ctx.fillText('= P(A ∩ B) / P(B)', 440, 140);
+        ctx.fillText('= 0,4 / P(B)', 440, 162);
+        ctx.fillStyle = '#FF6B6B';
+        ctx.font = '16px monospace';
+        ctx.fillText('≠ 0,4', 440, 190);
+        ctx.fillStyle = COL_DIM;
+        ctx.font = '10px monospace';
+        ctx.fillText('potrzeba jeszcze P(B)!', 440, 225);
+
+        // Bottom: arrow emphasizing the /P(B) difference
+        ctx.fillStyle = COL_HI;
+        ctx.font = '12px monospace';
+        ctx.fillText('różnica: dzielenie przez P(B)', W/2, H - 50);
+        ctx.fillStyle = COL_DIM;
+        ctx.font = '11px monospace';
+        ctx.fillText('bez tego iloczyn zdarzeń i warunek to co innego', W/2, H - 28);
+      },
+    },
+
+    // ─── Ch.4: Prawdopodobieństwo całkowite ─────────────────
+    {
+      id: 'ch4',
+      title: 'Prawdopodobieństwo całkowite (urny)',
+      desc: 'Urna U1: 3 białe + 2 czarne. Urna U2: 1 biała + 4 czarne. Rzucamy kostką; jeśli wypadnie $1$ lub $2$ — losujemy z U1, inaczej z U2. Jakie $P(\\text{biała})$?',
+      drawBackground: 'blank',
+      init() { C.picked4 = null; },
+      predict: {
+        question: 'Zanim policzysz: intuicyjnie, $P(\\text{biała})$ jest...',
+        options: [
+          { label: 'większe niż $\\frac{1}{2}$', correct: false, why: 'Spójrz na odsetki: U1 ma $60\\%$ białych, U2 tylko $20\\%$. I częściej sięgamy do U2 ($4$ na $6$). Intuicja mówi: mniej niż połowa.' },
+          { label: 'mniej niż $\\frac{1}{2}$',   correct: true,  why: 'Tak — ponieważ U2 ma mało białych, a sięgamy po nią częściej, wynik będzie poniżej $50\\%$.' },
+          { label: 'dokładnie $\\frac{1}{2}$',   correct: false, why: 'Dokładna równowaga wymagałaby specjalnych proporcji; tu się nie pokrywa.' },
+        ],
+      },
+      choices: {
+        question: 'Wybierz poprawny wzór i wartość na $P(\\text{biała})$:',
+        options: [
+          { id: 'a', label: '$\\frac{1}{3} \\cdot \\frac{3}{5} + \\frac{2}{3} \\cdot \\frac{1}{5} = \\frac{5}{15} = \\frac{1}{3}$', correct: true  },
+          { id: 'b', label: '$\\frac{3}{5} + \\frac{1}{5} = \\frac{4}{5}$ — suma bez wag',                                          correct: false },
+          { id: 'c', label: '$\\frac{1}{2} \\cdot \\frac{3}{5} + \\frac{1}{2} \\cdot \\frac{1}{5} = \\frac{2}{5}$ — złe wagi',        correct: false },
+        ],
+        pick(id) { C.picked4 = id; },
+      },
+      pips() { return [{ label: 'wzór prawidłowy', ok: C.picked4 === 'a' }]; },
+      solved() { return C.picked4 === 'a'; },
+      hints: [
+        '① Wzór prawdopodobieństwa całkowitego: rozbij na rozłączne przypadki (tu: z której urny losujesz).',
+        '② $P(\\text{biała}) = P(\\text{U1}) \\cdot P(\\text{biała}|\\text{U1}) + P(\\text{U2}) \\cdot P(\\text{biała}|\\text{U2})$.',
+        '③ $= \\frac{1}{3} \\cdot \\frac{3}{5} + \\frac{2}{3} \\cdot \\frac{1}{5} = \\frac{1}{5} + \\frac{2}{15} = \\frac{3 + 2}{15} = \\frac{5}{15} = \\frac{1}{3}$.',
+      ],
+      solvedMsg: 'Prawdopodobieństwo całkowite to ważona suma po rozłącznych przypadkach. *Wagi* = prawdopodobieństwa przypadków.',
+      draw() {
+        clearBG();
+        const hl = C.picked4 === 'a';
+        drawProbTree(ctx, {
+          bounds: { x: 10, y: 10, w: W - 20, h: H - 60 },
+          root: { label: 'kostka 1–6' },
+          title: 'U1 (3B+2C) · U2 (1B+4C)',
+          levels: [
+            {
+              branches: [
+                { label: 'U1', p: '1/3', color: COL_URN1 },
+                { label: 'U2', p: '2/3', color: COL_URN2 },
+              ],
+            },
+            {
+              branchesPerParent: [
+                [ { label: 'B', p: '3/5', color: COL_WHITE }, { label: 'C', p: '2/5', color: COL_BLACK } ],
+                [ { label: 'B', p: '1/5', color: COL_WHITE }, { label: 'C', p: '4/5', color: COL_BLACK } ],
+              ],
+            },
+          ],
+          leaves: [
+            { label: 'U1 & B',  p: '3/15', highlight: hl },
+            { label: 'U1 & C',  p: '2/15' },
+            { label: 'U2 & B',  p: '2/15', highlight: hl },
+            { label: 'U2 & C',  p: '8/15' },
+          ],
+        });
+        ctx.fillStyle = hl ? COL_OK : COL_HI;
+        ctx.font = '13px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('P(biała) = 3/15 + 2/15 = 5/15 = 1/3', W/2, H - 30);
+        ctx.fillStyle = COL_DIM;
+        ctx.font = '11px monospace';
+        ctx.fillText('zielone: wszystkie ścieżki kończące się „biała"', W/2, H - 12);
+      },
+    },
+  ];
+
+  initWarsztat({
+    canvasId: 'cv',
+    challenges,
+    lsKey: 'warsztat:cond_prob:completed',
+    wrapup: 'Dwie reguły do zabrania: (1) paradoks podstawy — przy rzadkich zdarzeniach dokładność testu *nie gwarantuje* dokładności wyniku; (2) $P(A|B) \\neq P(B|A)$ — kierunek warunku ma znaczenie.',
+  });
+}
+</script>
+</body>
+</html>
