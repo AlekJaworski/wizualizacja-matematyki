@@ -8,6 +8,7 @@ x: 1080
 y: 340
 resources:
   - "interactive|geo-series-explorer.html|Geometric Series Explorer|Szeregi geometryczne — Eksplorator"
+  - "interactive|geo-series-warsztat.html|Geometric Series Warsztat|Ciąg geometryczny — Warsztat zbieżności"
 ---
 Szereg geometryczny to suma nieskończenie wielu wyrazów ciągu geometrycznego — choć składników jest nieskończenie wiele, suma może być skończona.<br><br>Postać: $S = a_1 + a_1 q + a_1 q^2 + \ldots$ Gdy $|q| < 1$, szereg jest zbieżny i $S = \frac{a_1}{1-q}$. Gdy $|q| \geq 1$, szereg jest rozbieżny (suma rośnie bez końca).<br><br>Suma częściowa $S_n = \frac{a_1(1-q^n)}{1-q}$ przybliża sumę nieskończoną z błędem $\left|\frac{a_1 q^n}{1-q}\right|$.
 

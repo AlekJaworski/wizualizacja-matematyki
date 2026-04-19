@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<title>Trygonometria — Warsztat</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; color: rgba(255,255,255,.85); }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+
+  .head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+  .head .step { font-size: 11px; color: rgba(255,255,255,.4); letter-spacing: .04em; }
+  .head .title { font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  .desc { font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); margin-bottom: 10px; min-height: 34px; }
+
+  .pips { display: flex; gap: 14px; flex-wrap: wrap; margin: 4px 0 10px; font-size: 12px; }
+  .pip { display: inline-flex; align-items: center; gap: 6px; color: rgba(255,255,255,.55); }
+  .pip .mark { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(255,255,255,.25); display: inline-flex; align-items: center; justify-content: center; font-size: 10px; line-height: 1; }
+  .pip.ok { color: #83C167; }
+  .pip.ok .mark { background: #83C167; border-color: #83C167; color: #0e0e12; }
+  .pip.ok .mark::before { content: "\2713"; }
+
+  .predict { margin-bottom: 10px; }
+  .predict .q { font-size: 13px; color: rgba(255,255,255,.82); margin-bottom: 8px; line-height: 1.55; }
+  .predict .opts { display: flex; flex-direction: column; gap: 6px; }
+  .predict button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.78); padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; transition: background .15s, border-color .15s; }
+  .predict button:hover { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.4); }
+  .predict button.picked { border-color: #58C4DD; color: #58C4DD; }
+  .predict .feedback { margin-top: 8px; font-size: 12px; line-height: 1.55; color: rgba(255,255,255,.7); padding: 8px 10px; border-left: 2px solid #58C4DD; background: rgba(88,196,221,.06); border-radius: 0 4px 4px 0; }
+
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 36px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+
+  .choices { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .choices button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.78); padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; transition: background .15s, border-color .15s; }
+  .choices button:hover { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.4); }
+  .choices button.picked { border-color: #58C4DD; color: #58C4DD; }
+  .choices button.correct { border-color: #83C167; color: #83C167; }
+  .choices button.wrong { border-color: #FF6B6B; color: #FF6B6B; }
+
+  .debug { margin-bottom: 10px; }
+  .debug-task { font-size: 13px; color: rgba(255,255,255,.82); margin-bottom: 10px; line-height: 1.55; padding: 8px 10px; border-left: 2px solid #58C4DD; background: rgba(88,196,221,.06); border-radius: 0 4px 4px 0; }
+  .debug-steps { display: flex; flex-direction: column; gap: 4px; }
+  .debug-step { display: flex; align-items: flex-start; gap: 10px; background: transparent; border: 0.5px solid rgba(255,255,255,.15); color: rgba(255,255,255,.8); padding: 8px 12px; font-size: 13px; line-height: 1.5; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; transition: background .15s, border-color .15s; }
+  .debug-step:hover:not(:disabled) { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.45); }
+  .debug-step:disabled { cursor: default; opacity: .85; }
+  .debug-step .debug-n { color: rgba(255,255,255,.4); min-width: 20px; }
+  .debug-step .debug-text { flex: 1; }
+  .debug-step.wrong { border-color: #FF6B6B; background: rgba(255,107,107,.08); color: #FF6B6B; }
+  .debug-step.correct { border-color: #83C167; background: rgba(131,193,103,.1); color: #83C167; }
+  .debug-feedback { margin-top: 10px; font-size: 12px; line-height: 1.55; padding: 8px 10px; border-radius: 0 4px 4px 0; }
+  .debug-feedback.ok { color: rgba(255,255,255,.82); border-left: 2px solid #83C167; background: rgba(131,193,103,.06); }
+  .debug-feedback.bad { color: rgba(255,255,255,.78); border-left: 2px solid #FF6B6B; background: rgba(255,107,107,.06); }
+
+  .hints { font-size: 12px; color: rgba(255,255,255,.5); margin: 4px 0 10px; line-height: 1.55; }
+  .hints .hint { padding: 6px 10px; border-left: 2px solid #FFD166; background: rgba(255,209,102,.05); margin-top: 4px; border-radius: 0 4px 4px 0; }
+
+  .nav { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+  .nav button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  .nav button:hover:not(:disabled) { background: rgba(255,255,255,.08); }
+  .nav button:disabled { opacity: .3; cursor: default; }
+  .nav button.primary { border-color: #83C167; color: #83C167; }
+  .nav button.primary:hover { background: rgba(131,193,103,.1); }
+
+  .dots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.15); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  .dot.done { background: #83C167; }
+
+  .solved-note { font-size: 13px; color: #83C167; line-height: 1.55; padding: 8px 10px; border-left: 2px solid #83C167; background: rgba(131,193,103,.06); border-radius: 0 4px 4px 0; margin-bottom: 8px; }
+  .wrapup-note { font-size: 13px; color: #C78DFF; line-height: 1.55; padding: 10px 12px; border-left: 2px solid #C78DFF; background: rgba(199,141,255,.06); border-radius: 0 4px 4px 0; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="310"></canvas>
+  <div class="panel">
+    <div class="head">
+      <span class="step" id="step"></span>
+      <div class="dots" id="dots"></div>
+    </div>
+    <p class="title" id="title"></p>
+    <p class="desc" id="desc"></p>
+    <div id="predict"></div>
+    <div id="sliders-wrap"></div>
+    <div id="choices-wrap"></div>
+    <div id="debug-wrap"></div>
+    <div class="pips" id="pips"></div>
+    <div class="hints" id="hints"></div>
+    <div id="solved-msg"></div>
+    <div class="nav">
+      <button id="prev">&larr;</button>
+      <button id="next" class="primary">Dalej &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { GraphView } from '../lib/graph-core.js';
+import { initWarsztat } from '../lib/warsztat-core.js';
+{
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const W = 600, H = 310;
+
+  // ── Colors ──────────────────────────────────────────────────
+  const COL_COS = '#58C4DD';
+  const COL_SIN = '#FF6B6B';
+  const COL_HYP = '#FFD166';
+  const COL_OK  = '#83C167';
+  const COL_ACC = '#C78DFF';
+  const COL_WARN = '#FF9F43';
+
+  // ── GraphView ───────────────────────────────────────────────
+  let view;
+  function initView() {
+    view = new GraphView(ctx, { rect: [0,0,W,H], xRange: [-1.8, 1.8], yRange: [-1.15, 1.15], scale: 120 });
+  }
+
+  // ── Draw helpers ────────────────────────────────────────────
+  function roundRect(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x+r,y); c.lineTo(x+w-r,y); c.quadraticCurveTo(x+w,y,x+w,y+r);
+    c.lineTo(x+w,y+h-r); c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    c.lineTo(x+r,y+h); c.quadraticCurveTo(x,y+h,x,y+h-r);
+    c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y);
+    c.closePath();
+  }
+  function infoBox(text, sx, sy, col, alpha) {
+    ctx.save();
+    ctx.font = '12px monospace';
+    if (alpha !== undefined) ctx.globalAlpha = alpha;
+    const w = ctx.measureText(text).width + 14;
+    ctx.fillStyle = 'rgba(14,14,18,0.9)';
+    ctx.strokeStyle = col + '60';
+    ctx.lineWidth = 1;
+    roundRect(ctx, sx - w/2, sy - 11, w, 22, 4);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = col;
+    ctx.textAlign = 'center';
+    ctx.fillText(text, sx, sy + 4);
+    ctx.restore();
+  }
+  function centerText(text, sx, sy, col, size, bold) {
+    ctx.save();
+    ctx.font = (bold ? 'bold ' : '') + (size || 14) + 'px monospace';
+    ctx.fillStyle = col;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, sx, sy);
+    ctx.restore();
+  }
+  function text(msg, sx, sy, col, size, align, baseline) {
+    ctx.save();
+    ctx.font = (size || 12) + 'px monospace';
+    ctx.fillStyle = col;
+    ctx.textAlign = align || 'left';
+    ctx.textBaseline = baseline || 'alphabetic';
+    ctx.fillText(msg, sx, sy);
+    ctx.restore();
+  }
+  function fmt(v) {
+    if (Math.abs(v - Math.round(v)) < 0.005) return Math.round(v).toFixed(2);
+    return v.toFixed(2);
+  }
+
+  // ── Challenge-local state ───────────────────────────────────
+  const C = {
+    ch1Pick: null,
+    alpha: 1.0,
+    alphaMoved: false,
+    ch4Pick: null,
+  };
+
+  // ── Challenges ──────────────────────────────────────────────
+  const challenges = [
+    // ─── Ch.1: 30-60-90 basics ──────────────────────────────
+    {
+      id: 'ch1',
+      title: 'Trójkąt 30-60-90: podstawowe stosunki',
+      desc: 'Przypomnij sobie (albo zobacz po raz pierwszy), skąd biorą się wartości $\\sin 30°$, $\\cos 30°$, $\\tan 30°$.',
+      drawBackground: 'blank',
+      init() { C.ch1Pick = null; },
+      predict: {
+        question: 'W trójkącie prostokątnym o kątach $30°, 60°, 90°$, stosunek boku naprzeciwległego do $30°$ do przeciwprostokątnej to...',
+        options: [
+          { label: '$\\frac{1}{2}$', correct: true, why: 'Tak — to właśnie definicja $\\sin 30°$. Zapamiętaj: naprzeciwko kąta $30°$ leży bok o długości $1$, przeciwprostokątna $2$.' },
+          { label: '$\\frac{\\sqrt{3}}{2}$', correct: false, why: 'To jest $\\cos 30°$ (stosunek boku *przyległego* do przeciwprostokątnej).' },
+          { label: '$\\frac{\\sqrt{3}}{3}$', correct: false, why: 'To jest $\\tan 30°$.' },
+          { label: '$1$', correct: false, why: 'To byłby $\\sin 90°$, ale dla $90°$ nie ma trójkąta prostokątnego.' },
+        ],
+      },
+      choices: {
+        question: 'Który zestaw wartości jest poprawny dla kąta $30°$?',
+        options: [
+          { id: 'a', label: '$\\sin 30° = \\frac{1}{2},\\ \\cos 30° = \\frac{\\sqrt{3}}{2},\\ \\tan 30° = \\frac{\\sqrt{3}}{3}$', correct: true },
+          { id: 'b', label: '$\\sin 30° = \\frac{\\sqrt{3}}{2},\\ \\cos 30° = \\frac{1}{2},\\ \\tan 30° = \\sqrt{3}$', correct: false },
+          { id: 'c', label: '$\\sin 30° = \\frac{1}{2},\\ \\cos 30° = \\frac{1}{2},\\ \\tan 30° = 1$', correct: false },
+          { id: 'd', label: '$\\sin 30° = \\frac{\\sqrt{2}}{2},\\ \\cos 30° = \\frac{\\sqrt{2}}{2},\\ \\tan 30° = 1$', correct: false },
+        ],
+        pick(id) { C.ch1Pick = id; },
+      },
+      pips() {
+        return [{ label: 'wybrano poprawny zestaw', ok: C.ch1Pick === 'a' }];
+      },
+      solved() { return C.ch1Pick === 'a'; },
+      hints: [
+        '$\\sin = \\frac{\\text{naprzeciwległa}}{\\text{przeciwprostokątna}}$. Zidentyfikuj, który bok leży NAPRZECIWKO kąta $30°$.',
+        'Najkrótszy bok (naprzeciwko najmniejszego kąta) to $1$. Przeciwprostokątna to $2$.',
+        '$\\sin 30° = \\frac{1}{2}$. Zapamiętaj tę wartość — pojawia się w co drugim zadaniu maturalnym.',
+      ],
+      solvedMsg: 'Wartości $\\sin, \\cos, \\tan$ dla $30°, 45°, 60°$ MUSISZ znać na pamięć. Nie są skomplikowane — wynikają z dwóch trójkątów (równobocznego połówki i kwadratu połówki).',
+      predictAfter: {
+        question: 'Ile wynosi $\\cos 60°$?',
+        options: [
+          { label: '$\\frac{1}{2}$', correct: true, why: 'Tak — w trójkącie 30-60-90 $\\cos 60°$ to stosunek przyległej do kąta $60°$ (czyli boku o długości $1$) do przeciwprostokątnej ($2$).' },
+          { label: '$\\frac{\\sqrt{3}}{2}$', correct: false, why: 'To $\\sin 60°$ (albo $\\cos 30°$). Dla $60°$ bok przyległy ma długość $1$, nie $\\sqrt{3}$.' },
+          { label: '$1$', correct: false, why: 'To $\\cos 0°$ — cosinus osiąga $1$ tylko w $0°$.' },
+          { label: '$0$', correct: false, why: 'To $\\cos 90°$. Dla $60°$ cosinus jest jeszcze dodatni.' },
+        ],
+      },
+      draw() {
+        // Pokaż trójkąt 30-60-90 w pikselach (blank background).
+        // Wierzchołki: A=(cx,cy+dy) prawy dół (kąt 30°), B=(cx-dx,cy+dy) lewy dół (kąt 90°), C=(cx-dx, cy-hh) lewa góra (kąt 60°).
+        const cx = W * 0.52, cy = H * 0.58;
+        // Scale: short leg (przy kącie 60° = 1) horizontally, long leg sqrt(3) vertically.
+        const scale = 70;
+        const shortLeg = scale;                 // = 1
+        const longLeg = scale * Math.sqrt(3);   // = sqrt(3)
+        const A = { x: cx + shortLeg, y: cy };             // kąt 30° (prawy)
+        const B = { x: cx,            y: cy };             // kąt prosty (środek)
+        const Cp = { x: cx,           y: cy - longLeg };   // kąt 60° (góra)
+
+        // Boki
+        // Przeciwprostokątna A-Cp (długość 2) — highlighted yellow
+        ctx.save();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = COL_HYP;
+        ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(Cp.x, Cp.y); ctx.stroke();
+        // Bok naprzeciwległy 30°: B-Cp (długość sqrt(3))? NIE — naprzeciw 30° leży bok o długości 1.
+        // Kąt 30° jest w A. Naprzeciwko A leży bok B-Cp (pionowy, długość sqrt(3))? To byłby długi bok.
+        // Poprawmy konfigurację: w trójkącie 30-60-90 najmniejszy bok (=1) jest naprzeciw 30°.
+        // Ustawmy: kąt 30° w A, naprzeciw niego krótki bok B-Cp = 1 (pionowy). Czyli długość pionowego boku to 1.
+        ctx.restore();
+
+        // Re-do with correct mapping:
+        // We want: kąt 30° in A, naprzeciwległy = krótki bok = 1 (pionowy B-Cp).
+        // kąt 60° in Cp, przyległy do 60° = krótki = 1 (pionowy B-Cp).
+        // przeciwprostokątna A-Cp = 2. Przyległy do 30° = długi bok A-B = sqrt(3).
+        // So horizontal A-B = sqrt(3), vertical B-Cp = 1. Let me redefine.
+        ctx.clearRect(0, 0, W, H);
+        // Background fill
+        ctx.fillStyle = '#0e0e12';
+        ctx.fillRect(0, 0, W, H);
+
+        const unit = 80;
+        const base = unit * Math.sqrt(3); // sqrt(3) ≈ 138.6 (przyległy do 30°)
+        const hei  = unit;                // 1 (naprzeciwległy do 30°)
+        const ox = cx - base * 0.5;
+        const oy = cy + hei * 0.5;
+        const A2 = { x: ox + base, y: oy };       // kąt 30°
+        const B2 = { x: ox,        y: oy };       // kąt 90°
+        const C2 = { x: ox,        y: oy - hei }; // kąt 60°
+
+        // Highlight sides corresponding to predict: naprzeciwległy to 30° i przeciwprostokątna (sin 30° ratio)
+        // Naprzeciwległy do 30° = B2→C2 (pionowy, długość 1) — color SIN
+        // Przeciwprostokątna = A2→C2 — color HYP (yellow)
+        // Przyległy do 30° = A2→B2 (poziom, sqrt(3)) — color COS (neutral-ish)
+
+        ctx.save();
+        ctx.lineWidth = 3;
+        // Przyległy do 30° (poziom)
+        ctx.strokeStyle = COL_COS + 'AA';
+        ctx.beginPath(); ctx.moveTo(A2.x, A2.y); ctx.lineTo(B2.x, B2.y); ctx.stroke();
+        // Naprzeciwległy do 30° (pionowy) — podświetlony (SIN red)
+        ctx.strokeStyle = COL_SIN;
+        ctx.lineWidth = 4;
+        if (typeof ctx.shadowBlur !== 'undefined') { ctx.shadowColor = COL_SIN; ctx.shadowBlur = 10; }
+        ctx.beginPath(); ctx.moveTo(B2.x, B2.y); ctx.lineTo(C2.x, C2.y); ctx.stroke();
+        ctx.shadowBlur = 0;
+        // Przeciwprostokątna — podświetlona (HYP yellow)
+        ctx.strokeStyle = COL_HYP;
+        ctx.lineWidth = 4;
+        if (typeof ctx.shadowBlur !== 'undefined') { ctx.shadowColor = COL_HYP; ctx.shadowBlur = 10; }
+        ctx.beginPath(); ctx.moveTo(A2.x, A2.y); ctx.lineTo(C2.x, C2.y); ctx.stroke();
+        ctx.shadowBlur = 0;
+        ctx.restore();
+
+        // Right-angle square at B2
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(B2.x, B2.y - 10, 10, 10);
+        ctx.restore();
+
+        // Angle arcs
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+        ctx.lineWidth = 1;
+        // 30° at A2
+        ctx.beginPath();
+        ctx.arc(A2.x, A2.y, 26, Math.PI, Math.PI + Math.PI/6);
+        ctx.stroke();
+        text('30°', A2.x - 30, A2.y - 8, 'rgba(255,255,255,0.8)', 11);
+        // 60° at C2
+        ctx.beginPath();
+        ctx.arc(C2.x, C2.y, 22, 0, Math.PI/3);
+        ctx.stroke();
+        text('60°', C2.x + 12, C2.y + 18, 'rgba(255,255,255,0.8)', 11);
+        ctx.restore();
+
+        // Side labels
+        text('\u221A3', (A2.x + B2.x) / 2, B2.y + 16, COL_COS, 12, 'center');
+        text('1', B2.x - 14, (B2.y + C2.y) / 2, COL_SIN, 13, 'right');
+        text('2', (A2.x + C2.x) / 2 + 10, (A2.y + C2.y) / 2 - 4, COL_HYP, 13, 'left');
+
+        // Title row
+        centerText('trójkąt 30° — 60° — 90°', W * 0.5, 26, COL_ACC, 13);
+
+        // Highlighted ratio formula
+        ctx.save();
+        ctx.font = '13px monospace';
+        const y0 = H - 48;
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.textAlign = 'center';
+        ctx.fillText('sin 30° = (naprzeciwległa) / (przeciwprostokątna)', W * 0.5, y0);
+        ctx.fillStyle = COL_OK;
+        ctx.fillText('sin 30°  =  1 / 2', W * 0.5, y0 + 22);
+        ctx.restore();
+      },
+    },
+
+    // ─── Ch.2: DOWÓD JEDYNKI ─────────────────────────────────
+    {
+      id: 'ch2',
+      title: 'DOWÓD: $\\sin^2\\alpha + \\cos^2\\alpha = 1$',
+      desc: 'Przesuwaj $\\alpha$. Punkt $P$ zawsze leży na okręgu jednostkowym — a to znaczy, że jego odległość od środka zawsze jest $1$. Pitagoras robi resztę.',
+      drawBackground: 'blank',
+      init() {
+        C.alpha = 1.0;
+        C.alphaMoved = false;
+      },
+      predict: {
+        question: 'Punkt $P$ leży na okręgu jednostkowym o środku w $(0,0)$. Jaka jest jego odległość od środka?',
+        options: [
+          { label: 'Zależy od kąta $\\alpha$', correct: false, why: 'Wszystkie punkty okręgu jednostkowego leżą w tej samej odległości — to definicja okręgu.' },
+          { label: 'Zawsze równa $1$', correct: true, why: 'Tak — okrąg jednostkowy = zbiór punktów odległych o $1$ od środka. To właśnie ta „jedynka".' },
+          { label: 'Zależy od $\\sin\\alpha$', correct: false, why: '$\\sin\\alpha$ to tylko *jedna ze współrzędnych* — odległość od środka liczymy z twierdzenia Pitagorasa.' },
+        ],
+      },
+      sliders: [
+        { id: 'alpha', lbl: '\u03B1', color: COL_HYP, min: 0, max: Math.PI * 2, step: 0.05, get: () => C.alpha, set: v => { C.alpha = v; C.alphaMoved = true; } },
+      ],
+      pips() {
+        return [{ label: 'punkt $P$ pozostaje na okręgu — odległość $= 1$', ok: true }];
+      },
+      solved() { return C.alphaMoved; },
+      hints: [
+        'Twierdzenie Pitagorasa mówi, że w trójkącie prostokątnym suma kwadratów przyprostokątnych równa kwadratowi przeciwprostokątnej.',
+        'Przyprostokątne tego trójkąta mają długości $|\\cos\\alpha|$ i $|\\sin\\alpha|$. Przeciwprostokątna (promień) ma długość $1$.',
+        'Czyli $\\cos^2\\alpha + \\sin^2\\alpha = 1^2 = 1$. To i cały dowód — żadnych skomplikowanych wzorów.',
+      ],
+      solvedMsg: 'Jedynka trygonometryczna to **Pitagoras na kole jednostkowym**. Nic więcej. Zapamiętaj tę intuicję — wzór nigdy Cię nie zawiedzie, bo nie zależy od kąta.',
+      predictAfter: {
+        question: 'Jeżeli $\\sin\\alpha = \\frac{3}{5}$ i $\\alpha$ jest kątem ostrym, ile wynosi $\\cos\\alpha$?',
+        options: [
+          { label: '$\\frac{3}{5}$', correct: false, why: 'To byłoby, gdyby $\\sin$ i $\\cos$ były zawsze równe. Tak nie jest — są *dopełnieniem* do $1$ (w sensie kwadratów).' },
+          { label: '$\\frac{4}{5}$', correct: true, why: 'Tak — $\\cos^2\\alpha = 1 - \\frac{9}{25} = \\frac{16}{25}$, więc $\\cos\\alpha = \\frac{4}{5}$ (dodatnie, bo kąt ostry).' },
+          { label: '$\\frac{2}{5}$', correct: false, why: 'Błąd arytmetyczny. $1 - \\frac{9}{25} = \\frac{16}{25}$, a $\\sqrt{16/25} = 4/5$, nie $2/5$.' },
+        ],
+      },
+      draw() {
+        // Unit circle centered, with triangle.
+        // Origin in world coords is (0,0); unit circle radius 1.
+        // view has xRange [-1.8, 1.8], yRange [-1.15, 1.15], scale 120.
+        // Grid+axes handled outside (drawBackground != 'graph') — here we're 'blank', so draw axes manually.
+        // Axes
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, view.py(0)); ctx.lineTo(W, view.py(0));
+        ctx.moveTo(view.px(0), 0); ctx.lineTo(view.px(0), H);
+        ctx.stroke();
+        ctx.restore();
+
+        // Unit circle
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.arc(view.px(0), view.py(0), view.sc, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+
+        const a = C.alpha;
+        const cA = Math.cos(a), sA = Math.sin(a);
+
+        // Triangle: (0,0), (cos,0), (cos,sin)
+        // Cosine leg (horizontal)
+        view.segment(0, 0, cA, 0, { color: COL_COS, lineWidth: 3 });
+        // Sine leg (vertical)
+        view.segment(cA, 0, cA, sA, { color: COL_SIN, lineWidth: 3 });
+        // Hypotenuse = radius
+        view.segment(0, 0, cA, sA, { color: COL_OK, lineWidth: 3 });
+
+        // Right-angle marker at (cos, 0)
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+        ctx.lineWidth = 1;
+        const sqSize = 8;
+        const dirX = cA >= 0 ? -1 : 1;
+        const dirY = sA >= 0 ? -1 : 1;
+        const bx = view.px(cA);
+        const by = view.py(0);
+        ctx.strokeRect(bx + (dirX < 0 ? -sqSize : 0), by + (dirY < 0 ? -sqSize : 0), sqSize, sqSize);
+        ctx.restore();
+
+        // Point P
+        view.dot(cA, sA, { radius: 6, color: COL_ACC, glow: 14 });
+
+        // Labels
+        // cos α over horizontal leg
+        const mxCos = view.px(cA / 2);
+        const myCos = view.py(0) + (sA >= 0 ? 14 : -8);
+        text('cos \u03B1 = ' + fmt(cA), mxCos, myCos, COL_COS, 11, 'center');
+
+        // sin α beside vertical leg
+        const mxSin = view.px(cA) + (cA >= 0 ? 8 : -8);
+        const mySin = view.py(sA / 2);
+        text('sin \u03B1 = ' + fmt(sA), mxSin, mySin, COL_SIN, 11, cA >= 0 ? 'left' : 'right');
+
+        // "1" next to radius (hypotenuse), perpendicular offset
+        const midX = cA / 2, midY = sA / 2;
+        const perpLen = 0.12;
+        const len = Math.hypot(cA, sA) || 1;
+        const nx = -sA / len, ny = cA / len;
+        const lxW = midX + nx * perpLen;
+        const lyW = midY + ny * perpLen;
+        text('1', view.px(lxW), view.py(lyW), COL_OK, 12, 'center', 'middle');
+
+        // Point P label
+        text('P(cos\u03B1, sin\u03B1)', view.px(cA) + (cA >= 0 ? 10 : -10), view.py(sA) - 10, COL_ACC, 11, cA >= 0 ? 'left' : 'right');
+
+        // Header: angle display
+        infoBox('\u03B1 = ' + fmt(a) + ' rad  \u2248  ' + (a * 180 / Math.PI).toFixed(0) + '\u00B0', W - 90, 20, COL_HYP);
+
+        // Bottom: identity
+        ctx.save();
+        ctx.font = '13px monospace';
+        ctx.textAlign = 'center';
+        const cos2 = cA * cA, sin2 = sA * sA;
+        const y0 = H - 30;
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.fillText('Pitagoras:', W * 0.5, y0 - 18);
+        ctx.fillStyle = COL_COS;
+        ctx.fillText('cos\u00B2\u03B1', W * 0.5 - 90, y0);
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.fillText('+', W * 0.5 - 50, y0);
+        ctx.fillStyle = COL_SIN;
+        ctx.fillText('sin\u00B2\u03B1', W * 0.5 - 10, y0);
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.fillText('=', W * 0.5 + 35, y0);
+        ctx.fillStyle = COL_OK;
+        ctx.fillText('1', W * 0.5 + 65, y0);
+
+        // Numeric line
+        ctx.font = '12px monospace';
+        ctx.fillStyle = 'rgba(255,255,255,0.65)';
+        ctx.fillText(cos2.toFixed(2) + '  +  ' + sin2.toFixed(2) + '  =  ' + (cos2 + sin2).toFixed(2), W * 0.5, y0 + 18);
+        ctx.restore();
+      },
+    },
+
+    // ─── Ch.3: Znaki w ćwiartkach ────────────────────────────
+    {
+      id: 'ch3',
+      title: 'Znaki $\\sin$ i $\\cos$ w ćwiartkach',
+      desc: 'Znak zależy od współrzędnej punktu na okręgu. Spójrz, a potem znajdź błąd w rozumowaniu.',
+      drawBackground: 'blank',
+      init() {},
+      predict: {
+        question: 'W drugiej ćwiartce (kąt $\\alpha$ między $90°$ a $180°$) znaki $\\sin\\alpha$ i $\\cos\\alpha$ są:',
+        options: [
+          { label: 'sin +, cos +', correct: false, why: 'To jest pierwsza ćwiartka.' },
+          { label: 'sin +, cos \u2212', correct: true, why: 'Tak — w drugiej ćwiartce $x < 0$ (na lewo od osi $y$), więc $\\cos\\alpha < 0$. Ale $y > 0$ (nad osią $x$), więc $\\sin\\alpha > 0$.' },
+          { label: 'sin \u2212, cos +', correct: false, why: 'To czwarta ćwiartka.' },
+          { label: 'sin \u2212, cos \u2212', correct: false, why: 'To trzecia ćwiartka.' },
+        ],
+      },
+      debug: {
+        task: 'Jan policzył $\\sin 150°$ i otrzymał $-\\frac{1}{2}$. Gdzie popełnił błąd?',
+        steps: [
+          { n: 1, text: '$150°$ leży w drugiej ćwiartce (pomiędzy $90°$ i $180°$).' },
+          { n: 2, text: 'W drugiej ćwiartce $\\sin\\alpha$ jest <b>ujemny</b>.' },
+          { n: 3, text: 'Kąt odniesienia: $180° - 150° = 30°$, więc $\\sin 30° = \\frac{1}{2}$.' },
+          { n: 4, text: 'Stąd $\\sin 150° = -\\frac{1}{2}$.' },
+        ],
+        errorLine: 2,
+        wrongChoice: {
+          1: 'Krok 1 jest poprawny — $150°$ rzeczywiście mieści się między $90°$ a $180°$.',
+          3: 'Krok 3 jest poprawny — kąt odniesienia liczymy od najbliższej osi.',
+          4: 'Krok 4 wynika błędnie z kroku 2 — sam krok 4 jest konsekwentny, ale jego podstawa jest zła.',
+        },
+        correctExplanation: 'Błąd w kroku 2: w <b>drugiej ćwiartce $\\sin$ jest DODATNI</b> (współrzędna $y > 0$), a $\\cos$ ujemny. Poprawny wynik: $\\sin 150° = +\\frac{1}{2}$.',
+      },
+      pips() {
+        return [{ label: 'znaleziono błąd w rozumowaniu', ok: false }];
+      },
+      solved() { return false; },  // solved is managed by debug widget's onSolve
+      hints: [
+        'Znak $\\sin\\alpha$ = znak współrzędnej $y$ punktu na okręgu.',
+        'W II ćwiartce punkt jest nad osią $x$ — $y > 0$, więc $\\sin > 0$.',
+        'Sprawdź dokładnie krok 2 — jaki znak ma $\\sin$ w drugiej ćwiartce?',
+      ],
+      solvedMsg: 'Pamiętaj: znak $\\sin$ to znak $y$, znak $\\cos$ to znak $x$. Popatrz na ćwiartkę — od razu wiesz znaki bez zgadywania.',
+      draw() {
+        // Draw unit circle with 4 quadrant labels (highlight II).
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, view.py(0)); ctx.lineTo(W, view.py(0));
+        ctx.moveTo(view.px(0), 0); ctx.lineTo(view.px(0), H);
+        ctx.stroke();
+        ctx.restore();
+
+        // Highlight II quadrant (x<0, y>0)
+        ctx.save();
+        ctx.fillStyle = COL_WARN + '22';
+        const cxPx = view.px(0), cyPx = view.py(0);
+        ctx.beginPath();
+        ctx.moveTo(cxPx, cyPx);
+        ctx.arc(cxPx, cyPx, view.sc, Math.PI / 2, Math.PI);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+
+        // Unit circle
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.arc(view.px(0), view.py(0), view.sc, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+
+        // Quadrant labels
+        const labels = [
+          { x: 0.6, y: 0.6, title: 'I', body: 'sin +, cos +', col: COL_OK },
+          { x: -0.9, y: 0.6, title: 'II', body: 'sin +, cos \u2212', col: COL_WARN },
+          { x: -0.9, y: -0.6, title: 'III', body: 'sin \u2212, cos \u2212', col: 'rgba(255,255,255,0.7)' },
+          { x: 0.6, y: -0.6, title: 'IV', body: 'sin \u2212, cos +', col: 'rgba(255,255,255,0.7)' },
+        ];
+        labels.forEach(L => {
+          text(L.title, view.px(L.x), view.py(L.y), L.col, 14, 'left', 'middle');
+          text(L.body, view.px(L.x), view.py(L.y) + 16, L.col, 11, 'left', 'middle');
+        });
+
+        // Point at 150°
+        const a = 150 * Math.PI / 180;
+        const cA = Math.cos(a), sA = Math.sin(a);
+        view.segment(0, 0, cA, sA, { color: COL_WARN, lineWidth: 2, alpha: 0.8 });
+        view.dot(cA, sA, { radius: 5, color: COL_WARN, glow: 12 });
+        text('150°', view.px(cA) - 8, view.py(sA) - 10, COL_WARN, 11, 'right');
+
+        // Title
+        centerText('znaki w ćwiartkach — przykład \u03B1 = 150°', W * 0.5, 18, COL_ACC, 12);
+      },
+    },
+
+    // ─── Ch.4: Tangens i jedynka ─────────────────────────────
+    {
+      id: 'ch4',
+      title: 'Zastosuj jedynkę: policz $\\tan\\alpha$',
+      desc: 'Masz $\\sin\\alpha = \\frac{5}{13}$ i $\\alpha$ ostry. Znajdź $\\tan\\alpha$ używając jedynki trygonometrycznej.',
+      drawBackground: 'blank',
+      init() { C.ch4Pick = null; },
+      predict: {
+        question: 'Jak policzysz $\\tan\\alpha$ mając tylko $\\sin\\alpha$?',
+        options: [
+          { label: 'Nie da się — potrzebny jest też $\\cos\\alpha$', correct: false, why: 'Prawie — $\\cos\\alpha$ jest potrzebny, ale MOŻESZ go policzyć z jedynki trygonometrycznej.' },
+          { label: 'Z jedynki wyznaczę $\\cos\\alpha$, potem $\\tan = \\sin/\\cos$', correct: true, why: 'Tak — to cały algorytm. $\\cos^2\\alpha = 1 - \\sin^2\\alpha$, potem $\\tan\\alpha = \\sin\\alpha / \\cos\\alpha$.' },
+          { label: '$\\tan\\alpha = 1 - \\sin\\alpha$', correct: false, why: 'Taki wzór nie istnieje. Jedynka mówi o KWADRATACH: $\\sin^2 + \\cos^2 = 1$.' },
+          { label: '$\\tan\\alpha = \\sin\\alpha$ (gdy $\\alpha$ ostry)', correct: false, why: 'Tangens to $\\sin/\\cos$, a $\\cos$ dla kąta ostrego nie jest równy $1$ (poza $\\alpha = 0$).' },
+        ],
+      },
+      choices: {
+        question: 'Ile wynosi $\\tan\\alpha$?',
+        options: [
+          { id: 'a', label: '$\\frac{5}{13}$', correct: false },
+          { id: 'b', label: '$\\frac{5}{12}$', correct: true },
+          { id: 'c', label: '$\\frac{12}{5}$', correct: false },
+          { id: 'd', label: '$\\frac{13}{12}$', correct: false },
+        ],
+        pick(id) { C.ch4Pick = id; },
+      },
+      pips() {
+        const msgs = {
+          a: 'To $\\sin\\alpha$, nie $\\tan\\alpha$. $\\tan = \\sin/\\cos$.',
+          c: 'To $\\cot\\alpha$ (stosunki odwrócone).',
+          d: 'To $\\sec\\alpha = 1/\\cos\\alpha$ — rzadko potrzebny na maturze.',
+        };
+        if (C.ch4Pick === 'b') return [{ label: 'poprawna wartość $\\tan\\alpha$', ok: true }];
+        if (C.ch4Pick && msgs[C.ch4Pick]) return [{ label: msgs[C.ch4Pick], ok: false }];
+        return [{ label: 'wybierz wartość $\\tan\\alpha$', ok: false }];
+      },
+      solved() { return C.ch4Pick === 'b'; },
+      hints: [
+        '$\\tan\\alpha = \\frac{\\sin\\alpha}{\\cos\\alpha}$. Musisz najpierw znaleźć $\\cos\\alpha$.',
+        'Z jedynki: $\\cos^2\\alpha = 1 - \\sin^2\\alpha = 1 - \\frac{25}{169} = \\frac{144}{169}$, więc $\\cos\\alpha = \\frac{12}{13}$.',
+        '$\\tan\\alpha = \\frac{5/13}{12/13} = \\frac{5}{12}$.',
+      ],
+      solvedMsg: 'Jedynka trygonometryczna to twoja szwajcarska armatka. Za każdym razem gdy znasz jedną z funkcji, możesz policzyć dwie pozostałe.',
+      draw() {
+        // Draw 5-12-13 right triangle
+        const cx = W * 0.45, cy = H * 0.62;
+        const scale = 14; // 5*14=70, 12*14=168
+        const A = { x: cx - 12 * scale / 2, y: cy };                  // kąt α (lewy dół)
+        const B = { x: cx + 12 * scale / 2, y: cy };                  // kąt prosty (prawy dół)
+        const Cp = { x: cx + 12 * scale / 2, y: cy - 5 * scale };     // góra
+
+        // Sides
+        ctx.save();
+        ctx.lineWidth = 3;
+        // Przyległy do α (12) — poziomy — COL_COS
+        ctx.strokeStyle = COL_COS;
+        ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke();
+        // Naprzeciwległy do α (5) — pionowy — COL_SIN
+        ctx.strokeStyle = COL_SIN;
+        ctx.beginPath(); ctx.moveTo(B.x, B.y); ctx.lineTo(Cp.x, Cp.y); ctx.stroke();
+        // Przeciwprostokątna (13) — COL_HYP
+        ctx.strokeStyle = COL_HYP;
+        ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(Cp.x, Cp.y); ctx.stroke();
+        ctx.restore();
+
+        // Right-angle marker at B
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(B.x - 10, B.y - 10, 10, 10);
+        ctx.restore();
+
+        // Angle α at A
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+        ctx.lineWidth = 1;
+        const angleAlpha = Math.atan(5 / 12);
+        ctx.beginPath();
+        ctx.arc(A.x, A.y, 24, -angleAlpha, 0);
+        ctx.stroke();
+        text('\u03B1', A.x + 28, A.y - 6, 'rgba(255,255,255,0.85)', 12);
+        ctx.restore();
+
+        // Side labels
+        text('12 (przyległy)', (A.x + B.x) / 2, B.y + 16, COL_COS, 11, 'center');
+        text('5', B.x + 8, (B.y + Cp.y) / 2, COL_SIN, 12, 'left');
+        text('(naprzeciwległy)', B.x + 8, (B.y + Cp.y) / 2 + 14, COL_SIN, 10, 'left');
+        text('13', (A.x + Cp.x) / 2 - 10, (A.y + Cp.y) / 2 - 4, COL_HYP, 12, 'right');
+        text('(przeciwprostokątna)', (A.x + Cp.x) / 2 - 10, (A.y + Cp.y) / 2 + 10, COL_HYP, 10, 'right');
+
+        // Top: ratios panel
+        ctx.save();
+        ctx.font = '12px monospace';
+        ctx.textAlign = 'left';
+        const px0 = W * 0.82, py0 = 30;
+        ctx.fillStyle = COL_SIN;
+        ctx.fillText('sin \u03B1 = 5/13', px0, py0);
+        ctx.fillStyle = COL_COS;
+        ctx.fillText('cos \u03B1 = 12/13', px0, py0 + 18);
+        ctx.fillStyle = COL_OK;
+        ctx.fillText('tan \u03B1 = 5/12', px0, py0 + 36);
+        ctx.restore();
+
+        centerText('trójkąt 5 — 12 — 13', W * 0.5, 20, COL_ACC, 12);
+      },
+    },
+
+    // ─── Ch.5: Pure predict transfer test ────────────────────
+    {
+      id: 'ch5',
+      title: 'Czym jest tożsamość?',
+      desc: 'Tożsamość to równanie prawdziwe dla KAŻDEJ wartości zmiennej. Które z wyrażeń jest równe $1$ niezależnie od $\\alpha$?',
+      drawBackground: 'blank',
+      init() {},
+      predict: {
+        question: 'Które wyrażenie jest równe $1$ dla każdego $\\alpha$?',
+        options: [
+          { label: '$\\sin\\alpha + \\cos\\alpha$', correct: false, why: 'Zależy od $\\alpha$. Np. dla $\\alpha = 0$: $0 + 1 = 1$, ale dla $\\alpha = \\pi/4$: $\\frac{\\sqrt{2}}{2} + \\frac{\\sqrt{2}}{2} = \\sqrt{2}$.' },
+          { label: '$\\sin^2\\alpha + \\cos^2\\alpha$', correct: true, why: 'Tak, to jedynka trygonometryczna.' },
+          { label: '$\\sin\\alpha \\cdot \\cos\\alpha$', correct: false, why: 'To $\\frac{1}{2}\\sin 2\\alpha$ — w ogóle nie stała.' },
+          { label: '$\\tan\\alpha - \\sin\\alpha$', correct: false, why: 'Zależy od $\\alpha$.' },
+        ],
+      },
+      pips() { return []; },
+      solved() { return true; },
+      hints: [
+        'Tożsamość = równanie prawdziwe dla WSZYSTKICH $\\alpha$. Sprawdź każdą opcję dla dwóch różnych kątów.',
+        'Dla $\\alpha = 0$: $\\sin = 0$, $\\cos = 1$. Która opcja daje $1$?',
+        'Dla $\\alpha = \\pi/2$: $\\sin = 1$, $\\cos = 0$. Która opcja nadal daje $1$? Tylko ta z kwadratami.',
+      ],
+      solvedMsg: 'Tożsamość $\\sin^2\\alpha + \\cos^2\\alpha = 1$ jest narzędziem — nie celem. Używasz jej wtedy, gdy masz dane jedno i potrzebujesz drugie.',
+      draw() {
+        ctx.save();
+        ctx.fillStyle = '#0e0e12';
+        ctx.fillRect(0, 0, W, H);
+
+        centerText('TOŻSAMOŚĆ', W * 0.5, 60, COL_ACC, 22, true);
+        centerText('= równanie prawdziwe dla WSZYSTKICH wartości zmiennej', W * 0.5, 92, 'rgba(255,255,255,0.65)', 12);
+
+        // Box with the identity
+        const bx = W * 0.2, by = 130, bw = W * 0.6, bh = 90;
+        ctx.strokeStyle = COL_OK + '80';
+        ctx.fillStyle = 'rgba(131,193,103,0.06)';
+        roundRect(ctx, bx, by, bw, bh, 8);
+        ctx.fill(); ctx.stroke();
+
+        ctx.font = 'bold 24px monospace';
+        ctx.fillStyle = COL_OK;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('sin\u00B2\u03B1  +  cos\u00B2\u03B1  =  1', W * 0.5, by + 36);
+
+        ctx.font = '11px monospace';
+        ctx.fillStyle = 'rgba(255,255,255,0.6)';
+        ctx.fillText('Pitagoras na kole jednostkowym — zawsze.', W * 0.5, by + 66);
+
+        ctx.font = '11px monospace';
+        ctx.fillStyle = 'rgba(255,255,255,0.45)';
+        ctx.textAlign = 'center';
+        ctx.fillText('\u03B1 = 0   \u2192   0\u00B2 + 1\u00B2  =  1  \u2713', W * 0.5, by + bh + 24);
+        ctx.fillText('\u03B1 = \u03C0/4   \u2192   (\u221A2/2)\u00B2 + (\u221A2/2)\u00B2  =  1/2 + 1/2  =  1  \u2713', W * 0.5, by + bh + 44);
+        ctx.restore();
+      },
+    },
+  ];
+
+  initWarsztat({
+    canvasId: 'cv',
+    challenges,
+    lsKey: 'warsztat:trig-basic:completed',
+    wrapup: 'Dwie rzeczy do zabrania: (1) $\\sin, \\cos, \\tan$ dla $30°, 45°, 60°$ musisz znać na pamięć; (2) jedynka trygonometryczna to Pitagoras na kole jednostkowym — i jedyne narzędzie potrzebne, gdy masz jedną funkcję i chcesz drugą.',
+    onFrame({ ch }) {
+      initView();
+      view.clear();
+      if (ch.drawBackground === 'graph') {
+        view.drawGrid({ color: 'rgba(255,255,255,0.04)' });
+        view.drawAxes({ color: 'rgba(255,255,255,0.2)', arrows: false, labels: true, tickSize: 3 });
+      }
+    },
+  });
+}
+</script>
+</body>
+</html>

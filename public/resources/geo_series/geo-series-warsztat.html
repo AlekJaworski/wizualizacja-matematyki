@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<title>Ciąg geometryczny — Warsztat zbieżności</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; color: rgba(255,255,255,.85); }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+
+  .head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+  .head .step { font-size: 11px; color: rgba(255,255,255,.4); letter-spacing: .04em; }
+  .head .title { font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  .desc { font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); margin-bottom: 10px; min-height: 34px; }
+
+  .pips { display: flex; gap: 14px; flex-wrap: wrap; margin: 4px 0 10px; font-size: 12px; }
+  .pip { display: inline-flex; align-items: center; gap: 6px; color: rgba(255,255,255,.55); }
+  .pip .mark { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(255,255,255,.25); display: inline-flex; align-items: center; justify-content: center; font-size: 10px; line-height: 1; }
+  .pip.ok { color: #83C167; }
+  .pip.ok .mark { background: #83C167; border-color: #83C167; color: #0e0e12; }
+  .pip.ok .mark::before { content: "\2713"; }
+
+  .predict { margin-bottom: 10px; }
+  .predict .q { font-size: 13px; color: rgba(255,255,255,.82); margin-bottom: 8px; line-height: 1.55; }
+  .predict .opts { display: flex; flex-direction: column; gap: 6px; }
+  .predict button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.78); padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; transition: background .15s, border-color .15s; }
+  .predict button:hover { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.4); }
+  .predict button.picked { border-color: #58C4DD; color: #58C4DD; }
+  .predict .feedback { margin-top: 8px; font-size: 12px; line-height: 1.55; color: rgba(255,255,255,.7); padding: 8px 10px; border-left: 2px solid #58C4DD; background: rgba(88,196,221,.06); border-radius: 0 4px 4px 0; }
+
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 36px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+
+  .choices { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .choices button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.78); padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; transition: background .15s, border-color .15s; }
+  .choices button:hover { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.4); }
+  .choices button.picked { border-color: #58C4DD; color: #58C4DD; }
+  .choices button.correct { border-color: #83C167; color: #83C167; background: rgba(131,193,103,.08); }
+  .choices button.wrong { border-color: #FF6B6B; color: #FF6B6B; background: rgba(255,107,107,.06); }
+
+  /* Debug widget */
+  .debug { margin-bottom: 10px; }
+  .debug-task { font-size: 13px; color: rgba(255,255,255,.82); margin-bottom: 10px; line-height: 1.55; padding: 8px 10px; border-left: 2px solid #58C4DD; background: rgba(88,196,221,.06); border-radius: 0 4px 4px 0; }
+  .debug-steps { display: flex; flex-direction: column; gap: 4px; }
+  .debug-step { display: flex; align-items: flex-start; gap: 10px; background: transparent; border: 0.5px solid rgba(255,255,255,.15); color: rgba(255,255,255,.8); padding: 8px 12px; font-size: 13px; line-height: 1.5; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; transition: background .15s, border-color .15s; }
+  .debug-step:hover:not(:disabled) { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.45); }
+  .debug-step:disabled { cursor: default; opacity: .85; }
+  .debug-step .debug-n { color: rgba(255,255,255,.4); min-width: 20px; }
+  .debug-step .debug-text { flex: 1; }
+  .debug-step.wrong { border-color: #FF6B6B; background: rgba(255,107,107,.08); color: #FF6B6B; }
+  .debug-step.correct { border-color: #83C167; background: rgba(131,193,103,.1); color: #83C167; }
+  .debug-feedback { margin-top: 10px; font-size: 12px; line-height: 1.55; padding: 8px 10px; border-radius: 0 4px 4px 0; }
+  .debug-feedback.ok { color: rgba(255,255,255,.82); border-left: 2px solid #83C167; background: rgba(131,193,103,.06); }
+  .debug-feedback.bad { color: rgba(255,255,255,.78); border-left: 2px solid #FF6B6B; background: rgba(255,107,107,.06); }
+
+  .hints { font-size: 12px; color: rgba(255,255,255,.5); margin: 4px 0 10px; line-height: 1.55; }
+  .hints .hint { padding: 6px 10px; border-left: 2px solid #FFD166; background: rgba(255,209,102,.05); margin-top: 4px; border-radius: 0 4px 4px 0; }
+
+  .nav { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+  .nav button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  .nav button:hover:not(:disabled) { background: rgba(255,255,255,.08); }
+  .nav button:disabled { opacity: .3; cursor: default; }
+  .nav button.primary { border-color: #83C167; color: #83C167; }
+  .nav button.primary:hover { background: rgba(131,193,103,.1); }
+
+  .dots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.15); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  .dot.done { background: #83C167; }
+
+  .solved-note { font-size: 13px; color: #83C167; line-height: 1.55; padding: 8px 10px; border-left: 2px solid #83C167; background: rgba(131,193,103,.06); border-radius: 0 4px 4px 0; margin-bottom: 8px; }
+  .wrapup-note { font-size: 13px; color: #C78DFF; line-height: 1.55; padding: 10px 12px; border-left: 2px solid #C78DFF; background: rgba(199,141,255,.06); border-radius: 0 4px 4px 0; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="310"></canvas>
+  <div class="panel">
+    <div class="head">
+      <span class="step" id="step"></span>
+      <div class="dots" id="dots"></div>
+    </div>
+    <p class="title" id="title"></p>
+    <p class="desc" id="desc"></p>
+    <div id="predict"></div>
+    <div id="sliders-wrap"></div>
+    <div id="choices-wrap"></div>
+    <div id="debug-wrap"></div>
+    <div class="pips" id="pips"></div>
+    <div class="hints" id="hints"></div>
+    <div id="solved-msg"></div>
+    <div class="nav">
+      <button id="prev">&larr;</button>
+      <button id="next" class="primary">Dalej &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { GraphView } from '../lib/graph-core.js';
+import { initWarsztat } from '../lib/warsztat-core.js';
+{
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const W = 600, H = 310;
+
+  // Colors
+  const COL_PT   = '#58C4DD';
+  const COL_Q    = '#FFD166';
+  const COL_OK   = '#83C167';
+  const COL_BAD  = '#FF6B6B';
+  const COL_SUM  = '#C78DFF';
+  const COL_GOAL = '#83C167';
+  const COL_A1   = '#FF9F43';
+  const COL_A2   = '#4ECDC4';
+  const COL_A3   = '#C78DFF';
+
+  let view;
+  function initView(xRange, yRange) {
+    view = new GraphView(ctx, { rect: [0,0,W,H], xRange, yRange });
+  }
+
+  function roundRect(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x+r,y); c.lineTo(x+w-r,y); c.quadraticCurveTo(x+w,y,x+w,y+r);
+    c.lineTo(x+w,y+h-r); c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    c.lineTo(x+r,y+h); c.quadraticCurveTo(x,y+h,x,y+h-r);
+    c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y);
+    c.closePath();
+  }
+  function infoBox(text, sx, sy, col, alpha) {
+    ctx.save();
+    ctx.font = '12px monospace';
+    if (alpha !== undefined) ctx.globalAlpha = alpha;
+    const w = ctx.measureText(text).width + 14;
+    ctx.fillStyle = 'rgba(14,14,18,0.9)';
+    ctx.strokeStyle = col + '60';
+    ctx.lineWidth = 1;
+    roundRect(ctx, sx - w/2, sy - 11, w, 22, 4);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = col;
+    ctx.textAlign = 'center';
+    ctx.fillText(text, sx, sy + 4);
+    ctx.restore();
+  }
+  function fmt(v, d = 2) {
+    if (Math.abs(v - Math.round(v)) < 0.005) return Math.round(v).toString();
+    return v.toFixed(d);
+  }
+
+  // Challenge-local state
+  const C = { q: 0.5, qMoved: false };
+
+  const challenges = [
+    // ─── Ch.1: kiedy ciąg geometryczny zanika? ────────────────
+    {
+      id: 'ch1',
+      title: 'Kiedy ciąg geometryczny zanika?',
+      desc: 'Przesuwaj $q$ i obserwuj wyrazy $a_n = q^{n-1}$ dla $n = 1, 2, \\ldots, 20$. Znajdź strefę, w której wyrazy wyraźnie dążą do zera.',
+      drawBackground: 'custom',
+      init() { C.q = 0.5; C.qMoved = false; },
+      predict: {
+        question: 'Dla jakich $q$ wyrazy ciągu geometrycznego $a_n = q^{n-1}$ dążą do zera?',
+        options: [
+          { label: '$q > 0$', correct: false, why: 'Częściowo — dla $0 < q < 1$ zanikają, ale dla $q \\geq 1$ już nie. Sam znak to za mało.' },
+          { label: '$|q| < 1$', correct: true,  why: 'Tak. Tylko gdy $|q| < 1$ mnożenie przez $q$ zmniejsza wartość bezwzględną — wyrazy dążą do zera. Dla $q$ ujemnych ale $|q| < 1$ oscylują, ale też zanikają.' },
+          { label: '$q > 1$', correct: false, why: 'Wręcz przeciwnie — tu ciąg rośnie wykładniczo. Każdy krok mnoży przez liczbę $> 1$.' },
+          { label: '$q < 0$', correct: false, why: 'Dla $q < 0$ wyrazy zmieniają znak, ale to nie gwarantuje zaniku. Na przykład $q = -2$: $1, -2, 4, -8, \\ldots$ — wartości bezwzględne rosną.' },
+        ],
+      },
+      sliders: [
+        { id: 'q', lbl: 'q', color: COL_Q, min: -1.5, max: 2, step: 0.1,
+          get: () => C.q, set: v => { C.q = v; C.qMoved = true; } },
+      ],
+      pips() {
+        return [{ label: '$|q| < 1$ — wyrazy zanikają', ok: Math.abs(C.q) < 1 }];
+      },
+      solved() { return Math.abs(C.q) < 1 && C.qMoved; },
+      hints: [
+        '$q^n$ dla $|q| < 1$ mnoży co krok przez liczbę mniejszą niż 1 (co do wartości bezwzględnej). Wyniki szybko maleją.',
+        'Dla $q > 1$: każdy krok mnoży przez liczbę większą niż 1 → rośnie. Dla $q = 1$: wszystkie wyrazy równe $a_1$.',
+        'Dla $q = -0{,}5$: wyrazy oscylują ale zanikają (naprzemiennie dodatnie/ujemne, co do wartości bezwzględnej → 0).',
+      ],
+      solvedMsg: '$|q| < 1$ to **klucz do wszystkiego** w ciągach geometrycznych. Tylko wtedy suma nieskończona istnieje.',
+      draw() {
+        const q = C.q;
+        const N = 20;
+        const terms = [];
+        for (let i = 1; i <= N; i++) terms.push(Math.pow(q, i - 1));
+
+        // Compute dynamic yRange based on terms, clipped
+        let absMax = 1;
+        for (const t of terms) absMax = Math.max(absMax, Math.min(Math.abs(t), 10));
+        const yMin = -absMax - 0.5;
+        const yMax =  absMax + 0.5;
+
+        initView([0, N + 1], [yMin, yMax]);
+        view.clear();
+        view.drawGrid({ color: 'rgba(255,255,255,0.04)' });
+        view.drawAxes({ color: 'rgba(255,255,255,0.2)', arrows: false, labels: true, tickSize: 3 });
+
+        // "Strefa zaniku" green band on slider axis (q-space visualization):
+        // Shade x-axis strip indicating |value| < threshold ( y in [-0.05, 0.05] )
+        // Instead: draw a faint green "zero corridor" horizontal band to show target zero.
+        ctx.save();
+        ctx.fillStyle = 'rgba(131,193,103,0.08)';
+        const bandY0 = view.py(0.1);
+        const bandY1 = view.py(-0.1);
+        ctx.fillRect(0, bandY0, W, bandY1 - bandY0);
+        ctx.restore();
+        view.label('strefa zera', N - 1, 0.25, { color: COL_OK + 'a0', align: 'right', font: '10px monospace' });
+
+        // Plot points a_n = q^{n-1}
+        const inDecay = Math.abs(q) < 1;
+        const col = inDecay ? COL_OK : COL_BAD;
+        // connecting thin line
+        ctx.save();
+        ctx.strokeStyle = col + '40';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let i = 1; i <= N; i++) {
+          const tv = Math.max(Math.min(terms[i - 1], yMax), yMin);
+          const sx = view.px(i), sy = view.py(tv);
+          if (i === 1) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
+        }
+        ctx.stroke();
+        ctx.restore();
+
+        for (let i = 1; i <= N; i++) {
+          const t = terms[i - 1];
+          const clipped = t > yMax || t < yMin;
+          const tv = Math.max(Math.min(t, yMax), yMin);
+          view.dot(i, tv, { radius: clipped ? 3 : 4, color: clipped ? COL_BAD : col });
+        }
+
+        // Top label
+        const lbl = inDecay
+          ? '|q| = ' + fmt(Math.abs(q)) + ' < 1  →  wyrazy zanikają'
+          : (Math.abs(q) < 1.01 && q !== 0
+              ? 'q ≈ ' + fmt(q) + '  —  na granicy'
+              : '|q| = ' + fmt(Math.abs(q)) + ' ≥ 1  →  nie zanika');
+        infoBox('a_n = q^(n-1),   q = ' + fmt(q), W / 2, 20, COL_Q);
+        infoBox(lbl, W / 2, H - 20, inDecay ? COL_OK : COL_BAD);
+      },
+    },
+
+    // ─── Ch.2: Suma nieskończona ──────────────────────────────
+    {
+      id: 'ch2',
+      title: 'Suma nieskończona — czy nieskończenie wielu wyrazów może dać skończoną liczbę?',
+      desc: 'Dla $a_1 = 2$, $q = \\tfrac{1}{2}$ pasek pokazuje kolejne wyrazy 2, 1, 0.5, 0.25, … dokładanie jeden obok drugiego. Wybierz właściwy wzór na $S_\\infty$.',
+      drawBackground: 'custom',
+      init() {},
+      predict: {
+        question: 'Dla $a_1 = 2$, $q = \\tfrac{1}{2}$, suma wszystkich wyrazów wynosi:',
+        options: [
+          { label: '$2$', correct: false, why: 'To tylko pierwszy wyraz. Ale doliczamy jeszcze $1 + 0{,}5 + 0{,}25 + \\ldots$ — sumaryczny efekt jest większy.' },
+          { label: '$4$', correct: true,  why: 'Tak. $S_\\infty = \\tfrac{a_1}{1-q} = \\tfrac{2}{1 - 0{,}5} = \\tfrac{2}{0{,}5} = 4$.' },
+          { label: '$\\infty$', correct: false, why: 'Tu $|q| < 1$, więc szereg jest zbieżny. Nieskończenie wiele składników może dać skończoną sumę — zobacz pasek.' },
+          { label: '$\\tfrac{1}{2}$', correct: false, why: 'To wartość $q$, nie suma. Wzór daje $\\tfrac{a_1}{1-q}$, a nie $q$ samo.' },
+        ],
+      },
+      choices: {
+        question: 'Którego wzoru można tu użyć?',
+        options: [
+          { id: 'A', label: '$S = \\tfrac{a_1}{1-q}$',         correct: true },
+          { id: 'B', label: '$S = a_1 \\cdot (1 + q)$',         correct: false },
+          { id: 'C', label: '$S = a_1 \\cdot n$',               correct: false },
+        ],
+        pick(id) { C.pick = id; },
+      },
+      pips() {
+        return [{ label: 'wybierz wzór $S = \\tfrac{a_1}{1-q}$', ok: C.pick === 'A' }];
+      },
+      solved() { return C.pick === 'A'; },
+      hints: [
+        'Formuła dla skończonej sumy: $S_n = a_1 \\cdot \\tfrac{1-q^n}{1-q}$. Co się dzieje gdy $n \\to \\infty$ i $|q| < 1$?',
+        'Wtedy $q^n \\to 0$, więc $1 - q^n \\to 1$.',
+        '$S_\\infty = \\lim_{n \\to \\infty} S_n = \\tfrac{a_1}{1 - q} = \\tfrac{2}{1 - 0{,}5} = \\tfrac{2}{0{,}5} = 4$.',
+      ],
+      solvedMsg: 'Nieskończenie wielu wyrazów zmieściło się w pasku długości 4. To jest magia $|q| < 1$.',
+      draw() {
+        ctx.save();
+        ctx.fillStyle = '#0e0e12';
+        ctx.fillRect(0, 0, W, H);
+        ctx.restore();
+
+        // Draw a horizontal "goal bar" of length 4 and stack geometric bars on it
+        const a1 = 2, q = 0.5;
+        const total = a1 / (1 - q); // 4
+
+        const padX = 60, padY = 90;
+        const barY = H / 2;
+        const barH = 36;
+        const barW = W - 2 * padX;
+        const scale = barW / total; // pixels per unit
+
+        // Goal rectangle outline
+        ctx.save();
+        ctx.strokeStyle = COL_GOAL + 'a0';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([6, 4]);
+        ctx.strokeRect(padX, barY - barH / 2, barW, barH);
+        ctx.setLineDash([]);
+        ctx.fillStyle = COL_GOAL;
+        ctx.font = 'bold 12px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('cel:  S_\u221E = 4', padX + barW / 2, barY - barH / 2 - 10);
+        ctx.restore();
+
+        // Bars: each term a1 * q^(n-1)
+        const N = 14;
+        const palette = [COL_PT, COL_Q, COL_A1, COL_A2, COL_A3, COL_SUM];
+        let cursorX = padX;
+        let cumulative = 0;
+        for (let n = 1; n <= N; n++) {
+          const term = a1 * Math.pow(q, n - 1);
+          const wpx = term * scale;
+          if (wpx < 0.4) break;
+          const col = palette[(n - 1) % palette.length];
+          ctx.save();
+          ctx.fillStyle = col + 'c0';
+          ctx.strokeStyle = col;
+          ctx.lineWidth = 0.8;
+          ctx.fillRect(cursorX, barY - barH / 2, wpx, barH);
+          ctx.strokeRect(cursorX, barY - barH / 2, wpx, barH);
+          // label inside if wide enough
+          if (wpx > 22) {
+            ctx.fillStyle = '#0e0e12';
+            ctx.font = 'bold 11px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(fmt(term, 2), cursorX + wpx / 2, barY + 4);
+          }
+          ctx.restore();
+          cursorX += wpx;
+          cumulative += term;
+        }
+
+        // cumulative marker
+        ctx.save();
+        ctx.strokeStyle = '#ffffff80';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(cursorX, barY - barH / 2 - 4);
+        ctx.lineTo(cursorX, barY + barH / 2 + 4);
+        ctx.stroke();
+        ctx.fillStyle = '#ffffffcc';
+        ctx.font = '11px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('S_n \u2248 ' + fmt(cumulative, 3), cursorX, barY + barH / 2 + 18);
+        ctx.restore();
+
+        // Formula banner
+        infoBox('a_1 = 2,   q = 1/2   \u2192   S_\u221E = 2 / (1 \u2212 0.5) = 4', W / 2, 24, COL_SUM);
+
+        // Term annotations below bar
+        ctx.save();
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.font = '10px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('2  +  1  +  \u00BD  +  \u00BC  +  \u215B  +  \u2026', W / 2, H - 24);
+        ctx.restore();
+      },
+    },
+
+    // ─── Ch.3: Debug ──────────────────────────────────────────
+    {
+      id: 'ch3',
+      title: 'Debug: ktoś użył wzoru bez warunku',
+      desc: 'Przeczytaj rozwiązanie Tomka i wskaż krok, w którym popełnił błąd.',
+      drawBackground: 'custom',
+      init() {},
+      debug: {
+        task: 'Tomek liczy $S_\\infty$ dla ciągu $a_n = 3 \\cdot 2^{n-1}$ (czyli $a_1 = 3$, $q = 2$). Pisze:',
+        steps: [
+          { n: 1, text: '$a_1 = 3$, $q = 2$.' },
+          { n: 2, text: 'Wzór: $S_\\infty = \\dfrac{a_1}{1 - q}$.' },
+          { n: 3, text: '$S_\\infty = \\dfrac{3}{1 - 2} = \\dfrac{3}{-1} = -3$.' },
+          { n: 4, text: 'Suma wszystkich wyrazów to $-3$.' },
+        ],
+        errorLine: 2,
+        wrongChoice: {
+          1: 'Krok 1 tylko identyfikuje $a_1$ i $q$ — to prawda. Szukaj wyżej.',
+          3: 'Krok 3 algebraicznie poprawny, ale oparty na błędnym założeniu w kroku 2.',
+          4: 'Krok 4 tylko przepisuje wynik z kroku 3. Sam wynik jest absurdalny (suma dodatnich liczb ujemna), ale źródło błędu jest wcześniej.',
+        },
+        correctExplanation: 'Krok 2: wzór $S_\\infty = \\tfrac{a_1}{1-q}$ działa <b>tylko dla $|q| < 1$</b>. Tu $q = 2 > 1$, więc ciąg geometryczny $3, 6, 12, 24, \\ldots$ rośnie nieograniczenie i $S_\\infty = +\\infty$. Wzór nie ma zastosowania. Ujemny wynik $-3$ to matematyczny artefakt — suma dodatnich liczb nie może być ujemna.',
+      },
+      pips: () => [],
+      solved() { return false; }, // debug widget drives solve directly
+      hints: [
+        'Sprawdź warunek stosowalności wzoru. Czy $|q| < 1$?',
+        'Dla $q = 2$ ciąg to $3, 6, 12, 24, \\ldots$ — rośnie. Suma nie może być skończona, a już na pewno nie ujemna.',
+        'Wzór $S_\\infty = \\tfrac{a_1}{1-q}$ pochodzi z granicy $q^n \\to 0$ — ta granica istnieje TYLKO dla $|q| < 1$.',
+      ],
+      solvedMsg: 'Wzór bez warunku to pułapka. $S_\\infty = \\tfrac{a_1}{1-q}$ ma sens wyłącznie w strefie zaniku $|q| < 1$.',
+      draw() {
+        // Illustrate the divergent sequence visually
+        ctx.save();
+        ctx.fillStyle = '#0e0e12';
+        ctx.fillRect(0, 0, W, H);
+        ctx.restore();
+
+        const a1 = 3, q = 2;
+        const N = 7;
+        const terms = [];
+        for (let i = 1; i <= N; i++) terms.push(a1 * Math.pow(q, i - 1));
+        const maxT = terms[N - 1];
+
+        const padX = 40, padY = 60;
+        const baseY = H - 50;
+        const topY = 50;
+        const availH = baseY - topY;
+        const stepX = (W - 2 * padX) / (N - 1);
+
+        // bars
+        for (let i = 0; i < N; i++) {
+          const h = (terms[i] / maxT) * availH;
+          const x = padX + i * stepX - 12;
+          ctx.save();
+          ctx.fillStyle = COL_BAD + 'a0';
+          ctx.strokeStyle = COL_BAD;
+          ctx.lineWidth = 1;
+          ctx.fillRect(x, baseY - h, 24, h);
+          ctx.strokeRect(x, baseY - h, 24, h);
+          ctx.fillStyle = '#ffffffcc';
+          ctx.font = '10px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(fmt(terms[i]), x + 12, baseY - h - 5);
+          ctx.fillStyle = 'rgba(255,255,255,0.4)';
+          ctx.fillText('a_' + (i + 1), x + 12, baseY + 14);
+          ctx.restore();
+        }
+
+        // baseline
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+        ctx.beginPath();
+        ctx.moveTo(padX - 10, baseY);
+        ctx.lineTo(W - padX + 10, baseY);
+        ctx.stroke();
+        ctx.restore();
+
+        infoBox('a_n = 3 \u00B7 2^(n-1):   3, 6, 12, 24, 48, \u2026   \u2192  \u221E', W / 2, 22, COL_BAD);
+        infoBox('wz\u00F3r S_\u221E = a_1/(1-q) dzia\u0142a TYLKO dla |q| < 1', W / 2, H - 18, COL_Q);
+      },
+    },
+
+    // ─── Ch.4: Ułamek okresowy jako geometric sum ─────────────
+    {
+      id: 'ch4',
+      title: 'Ułamek okresowy jako suma geometryczna',
+      desc: 'Zamień $0{,}(3) = 0{,}333\\ldots$ na ułamek zwykły, używając wzoru na sumę nieskończonego ciągu geometrycznego.',
+      drawBackground: 'custom',
+      init() { C.pick4a = null; C.pick4b = null; },
+      predict: {
+        question: 'Ułamek $0{,}(3)$ można zapisać jako:',
+        options: [
+          { label: '$\\tfrac{3}{10} + \\tfrac{3}{100} + \\tfrac{3}{1000} + \\ldots$', correct: true,
+            why: 'Tak. Każda trójka to kolejna potęga $\\tfrac{1}{10}$ razy $\\tfrac{3}{10}$. Mamy ciąg geometryczny z $a_1 = 0{,}3$, $q = 0{,}1$.' },
+          { label: '$\\tfrac{3}{10}$ (tylko pierwsza cyfra)', correct: false,
+            why: 'To tylko $0{,}3$. Brakuje pozostałych cyfr $0{,}03 + 0{,}003 + \\ldots$' },
+          { label: '$0{,}3 \\cdot \\tfrac{1}{9}$', correct: false,
+            why: 'Wynik działania to $\\tfrac{1}{30}$ — za mało. Prawidłowy zapis to SUMA potęg $\\tfrac{1}{10}$.' },
+        ],
+      },
+      choices: {
+        question: 'Ostateczny ułamek $0{,}(3)$ równa się:',
+        options: [
+          { id: 'A', label: '$\\tfrac{1}{3}$',          correct: true },
+          { id: 'B', label: '$\\tfrac{3}{10}$',         correct: false },
+          { id: 'C', label: '$\\tfrac{3}{9} \\cdot 10$', correct: false },
+          { id: 'D', label: '$0$',                      correct: false },
+        ],
+        pick(id) { C.pick4b = id; },
+      },
+      pips() {
+        return [{ label: 'wybierz wartość $0{,}(3) = \\tfrac{1}{3}$', ok: C.pick4b === 'A' }];
+      },
+      solved() { return C.pick4b === 'A'; },
+      hints: [
+        '$0{,}(3) = 0{,}3 + 0{,}03 + 0{,}003 + \\ldots$ — geometryczny z $a_1 = 0{,}3$, $q = 0{,}1$.',
+        '$|q| = 0{,}1 < 1$ ✓, więc możemy użyć wzoru na sumę nieskończoną.',
+        '$S = \\tfrac{0{,}3}{1 - 0{,}1} = \\tfrac{0{,}3}{0{,}9} = \\tfrac{1}{3}$.',
+      ],
+      solvedMsg: 'Ułamek okresowy = suma geometryczna. Każde $0{,}(abc\\ldots)$ można zamienić na prostą frakcję tym wzorem.',
+      draw() {
+        ctx.save();
+        ctx.fillStyle = '#0e0e12';
+        ctx.fillRect(0, 0, W, H);
+        ctx.restore();
+
+        // Draw [0, 1] bar with geometric slices summing toward 1/3
+        const padX = 50;
+        const barY = H / 2;
+        const barH = 40;
+        const barW = W - 2 * padX;
+
+        // [0,1] framework
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(padX, barY - barH / 2, barW, barH);
+        ctx.fillStyle = 'rgba(255,255,255,0.6)';
+        ctx.font = '11px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('0', padX, barY + barH / 2 + 16);
+        ctx.fillText('1', padX + barW, barY + barH / 2 + 16);
+        ctx.fillText('1/3', padX + barW / 3, barY - barH / 2 - 10);
+        // 1/3 marker
+        ctx.strokeStyle = COL_OK + 'b0';
+        ctx.setLineDash([4, 3]);
+        ctx.beginPath();
+        ctx.moveTo(padX + barW / 3, barY - barH / 2 - 3);
+        ctx.lineTo(padX + barW / 3, barY + barH / 2 + 3);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+
+        // geometric slices: 3/10, 3/100, 3/1000, ...
+        const palette = [COL_PT, COL_Q, COL_A1, COL_A2, COL_A3, COL_SUM];
+        let cursor = padX;
+        let term = 0.3;
+        let n = 1;
+        while (term * barW > 0.5 && n <= 8) {
+          const w = term * barW;
+          const col = palette[(n - 1) % palette.length];
+          ctx.save();
+          ctx.fillStyle = col + 'c0';
+          ctx.strokeStyle = col;
+          ctx.lineWidth = 0.8;
+          ctx.fillRect(cursor, barY - barH / 2, w, barH);
+          ctx.strokeRect(cursor, barY - barH / 2, w, barH);
+          ctx.restore();
+          cursor += w;
+          term /= 10;
+          n++;
+        }
+
+        // Labels
+        infoBox('0,(3) = 3/10 + 3/100 + 3/1000 + \u2026', W / 2, 22, COL_Q);
+        infoBox('S_\u221E = (3/10) / (1 \u2212 1/10) = (3/10)/(9/10) = 1/3', W / 2, H - 22, COL_OK);
+
+        // mini term legend below bar
+        ctx.save();
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.font = '10px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('a_1 = 0,3    q = 0,1    |q| < 1  \u2713', W / 2, barY + barH / 2 + 36);
+        ctx.restore();
+      },
+    },
+  ];
+
+  initWarsztat({
+    canvasId: 'cv',
+    challenges,
+    lsKey: 'warsztat:geo-series:completed',
+    wrapup: 'Trzy rzeczy: (1) $|q| < 1$ to magiczna granica — bez niej ciąg nie zanika i suma nie istnieje; (2) $S_\\infty = \\tfrac{a_1}{1-q}$ tylko w strefie zaniku; (3) ułamek okresowy to maskowany ciąg geometryczny.',
+    extraState: { pick: null, pick4b: null },
+    onFrame({ ch }) {
+      // Clear canvas each frame; per-challenge draw handles its own background
+      // (Ch.1 initializes view inside draw; Ch.2–4 paint plain background).
+      ctx.clearRect(0, 0, W, H);
+    },
+  });
+}
+</script>
+</body>
+</html>

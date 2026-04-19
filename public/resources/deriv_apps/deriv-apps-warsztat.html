@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<title>Optymalizacja z pochodną — Warsztat</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; color: rgba(255,255,255,.85); }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+
+  .head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+  .head .step { font-size: 11px; color: rgba(255,255,255,.4); letter-spacing: .04em; }
+  .head .title { font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  .desc { font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); margin-bottom: 10px; min-height: 34px; }
+
+  .pips { display: flex; gap: 14px; flex-wrap: wrap; margin: 4px 0 10px; font-size: 12px; }
+  .pip { display: inline-flex; align-items: center; gap: 6px; color: rgba(255,255,255,.55); }
+  .pip .mark { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(255,255,255,.25); display: inline-flex; align-items: center; justify-content: center; font-size: 10px; line-height: 1; }
+  .pip.ok { color: #83C167; }
+  .pip.ok .mark { background: #83C167; border-color: #83C167; color: #0e0e12; }
+  .pip.ok .mark::before { content: "\2713"; }
+
+  .predict { margin-bottom: 10px; }
+  .predict .q { font-size: 13px; color: rgba(255,255,255,.82); margin-bottom: 8px; line-height: 1.55; }
+  .predict .opts { display: flex; flex-direction: column; gap: 6px; }
+  .predict button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.78); padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; transition: background .15s, border-color .15s; }
+  .predict button:hover { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.4); }
+  .predict button.picked { border-color: #58C4DD; color: #58C4DD; }
+  .predict .feedback { margin-top: 8px; font-size: 12px; line-height: 1.55; color: rgba(255,255,255,.7); padding: 8px 10px; border-left: 2px solid #58C4DD; background: rgba(88,196,221,.06); border-radius: 0 4px 4px 0; }
+
+  .choices { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+  .choices button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.78); padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; transition: background .15s, border-color .15s; }
+  .choices button:hover { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.4); }
+  .choices button.picked { border-color: #58C4DD; color: #58C4DD; }
+  .choices button.wrong { border-color: #FF6B6B; color: #FF6B6B; }
+  .choices button.correct { border-color: #83C167; color: #83C167; }
+
+  .hints { font-size: 12px; color: rgba(255,255,255,.5); margin: 4px 0 10px; line-height: 1.55; }
+  .hints .hint { padding: 6px 10px; border-left: 2px solid #FFD166; background: rgba(255,209,102,.05); margin-top: 4px; border-radius: 0 4px 4px 0; }
+
+  .nav { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+  .nav button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  .nav button:hover:not(:disabled) { background: rgba(255,255,255,.08); }
+  .nav button:disabled { opacity: .3; cursor: default; }
+  .nav button.primary { border-color: #83C167; color: #83C167; }
+  .nav button.primary:hover { background: rgba(131,193,103,.1); }
+
+  .dots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.15); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  .dot.done { background: #83C167; }
+
+  .solved-note { font-size: 13px; color: #83C167; line-height: 1.55; padding: 8px 10px; border-left: 2px solid #83C167; background: rgba(131,193,103,.06); border-radius: 0 4px 4px 0; margin-bottom: 8px; }
+  .wrapup-note { font-size: 12px; color: rgba(255,255,255,.6); line-height: 1.55; padding: 8px 10px; border-left: 2px solid #C78DFF; background: rgba(199,141,255,.06); border-radius: 0 4px 4px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="310"></canvas>
+  <div class="panel">
+    <div class="head">
+      <span class="step" id="step"></span>
+      <div class="dots" id="dots"></div>
+    </div>
+    <p class="title" id="title"></p>
+    <p class="desc" id="desc"></p>
+    <div id="predict"></div>
+    <div id="choices-wrap"></div>
+    <div class="pips" id="pips"></div>
+    <div class="hints" id="hints"></div>
+    <div id="solved-msg"></div>
+    <div class="nav">
+      <button id="prev">&larr;</button>
+      <button id="next" class="primary">Dalej &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { GraphView } from '../lib/graph-core.js';
+import { initWarsztat } from '../lib/warsztat-core.js';
+{
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const W = 600, H = 310;
+
+  const COL_FN   = '#58C4DD';
+  const COL_OK   = '#83C167';
+  const COL_CRIT = '#FFD166';
+  const COL_END  = '#FF6B6B';
+  const COL_AUX  = '#C78DFF';
+
+  let view;
+  function makeView(xRange, yRange) {
+    view = new GraphView(ctx, { rect: [0, 0, W, H], xRange, yRange });
+  }
+  function fmt(v) {
+    if (!isFinite(v)) return '?';
+    if (Math.abs(v - Math.round(v)) < 0.01) return Math.round(v).toString();
+    return v.toFixed(2);
+  }
+  function roundRect(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x+r,y); c.lineTo(x+w-r,y); c.quadraticCurveTo(x+w,y,x+w,y+r);
+    c.lineTo(x+w,y+h-r); c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    c.lineTo(x+r,y+h); c.quadraticCurveTo(x,y+h,x,y+h-r);
+    c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y);
+    c.closePath();
+  }
+  function infoBox(text, sx, sy, col) {
+    ctx.save();
+    ctx.font = '12px monospace';
+    const w = ctx.measureText(text).width + 14;
+    ctx.fillStyle = 'rgba(14,14,18,0.9)';
+    ctx.strokeStyle = col + '60';
+    ctx.lineWidth = 1;
+    roundRect(ctx, sx - w/2, sy - 11, w, 22, 4);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = col;
+    ctx.textAlign = 'center';
+    ctx.fillText(text, sx, sy + 4);
+    ctx.restore();
+  }
+
+  // ── Challenge-local state: records which choice the student has picked ─
+  const C = { ch1Pick: null, ch2Pick: null, ch3Pick: null };
+
+  // ── Ch.1: Pudełko z kartonu ─────────────────────────────────────────
+  function V1(x) { return x * (20 - 2*x) * (30 - 2*x); }
+  // critical point: V'(x) = 12x² - 200x + 600 = 0 → x = (200 - √(40000 - 28800))/24 ≈ 3.9237
+  const X_CRIT_1 = (200 - Math.sqrt(40000 - 28800)) / 24;
+  const V_MAX_1  = V1(X_CRIT_1);
+
+  // ── Ch.2: Ogrodzenie nad rzeką ──────────────────────────────────────
+  function P2(x) { return x * (100 - 2*x); }
+  const X_CRIT_2 = 25, P_MAX_2 = 1250;
+
+  // ── Ch.3: Najmniejsza suma ──────────────────────────────────────────
+  function S3(a) { return a + 100 / a; }
+  const A_CRIT_3 = 10, S_MIN_3 = 20;
+
+  const challenges = [
+    // ─── Ch.1 ─────────────────────────────────────────────────────────
+    {
+      id: 'ch1',
+      title: 'Pudełko z kartonu',
+      desc: 'Z arkusza $20 \\times 30$ wycinamy kwadratowe rogi o boku $x$ i zaginamy brzegi. Jakie $x$ daje maksymalną objętość otwartego pudełka?',
+      drawBackground: 'graph',
+      init() { C.ch1Pick = null; },
+      predict: {
+        question: 'Zanim cokolwiek policzysz — jaką zmienną weźmiesz pod pochodną?',
+        options: [
+          { label: 'długość arkusza', correct: false, why: 'Długość arkusza to $30$ — ustalona wartość, nie zmienna. Nie możesz po niej różniczkować.' },
+          { label: 'bok wycinanego kwadratu $x$', correct: true, why: 'Tak. $x$ jest jedyną wielkością, którą wybierasz. Wszystko inne (długość, szerokość, wysokość pudełka) wyrazisz przez $x$.' },
+          { label: 'wysokość pudełka oddzielnie', correct: false, why: 'Wysokość pudełka to dokładnie $x$ — ten sam parametr. Nie ma dwóch niezależnych zmiennych.' },
+        ],
+      },
+      choices: {
+        question: 'Który wzór na objętość $V(x)$ jest poprawny?',
+        options: [
+          { id: 'a', label: '$V(x) = 20 \\cdot 30 \\cdot x$', correct: false },
+          { id: 'b', label: '$V(x) = (20 - 2x)(30 - 2x) \\cdot x$', correct: true },
+          { id: 'c', label: '$V(x) = (20 - x)(30 - x) \\cdot x$', correct: false },
+        ],
+        pick(id) { C.ch1Pick = id; },
+      },
+      pips() {
+        return [{ label: 'wzór na $V(x)$ wybrany', ok: C.ch1Pick === 'b' }];
+      },
+      solved() { return C.ch1Pick === 'b'; },
+      hints: [
+        '① Po wycięciu kwadratu $x \\times x$ z rogu, brzegi $20$ i $30$ zmniejszają się **o $2x$ każdy** (po obu stronach).',
+        '② Wysokość pudełka to $x$. $V = \\text{długość} \\cdot \\text{szerokość} \\cdot \\text{wysokość} = (30-2x)(20-2x) \\cdot x$.',
+        '③ $V\'(x) = 0$ dla $x \\approx 3{,}92$ (z równania kwadratowego). Sprawdź dziedzinę: $0 < x < 10$.',
+      ],
+      solvedMsg: 'Schemat: **tekst → zmienna → funkcja → pochodna → zero → sprawdź dziedzinę**. Najczęstszy błąd: pomylenie $-x$ z $-2x$ przy wycinaniu.',
+      view: { xRange: [-1.5, 11], yRange: [-100, 700] },
+      draw() {
+        // plot V(x) for x ∈ [0, 10]
+        view.plotFn(V1, { color: COL_FN, domain: [0, 10], lineWidth: 2.5 });
+        // critical point
+        view.dot(X_CRIT_1, V_MAX_1, { radius: 6, color: COL_CRIT });
+        view.segment(X_CRIT_1, 0, X_CRIT_1, V_MAX_1, { color: COL_CRIT, alpha: 0.4, dash: [4,4], lineWidth: 1.2 });
+        view.label('x\u2248' + fmt(X_CRIT_1), X_CRIT_1, -20, { color: COL_CRIT, align: 'center', font: '11px monospace' });
+        view.label('V\u2248' + fmt(V_MAX_1), X_CRIT_1 + 0.2, V_MAX_1, { color: COL_CRIT, align: 'left', font: '11px monospace' });
+        // domain endpoints
+        view.dot(0, 0, { radius: 5, color: COL_END });
+        view.dot(10, 0, { radius: 5, color: COL_END });
+        view.label('V(0)=0', 0, 40, { color: COL_END, align: 'left', font: '10px monospace', offsetX: 4 });
+        view.label('V(10)=0', 10, 40, { color: COL_END, align: 'right', font: '10px monospace', offsetX: -4 });
+        infoBox('V(x) = x(20\u22122x)(30\u22122x),  x \u2208 (0, 10)', W/2, 22, COL_FN);
+      },
+    },
+
+    // ─── Ch.2 ─────────────────────────────────────────────────────────
+    {
+      id: 'ch2',
+      title: 'Ogrodzenie wzdłuż rzeki',
+      desc: 'Prostokątne pole nad rzeką — ogrodzenie tylko z trzech stron (rzeka zastępuje czwartą). Masz $100$ m siatki. Jakie wymiary dają największe pole?',
+      drawBackground: 'graph',
+      init() { C.ch2Pick = null; },
+      predict: {
+        question: 'Ogrodzenie to 3 boki. Które 3 boki?',
+        options: [
+          { label: '2 długości + szerokość', correct: true, why: 'Tak — rzeka zastępuje jedną z długości. Zostają dwie szerokości prostopadłe do rzeki plus jeden bok równoległy do niej.' },
+          { label: '2 szerokości + długość', correct: false, why: 'Nazewnictwo drugorzędne — kluczowe, żeby rzeka zastępowała dokładnie JEDEN bok, a dwa równoległe do niej boki to byłaby ogrodzenie z obu stron rzeki.' },
+          { label: '4 boki jak zawsze', correct: false, why: 'Wtedy rzeka nie daje żadnej oszczędności — a cały sens zadania polega na tym, że jeden bok masz za darmo.' },
+        ],
+      },
+      choices: {
+        question: 'Niech $x$ = długość boku prostopadłego do rzeki. Który wzór na pole $P(x)$ jest poprawny?',
+        options: [
+          { id: 'a', label: '$P(x) = x \\cdot (100 - 2x)$', correct: true },
+          { id: 'b', label: '$P(x) = x \\cdot (100 - x)$', correct: false },
+          { id: 'c', label: '$P(x) = 100 \\cdot x$', correct: false },
+        ],
+        pick(id) { C.ch2Pick = id; },
+      },
+      pips() {
+        return [{ label: 'wzór na $P(x)$ wybrany', ok: C.ch2Pick === 'a' }];
+      },
+      solved() { return C.ch2Pick === 'a'; },
+      hints: [
+        '① Rzeka zastępuje jeden z długich boków. Ogrodzenie to $2x + y$ gdzie $x$ to szerokość, $y$ długość równoległa do rzeki.',
+        '② $y = 100 - 2x$. Pole: $P = x \\cdot y = x(100 - 2x)$.',
+        '③ $P\'(x) = 100 - 4x = 0 \\Rightarrow x = 25$. $y = 50$. Pole maks $= 1250$ m².',
+      ],
+      solvedMsg: 'W zadaniach "jaki bok jest wolny" — narysuj rysunek, zanim zaczniesz pisać wzory. Rzeka = brak ogrodzenia = oszczędność na liczbie boków.',
+      view: { xRange: [-8, 58], yRange: [-200, 1500] },
+      draw() {
+        view.plotFn(P2, { color: COL_FN, domain: [0, 50], lineWidth: 2.5 });
+        view.dot(X_CRIT_2, P_MAX_2, { radius: 6, color: COL_CRIT });
+        view.segment(X_CRIT_2, 0, X_CRIT_2, P_MAX_2, { color: COL_CRIT, alpha: 0.4, dash: [4,4], lineWidth: 1.2 });
+        view.label('x=' + X_CRIT_2, X_CRIT_2, -60, { color: COL_CRIT, align: 'center', font: '11px monospace' });
+        view.label('P=' + P_MAX_2, X_CRIT_2 + 1, P_MAX_2, { color: COL_CRIT, align: 'left', font: '11px monospace' });
+        view.dot(0, 0, { radius: 5, color: COL_END });
+        view.dot(50, 0, { radius: 5, color: COL_END });
+        view.label('P(0)=0', 0, 80, { color: COL_END, align: 'left', font: '10px monospace', offsetX: 4 });
+        view.label('P(50)=0', 50, 80, { color: COL_END, align: 'right', font: '10px monospace', offsetX: -4 });
+        infoBox('P(x) = x(100 \u2212 2x),  x \u2208 (0, 50)', W/2, 22, COL_FN);
+      },
+    },
+
+    // ─── Ch.3 ─────────────────────────────────────────────────────────
+    {
+      id: 'ch3',
+      title: 'Najmniejsza suma',
+      desc: 'Znajdź dwie liczby dodatnie, których iloczyn jest równy $100$, a suma jest minimalna.',
+      drawBackground: 'graph',
+      init() { C.ch3Pick = null; },
+      predict: {
+        question: 'Intuicja: suma jest minimalna, gdy liczby są...',
+        options: [
+          { label: 'bardzo różne (np. $1$ i $100$)', correct: false, why: 'Wtedy suma to $101$ — olbrzymia. Im bardziej różne, tym jedna z nich eksploduje.' },
+          { label: 'równe', correct: true, why: 'Tak. To szczególny przypadek nierówności AM-GM: gdy iloczyn jest ustalony, suma minimalna wypada dla $a = b$.' },
+          { label: 'obie wielkie', correct: false, why: 'Jeśli obie są wielkie, a iloczyn $= 100$, to obie nie mogą być wielkie jednocześnie (wtedy iloczyn byłby gigantyczny).' },
+        ],
+      },
+      choices: {
+        question: 'Wybierz parę $(a, b)$ z iloczynem $100$ i najmniejszą sumą:',
+        options: [
+          { id: 'a', label: '$a = 1,\\ b = 100$ (suma = 101)', correct: false },
+          { id: 'b', label: '$a = 10,\\ b = 10$ (suma = 20)', correct: true },
+          { id: 'c', label: '$a = 25,\\ b = 4$ (suma = 29)', correct: false },
+          { id: 'd', label: '$a = 50,\\ b = 2$ (suma = 52)', correct: false },
+        ],
+        pick(id) { C.ch3Pick = id; },
+      },
+      pips() {
+        return [{ label: 'para $(a,b)$ z minimalną sumą', ok: C.ch3Pick === 'b' }];
+      },
+      solved() { return C.ch3Pick === 'b'; },
+      hints: [
+        '① Niech $a$ to pierwsza liczba. Z warunku $a \\cdot b = 100$: $b = \\frac{100}{a}$.',
+        '② $S(a) = a + \\frac{100}{a}$. Policz $S\'(a) = 1 - \\frac{100}{a^2}$.',
+        '③ $S\'(a) = 0 \\Rightarrow a^2 = 100 \\Rightarrow a = 10$. Wtedy $b = 10$, $S = 20$.',
+      ],
+      solvedMsg: 'Gdy iloczyn ustalony i szukasz minimum sumy — wartości są **równe**. To szczególny przypadek nierówności AM-GM.',
+      view: { xRange: [-3, 32], yRange: [-5, 55] },
+      draw() {
+        view.plotFn(S3, { color: COL_FN, domain: [0.5, 30], lineWidth: 2.5 });
+        view.dot(A_CRIT_3, S_MIN_3, { radius: 6, color: COL_CRIT });
+        view.segment(A_CRIT_3, 0, A_CRIT_3, S_MIN_3, { color: COL_CRIT, alpha: 0.4, dash: [4,4], lineWidth: 1.2 });
+        view.segment(0, S_MIN_3, A_CRIT_3, S_MIN_3, { color: COL_CRIT, alpha: 0.4, dash: [4,4], lineWidth: 1.2 });
+        view.label('a=' + A_CRIT_3, A_CRIT_3, -2, { color: COL_CRIT, align: 'center', font: '11px monospace' });
+        view.label('S=' + S_MIN_3, A_CRIT_3 + 0.5, S_MIN_3, { color: COL_CRIT, align: 'left', font: '11px monospace' });
+        infoBox('S(a) = a + 100/a,  a > 0', W/2, 22, COL_FN);
+      },
+    },
+  ];
+
+  initWarsztat({
+    canvasId: 'cv',
+    challenges,
+    lsKey: 'warsztat:deriv_apps:completed',
+    wrapup: 'Schemat zadań optymalizacyjnych: (1) narysuj rysunek; (2) nazwij zmienną; (3) zapisz ograniczenie; (4) wyraź jedno przez drugie; (5) pochodna = 0; (6) sprawdź dziedzinę.',
+    onFrame({ ch }) {
+      const v = ch.view || { xRange: [-6, 6], yRange: [-4, 4] };
+      makeView(v.xRange, v.yRange);
+      view.clear();
+      if (ch.drawBackground === 'graph') {
+        // choose a reasonable y-grid step per challenge so the grid isn't too dense
+        const yStep = (v.yRange[1] - v.yRange[0]) > 200 ? (v.yRange[1] - v.yRange[0]) / 8 : 5;
+        const xStep = (v.xRange[1] - v.xRange[0]) > 20 ? 5 : 1;
+        view.drawGrid({ color: 'rgba(255,255,255,0.04)', step: xStep });
+        view.drawAxes({ color: 'rgba(255,255,255,0.2)', arrows: false, labels: true, tickSize: 3, tickStep: xStep });
+      }
+    },
+  });
+}
+</script>
+</body>
+</html>

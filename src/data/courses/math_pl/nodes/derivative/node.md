@@ -10,6 +10,7 @@ resources:
   - "interactive|derivative-explorer.html|Derivative Explorer|Eksplorator pochodnej"
   - "interactive|product-rule-explorer.html|Product Rule — Why d/dx[x²] = 2x|Reguła iloczynu — dlaczego pochodna x² to 2x"
   - "interactive|product-rule-general.html|🧩 Dla ciekawych: General Product Rule (f·g)' = f'g + fg'|🧩 Dla ciekawych: Ogólna reguła iloczynu (f·g)' = f'g + fg'"
+  - "interactive|derivative-warsztat.html|Derivative Rules Warsztat|Reguły pochodnych — Warsztat"
 ---
 Pochodna mówi, jak szybko zmienia się funkcja w danym punkcie — to tempo zmian. Geometrycznie: nachylenie stycznej do wykresu w tym punkcie.<br><br>Definicja: $f'(x) = \lim_{h \to 0} \frac{f(x+h) - f(x)}{h}$ — czyli średnia prędkość na odcinku $[x, x+h]$, gdy $h$ staje się znikomo małe.<br><br>Reguły, które musisz znać:<br>$(x^n)' = n x^{n-1}$ — używasz zawsze, gdy masz potęgę.<br>$(f+g)' = f' + g'$ i $(c \cdot f)' = c f'$ — rozbijasz sumę na kawałki, stałą wyciągasz.<br>$(f \cdot g)' = f'g + fg'$ — dla iloczynu, np. $x^2 \sin x$.<br>$(f/g)' = \frac{f'g - fg'}{g^2}$ — dla ilorazu.<br>$(f(g(x)))' = f'(g(x)) \cdot g'(x)$ — reguła łańcuchowa, gdy masz funkcję "w funkcji", np. $\sin(x^2)$.<br><br>W praktyce: rozbij funkcję na najprostsze kawałki, policz każdy osobno, złóż wyniki.
 

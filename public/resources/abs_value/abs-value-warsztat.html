@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<title>Wartość bezwzględna — Warsztat</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; color: rgba(255,255,255,.85); }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+
+  .head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+  .head .step { font-size: 11px; color: rgba(255,255,255,.4); letter-spacing: .04em; }
+  .head .title { font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  .desc { font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); margin-bottom: 10px; min-height: 34px; }
+
+  .pips { display: flex; gap: 14px; flex-wrap: wrap; margin: 4px 0 10px; font-size: 12px; }
+  .pip { display: inline-flex; align-items: center; gap: 6px; color: rgba(255,255,255,.55); }
+  .pip .mark { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(255,255,255,.25); display: inline-flex; align-items: center; justify-content: center; font-size: 10px; line-height: 1; }
+  .pip.ok { color: #83C167; }
+  .pip.ok .mark { background: #83C167; border-color: #83C167; color: #0e0e12; }
+  .pip.ok .mark::before { content: "\2713"; }
+
+  .predict { margin-bottom: 10px; }
+  .predict .q { font-size: 13px; color: rgba(255,255,255,.82); margin-bottom: 8px; line-height: 1.55; }
+  .predict .opts { display: flex; flex-direction: column; gap: 6px; }
+  .predict button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.78); padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; transition: background .15s, border-color .15s; }
+  .predict button:hover { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.4); }
+  .predict button.picked { border-color: #58C4DD; color: #58C4DD; }
+  .predict .feedback { margin-top: 8px; font-size: 12px; line-height: 1.55; color: rgba(255,255,255,.7); padding: 8px 10px; border-left: 2px solid #58C4DD; background: rgba(88,196,221,.06); border-radius: 0 4px 4px 0; }
+
+  .choices { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .choices button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.78); padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; transition: background .15s, border-color .15s; }
+  .choices button:hover { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.4); }
+  .choices button.picked { border-color: #58C4DD; color: #58C4DD; }
+  .choices button.correct { border-color: #83C167; color: #83C167; }
+  .choices button.wrong { border-color: #FF6B6B; color: #FF6B6B; }
+
+  .debug { margin-bottom: 8px; }
+  .debug-task { font-size: 13px; color: rgba(255,255,255,.82); margin-bottom: 8px; line-height: 1.55; padding: 8px 10px; border-left: 2px solid #FFD166; background: rgba(255,209,102,.05); border-radius: 0 4px 4px 0; }
+  .debug-steps { display: flex; flex-direction: column; gap: 6px; }
+  .debug-step { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.78); padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; display: flex; gap: 10px; transition: background .15s, border-color .15s; }
+  .debug-step:hover:not(:disabled) { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.4); }
+  .debug-step.correct { border-color: #83C167; color: #83C167; }
+  .debug-step.wrong { border-color: #FF6B6B; color: #FF6B6B; }
+  .debug-n { color: rgba(255,255,255,.4); min-width: 18px; }
+  .debug-feedback { margin-top: 8px; font-size: 12px; line-height: 1.55; padding: 8px 10px; border-radius: 0 4px 4px 0; }
+  .debug-feedback.ok { color: #83C167; border-left: 2px solid #83C167; background: rgba(131,193,103,.06); }
+  .debug-feedback.bad { color: #FF6B6B; border-left: 2px solid #FF6B6B; background: rgba(255,107,107,.06); }
+
+  .hints { font-size: 12px; color: rgba(255,255,255,.5); margin: 4px 0 10px; line-height: 1.55; }
+  .hints .hint { padding: 6px 10px; border-left: 2px solid #FFD166; background: rgba(255,209,102,.05); margin-top: 4px; border-radius: 0 4px 4px 0; }
+
+  .nav { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+  .nav button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  .nav button:hover:not(:disabled) { background: rgba(255,255,255,.08); }
+  .nav button:disabled { opacity: .3; cursor: default; }
+  .nav button.primary { border-color: #83C167; color: #83C167; }
+  .nav button.primary:hover { background: rgba(131,193,103,.1); }
+
+  .dots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.15); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  .dot.done { background: #83C167; }
+
+  .solved-note { font-size: 13px; color: #83C167; line-height: 1.55; padding: 8px 10px; border-left: 2px solid #83C167; background: rgba(131,193,103,.06); border-radius: 0 4px 4px 0; margin-bottom: 8px; }
+  .wrapup-note { font-size: 13px; color: #C78DFF; line-height: 1.55; padding: 10px 12px; border-left: 2px solid #C78DFF; background: rgba(199,141,255,.06); border-radius: 0 4px 4px 0; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="310"></canvas>
+  <div class="panel">
+    <div class="head">
+      <span class="step" id="step"></span>
+      <div class="dots" id="dots"></div>
+    </div>
+    <p class="title" id="title"></p>
+    <p class="desc" id="desc"></p>
+    <div id="predict"></div>
+    <div id="sliders-wrap"></div>
+    <div id="choices-wrap"></div>
+    <div id="debug-wrap"></div>
+    <div class="pips" id="pips"></div>
+    <div class="hints" id="hints"></div>
+    <div id="solved-msg"></div>
+    <div class="nav">
+      <button id="prev">&larr;</button>
+      <button id="next" class="primary">Dalej &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { GraphView } from '../lib/graph-core.js';
+import { initWarsztat } from '../lib/warsztat-core.js';
+{
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const W = 600, H = 310;
+
+  // ── Colors (aligned with abs_value explorer) ────────────────
+  const COL_PAR   = '#58C4DD';
+  const COL_TARGET= '#83C167';
+  const COL_POS   = '#83C167';
+  const COL_NEG   = '#E07090';
+  const COL_EQ    = '#FFD166';
+  const COL_R1    = '#FF6B6B';
+  const COL_R2    = '#4ECDC4';
+  const COL_B     = '#C78DFF';
+  const COL_OK    = '#83C167';
+
+  // ── GraphView (per challenge range) ─────────────────────────
+  let view;
+  let viewCfg = { xRange: [-7, 10], yRange: [-1.5, 7] };
+  function initView() {
+    view = new GraphView(ctx, { rect: [0,0,W,H], xRange: viewCfg.xRange, yRange: viewCfg.yRange });
+  }
+
+  // ── Draw helpers ────────────────────────────────────────────
+  function dot(x, y, r, col) { view.dot(x, y, { radius: r, color: col }); }
+  function dashed(x1, y1, x2, y2, col, alpha) {
+    view.segment(x1, y1, x2, y2, { color: col, alpha: alpha ?? 0.5, lineWidth: 1.5, dash: [5,4] });
+  }
+  function roundRect(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x+r,y); c.lineTo(x+w-r,y); c.quadraticCurveTo(x+w,y,x+w,y+r);
+    c.lineTo(x+w,y+h-r); c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    c.lineTo(x+r,y+h); c.quadraticCurveTo(x,y+h,x,y+h-r);
+    c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y);
+    c.closePath();
+  }
+  function infoBox(text, sx, sy, col) {
+    ctx.save();
+    ctx.font = '12px monospace';
+    const w = ctx.measureText(text).width + 14;
+    ctx.fillStyle = 'rgba(14,14,18,0.9)';
+    ctx.strokeStyle = col + '60';
+    ctx.lineWidth = 1;
+    roundRect(ctx, sx - w/2, sy - 11, w, 22, 4);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = col;
+    ctx.textAlign = 'center';
+    ctx.fillText(text, sx, sy + 4);
+    ctx.restore();
+  }
+  function centerText(text, sx, sy, col, size) {
+    ctx.save();
+    ctx.font = (size || 14) + 'px monospace';
+    ctx.fillStyle = col;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, sx, sy);
+    ctx.restore();
+  }
+  function leftText(text, sx, sy, col, size) {
+    ctx.save();
+    ctx.font = (size || 13) + 'px monospace';
+    ctx.fillStyle = col;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, sx, sy);
+    ctx.restore();
+  }
+
+  // ── Challenge-local state ───────────────────────────────────
+  const C = {
+    pick1: null,
+    pick2: null,
+    pick3: null,
+  };
+
+  // ── Challenges ──────────────────────────────────────────────
+  const challenges = [
+    // ─── Ch.1: |x - 3| = 5 ──────────────────────────────────
+    {
+      id: 'ch1',
+      title: 'Rozbicie modułu: $|x - 3| = 5$',
+      desc: 'Moduł to nie "znak do usunięcia" — to odległość. Ile liczb leży dokładnie w odległości $5$ od $3$?',
+      drawBackground: 'graph',
+      view: { xRange: [-7, 10], yRange: [-1.5, 7] },
+      init() { C.pick1 = null; viewCfg = { xRange: [-7, 10], yRange: [-1.5, 7] }; },
+      predict: {
+        question: 'Ile rozwiązań ma równanie $|x - 3| = 5$?',
+        options: [
+          { label: 'Jedno (bo $|\\ldots|$ zawsze dodatnie)', correct: false, why: 'To typowa pułapka. Dodatniość wyniku modułu nie ogranicza liczby rozwiązań — są **dwa** $x$, których odległość od $3$ wynosi $5$.' },
+          { label: 'Dwa', correct: true,  why: 'Tak. $|x-3|=5$ oznacza "odległość $x$ od $3$ to $5$". Dwa punkty spełniają ten warunek: $3-5=-2$ oraz $3+5=8$.' },
+          { label: 'Nieskończenie wiele', correct: false, why: 'Nie — odległość od stałego punktu równa stałej liczbie wyznacza dokładnie dwa punkty na prostej.' },
+          { label: 'Zero', correct: false, why: '$|\\cdot| = 5 \\geq 0$, więc rozwiązania istnieją. Brak rozwiązań mielibyśmy dopiero dla $|\\ldots| = -1$.' },
+        ],
+      },
+      choices: {
+        question: 'Zbiór rozwiązań:',
+        options: [
+          { id: 'a', label: '$\\{-2, 8\\}$', correct: true  },
+          { id: 'b', label: '$\\{5, -5\\}$ (bez uwzględnienia $-3$)', correct: false },
+          { id: 'c', label: '$\\{8\\}$ (tylko dodatni przypadek)', correct: false },
+          { id: 'd', label: '$\\{-2\\}$ (tylko ujemny przypadek)', correct: false },
+        ],
+        pick(id) { C.pick1 = id; },
+      },
+      pips() {
+        return [{ label: 'wybrany pełny zbiór rozwiązań', ok: C.pick1 === 'a' }];
+      },
+      solved() { return C.pick1 === 'a'; },
+      hints: [
+        '① $|x - 3| = 5$ oznacza: odległość $x$ od $3$ wynosi $5$. Są **dwa** takie punkty.',
+        '② Rozbij na przypadki: $x - 3 = 5$ (gdy $x - 3 \\geq 0$) oraz $-(x - 3) = 5$ (gdy $x - 3 < 0$).',
+        '③ Z pierwszego: $x = 8$. Z drugiego: $x = -2$. Oba w dziedzinie (zawsze są — moduł nie ma ograniczeń). Zbiór: $\\{-2, 8\\}$.',
+      ],
+      solvedMsg: '$|a| = b$ ($b \\geq 0$) ma **zawsze dwa** rozwiązania, chyba że $b = 0$. Nie "usuwaj" modułu — rozbij na przypadki.',
+      draw() {
+        // y = |x - 3|
+        view.plotFn(x => Math.abs(x - 3), { color: COL_PAR, alpha: 0.95, lineWidth: 2.5 });
+        // y = 5 horizontal line
+        view.segment(-7, 5, 10, 5, { color: COL_EQ, alpha: 0.9, lineWidth: 2 });
+        // vertex (3,0)
+        dot(3, 0, 4, 'rgba(255,255,255,0.5)');
+        view.label('vertex $(3,0)$'.replace('$',''), 3, -0.35, { color: 'rgba(255,255,255,0.5)', align: 'center', font: '10px monospace' });
+        // intersections
+        dot(-2, 5, 6, COL_NEG);
+        dot(8, 5, 6, COL_POS);
+        dashed(-2, 0, -2, 5, COL_NEG, 0.5);
+        dashed(8, 0, 8, 5, COL_POS, 0.5);
+        view.label('x = -2', -2, 5.6, { color: COL_NEG, align: 'center', font: '11px monospace' });
+        view.label('x = 8', 8, 5.6, { color: COL_POS, align: 'center', font: '11px monospace' });
+
+        infoBox('y = |x - 3|', 90, 22, COL_PAR);
+        infoBox('y = 5', W - 70, 22, COL_EQ);
+      },
+    },
+
+    // ─── Ch.2: |x + 2| < 3 ──────────────────────────────────
+    {
+      id: 'ch2',
+      title: 'Nierówność z modułem: $|x + 2| < 3$',
+      desc: '"$|\\ldots| < b$" to nie "$\\ldots < b$". Zamiast zdejmować moduł, zamień nierówność na przedział dwustronny.',
+      drawBackground: 'graph',
+      view: { xRange: [-8, 4], yRange: [-1.5, 2.5] },
+      init() { C.pick2 = null; viewCfg = { xRange: [-8, 4], yRange: [-1.5, 2.5] }; },
+      predict: {
+        question: '$|x + 2| < 3$ oznacza:',
+        options: [
+          { label: '$x + 2 < 3$', correct: false, why: 'To tylko połowa. Bez dolnego ograniczenia tracisz wszystkie wartości $x + 2 < -3$, dla których moduł też jest $\\geq 3$.' },
+          { label: '$x + 2 > -3$', correct: false, why: 'Druga połowa. Sama w sobie nie wystarczy — potrzebne są OBA ograniczenia.' },
+          { label: '$-3 < x + 2 < 3$', correct: true, why: 'Tak. $|A| < b$ to skrócony zapis $-b < A < b$. Dwa ograniczenia naraz, jeden przedział.' },
+          { label: '$x < 3$', correct: false, why: 'Tu nawet nie ma $x + 2$ — nierówność z modułu zależy od CAŁEGO wyrażenia wewnątrz.' },
+        ],
+      },
+      choices: {
+        question: 'Zbiór rozwiązań:',
+        options: [
+          { id: 'a', label: '$(-5, 1)$', correct: true  },
+          { id: 'b', label: '$(-1, 5)$ (zły znak — przesunięcie w złą stronę)', correct: false },
+          { id: 'c', label: '$(-3, 3)$ (zapomniał o $+2$)', correct: false },
+        ],
+        pick(id) { C.pick2 = id; },
+      },
+      pips() {
+        return [{ label: 'wybrany poprawny przedział', ok: C.pick2 === 'a' }];
+      },
+      solved() { return C.pick2 === 'a'; },
+      hints: [
+        '① $|x + 2| < 3$ to "odległość $x$ od $-2$ jest mniejsza niż $3$".',
+        '② Wszystkie $x$ bliższe niż $3$ od $-2$: od $-2 - 3 = -5$ do $-2 + 3 = 1$.',
+        '③ Nawiasy otwarte (nierówność ostra): $(-5, 1)$.',
+      ],
+      solvedMsg: '$|x - a| < b$ = "odległość od $a$ mniejsza niż $b$" = przedział $(a-b, a+b)$. Geometryczna intuicja bije algebraiczny case-split.',
+      draw() {
+        // Number line at y=0
+        const yL = 0;
+        view.segment(-8, yL, 4, yL, { color: 'rgba(255,255,255,0.4)', lineWidth: 1.5 });
+        // ticks
+        for (let t = -8; t <= 4; t++) {
+          view.segment(t, yL - 0.08, t, yL + 0.08, { color: 'rgba(255,255,255,0.4)', lineWidth: 1 });
+          view.label(String(t), t, yL - 0.35, { color: 'rgba(255,255,255,0.45)', align: 'center', font: '10px monospace' });
+        }
+        // shaded interval (-5, 1)
+        view.shadeRect(-5, yL - 0.12, 1, yL + 0.12, { color: COL_POS, alpha: 0.3 });
+        view.segment(-5, yL, 1, yL, { color: COL_POS, alpha: 0.95, lineWidth: 4 });
+        // open endpoint circles
+        view.dot(-5, yL, { radius: 6, color: '#16161a' });
+        view.dot(-5, yL, { radius: 6, color: COL_POS, filled: false, lineWidth: 2 });
+        view.dot(1, yL, { radius: 6, color: '#16161a' });
+        view.dot(1, yL, { radius: 6, color: COL_POS, filled: false, lineWidth: 2 });
+        // center -2
+        dot(-2, yL, 5, COL_EQ);
+        view.label('środek: x = -2', -2, yL + 0.55, { color: COL_EQ, align: 'center', font: '11px monospace' });
+        // distance braces
+        dashed(-5, yL + 1.05, -2, yL + 1.05, COL_B, 0.7);
+        dashed(-2, yL + 1.05, 1, yL + 1.05, COL_B, 0.7);
+        view.label('odl. < 3', -3.5, yL + 1.35, { color: COL_B, align: 'center', font: '10px monospace' });
+        view.label('odl. < 3', -0.5, yL + 1.35, { color: COL_B, align: 'center', font: '10px monospace' });
+        // endpoint labels
+        view.label('-5', -5, yL + 0.55, { color: COL_POS, align: 'center', font: '11px monospace' });
+        view.label('1', 1, yL + 0.55, { color: COL_POS, align: 'center', font: '11px monospace' });
+
+        infoBox('|x + 2| < 3  \u27F9  -3 < x + 2 < 3  \u27F9  (-5, 1)', W/2, 22, COL_PAR);
+      },
+    },
+
+    // ─── Ch.3: |x| + |x - 4| = 6 ────────────────────────────
+    {
+      id: 'ch3',
+      title: 'Dwa moduły: $|x| + |x - 4| = 6$',
+      desc: 'Dwa moduły — dwa punkty krytyczne. Oś dzieli się na trzy przedziały; w każdym moduły rozwijają się z konkretnym znakiem.',
+      drawBackground: 'blank',
+      init() { C.pick3 = null; },
+      predict: {
+        question: 'Ile przypadków trzeba rozważyć?',
+        options: [
+          { label: '$1$ (zawsze dodatnie)', correct: false, why: '"Zawsze dodatnie" mówi o wartości modułu, nie o znaku wyrażenia w środku. Przy rozwijaniu musisz znać znak każdego wyrażenia osobno.' },
+          { label: '$2$ (plus i minus)', correct: false, why: 'Dla jednego modułu — tak. Dla dwóch modułów zmiany znaku zachodzą w DWÓCH różnych miejscach, więc przedziałów jest więcej.' },
+          { label: '$3$ (zero, środek, brzeg)', correct: false, why: 'Prawie! Są trzy — ale kryterium nie jest "zero/środek/brzeg", tylko znaki obu wyrażeń wewnątrz modułów.' },
+          { label: '$3$ przedziały', correct: true, why: 'Tak. $|x|$ zmienia znak w $x=0$, $|x-4|$ w $x=4$. Dostajemy przedziały: $x<0$, $0 \\leq x < 4$, $x \\geq 4$.' },
+        ],
+      },
+      choices: {
+        question: 'Zbiór rozwiązań:',
+        options: [
+          { id: 'a', label: '$\\{-1, 5\\}$', correct: true  },
+          { id: 'b', label: '$\\{2, 4\\}$', correct: false },
+          { id: 'c', label: '$\\{-1, 2, 5\\}$', correct: false },
+          { id: 'd', label: '$\\{0, 4\\}$', correct: false },
+        ],
+        pick(id) { C.pick3 = id; },
+      },
+      pips() {
+        return [{ label: 'wybrany poprawny zbiór rozwiązań', ok: C.pick3 === 'a' }];
+      },
+      solved() { return C.pick3 === 'a'; },
+      hints: [
+        '① Punkty krytyczne: $|x|$ zmienia znak w $x = 0$, $|x-4|$ w $x = 4$. Dzielimy oś na trzy przedziały.',
+        '② W każdym przedziale **usuwamy moduły z konkretnym znakiem** i rozwiązujemy.',
+        '③ Pamiętaj o **sprawdzeniu**: czy rozwiązanie leży w przedziale, w którym je znalazłeś. $x = -1$ leży w $x < 0$ ✓; środkowy przedział daje sprzeczność.',
+      ],
+      solvedMsg: '$n$ modułów → do $n+1$ przedziałów po case-splicie. Zawsze **sprawdź, czy rozwiązanie leży w swoim przedziale** — inaczej pozorny pierwiastek.',
+      draw() {
+        // Title
+        centerText('|x| + |x - 4| = 6', W/2, 22, COL_PAR, 15);
+
+        // Three cases, stacked
+        const yRow = [56, 98, 140];
+        const rows = [
+          { label: 'x < 0:', body: '-x + (4 - x) = 6  \u21D2  x = -1  \u2713', col: COL_POS, pad: '(-1 leży w x<0)' },
+          { label: '0 \u2264 x < 4:', body: 'x + (4 - x) = 4 \u2260 6   brak rozwiązania', col: COL_R1, pad: '(sprzeczność)' },
+          { label: 'x \u2265 4:', body: 'x + (x - 4) = 6  \u21D2  x = 5  \u2713', col: COL_POS, pad: '(5 leży w x\u22654)' },
+        ];
+        rows.forEach((r, i) => {
+          leftText(r.label, 24, yRow[i], r.col, 13);
+          leftText(r.body, 130, yRow[i], r.col === COL_R1 ? COL_R1 : 'rgba(255,255,255,0.85)', 13);
+          leftText(r.pad, 420, yRow[i], 'rgba(255,255,255,0.45)', 11);
+        });
+
+        // Number line below
+        const nlY = 215;
+        const xLeft = 60, xRight = W - 60;
+        const xMin = -3, xMax = 7;
+        const toS = x => xLeft + (x - xMin) / (xMax - xMin) * (xRight - xLeft);
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(xLeft, nlY); ctx.lineTo(xRight, nlY);
+        ctx.stroke();
+        ctx.font = '11px monospace';
+        ctx.textAlign = 'center';
+        for (let t = xMin; t <= xMax; t++) {
+          const sx = toS(t);
+          ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+          ctx.beginPath();
+          ctx.moveTo(sx, nlY - 4); ctx.lineTo(sx, nlY + 4);
+          ctx.stroke();
+          ctx.fillStyle = 'rgba(255,255,255,0.45)';
+          ctx.fillText(String(t), sx, nlY + 18);
+        }
+        // critical points
+        ctx.fillStyle = COL_EQ;
+        [0, 4].forEach(c => {
+          const sx = toS(c);
+          ctx.beginPath();
+          ctx.arc(sx, nlY, 3.5, 0, Math.PI*2);
+          ctx.fill();
+        });
+        leftText('punkty krytyczne: 0, 4', xLeft, nlY - 18, COL_EQ, 11);
+        // solutions
+        [[-1, COL_POS], [5, COL_POS]].forEach(([x, col]) => {
+          const sx = toS(x);
+          ctx.fillStyle = col;
+          ctx.beginPath();
+          ctx.arc(sx, nlY, 6, 0, Math.PI*2);
+          ctx.fill();
+          ctx.fillStyle = col;
+          ctx.font = '11px monospace';
+          ctx.fillText('x = ' + x, sx, nlY + 34);
+        });
+        ctx.restore();
+
+        centerText('rozwiązania: \u007B-1, 5\u007D', W/2, nlY + 55, COL_POS, 13);
+      },
+    },
+
+    // ─── Ch.4: Debug ────────────────────────────────────────
+    {
+      id: 'ch4',
+      title: 'Debug: Marta "usuwa" moduł',
+      desc: 'Marta rozwiązuje $|2x - 6| = 10$ i dostaje jedno rozwiązanie. Znajdź krok, w którym popełniła błąd myślenia.',
+      drawBackground: 'blank',
+      init() {},
+      debug: {
+        task: 'Marta rozwiązała $|2x - 6| = 10$ pisząc $2x - 6 = 10$ i dostała $x = 8$. Co ominęła?',
+        steps: [
+          { n: 1, text: '$|2x - 6| = 10$' },
+          { n: 2, text: 'Usuwam moduł (bo jest zawsze dodatni): $2x - 6 = 10$' },
+          { n: 3, text: '$2x = 16$' },
+          { n: 4, text: '$x = 8$.' },
+        ],
+        errorLine: 2,
+        wrongChoice: {
+          1: 'Krok 1 to wyjściowe równanie — nic tu jeszcze nie zrobiono.',
+          3: 'Krok 3 algebraicznie poprawny, ale wynika z błędnego kroku 2.',
+          4: 'Krok 4 arytmetycznie OK.',
+        },
+        correctExplanation: 'Krok 2: **moduł nie "usuwa się" — rozbija się na przypadki**. $|A| = b$ oznacza $A = b$ LUB $A = -b$. Marta rozważyła tylko pierwszy przypadek i zapomniała o $2x - 6 = -10 \\Rightarrow x = -2$. Pełne rozwiązanie: $\\{-2, 8\\}$.',
+      },
+      pips() { return []; },
+      solved() { return false; },
+      hints: [
+        '① "Zawsze dodatni" odnosi się do WARTOŚCI modułu, a nie do wyrażenia w środku — ono może być ujemne.',
+        '② $|A| = b$ ma **dwa** przypadki: $A = b$ ORAZ $A = -b$. Marta zapomniała o drugim.',
+        '③ Drugi przypadek: $2x - 6 = -10 \\Rightarrow 2x = -4 \\Rightarrow x = -2$. Pełny zbiór: $\\{-2, 8\\}$.',
+      ],
+      solvedMsg: 'Nigdy nie pisz "usuwam moduł". Pisz "$|A| = b$ daje $A = b$ lub $A = -b$" — i rozwiązuj oba równania.',
+      draw() {
+        centerText('|2x - 6| = 10', W/2, 40, COL_PAR, 22);
+
+        // two cases visualization
+        centerText('→ rozbij na dwa przypadki:', W/2, 80, 'rgba(255,255,255,0.55)', 13);
+
+        leftText('przypadek 1:', 60, 120, COL_POS, 13);
+        leftText('2x - 6 = 10   \u21D2   x = 8', 200, 120, COL_POS, 14);
+
+        leftText('przypadek 2:', 60, 155, COL_NEG, 13);
+        leftText('2x - 6 = -10  \u21D2   x = -2', 200, 155, COL_NEG, 14);
+
+        centerText('Marta policzyła tylko pierwszy.', W/2, 200, COL_R1, 13);
+        centerText('Pełny zbiór rozwiązań: {-2, 8}', W/2, 230, COL_EQ, 14);
+
+        // mini number line
+        const nlY = 270;
+        const xLeft = 120, xRight = W - 120;
+        const xMin = -4, xMax = 10;
+        const toS = x => xLeft + (x - xMin) / (xMax - xMin) * (xRight - xLeft);
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(xLeft, nlY); ctx.lineTo(xRight, nlY);
+        ctx.stroke();
+        [[-2, COL_NEG], [8, COL_POS]].forEach(([x, col]) => {
+          const sx = toS(x);
+          ctx.fillStyle = col;
+          ctx.beginPath();
+          ctx.arc(sx, nlY, 5, 0, Math.PI*2);
+          ctx.fill();
+          ctx.font = '11px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(String(x), sx, nlY + 16);
+        });
+        // mark 3 (center) for reference
+        const s3 = toS(3);
+        ctx.fillStyle = 'rgba(255,255,255,0.35)';
+        ctx.beginPath();
+        ctx.arc(s3, nlY, 2.5, 0, Math.PI*2);
+        ctx.fill();
+        ctx.fillText('3', s3, nlY + 16);
+        ctx.restore();
+      },
+    },
+  ];
+
+  initWarsztat({
+    canvasId: 'cv',
+    challenges,
+    lsKey: 'warsztat:abs-value:completed',
+    wrapup: 'Moduł to zawsze rozważenie przypadków. Trzy reguły: (1) $|A| = b$ → $A = \\pm b$; (2) $|A| < b$ → $-b < A < b$; (3) $|A_1| + |A_2| = c$ → podziel oś przez punkty krytyczne na przedziały i rozwiąż w każdym osobno.',
+    onFrame({ ch }) {
+      if (ch.view) viewCfg = ch.view;
+      initView();
+      view.clear();
+      if (ch.drawBackground === 'graph') {
+        view.drawGrid({ color: 'rgba(255,255,255,0.04)' });
+        view.drawAxes({ color: 'rgba(255,255,255,0.2)', arrows: false, labels: true, tickSize: 3 });
+      }
+    },
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<title>Reguły pochodnych — Warsztat</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; color: rgba(255,255,255,.85); }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+
+  .head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+  .head .step { font-size: 11px; color: rgba(255,255,255,.4); letter-spacing: .04em; }
+  .head .title { font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  .desc { font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); margin-bottom: 10px; min-height: 34px; }
+
+  .pips { display: flex; gap: 14px; flex-wrap: wrap; margin: 4px 0 10px; font-size: 12px; }
+  .pip { display: inline-flex; align-items: center; gap: 6px; color: rgba(255,255,255,.55); }
+  .pip .mark { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(255,255,255,.25); display: inline-flex; align-items: center; justify-content: center; font-size: 10px; line-height: 1; }
+  .pip.ok { color: #83C167; }
+  .pip.ok .mark { background: #83C167; border-color: #83C167; color: #0e0e12; }
+  .pip.ok .mark::before { content: "\2713"; }
+
+  .predict { margin-bottom: 10px; }
+  .predict .q { font-size: 13px; color: rgba(255,255,255,.82); margin-bottom: 8px; line-height: 1.55; }
+  .predict .opts { display: flex; flex-direction: column; gap: 6px; }
+  .predict button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.78); padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; transition: background .15s, border-color .15s; }
+  .predict button:hover { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.4); }
+  .predict button.picked { border-color: #58C4DD; color: #58C4DD; }
+  .predict .feedback { margin-top: 8px; font-size: 12px; line-height: 1.55; color: rgba(255,255,255,.7); padding: 8px 10px; border-left: 2px solid #58C4DD; background: rgba(88,196,221,.06); border-radius: 0 4px 4px 0; }
+
+  .choices { margin-bottom: 10px; display: flex; flex-direction: column; gap: 6px; }
+  .choices button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.78); padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; transition: background .15s, border-color .15s; }
+  .choices button:hover { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.4); }
+  .choices button.picked { border-color: #58C4DD; color: #58C4DD; }
+  .choices button.wrong { border-color: #FF6B6B; color: #FF6B6B; background: rgba(255,107,107,.08); }
+  .choices button.correct { border-color: #83C167; color: #83C167; background: rgba(131,193,103,.1); }
+
+  /* Debug widget */
+  .debug { margin-bottom: 10px; }
+  .debug-task { font-size: 13px; color: rgba(255,255,255,.82); margin-bottom: 10px; line-height: 1.55; padding: 8px 10px; border-left: 2px solid #58C4DD; background: rgba(88,196,221,.06); border-radius: 0 4px 4px 0; }
+  .debug-steps { display: flex; flex-direction: column; gap: 4px; }
+  .debug-step { display: flex; align-items: flex-start; gap: 10px; background: transparent; border: 0.5px solid rgba(255,255,255,.15); color: rgba(255,255,255,.8); padding: 8px 12px; font-size: 13px; line-height: 1.5; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; transition: background .15s, border-color .15s; }
+  .debug-step:hover:not(:disabled) { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.45); }
+  .debug-step:disabled { cursor: default; opacity: .85; }
+  .debug-step .debug-n { color: rgba(255,255,255,.4); min-width: 20px; }
+  .debug-step .debug-text { flex: 1; }
+  .debug-step.wrong { border-color: #FF6B6B; background: rgba(255,107,107,.08); color: #FF6B6B; }
+  .debug-step.correct { border-color: #83C167; background: rgba(131,193,103,.1); color: #83C167; }
+  .debug-feedback { margin-top: 10px; font-size: 12px; line-height: 1.55; padding: 8px 10px; border-radius: 0 4px 4px 0; }
+  .debug-feedback.ok { color: rgba(255,255,255,.82); border-left: 2px solid #83C167; background: rgba(131,193,103,.06); }
+  .debug-feedback.bad { color: rgba(255,255,255,.78); border-left: 2px solid #FF6B6B; background: rgba(255,107,107,.06); }
+
+  .hints { font-size: 12px; color: rgba(255,255,255,.5); margin: 4px 0 10px; line-height: 1.55; }
+  .hints .hint { padding: 6px 10px; border-left: 2px solid #FFD166; background: rgba(255,209,102,.05); margin-top: 4px; border-radius: 0 4px 4px 0; }
+
+  .nav { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+  .nav button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  .nav button:hover:not(:disabled) { background: rgba(255,255,255,.08); }
+  .nav button:disabled { opacity: .3; cursor: default; }
+  .nav button.primary { border-color: #83C167; color: #83C167; }
+  .nav button.primary:hover { background: rgba(131,193,103,.1); }
+
+  .dots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.15); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  .dot.done { background: #83C167; }
+
+  .solved-note { font-size: 13px; color: #83C167; line-height: 1.55; padding: 8px 10px; border-left: 2px solid #83C167; background: rgba(131,193,103,.06); border-radius: 0 4px 4px 0; margin-bottom: 8px; }
+  .wrapup-note { font-size: 13px; color: #C78DFF; line-height: 1.55; padding: 10px 12px; border-left: 2px solid #C78DFF; background: rgba(199,141,255,.06); border-radius: 0 4px 4px 0; margin-bottom: 8px; }
+
+  .banner { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-bottom: 0; border-radius: 10px 10px 0 0; padding: 14px 18px; color: rgba(255,255,255,.72); font-size: 13px; line-height: 1.6; }
+  .banner b { color: #58C4DD; font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="banner">
+    <b>Warsztat: reguły pochodnych.</b> Cztery klasyczne pułapki z matury rozszerzonej. W większości wyzwań kliknij krok z błędem; w jednym sam zbuduj regułę łańcuchową.
+  </div>
+  <canvas id="cv" width="600" height="180"></canvas>
+  <div class="panel">
+    <div class="head">
+      <span class="step" id="step"></span>
+      <div class="dots" id="dots"></div>
+    </div>
+    <p class="title" id="title"></p>
+    <p class="desc" id="desc"></p>
+    <div id="predict"></div>
+    <div id="sliders-wrap"></div>
+    <div id="choices-wrap"></div>
+    <div id="debug-wrap"></div>
+    <div class="pips" id="pips"></div>
+    <div class="hints" id="hints"></div>
+    <div id="solved-msg"></div>
+    <div class="nav">
+      <button id="prev">&larr;</button>
+      <button id="next" class="primary">Dalej &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initWarsztat } from '../lib/warsztat-core.js';
+{
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+
+  const noop = () => {};
+
+  // Chain-rule state (Ch.3): records the student's pick on the choices widget.
+  const C = { chainPick: null };
+
+  // ── Canvas helpers (Ch.3 chain diagram) ────────────────────
+  function clearCanvas() {
+    ctx.save();
+    ctx.fillStyle = '#0e0e12';
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+  }
+  function drawChainDiagram() {
+    clearCanvas();
+    ctx.save();
+    ctx.font = '15px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    const cy = H / 2;
+    const xs = [W * 0.15, W * 0.5, W * 0.85];
+    const labels = ['x', 'g(x)', 'f(g(x))'];
+    const nodeColors = ['#FFD166', '#58C4DD', '#C78DFF'];
+
+    // Nodes
+    xs.forEach((x, i) => {
+      ctx.fillStyle = 'rgba(255,255,255,0.04)';
+      ctx.strokeStyle = nodeColors[i] + 'aa';
+      ctx.lineWidth = 1;
+      const w = 76, h = 34;
+      const rx = x - w/2, ry = cy - h/2, r = 6;
+      ctx.beginPath();
+      ctx.moveTo(rx+r, ry); ctx.lineTo(rx+w-r, ry); ctx.quadraticCurveTo(rx+w, ry, rx+w, ry+r);
+      ctx.lineTo(rx+w, ry+h-r); ctx.quadraticCurveTo(rx+w, ry+h, rx+w-r, ry+h);
+      ctx.lineTo(rx+r, ry+h); ctx.quadraticCurveTo(rx, ry+h, rx, ry+h-r);
+      ctx.lineTo(rx, ry+r); ctx.quadraticCurveTo(rx, ry, rx+r, ry);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = nodeColors[i];
+      ctx.fillText(labels[i], x, cy);
+    });
+
+    // Arrows
+    function arrow(x1, x2, y, labelTop, labelBot, col) {
+      ctx.strokeStyle = col;
+      ctx.fillStyle = col;
+      ctx.lineWidth = 1.5;
+      const startX = x1 + 40, endX = x2 - 40;
+      ctx.beginPath();
+      ctx.moveTo(startX, y);
+      ctx.lineTo(endX, y);
+      ctx.stroke();
+      // arrowhead
+      ctx.beginPath();
+      ctx.moveTo(endX, y);
+      ctx.lineTo(endX - 8, y - 4);
+      ctx.lineTo(endX - 8, y + 4);
+      ctx.closePath();
+      ctx.fill();
+      // labels
+      ctx.font = '11px monospace';
+      ctx.fillStyle = col;
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(labelTop, (startX + endX)/2, y - 10);
+      ctx.textBaseline = 'top';
+      ctx.fillText(labelBot, (startX + endX)/2, y + 10);
+      ctx.textBaseline = 'middle';
+    }
+    arrow(xs[0], xs[1], cy, 'wewnętrzna', "g'(x)", '#58C4DD');
+    arrow(xs[1], xs[2], cy, 'zewnętrzna', "f'(g(x))", '#C78DFF');
+
+    // Footer formula
+    ctx.font = '12px monospace';
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText("(f(g(x)))' = f'(g(x)) · g'(x)", W/2, H - 8);
+
+    ctx.restore();
+  }
+
+  const challenges = [
+    // ─── Ch.1: Pochodna stałej ─────────────────────────────
+    {
+      id: 'ch1',
+      title: 'Pochodna stałej i liczby',
+      desc: 'Sprawdź rozumowanie Adama krok po kroku. Który krok nie jest prawdą?',
+      init: noop,
+      debug: {
+        task: 'Adam policzył $(3x^2 + 7)\'$ i dostał $6x + 7$. Gdzie błąd?',
+        steps: [
+          { n: 1, text: '$f(x) = 3x^2 + 7$' },
+          { n: 2, text: '$(3x^2)\' = 6x$' },
+          { n: 3, text: '$(7)\' = 7$' },
+          { n: 4, text: 'Stąd $f\'(x) = 6x + 7$.' },
+        ],
+        errorLine: 3,
+        wrongChoice: {
+          2: 'Krok 2 jest poprawny: $(3x^2)\' = 6x$.',
+        },
+        correctExplanation: 'Krok 3: $(7)\' = 0$, nie $7$. Pochodna dowolnej stałej to zero. Prawidłowo: $f\'(x) = 6x + 0 = 6x$.',
+      },
+      pips: () => [],
+      solved: () => false,
+      hints: [
+        'Co to znaczy, że funkcja jest stała? Jak szybko się zmienia?',
+        'Stała nie zmienia się wcale — więc tempo zmian (pochodna) wynosi 0.',
+        '$(c)\' = 0$ dla dowolnej liczby $c$. Szukaj kroku, w którym Adam napisał coś innego.',
+      ],
+      solvedMsg: 'Pochodna stałej = 0. Zawsze. Niezależnie od tego, jak "duża" jest stała.',
+      draw: clearCanvas,
+    },
+
+    // ─── Ch.2: Pochodna iloczynu ───────────────────────────
+    {
+      id: 'ch2',
+      title: 'Pochodna iloczynu (NIE iloczyn pochodnych)',
+      desc: 'Ola liczy pochodną iloczynu. Pierwiastki cząstkowe zrobiła dobrze — gdzie zgubiła regułę?',
+      init: noop,
+      debug: {
+        task: 'Ola policzyła $(x^2 \\cdot \\sin x)\'$ i dostała $2x \\cos x$. Gdzie błąd?',
+        steps: [
+          { n: 1, text: '$f = x^2 \\cdot \\sin x$' },
+          { n: 2, text: '$(x^2)\' = 2x$' },
+          { n: 3, text: '$(\\sin x)\' = \\cos x$' },
+          { n: 4, text: 'Pochodna iloczynu = iloczyn pochodnych: $2x \\cdot \\cos x$.' },
+        ],
+        errorLine: 4,
+        wrongChoice: {
+          2: 'Krok 2 poprawny.',
+          3: 'Krok 3 poprawny.',
+        },
+        correctExplanation: 'Krok 4: $(f \\cdot g)\' \\neq f\' \\cdot g\'$. Prawdziwa reguła iloczynu: $(f \\cdot g)\' = f\'g + fg\'$. Dla $(x^2 \\sin x)\' = 2x \\sin x + x^2 \\cos x$.',
+      },
+      predictAfter: {
+        question: 'A $(x \\cdot x)\' = (x^2)\' = 2x$. Czy reguła iloczynu też to daje?',
+        options: [
+          { label: 'Tak, bo $1 \\cdot x + x \\cdot 1 = 2x$', correct: true, why: 'Dokładnie. Dla $f = x$, $g = x$ mamy $f\' = 1$, $g\' = 1$, więc $(f \\cdot g)\' = 1 \\cdot x + x \\cdot 1 = 2x$. Reguła jest spójna z $(x^2)\' = 2x$.' },
+          { label: 'Nie, reguły się nie zgadzają', correct: false, why: 'Zgadzają się: $(f\' g + f g\')$ z $f = g = x$ daje $x + x = 2x$ — ten sam wynik, co $(x^2)\' = 2x$.' },
+        ],
+      },
+      pips: () => [],
+      solved: () => false,
+      hints: [
+        'Pochodna iloczynu NIE jest iloczynem pochodnych.',
+        'Prawidłowy wzór: $(f \\cdot g)\' = f\'g + fg\'$ — suma dwóch składników, każdy różniczkuje tylko jeden czynnik.',
+        'Szukaj kroku, w którym pojawia się $f\' \\cdot g\'$ zamiast $f\'g + fg\'$.',
+      ],
+      solvedMsg: 'Tak. Iloczyn ma DWA składniki, nie jeden. Mnożenie pochodnych to jeden z najczęściej karanych błędów na maturze.',
+      draw: clearCanvas,
+    },
+
+    // ─── Ch.3: Reguła łańcuchowa (predict + choices) ───────
+    {
+      id: 'ch3',
+      title: 'Reguła łańcuchowa',
+      desc: 'Najpierw zgadnij wynik, potem wybierz prawidłowy OGÓLNY wzór na pochodną złożenia.',
+      drawBackground: 'blank',
+      init() { C.chainPick = null; },
+      predict: {
+        question: '$(\\sin(2x))\'$ wynosi:',
+        options: [
+          { label: '$\\cos(2x)$', correct: false, why: 'Zapomniałeś o czynniku łańcuchowym. Pochodna zewnętrznej $\\sin$ to $\\cos$, ale trzeba jeszcze pomnożyć przez pochodną wewnętrznej $(2x)\' = 2$.' },
+          { label: '$2\\cos(2x)$', correct: true, why: 'Tak. Reguła łańcuchowa: zewnętrzna $(\\sin)\' = \\cos$ na całym argumencie $2x$, razy pochodna wewnętrznej $(2x)\' = 2$. Razem: $2\\cos(2x)$.' },
+          { label: '$\\cos(2)$', correct: false, why: 'Różniczkujemy po $x$, nie po stałej. Argumentem wewnątrz $\\cos$ zostaje $2x$, nie sama $2$.' },
+          { label: '$2x \\cos(2x)$', correct: false, why: 'Pochodna wewnętrznej to $(2x)\' = 2$, a nie $2x$. Mnożysz przez 2, nie przez $2x$.' },
+        ],
+      },
+      choices: {
+        question: 'Wybierz prawidłowy OGÓLNY wzór na $(f(g(x)))\'$:',
+        options: [
+          { id: 'prod', label: "$f'(x) \\cdot g'(x)$ — iloczyn pochodnych", correct: false },
+          { id: 'chain', label: "$f'(g(x)) \\cdot g'(x)$ — pochodna zewnętrznej (wciąż na $g(x)$) razy pochodna wewnętrznej", correct: true },
+          { id: 'nest', label: "$f(g'(x))$ — różniczkujemy tylko wewnętrzną i wkładamy z powrotem", correct: false },
+        ],
+        pick(id) { C.chainPick = id; },
+      },
+      pips() {
+        return [{ label: 'wybrany wzór łańcuchowy', ok: C.chainPick === 'chain' }];
+      },
+      solved() { return C.chainPick === 'chain'; },
+      hints: [
+        '① Reguła łańcuchowa: pochodna zewnętrznej funkcji pomnożona przez pochodną wewnętrznej.',
+        '② Dla $\\sin(2x)$: zewnętrzna to $\\sin$, wewnętrzna to $2x$. $\\sin\' = \\cos$, $(2x)\' = 2$.',
+        '③ Wynik: $\\cos(2x) \\cdot 2 = 2\\cos(2x)$.',
+      ],
+      solvedMsg: 'Reguła łańcuchowa: **zewnętrzna razy wewnętrzna**. Pomijanie mnożenia przez pochodną wewnętrznej to najczęstszy błąd na maturze rozszerzonej.',
+      draw: drawChainDiagram,
+    },
+
+    // ─── Ch.4: Pochodna ilorazu ───────────────────────────
+    {
+      id: 'ch4',
+      title: 'Pochodna ilorazu (pułapka znaku)',
+      desc: 'Kuba próbuje iloraz — pochodne cząstkowe OK, ale składa je nie tą regułą. Znajdź krok, w którym wzór się łamie.',
+      init: noop,
+      debug: {
+        task: 'Kuba policzył $\\left(\\frac{x^2}{x+1}\\right)\'$ i dostał $\\frac{2x}{1}$. Gdzie błąd?',
+        steps: [
+          { n: 1, text: 'Licznik: $u = x^2$, $u\' = 2x$' },
+          { n: 2, text: 'Mianownik: $v = x+1$, $v\' = 1$' },
+          { n: 3, text: 'Iloraz: $\\left(\\frac{u}{v}\\right)\' = \\frac{u\'}{v\'}$.' },
+          { n: 4, text: 'Stąd $\\frac{2x}{1} = 2x$.' },
+        ],
+        errorLine: 3,
+        wrongChoice: {
+          1: 'Krok 1 poprawny: $(x^2)\' = 2x$.',
+          2: 'Krok 2 poprawny: $(x+1)\' = 1$.',
+          4: 'Krok 4 to tylko arytmetyka na tym, co wyszło z kroku 3. Wzór, z którego Kuba wyszedł, jest złym wzorem.',
+        },
+        correctExplanation: 'Krok 3: wzór na pochodną ilorazu to $\\left(\\frac{u}{v}\\right)\' = \\frac{u\'v - uv\'}{v^2}$, nie $\\frac{u\'}{v\'}$. Dla tego przypadku: $\\frac{2x(x+1) - x^2 \\cdot 1}{(x+1)^2} = \\frac{x^2 + 2x}{(x+1)^2}$.',
+      },
+      pips: () => [],
+      solved: () => false,
+      hints: [
+        'Pochodna ilorazu ma trzy charakterystyczne elementy: MINUS w liczniku i $v^2$ w mianowniku.',
+        'Wzór: $\\left(\\frac{u}{v}\\right)\' = \\frac{u\'v - uv\'}{v^2}$. Porównaj go z tym, co napisał Kuba.',
+        'Kuba "uprościł" wzór do $\\frac{u\'}{v\'}$ — ale to nie działa. Znajdź ten krok.',
+      ],
+      solvedMsg: 'Tak. W ilorazie jest MINUS w liczniku ($u\'v - uv\'$) i kwadrat w mianowniku ($v^2$). Trzy detale, każdy łatwo zgubić.',
+      draw: clearCanvas,
+    },
+  ];
+
+  initWarsztat({
+    canvasId: 'cv',
+    challenges,
+    lsKey: 'warsztat:derivative:completed',
+    wrapup: 'Trzy reguły, trzy pułapki: (1) pochodna stałej = 0; (2) pochodna iloczynu ≠ iloczyn pochodnych; (3) łańcuch = zewnętrzna razy wewnętrzna. Znak minus w ilorazie zawsze wraca.',
+  });
+}
+</script>
+</body>
+</html>
