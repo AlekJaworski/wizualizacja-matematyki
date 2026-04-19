@@ -387,13 +387,80 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         infoBox(label, W*0.72, 22, COL_G);
       },
     },
+
+    // ─── Ch.5: Applications — vertex form & nested-modulus W ────────
+    {
+      id: 'ch5_applications',
+      title: 'Zastosowania: wzór na wierzchołek i kształt W',
+      desc: 'Wzór na wierzchołek paraboli i kształt W zagnieżdżonego modułu — to **te same zasady przekształceń**, zastosowane do różnych bazowych krzywych. Parabola: przesuwasz $y = x^2$. W: przesuwasz $y = |x|$, a potem bierzesz kolejny moduł.',
+      drawBackground: 'graph',
+      view: { xRange: [-2, 8], yRange: [-1, 6], scale: 55 },
+      init() { C.ch5Pick = null; },
+      predict: {
+        question: 'Parabola $y = (x - 3)^2 + 2$ to $y = x^2$ przesunięte o:',
+        options: [
+          { label: '3 w lewo, 2 w górę', correct: false, why: 'Wewnątrz jest $x - 3$ — a wewnątrz działa **odwrotnie** do intuicji, więc to przesunięcie w PRAWO.' },
+          { label: '3 w prawo, 2 w górę', correct: true, why: 'Tak — wewnątrz $x - 3$ daje przesunięcie w prawo o 3; na zewnątrz $+ 2$ w górę o 2. Wierzchołek $(0,0)$ przechodzi w $(3, 2)$.' },
+          { label: '3 w prawo, 2 w dół', correct: false, why: 'Zewnętrzne $+2$ działa zgodnie z intuicją: plus = góra. $(3, -2)$ byłoby dla $-2$.' },
+          { label: 'nie, to nowy wykres', correct: false, why: 'Każdy kwadratowy to $y = x^2$ przekształcone. To właśnie sens **wzoru na wierzchołek**.' },
+        ],
+      },
+      choices: {
+        question: 'Który opis pasuje do kształtu W: $y = ||x - 3| - 2|$?',
+        options: [
+          { id: 'a', label: '$|x|$ przesunięte o 3 w prawo, o 2 w dół, potem ponowny moduł', correct: true },
+          { id: 'b', label: '$|x|$ odbite przez oś $y$', correct: false },
+          { id: 'c', label: '$x^2$ skalowane poziomo do kształtu W', correct: false },
+          { id: 'd', label: '$|x|$ przesunięte o 2 w lewo, o 3 w górę', correct: false },
+        ],
+        pick(id) { C.ch5Pick = id; },
+      },
+      pips() {
+        return [{ label: 'opis W rozpoznany', ok: C.ch5Pick === 'a' }];
+      },
+      solved() { return C.ch5Pick === 'a'; },
+      hints: [
+        '① Obie „magiczne" formuły ($y = (x-h)^2 + k$ na wierzchołek paraboli, $y = ||x-h|-d|$ na W) zaczynają od **bazowej krzywej** — $x^2$ lub $|x|$.',
+        '② Każda z nich przesuwa tę bazową krzywą o $h$ w poziomie i o $k$ (lub $-d$) w pionie. Wewnątrz → przeciwnie do intuicji, na zewnątrz → zgodnie.',
+        '③ Dodatkowo zagnieżdżony moduł robi kolejną operację — „odbija" ujemną część w górę, tworząc W. To jedno dodatkowe przekształcenie na tej samej bazie $|x|$.',
+      ],
+      solvedMsg: 'Dwa pozornie różne wzory — **vertex form** paraboli i **W-shape** zagnieżdżonego modułu — to ten sam przepis: **weź bazową krzywą i przesuń ją**. Przesunięcia są tymi samymi regułami, które ćwiczyłeś w pierwszych 4 wyzwaniach. Zobacz też: *Warsztat z wartości bezwzględnej, Ch.5* — to samo z innej strony.',
+      draw() {
+        const COL_BASE = '#BBBBBB';
+        const COL_G = '#58C4DD';
+        // Left half: parabola x² vs (x-3)² + 2
+        // Right half: |x| vs ||x-3|-2|
+        // We plot them all on the same axes so the student sees both transformations together.
+        view.plotFn(x => x * x, { color: COL_BASE, alpha: 0.5, lineWidth: 2 });
+        view.plotFn(x => (x - 3) * (x - 3) + 2, { color: COL_G, alpha: 0.9, lineWidth: 2.5 });
+        view.plotFn(x => Math.abs(x), { color: COL_BASE, alpha: 0.35, lineWidth: 1.6, dash: [3, 3] });
+        view.plotFn(x => Math.abs(Math.abs(x - 3) - 2), { color: '#FFD166', alpha: 0.95, lineWidth: 2.5 });
+        // Vertex dots
+        view.dot(0, 0, { radius: 4, color: COL_BASE });
+        view.dot(3, 2, { radius: 5, color: COL_G });
+        view.dot(3, 2, { radius: 3, color: '#FFD166' });  // both vertices land here for reference
+        // Labels
+        view.label('y = x²', -1.3, 1.7, { color: COL_BASE, align: 'left', font: '11px monospace' });
+        view.label('y = (x−3)²+2', 5.5, 4.7, { color: COL_G, align: 'left', font: '11px monospace' });
+        view.label('y = |x|', -1.6, 0.6, { color: COL_BASE, align: 'left', font: '11px monospace' });
+        view.label('y = ||x−3|−2|', 6.5, 2.9, { color: '#FFD166', align: 'right', font: '11px monospace' });
+      },
+      predictAfter: {
+        question: 'Która z tych „magicznych" formuł MOGŁABY być zastosowana do $y = \\sqrt{x}$, żeby uzyskać $y = \\sqrt{x - 5} + 1$?',
+        options: [
+          { label: 'Taka sama zasada: przesunięcie o 5 w prawo, o 1 w górę', correct: true, why: 'Tak — zasady przekształceń działają na **dowolnej bazowej krzywej**: $x^2$, $|x|$, $\\sqrt{x}$, $\\sin x$, $\\log x$, $e^x$… wszędzie to samo.' },
+          { label: 'Nie, bo $\\sqrt{x}$ ma dziedzinę', correct: false, why: 'Dziedzina się zmieni (z $x \\geq 0$ na $x \\geq 5$), ale zasada przesunięcia sama działa bez zmian.' },
+          { label: 'Nie, bo pierwiastek nie jest symetryczny', correct: false, why: 'Symetria nie jest warunkiem zastosowania przesunięć.' },
+        ],
+      },
+    },
   ];
 
   initWarsztat({
     canvasId: 'cv',
     challenges,
     lsKey: 'warsztat:fn_transforms:completed',
-    wrapup: 'Zasada uniwersalna: co jest W ARGUMENCIE (wewn\u0105trz funkcji), dzia\u0142a W POZIOMIE i ODWROTNIE do intuicji. Co jest NA ZEWN\u0104TRZ, dzia\u0142a W PIONIE i zgodnie z intuicj\u0105.',
+    wrapup: 'Zasada uniwersalna: co jest W ARGUMENCIE (wewn\u0105trz funkcji), dzia\u0142a W POZIOMIE i ODWROTNIE do intuicji. Co jest NA ZEWN\u0104TRZ, dzia\u0142a W PIONIE i zgodnie z intuicj\u0105. Te same przekszta\u0142cenia rozpoznasz jako **wz\u00F3r na wierzcho\u0142ek paraboli** $y=(x-h)^2+k$ oraz **kszta\u0142t W** z zagnie\u017Cd\u017Conego modu\u0142u — to jeden i ten sam przepis.',
     onFrame({ ch }) {
       const vcfg = ch.view || {};
       initView(vcfg.xRange, vcfg.yRange, vcfg.scale);
