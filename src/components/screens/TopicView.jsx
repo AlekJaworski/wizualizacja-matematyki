@@ -3,6 +3,8 @@ import { FONT, COLORS } from "../../styles/tokens.js";
 import { t } from "../../i18n.js";
 import { renderLatex } from "../../utils/latex.js";
 import { ResourcePanel } from "../panels/ResourcePanel.jsx";
+import { LocalMap } from "../ui/LocalMap.jsx";
+import { useIsMobile } from "../../hooks/useIsMobile.js";
 
 /**
  * Full-screen topic detail view — shown when clicking a node on the map.
@@ -21,6 +23,7 @@ export function TopicView({
   belief, evidence, onClose, onNavigate, onShowPath, onQuizMe, onQuizMatura, QUESTION_BANK,
 }) {
   const [openResourceIdx, setOpenResourceIdx] = useState(null);
+  const isMobile = useIsMobile();
 
   const node = nodes.find(n => n.id === nodeId);
   if (!node) return null;
@@ -59,6 +62,17 @@ export function TopicView({
           to   { opacity: 1; transform: translateY(0); }
         }
       `}</style>
+
+      {/* Desktop-only "you are here" minimap — teacher-oriented context */}
+      {!isMobile && (
+        <LocalMap
+          nodeId={nodeId} nodes={nodes} adjacency={adjacency}
+          SCOPE_COLORS={SCOPE_COLORS}
+          belief={belief}
+          lang={lang}
+          onNavigate={onNavigate}
+        />
+      )}
 
       <div style={{
         maxWidth: "min(580px, calc(100% - 32px))", width: "100%",
