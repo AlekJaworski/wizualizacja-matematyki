@@ -518,7 +518,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② Każde równanie $|x - 3| = k$ (dla $k > 0$) daje **dwa** rozwiązania $x = 3 \\pm k$. Mamy dwa takie równania.',
         '③ $|x-3| = 3 \\Rightarrow x \\in \\{0, 6\\}$; $|x-3| = 1 \\Rightarrow x \\in \\{2, 4\\}$. Razem $\\{0, 2, 4, 6\\}$.',
       ],
-      solvedMsg: 'Zagnieżdżony moduł = kształt **W** (lub **M** gdy z minusem). $n$ warstw → do $2^n$ rozwiązań. Zasada: rozwiązuj **od zewnątrz do środka** — każda warstwa podwaja liczbę przypadków.',
+      solvedMsg: 'Zagnieżdżony moduł = kształt **W** (lub **M** gdy z minusem). $n$ warstw → do $2^n$ rozwiązań. Zasada: rozwiązuj **od zewnątrz do środka**. &nbsp;<br>Głębszy wgląd: kształt W nie jest przypadkowy — to **$y = |x|$ przekształcone**. $y = |x-3|$ przesuwa w prawo; odjęcie 2 i ponowna wartość bezwzględna „odbija" ujemną część w górę, robiąc W. To ta sama logika, co **wzór na wierzchołek paraboli** $y = (x-h)^2 + k$ — obie sprowadzają się do przekształceń wykresu bazowego. Zobacz: **Warsztat z przekształceń wykresów funkcji** (node `fn_transforms`).',
       draw() {
         // W-shape: y = ||x - 3| - 2|
         view.plotFn(x => Math.abs(Math.abs(x - 3) - 2), { color: '#58C4DD', lineWidth: 2.5, alpha: 0.95 });
