@@ -49,6 +49,7 @@ export const RAW_EDGES = [
   // ── LP functions ─────────────────────────────────────────────
   ["fn_concept",     "fn_linear"],
   ["fn_concept",     "fn_quadratic"],
+  ["fn_concept",     "fn_transforms"],
   ["fn_linear",      "fn_quadratic"],
   ["quadratic_eq",   "fn_quadratic"],
   ["fn_quadratic",   "fn_poly"],

@@ -109,11 +109,35 @@ function fmtSlider(v, step) {
     : v.toFixed(0);
 }
 
+/**
+ * Render inline math (delimiters `$...$`) using KaTeX if it's loaded on the
+ * page; otherwise return the inner text. Warsztat HTML pages should load
+ * KaTeX from CDN; if they don't, strings degrade gracefully to plaintext.
+ * Non-strings pass through untouched.
+ */
+export function renderMath(str) {
+  if (typeof str !== 'string' || !str.includes('$')) return str ?? '';
+  if (typeof globalThis.katex === 'undefined') {
+    return str.replace(/\$([^$]+)\$/g, (_, inner) => inner);
+  }
+  return str.replace(/\$([^$]+)\$/g, (_match, inner) => {
+    try {
+      return globalThis.katex.renderToString(inner, { throwOnError: false, output: 'html' });
+    } catch {
+      return inner;
+    }
+  });
+}
+
 // ── Render functions (all take explicit refs; no globals) ──────────────
-export function renderHead(refs, ch, idx, total) {
+export function renderHead(refs, ch, idx, total, S) {
   refs.step.textContent  = 'Wyzwanie ' + (idx + 1) + ' / ' + total;
-  refs.title.textContent = ch.title;
-  refs.desc.textContent  = ch.desc;
+  refs.title.innerHTML = renderMath(ch.title);
+  // Suppress the action-framed description during the predict phase so the
+  // student reads the predict question first instead of reaching for the
+  // slider (desc often says "przesuwaj…" which invites premature dragging).
+  const suppressDesc = ch.predict && S && S.phase === Phase.PREDICT;
+  refs.desc.innerHTML  = suppressDesc ? '' : renderMath(ch.desc || '');
 }
 
 export function renderDots(refs, challenges, currentIdx, completed, onGoTo) {
@@ -132,16 +156,16 @@ export function renderPredict(refs, ch, S, onPick) {
   if (!ch.predict || S.phase !== Phase.PREDICT) { refs.predict.innerHTML = ''; return; }
   const picked = S.predictAnswer;
   const showFeedback = picked !== null;
-  let html = '<div class="predict"><div class="q">' + ch.predict.question + '</div><div class="opts">';
+  let html = '<div class="predict"><div class="q">' + renderMath(ch.predict.question) + '</div><div class="opts">';
   ch.predict.options.forEach((opt, i) => {
     const cls = picked === i ? 'picked' : '';
-    html += '<button class="' + cls + '" data-i="' + i + '" ' + (showFeedback ? 'disabled' : '') + '>' + opt.label + '</button>';
+    html += '<button class="' + cls + '" data-i="' + i + '" ' + (showFeedback ? 'disabled' : '') + '>' + renderMath(opt.label) + '</button>';
   });
   html += '</div>';
   if (showFeedback) {
     const opt = ch.predict.options[picked];
     const prefix = opt.correct ? '\u2713 ' : '\u2717 ';
-    html += '<div class="feedback">' + prefix + opt.why + '</div>';
+    html += '<div class="feedback">' + prefix + renderMath(opt.why) + '</div>';
   }
   html += '</div>';
   refs.predict.innerHTML = html;
@@ -155,16 +179,16 @@ export function renderPredictAfter(refs, ch, S, onPick) {
   if (!ch.predictAfter || S.phase !== Phase.SOLVED) return;
   const picked = S.predictAfterAnswer;
   const showFeedback = picked !== null;
-  let html = '<div class="predict predict-after"><div class="q">' + ch.predictAfter.question + '</div><div class="opts">';
+  let html = '<div class="predict predict-after"><div class="q">' + renderMath(ch.predictAfter.question) + '</div><div class="opts">';
   ch.predictAfter.options.forEach((opt, i) => {
     const cls = picked === i ? 'picked' : '';
-    html += '<button class="' + cls + '" data-i="' + i + '" ' + (showFeedback ? 'disabled' : '') + '>' + opt.label + '</button>';
+    html += '<button class="' + cls + '" data-i="' + i + '" ' + (showFeedback ? 'disabled' : '') + '>' + renderMath(opt.label) + '</button>';
   });
   html += '</div>';
   if (showFeedback) {
     const opt = ch.predictAfter.options[picked];
     const prefix = opt.correct ? '\u2713 ' : '\u2717 ';
-    html += '<div class="feedback">' + prefix + opt.why + '</div>';
+    html += '<div class="feedback">' + prefix + renderMath(opt.why) + '</div>';
   }
   html += '</div>';
   refs.predict.innerHTML = html;
@@ -201,11 +225,11 @@ export function renderSliders(refs, ch, S, onSolve) {
 export function renderChoices(refs, ch, S, onSolve, onRerender) {
   if (!refs.choices) return;
   if (S.phase === Phase.PREDICT || !ch.choices) { refs.choices.innerHTML = ''; return; }
-  let html = '<div class="choices"><div class="q" style="font-size:13px;color:rgba(255,255,255,.72);margin-bottom:6px;">' + ch.choices.question + '</div>';
+  let html = '<div class="choices"><div class="q" style="font-size:13px;color:rgba(255,255,255,.72);margin-bottom:6px;">' + renderMath(ch.choices.question) + '</div>';
   ch.choices.options.forEach(opt => {
     let cls = '';
     if (S.phase === Phase.SOLVED && opt.correct) cls = 'correct';
-    html += '<button data-id="' + opt.id + '" class="' + cls + '">' + opt.label + '</button>';
+    html += '<button data-id="' + opt.id + '" class="' + cls + '">' + renderMath(opt.label) + '</button>';
   });
   html += '</div>';
   refs.choices.innerHTML = html;
@@ -282,7 +306,7 @@ export function renderPips(refs, ch, S) {
   if (S.phase === Phase.PREDICT) { refs.pips.innerHTML = ''; return; }
   const pips = ch.pips();
   refs.pips.innerHTML = pips.map(p =>
-    '<span class="pip ' + (p.ok ? 'ok' : '') + '"><span class="mark"></span>' + p.label + '</span>'
+    '<span class="pip ' + (p.ok ? 'ok' : '') + '"><span class="mark"></span>' + renderMath(p.label) + '</span>'
   ).join('');
 }
 
@@ -295,14 +319,14 @@ export function renderHints(refs, ch, S) {
   level = Math.max(level, S.hintLevel);
   S.hintLevel = level;
   const shown = ch.hints.slice(0, level);
-  refs.hints.innerHTML = shown.map(h => '<div class="hint">\u{1F4A1} ' + h + '</div>').join('');
+  refs.hints.innerHTML = shown.map(h => '<div class="hint">\u{1F4A1} ' + renderMath(h) + '</div>').join('');
 }
 
 export function renderSolvedMsg(refs, ch, S, isLast, wrapup) {
   if (S.phase !== Phase.SOLVED) { refs.solvedMsg.innerHTML = ''; return; }
-  let html = '<div class="solved-note">' + ch.solvedMsg + '</div>';
+  let html = '<div class="solved-note">' + renderMath(ch.solvedMsg) + '</div>';
   if (isLast && wrapup) {
-    html += '<div class="wrapup-note">' + wrapup + '</div>';
+    html += '<div class="wrapup-note">' + renderMath(wrapup) + '</div>';
   }
   refs.solvedMsg.innerHTML = html;
 }
@@ -321,9 +345,16 @@ export function renderNav(refs, S, currentIdx, total, ch) {
   } else {
     // SOLVED: if this challenge has a transfer-check and student hasn't answered it, gate advance.
     const needsTransfer = ch && ch.predictAfter && S.predictAfterAnswer === null;
-    refs.next.textContent = atLast ? 'Koniec' : 'Dalej \u2192';
-    refs.next.disabled = atLast || needsTransfer;
-    refs.next.classList.toggle('primary', !atLast && !needsTransfer);
+    if (atLast) {
+      // Finale: "Koniec" stays clickable so the student can restart (goTo(0) wired in advance()).
+      refs.next.textContent = 'Koniec \u21BA';
+      refs.next.disabled = needsTransfer;
+      refs.next.classList.toggle('primary', !needsTransfer);
+    } else {
+      refs.next.textContent = 'Dalej \u2192';
+      refs.next.disabled = needsTransfer;
+      refs.next.classList.toggle('primary', !needsTransfer);
+    }
   }
 }
 
@@ -394,7 +425,7 @@ export function initWarsztat(opts) {
 
   function renderAll() {
     const ch = challenges[currentIdx];
-    renderHead(refs, ch, currentIdx, challenges.length);
+    renderHead(refs, ch, currentIdx, challenges.length, S);
     renderDots(refs, challenges, currentIdx, completed, goTo);
     renderPredict(refs, ch, S, onPredictPick);
     renderPredictAfter(refs, ch, S, onPredictAfterPick);
@@ -443,7 +474,15 @@ export function initWarsztat(opts) {
       return;
     }
     if (S.phase === Phase.SOLVED) {
-      if (currentIdx < challenges.length - 1) goTo(currentIdx + 1);
+      if (currentIdx < challenges.length - 1) {
+        goTo(currentIdx + 1);
+      } else {
+        // Finale: "Koniec" restarts the warsztat at Ch.1 so the student can
+        // replay. Also post a completion event for the enclosing page to pick
+        // up (e.g. close the iframe or show a "well done" toast).
+        try { window.parent?.postMessage?.({ type: 'warsztat:done', lsKey }, '*'); } catch {}
+        goTo(0);
+      }
     }
   }
 
