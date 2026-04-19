@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Przekształcenia wykresów — Warsztat</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; color: rgba(255,255,255,.85); }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+
+  .head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+  .head .step { font-size: 11px; color: rgba(255,255,255,.4); letter-spacing: .04em; }
+  .head .title { font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  .desc { font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); margin-bottom: 10px; min-height: 34px; }
+
+  .pips { display: flex; gap: 14px; flex-wrap: wrap; margin: 4px 0 10px; font-size: 12px; }
+  .pip { display: inline-flex; align-items: center; gap: 6px; color: rgba(255,255,255,.55); }
+  .pip .mark { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(255,255,255,.25); display: inline-flex; align-items: center; justify-content: center; font-size: 10px; line-height: 1; }
+  .pip.ok { color: #83C167; }
+  .pip.ok .mark { background: #83C167; border-color: #83C167; color: #0e0e12; }
+  .pip.ok .mark::before { content: "\2713"; }
+
+  .predict { margin-bottom: 10px; }
+  .predict .q { font-size: 13px; color: rgba(255,255,255,.82); margin-bottom: 8px; line-height: 1.55; }
+  .predict .opts { display: flex; flex-direction: column; gap: 6px; }
+  .predict button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.78); padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; transition: background .15s, border-color .15s; }
+  .predict button:hover { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.4); }
+  .predict button.picked { border-color: #58C4DD; color: #58C4DD; }
+  .predict .feedback { margin-top: 8px; font-size: 12px; line-height: 1.55; color: rgba(255,255,255,.7); padding: 8px 10px; border-left: 2px solid #58C4DD; background: rgba(88,196,221,.06); border-radius: 0 4px 4px 0; }
+
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 36px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+
+  .choices { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .choices button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.78); padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; transition: background .15s, border-color .15s; }
+  .choices button:hover { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.4); }
+  .choices button.picked { border-color: #58C4DD; color: #58C4DD; }
+  .choices button.correct { border-color: #83C167; color: #83C167; }
+  .choices button.wrong { border-color: #FF6B6B; color: #FF6B6B; }
+
+  .hints { font-size: 12px; color: rgba(255,255,255,.5); margin: 4px 0 10px; line-height: 1.55; }
+  .hints .hint { padding: 6px 10px; border-left: 2px solid #FFD166; background: rgba(255,209,102,.05); margin-top: 4px; border-radius: 0 4px 4px 0; }
+
+  .nav { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+  .nav button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  .nav button:hover:not(:disabled) { background: rgba(255,255,255,.08); }
+  .nav button:disabled { opacity: .3; cursor: default; }
+  .nav button.primary { border-color: #83C167; color: #83C167; }
+  .nav button.primary:hover { background: rgba(131,193,103,.1); }
+
+  .dots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.15); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  .dot.done { background: #83C167; }
+
+  .solved-note { font-size: 13px; color: #83C167; line-height: 1.55; padding: 8px 10px; border-left: 2px solid #83C167; background: rgba(131,193,103,.06); border-radius: 0 4px 4px 0; margin-bottom: 8px; }
+  .wrapup-note { font-size: 13px; color: #C78DFF; line-height: 1.55; padding: 10px 12px; border-left: 2px solid #C78DFF; background: rgba(199,141,255,.06); border-radius: 0 4px 4px 0; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="360"></canvas>
+  <div class="panel">
+    <div class="head">
+      <span class="step" id="step"></span>
+      <div class="dots" id="dots"></div>
+    </div>
+    <p class="title" id="title"></p>
+    <p class="desc" id="desc"></p>
+    <div id="predict"></div>
+    <div id="sliders-wrap"></div>
+    <div id="choices-wrap"></div>
+    <div class="pips" id="pips"></div>
+    <div class="hints" id="hints"></div>
+    <div id="solved-msg"></div>
+    <div class="nav">
+      <button id="prev">&larr;</button>
+      <button id="next" class="primary">Dalej &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { GraphView } from '../lib/graph-core.js';
+import { initWarsztat } from '../lib/warsztat-core.js';
+{
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const W = 600, H = 360;
+
+  // ── Colors ─────────────────────────────────────────────────────
+  const COL_BASE = 'rgba(255,255,255,0.32)';
+  const COL_G    = '#58C4DD';   // transformed g(x)
+  const COL_AX   = '#FFD166';
+  const COL_OK   = '#83C167';
+  const COL_HINT = '#C78DFF';
+
+  // ── GraphView (rebuilt each frame) ─────────────────────────────
+  let view;
+  function initView(xRange, yRange, scale) {
+    view = new GraphView(ctx, {
+      rect: [0, 0, W, H],
+      xRange: xRange || [-6, 6],
+      yRange: yRange || [-3.5, 4.3],
+      scale:  scale  || 46,
+    });
+  }
+
+  // ── Draw helpers ───────────────────────────────────────────────
+  function roundRect(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x+r,y); c.lineTo(x+w-r,y); c.quadraticCurveTo(x+w,y,x+w,y+r);
+    c.lineTo(x+w,y+h-r); c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    c.lineTo(x+r,y+h); c.quadraticCurveTo(x,y+h,x,y+h-r);
+    c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y);
+    c.closePath();
+  }
+  function infoBox(text, sx, sy, col) {
+    ctx.save();
+    ctx.font = '12px monospace';
+    const w = ctx.measureText(text).width + 14;
+    ctx.fillStyle = 'rgba(14,14,18,0.9)';
+    ctx.strokeStyle = col + '60';
+    ctx.lineWidth = 1;
+    roundRect(ctx, sx - w/2, sy - 11, w, 22, 4);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = col;
+    ctx.textAlign = 'center';
+    ctx.fillText(text, sx, sy + 4);
+    ctx.restore();
+  }
+  function dashed(x1, y1, x2, y2, col, alpha) {
+    view.segment(x1, y1, x2, y2, { color: col, alpha: alpha ?? 0.55, lineWidth: 1.2, dash: [5,4] });
+  }
+  function fmt(v) {
+    if (Math.abs(v - Math.round(v)) < 0.01) return Math.round(v).toString();
+    return v.toFixed(2);
+  }
+  function fmtSigned(v) {
+    if (v >= 0) return '+ ' + fmt(v);
+    return '\u2212 ' + fmt(-v);
+  }
+
+  // ── Challenge-local state ──────────────────────────────────────
+  const C = {
+    a: 0,            // ch1: horizontal shift f(x - a)
+    c: 0,            // ch2: vertical shift   f(x) + c
+    mode: 'none',    // ch3: 'fx' | 'f-x' | '-f-x' | 'none'
+    av: 1,           // ch4: outer vertical scale
+    bv: 1,           // ch4: inner horizontal scale
+  };
+
+  const near = (a, b, eps = 0.02) => Math.abs(a - b) < eps;
+
+  // ── Challenges ─────────────────────────────────────────────────
+  const challenges = [
+    // ─── Ch.1: Horizontal shift f(x - a) — the canonical trap ────
+    {
+      id: 'ch1_horizontal_shift',
+      title: 'Przesuni\u0119cie poziome: $f(x - a)$',
+      desc: 'Baza: $f(x) = x^2$. Przesuwaj suwak $a$ i obserwuj, dok\u0105d w\u0119druje wierzcho\u0142ek $g(x) = (x - a)^2$.',
+      drawBackground: 'graph',
+      init() { C.a = 0; },
+      predict: {
+        question: 'Je\u015Bli $g(x) = f(x - 2)$, to wykres $g$ jest wykresem $f$...',
+        options: [
+          { label: 'przesuni\u0119tym o 2 w LEWO', correct: false, why: 'Typowa pu\u0142apka \u2014 znak wewn\u0105trz nawiasu dzia\u0142a przeciwnie do intuicji. Spr\u00F3buj podstawi\u0107: $g(5) = f(5-2) = f(3)$ \u2014 to warto\u015B\u0107, kt\u00F3r\u0105 $f$ mia\u0142 w $x=3$. Wykres przesun\u0105\u0142 si\u0119 w PRAWO.' },
+          { label: 'przesuni\u0119tym o 2 w PRAWO', correct: true,  why: 'Tak \u2014 argument $x - 2$ oznacza \u201Esi\u0119gnij 2 pozycje wstecz\u201D, wi\u0119c wykres wygl\u0105da tak, jakby warto\u015Bci przenios\u0142y si\u0119 o 2 w prawo.' },
+          { label: 'przesuni\u0119tym o 2 w G\u00D3R\u0118', correct: false, why: 'G\u00F3ra/d\u00F3\u0142 to zmiany NA ZEWN\u0104TRZ funkcji: $f(x) + 2$. Znak wewn\u0105trz argumentu dzia\u0142a w poziomie.' },
+        ],
+      },
+      sliders: [
+        { id: 'a', lbl: 'a', color: COL_AX, min: -3, max: 3, step: 1, get: () => C.a, set: v => C.a = v },
+      ],
+      pips() {
+        return [{ label: 'przesu\u0144 $a$ \u017Beby zobaczy\u0107', ok: C.a !== 0 }];
+      },
+      solved() { return C.a !== 0; },
+      hints: [
+        '\u2460 Podstaw konkretny $x$ do $g$. Je\u015Bli $g(x) = f(x - 2)$, ile wynosi $g(5)$? A ile $f(5)$?',
+        '\u2461 $g(5) = f(3)$ \u2014 to warto\u015B\u0107 $f$ w $x = 3$. Czyli wykres $g$ w punkcie 5 to to, co $f$ mia\u0142 w 3. Przesuw w PRAWO.',
+        '\u2462 Regu\u0142a: $f(x - a)$ przesuwa wykres w prawo o $a$. Znak w nawiasie jest PRZECIWNY do kierunku przesuni\u0119cia.',
+      ],
+      solvedMsg: 'Argument funkcji jest \u201Eodwr\u00F3cony w czasie\u201D \u2014 to co odejmujemy od $x$ przek\u0142ada si\u0119 na dodawanie w kierunku przesuni\u0119cia.',
+      predictAfter: {
+        question: 'A co robi $f(x + 3)$?',
+        options: [
+          { label: 'przesuwa w lewo o 3', correct: true,  why: 'Tak \u2014 $+3$ w argumencie przesuwa w LEWO o 3. Zawsze przeciwnie do znaku wewn\u0105trz nawiasu.' },
+          { label: 'przesuwa w prawo o 3', correct: false, why: 'Odwrotnie \u2014 $+3$ w nawiasie to przesuw w LEWO. Reguly: znak w nawiasie dzia\u0142a przeciwnie.' },
+          { label: 'nic \u2014 znak wewn\u0105trz nie zmienia wykresu', correct: false, why: 'Znak w nawiasie zmienia \u2014 tylko w poziomie, nie w pionie.' },
+        ],
+      },
+      draw() {
+        // base f(x) = x^2 light gray
+        view.plotFn(x => x*x, { color: COL_BASE, alpha: 0.9, lineWidth: 2 });
+        // transformed g(x) = (x - a)^2 cyan
+        view.plotFn(x => (x - C.a) * (x - C.a), { color: COL_G, alpha: 0.95, lineWidth: 2.5 });
+        // vertex dots
+        view.dot(0, 0, { radius: 5, color: COL_BASE });
+        view.dot(C.a, 0, { radius: 6, color: COL_G });
+        view.label('(0,0)', 0, -0.55, { color: COL_BASE, align: 'center', font: '11px monospace' });
+        view.label('(' + C.a + ',0)', C.a, -0.55, { color: COL_G, align: 'center', font: '11px monospace' });
+        // arrow from (0,0) to (a,0)
+        if (C.a !== 0) dashed(0, 0.2, C.a, 0.2, COL_AX, 0.7);
+        // equations
+        infoBox('f(x) = x\u00B2', W*0.28, 22, COL_BASE.replace('rgba(255,255,255,0.32)', '#BBBBBB'));
+        const label = C.a === 0
+          ? 'g(x) = (x)\u00B2'
+          : (C.a > 0 ? 'g(x) = (x \u2212 ' + C.a + ')\u00B2' : 'g(x) = (x + ' + (-C.a) + ')\u00B2');
+        infoBox(label, W*0.72, 22, COL_G);
+      },
+    },
+
+    // ─── Ch.2: Vertical shift f(x) + c (intuitive) ───────────────
+    {
+      id: 'ch2_vertical_shift',
+      title: 'Przesuni\u0119cie pionowe: $f(x) + c$',
+      desc: 'Baza: $f(x) = x^2$. Tu intuicja dzia\u0142a: dodaj $c$ \u2014 ca\u0142y wykres idzie w g\u00F3r\u0119. Przesu\u0144 suwak.',
+      drawBackground: 'graph',
+      init() { C.c = 0; },
+      predict: {
+        question: '$g(x) = f(x) + 2$ \u2014 wykres $g$ jest wykresem $f$...',
+        options: [
+          { label: 'przesuni\u0119tym o 2 w D\u00D3\u0141', correct: false, why: 'Odwrotnie \u2014 $+2$ dodaje do WARTO\u015ACI, wi\u0119c wykres idzie w G\u00D3R\u0118.' },
+          { label: 'przesuni\u0119tym o 2 w G\u00D3R\u0118', correct: true,  why: 'Tak \u2014 $+c$ na zewn\u0105trz dzia\u0142a intuicyjnie: plus to g\u00F3ra, minus to d\u00F3\u0142.' },
+          { label: 'przesuni\u0119tym o 2 w PRAWO', correct: false, why: 'Prawo/lewo to zmiany W ARGUMENCIE: $f(x - 2)$. $+2$ na zewn\u0105trz dzia\u0142a w pionie.' },
+        ],
+      },
+      sliders: [
+        { id: 'c', lbl: 'c', color: COL_AX, min: -3, max: 3, step: 1, get: () => C.c, set: v => C.c = v },
+      ],
+      pips() {
+        return [{ label: 'przesu\u0144 $c$ \u017Beby zobaczy\u0107', ok: C.c !== 0 }];
+      },
+      solved() { return C.c !== 0; },
+      hints: [
+        '\u2460 Dodajesz do wyniku $f$ \u2014 ca\u0142y wykres idzie w g\u00F3r\u0119.',
+        '\u2461 Sprawd\u017A: $g(0) = f(0) + 2 = 2$, w por\u00F3wnaniu z $f(0) = 0$.',
+        '\u2462 Regu\u0142a: $+c$ w g\u00F3r\u0119, $-c$ w d\u00F3\u0142.',
+      ],
+      solvedMsg: 'Zewn\u0119trzne dodawanie dzia\u0142a intuicyjnie: plus = g\u00F3ra, minus = d\u00F3\u0142.',
+      predictAfter: {
+        question: 'Kt\u00F3ra z tych par przekszta\u0142ce\u0144 DZIA\u0141A ZGODNIE z intuicj\u0105?',
+        options: [
+          { label: '$f(x + 3)$ \u2014 w prawo o 3', correct: false, why: 'Nie \u2014 to w LEWO o 3. Znak w nawiasie dzia\u0142a przeciwnie.' },
+          { label: '$f(x) + 3$ \u2014 w g\u00F3r\u0119 o 3', correct: true,  why: 'Tak. Dodawanie NA ZEWN\u0104TRZ jest zgodne z intuicj\u0105.' },
+          { label: '$f(2x)$ \u2014 rozci\u0105ga o 2', correct: false, why: 'Odwrotnie \u2014 $f(2x)$ \u015ACISKA dwa razy. Skala wewn\u0105trz nawiasu dzia\u0142a na odwr\u00F3t.' },
+        ],
+      },
+      draw() {
+        view.plotFn(x => x*x, { color: COL_BASE, alpha: 0.9, lineWidth: 2 });
+        view.plotFn(x => x*x + C.c, { color: COL_G, alpha: 0.95, lineWidth: 2.5 });
+        view.dot(0, 0, { radius: 5, color: COL_BASE });
+        view.dot(0, C.c, { radius: 6, color: COL_G });
+        view.label('(0,0)', 0.25, -0.3, { color: COL_BASE, align: 'left', font: '11px monospace' });
+        view.label('(0,' + C.c + ')', 0.25, C.c + 0.25, { color: COL_G, align: 'left', font: '11px monospace' });
+        if (C.c !== 0) dashed(-0.2, 0, -0.2, C.c, COL_AX, 0.7);
+        infoBox('f(x) = x\u00B2', W*0.28, 22, '#BBBBBB');
+        const label = 'g(x) = x\u00B2 ' + (C.c === 0 ? '' : fmtSigned(C.c));
+        infoBox(label, W*0.72, 22, COL_G);
+      },
+    },
+
+    // ─── Ch.3: Reflections: -f(x) vs f(-x) ───────────────────────
+    {
+      id: 'ch3_reflections',
+      title: 'Odbicia: $-f(x)$ i $f(-x)$',
+      desc: 'Baza: $f(x) = x^3 - 2x$ (niesymetryczna, wi\u0119c odbicia rozr\u00F3\u017Cnisz). Wybierz rodzaj odbicia.',
+      drawBackground: 'graph',
+      init() { C.mode = 'none'; },
+      predict: {
+        question: 'Wykres $g(x) = -f(x)$ powstaje przez odbicie $f$ wzgl\u0119dem...',
+        options: [
+          { label: 'osi $x$', correct: true,  why: 'Tak \u2014 zewn\u0119trzny minus zmienia znak WARTO\u015ACI, wi\u0119c punkty \u201Espadaj\u0105\u201D przez o\u015B $x$.' },
+          { label: 'osi $y$', correct: false, why: 'To jest $f(-x)$ \u2014 wewn\u0119trzny minus. Zmienia znak ARGUMENTU, a to daje odbicie przez o\u015B $y$.' },
+          { label: 'pocz\u0105tku uk\u0142adu', correct: false, why: 'Obr\u00F3t o $180^\\circ$ (odbicie przez pocz\u0105tek) to $-f(-x)$ \u2014 oba minusy.' },
+        ],
+      },
+      choices: {
+        question: 'Wybierz przekszta\u0142cenie. Zr\u00F3b wszystkie trzy \u2014 ostatnie musi by\u0107 odbicie przez pocz\u0105tek.',
+        options: [
+          { id: 'fx',    label: '$-f(x)$ (odbicie przez o\u015B $x$)', correct: false },
+          { id: 'f-x',   label: '$f(-x)$ (odbicie przez o\u015B $y$)', correct: false },
+          { id: '-f-x',  label: '$-f(-x)$ (obr\u00F3t o 180\u00B0)',     correct: true  },
+          { id: 'none',  label: 'bez odbicia',                            correct: false },
+        ],
+        pick(id) { C.mode = id; },
+      },
+      pips() {
+        return [{ label: 'wybrano odbicie', ok: C.mode !== 'none' && C.mode !== '' }];
+      },
+      solved() { return C.mode === '-f-x'; },
+      hints: [
+        '\u2460 $-f(x)$: zewn\u0119trzny minus. Zmienia znak WARTO\u015ACI \u2014 odbicie w poziomie (przez o\u015B $x$).',
+        '\u2461 $f(-x)$: wewn\u0119trzny minus. Zmienia znak ARGUMENTU \u2014 odbicie w pionie (przez o\u015B $y$).',
+        '\u2462 $-f(-x)$: oba minusy \u2014 obr\u00F3t o $180^\\circ$ (odbicie przez pocz\u0105tek uk\u0142adu).',
+      ],
+      solvedMsg: 'Zewn\u0119trzny minus \u2192 odbicie poziome (o\u015B $x$). Wewn\u0119trzny minus \u2192 odbicie pionowe (o\u015B $y$). Oba \u2014 obr\u00F3t o 180\u00B0.',
+      predictAfter: {
+        question: 'Kiedy $-f(x) = f(-x)$?',
+        options: [
+          { label: 'Zawsze', correct: false, why: 'Nie \u2014 to zale\u017By od symetrii $f$. Dla funkcji $f(x) = x^2$ mamy $-f(x) = -x^2$, ale $f(-x) = x^2$. R\u00F3\u017Cne.' },
+          { label: 'Gdy $f$ jest parzysta ($f(-x) = f(x)$)', correct: false, why: 'Gdy $f$ parzysta, to $f(-x) = f(x)$, a nie $-f(x)$. To przeciwny przypadek.' },
+          { label: 'Gdy $f$ jest nieparzysta ($f(-x) = -f(x)$)', correct: true,  why: 'Tak. Definicja nieparzysto\u015Bci to dok\u0142adnie $f(-x) = -f(x)$.' },
+          { label: 'Nigdy', correct: false, why: 'Jest ca\u0142a klasa funkcji, dla kt\u00F3rych to zachodzi \u2014 funkcje nieparzyste, np. $f(x) = x^3$.' },
+        ],
+      },
+      draw() {
+        const f  = x => x*x*x - 2*x;
+        const g = {
+          'fx':   x => -(x*x*x - 2*x),
+          'f-x':  x => ((-x)*(-x)*(-x) - 2*(-x)),
+          '-f-x': x => -((-x)*(-x)*(-x) - 2*(-x)),
+          'none': null,
+        }[C.mode];
+        view.plotFn(f, { color: COL_BASE, alpha: 0.9, lineWidth: 2 });
+        if (g) view.plotFn(g, { color: COL_G, alpha: 0.95, lineWidth: 2.5 });
+
+        // dashed axis of reflection
+        if (C.mode === 'fx') {
+          dashed(-6, 0, 6, 0, COL_AX, 0.55);
+          view.label('o\u015B odbicia: y = 0', 5.5, 0.3, { color: COL_AX, align: 'right', font: '10px monospace' });
+        } else if (C.mode === 'f-x') {
+          dashed(0, -3.5, 0, 4.3, COL_AX, 0.55);
+          view.label('o\u015B odbicia: x = 0', 0.15, 4.0, { color: COL_AX, align: 'left', font: '10px monospace' });
+        } else if (C.mode === '-f-x') {
+          view.dot(0, 0, { radius: 4, color: COL_AX });
+          view.label('punkt odbicia: (0,0)', 0.2, 0.3, { color: COL_AX, align: 'left', font: '10px monospace' });
+        }
+        infoBox('f(x) = x\u00B3 \u2212 2x', W*0.26, 22, '#BBBBBB');
+        const labels = { 'fx': 'g(x) = \u2212f(x)', 'f-x': 'g(x) = f(\u2212x)', '-f-x': 'g(x) = \u2212f(\u2212x)', 'none': 'wybierz przekszta\u0142cenie' };
+        infoBox(labels[C.mode], W*0.72, 22, COL_G);
+      },
+    },
+
+    // ─── Ch.4: Scaling a·f(x) vs f(b·x) ──────────────────────────
+    {
+      id: 'ch4_scaling',
+      title: 'Skalowanie: $a \\cdot f(x)$ vs $f(b \\cdot x)$',
+      desc: 'Baza: $f(x) = \\sin x$. $a$ dzia\u0142a w pionie (na zewn\u0105trz), $b$ w poziomie (wewn\u0105trz). Zmie\u0144 oba.',
+      drawBackground: 'graph',
+      view: { xRange: [-6, 6], yRange: [-3.5, 4.3], scale: 46 },
+      init() { C.av = 1; C.bv = 1; },
+      predict: {
+        question: 'Wykres $g(x) = f(2x)$ (gdzie $f(x) = \\sin x$) jest wykresem $f$...',
+        options: [
+          { label: 'dwukrotnie rozci\u0105gni\u0119tym w poziomie', correct: false, why: 'To \u015Bciska, nie rozci\u0105ga \u2014 przy $x = \\pi/2$ warto\u015B\u0107 to ju\u017C $\\sin(\\pi) = 0$, a $f$ mia\u0142 tam 1. Okres zmniejsza si\u0119 z $2\\pi$ do $\\pi$.' },
+          { label: 'dwukrotnie \u015Bci\u015Bni\u0119tym w poziomie', correct: true,  why: 'Tak \u2014 $f(2x)$ \u201Eprzewija\u201D argument dwukrotnie szybciej. Okres $\\sin(2x)$ to $\\pi$ (po\u0142owa $2\\pi$).' },
+          { label: 'dwukrotnie rozci\u0105gni\u0119tym w pionie',   correct: false, why: 'Pion zmienia si\u0119 przez CZYNNIK ZEWN\u0118TRZNY: $2 \\cdot f(x)$. $f(2x)$ to czynnik wewn\u0119trzny \u2014 dzia\u0142a na argument, nie warto\u015B\u0107.' },
+        ],
+      },
+      sliders: [
+        { id: 'av', lbl: 'a', color: COL_AX, min: 0.5, max: 3, step: 0.5, get: () => C.av, set: v => C.av = v },
+        { id: 'bv', lbl: 'b', color: COL_HINT, min: 0.5, max: 3, step: 0.5, get: () => C.bv, set: v => C.bv = v },
+      ],
+      pips() {
+        return [
+          { label: '$a$ zmienia pion',    ok: C.av !== 1 },
+          { label: '$b$ zmienia poziom',  ok: C.bv !== 1 },
+        ];
+      },
+      solved() { return C.av !== 1 && C.bv !== 1; },
+      hints: [
+        '\u2460 Zewn\u0119trzne $a$ mno\u017Cy WARTO\u015A\u0106 \u2014 wykres rozci\u0105ga si\u0119 / \u015Bcieka w PIONIE.',
+        '\u2461 Wewn\u0119trzne $b$ mno\u017Cy ARGUMENT \u2014 wykres zmienia si\u0119 poziomo, ale ODWROTNIE ni\u017C intuicja: $b > 1$ \u015Bciska, $b < 1$ rozci\u0105ga.',
+        '\u2462 Mnemonik: \u201Eco JEST WEWN\u0104TRZ, dzia\u0142a ODWROTNIE\u201D. Dotyczy zar\u00F3wno znaku (przesuni\u0119cia), jak i skali.',
+      ],
+      solvedMsg: 'Regu\u0142\u0119 \u201Ewewn\u0105trz odwrotnie\u201D pami\u0119tasz ju\u017C 2 razy \u2014 to uniwersalna zasada przekszta\u0142ce\u0144 wykresu.',
+      draw() {
+        view.plotFn(x => Math.sin(x), { color: COL_BASE, alpha: 0.9, lineWidth: 2 });
+        view.plotFn(x => C.av * Math.sin(C.bv * x), { color: COL_G, alpha: 0.95, lineWidth: 2.5 });
+        // period markers at y = -3 level
+        const basePeriod = 2 * Math.PI;
+        const newPeriod  = basePeriod / C.bv;
+        view.segment(0, -3.2, basePeriod, -3.2, { color: COL_BASE, alpha: 0.6, lineWidth: 2 });
+        view.label('okres f = 2\u03C0', basePeriod/2, -3.45, { color: '#BBBBBB', align: 'center', font: '10px monospace' });
+        view.segment(0, -2.8, newPeriod, -2.8, { color: COL_G, alpha: 0.9, lineWidth: 2 });
+        view.label('okres g = 2\u03C0/' + fmt(C.bv), newPeriod/2, -2.55, { color: COL_G, align: 'center', font: '10px monospace' });
+        infoBox('f(x) = sin(x)', W*0.26, 22, '#BBBBBB');
+        const label = 'g(x) = ' + (C.av === 1 ? '' : fmt(C.av) + '\u00B7') + 'sin(' + (C.bv === 1 ? 'x' : fmt(C.bv) + 'x') + ')';
+        infoBox(label, W*0.72, 22, COL_G);
+      },
+    },
+  ];
+
+  initWarsztat({
+    canvasId: 'cv',
+    challenges,
+    lsKey: 'warsztat:fn_transforms:completed',
+    wrapup: 'Zasada uniwersalna: co jest W ARGUMENCIE (wewn\u0105trz funkcji), dzia\u0142a W POZIOMIE i ODWROTNIE do intuicji. Co jest NA ZEWN\u0104TRZ, dzia\u0142a W PIONIE i zgodnie z intuicj\u0105.',
+    onFrame({ ch }) {
+      const vcfg = ch.view || {};
+      initView(vcfg.xRange, vcfg.yRange, vcfg.scale);
+      view.clear();
+      if (ch.drawBackground === 'graph') {
+        view.drawGrid({ color: 'rgba(255,255,255,0.04)' });
+        view.drawAxes({ color: 'rgba(255,255,255,0.2)', arrows: false, labels: true, tickSize: 3 });
+      }
+    },
+  });
+}
+</script>
+</body>
+</html>
