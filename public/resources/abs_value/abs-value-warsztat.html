@@ -481,13 +481,80 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         ctx.restore();
       },
     },
+
+    // ─── Ch.5: nested modulus, W-shape graph ───────────────────────
+    {
+      id: 'ch5',
+      title: 'Zagnieżdżony moduł: kształt W',
+      desc: 'Rozwiąż $||x - 3| - 2| = 1$. Wykres zagnieżdżonego modułu ma kształt W — prosta $y = 1$ przecina go w kilku punktach.',
+      drawBackground: 'graph',
+      view: { xRange: [-1.5, 7.5], yRange: [-0.6, 3.6], scale: 70 },
+      init() { C.ch5Pick = null; },
+      predict: {
+        question: 'Ile rozwiązań ma $||x - 3| - 2| = 1$?',
+        options: [
+          { label: '1', correct: false, why: 'Zagnieżdżony moduł = zagnieżdżone rozbicie. Co najmniej dwa przypadki zewnętrzne.' },
+          { label: '2', correct: false, why: 'Prawie — zewnętrzne $|\\cdot| - 2 = \\pm 1$ daje dwie wartości wewnętrznego modułu. Każda z nich daje **po dwa** rozwiązania, więc łącznie 4.' },
+          { label: '4', correct: true, why: 'Tak — dwa przypadki zewnętrzne $\\times$ dwa wewnętrzne. Wykres ma kształt **W**; prosta $y = 1$ przecina go w 4 punktach.' },
+          { label: 'nieskończenie wiele', correct: false, why: 'Równanie z modułem ma skończenie wiele rozwiązań punktowych.' },
+        ],
+      },
+      choices: {
+        question: 'Który zbiór to rozwiązanie?',
+        options: [
+          { id: 'a', label: '$\\{2, 4\\}$', correct: false },
+          { id: 'b', label: '$\\{0, 2, 4, 6\\}$', correct: true },
+          { id: 'c', label: '$\\{0, 6\\}$', correct: false },
+          { id: 'd', label: '$\\{-1, 3, 7\\}$', correct: false },
+        ],
+        pick(id) { C.ch5Pick = id; },
+      },
+      pips() {
+        return [{ label: 'rozwiązanie $\\{0, 2, 4, 6\\}$', ok: C.ch5Pick === 'b' }];
+      },
+      solved() { return C.ch5Pick === 'b'; },
+      hints: [
+        '① Rozwiązuj **od zewnątrz**: $||\\cdot| - 2| = 1$ oznacza $|\\cdot| - 2 = \\pm 1$, więc wewnętrzne $|\\cdot| = 3$ LUB $|\\cdot| = 1$.',
+        '② Każde równanie $|x - 3| = k$ (dla $k > 0$) daje **dwa** rozwiązania $x = 3 \\pm k$. Mamy dwa takie równania.',
+        '③ $|x-3| = 3 \\Rightarrow x \\in \\{0, 6\\}$; $|x-3| = 1 \\Rightarrow x \\in \\{2, 4\\}$. Razem $\\{0, 2, 4, 6\\}$.',
+      ],
+      solvedMsg: 'Zagnieżdżony moduł = kształt **W** (lub **M** gdy z minusem). $n$ warstw → do $2^n$ rozwiązań. Zasada: rozwiązuj **od zewnątrz do środka** — każda warstwa podwaja liczbę przypadków.',
+      draw() {
+        // W-shape: y = ||x - 3| - 2|
+        view.plotFn(x => Math.abs(Math.abs(x - 3) - 2), { color: '#58C4DD', lineWidth: 2.5, alpha: 0.95 });
+        // Horizontal cut y = 1
+        view.segment(-1.5, 1, 7.5, 1, { color: '#FFD166', lineWidth: 1.8, dash: [4, 3], alpha: 0.8 });
+        // 4 intersection dots — the solutions
+        const sols = [0, 2, 4, 6];
+        sols.forEach(x => {
+          view.dot(x, 1, { radius: 6, color: '#83C167' });
+          view.label(String(x), x, -0.3, { color: '#83C167', align: 'center', font: '12px monospace' });
+        });
+        // W vertices — structural landmarks
+        view.dot(3, 2, { radius: 3.5, color: 'rgba(255,255,255,0.55)' });
+        view.dot(1, 0, { radius: 3.5, color: 'rgba(255,255,255,0.55)' });
+        view.dot(5, 0, { radius: 3.5, color: 'rgba(255,255,255,0.55)' });
+        // Curve + cut labels
+        view.label('y = ||x−3|−2|', 7.3, 3.25, { color: '#58C4DD', align: 'right', font: '12px monospace' });
+        view.label('y = 1', -1.3, 1.18, { color: '#FFD166', align: 'left', font: '11px monospace' });
+      },
+      predictAfter: {
+        question: 'A ile rozwiązań ma $||x - 3| - 2| = 3$?',
+        options: [
+          { label: '4', correct: false, why: 'Wykres ma lokalne maksimum $y = 2$ w $(3, 2)$. Prosta $y = 3$ jest **powyżej** środkowej części W, więc przecina tylko zewnętrzne ramiona.' },
+          { label: '2', correct: true, why: 'Tak — tylko zewnętrzne ramiona. Algebra: $|x-3| - 2 = \\pm 3 \\Rightarrow |x-3| = 5$ (daje $\\{-2, 8\\}$) lub $|x-3| = -1$ (brak). Razem 2.' },
+          { label: '1', correct: false, why: 'Zewnętrzny przypadek $|x-3| = 5$ zawsze daje dwa rozwiązania (symetryczne wokół 3).' },
+          { label: '0', correct: false, why: 'Ramiona W rozciągają się nieograniczenie — rozwiązanie zawsze istnieje dla $y \\geq 0$ gdy $y$ jest w zasięgu ramion.' },
+        ],
+      },
+    },
   ];
 
   initWarsztat({
     canvasId: 'cv',
     challenges,
     lsKey: 'warsztat:abs-value:completed',
-    wrapup: 'Moduł to zawsze rozważenie przypadków. Trzy reguły: (1) $|A| = b$ → $A = \\pm b$; (2) $|A| < b$ → $-b < A < b$; (3) $|A_1| + |A_2| = c$ → podziel oś przez punkty krytyczne na przedziały i rozwiąż w każdym osobno.',
+    wrapup: 'Moduł = przypadki. Cztery wzorce: (1) $|A| = b$ → $A = \\pm b$; (2) $|A| < b$ → $-b < A < b$; (3) $|A_1| + |A_2| = c$ → podziel oś na przedziały po punktach krytycznych; (4) **zagnieżdżony moduł = kształt W** → rozwiązuj od zewnątrz, każda warstwa podwaja liczbę przypadków ($n$ warstw → do $2^n$ rozwiązań).',
     onFrame({ ch }) {
       if (ch.view) viewCfg = ch.view;
       initView();
