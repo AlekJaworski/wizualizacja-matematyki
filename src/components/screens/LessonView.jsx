@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { FONT, COLORS } from "../../styles/tokens.js";
 import { t } from "../../i18n.js";
 import { renderLatex } from "../../utils/latex.js";
@@ -288,7 +288,7 @@ export function LessonView({
   );
 }
 
-/** Inline visualization iframe section */
+/** Inline visualization iframe section — auto-resizes to iframe content. */
 function VizSection({ resource, lang }) {
   const base = import.meta.env.BASE_URL ?? "/";
   const rawUrl = resource.url.startsWith("http")
@@ -296,6 +296,40 @@ function VizSection({ resource, lang }) {
     : `${base.replace(/\/$/, "")}/${resource.url.replace(/^\//, "")}`;
   const resolvedUrl = rawUrl + (rawUrl.includes("?") ? "&" : "?") + "lang=" + lang;
   const title = lang === "pl" ? resource.titlePl : resource.titleEn;
+
+  // Auto-fit iframe height to the loaded document. Viz resources are same-origin
+  // so we can read the inner scrollHeight directly (no postMessage needed).
+  const iframeRef = useRef(null);
+  const [iframeHeight, setIframeHeight] = useState(820);
+
+  useEffect(() => {
+    const el = iframeRef.current;
+    if (!el) return;
+    let ro;
+    const sync = () => {
+      try {
+        const doc = el.contentDocument;
+        if (!doc?.body) return;
+        const h = Math.max(doc.documentElement.scrollHeight, doc.body.scrollHeight);
+        if (h > 0) setIframeHeight(h);
+      } catch { /* cross-origin or not ready yet */ }
+    };
+    const onLoad = () => {
+      sync();
+      try {
+        const doc = el.contentDocument;
+        if (doc?.body && typeof ResizeObserver !== "undefined") {
+          ro = new ResizeObserver(sync);
+          ro.observe(doc.body);
+        }
+      } catch {}
+    };
+    el.addEventListener("load", onLoad);
+    return () => {
+      el.removeEventListener("load", onLoad);
+      ro?.disconnect();
+    };
+  }, [resolvedUrl]);
 
   return (
     <div style={{ marginBottom: 24 }}>
@@ -321,10 +355,12 @@ function VizSection({ resource, lang }) {
         background: "#0e0e12",
       }}>
         <iframe
+          ref={iframeRef}
           src={resolvedUrl}
           sandbox="allow-scripts allow-same-origin allow-forms"
+          scrolling="no"
           style={{
-            width: "100%", height: 420, border: "none",
+            width: "100%", height: iframeHeight, border: "none",
             display: "block", background: "#0e0e12",
           }}
           title={title}
