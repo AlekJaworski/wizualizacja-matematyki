@@ -11,6 +11,7 @@ import { ResultsScreen } from "./screens/ResultsScreen.jsx";
 import { LearningPath } from "./screens/LearningPath.jsx";
 import { GoalSelectionModal } from "./ui/GoalSelectionModal.jsx";
 import { VizGallery } from "./screens/VizGallery.jsx";
+import { ShowcaseGallery } from "./screens/ShowcaseGallery.jsx";
 import { ProfileScreen } from "./screens/ProfileScreen.jsx";
 import { LessonView } from "./screens/LessonView.jsx";
 
@@ -126,6 +127,10 @@ export default function CourseApp() {
   }, []);
 
   const handleBrowseViz = useCallback(() => {
+    setPhase("showcase");
+  }, []);
+
+  const handleBrowseAllVizzes = useCallback(() => {
     setPhase("gallery");
   }, []);
 
@@ -200,6 +205,18 @@ export default function CourseApp() {
           onProfile={handleProfile}
           onFromScratch={handleFromScratch}
           hasSavedCourse={!!savedCourse}
+        />
+      );
+
+    case "showcase":
+      return (
+        <ShowcaseGallery
+          RAW_NODES={course.RAW_NODES}
+          SCOPE_COLORS={course.SCOPE_COLORS}
+          SCOPE_LABELS={course.SCOPE_LABELS}
+          lang={lang}
+          onClose={handleBackToHero}
+          onBrowseAll={handleBrowseAllVizzes}
         />
       );
 
