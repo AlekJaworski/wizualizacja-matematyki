@@ -36,5 +36,10 @@ export function renderLatex(text) {
     }
   });
 
+  // Lightweight markdown: **bold** and *italic* (outside math, since math
+  // was already converted to HTML spans above).
+  result = result.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+  result = result.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>');
+
   return result;
 }
