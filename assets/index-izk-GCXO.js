@@ -4802,20 +4802,20 @@ Walec ma promień podstawy $r = 1$ i wysokość $h = 2\\sqrt{3}$. Jaki jest kąt
 `,e5=`---
 source: cke_2025_rozszerzona_zad10
 options:
-  - "$P_b=\\tfrac{1}{2}\\cdot 3\\sqrt{34}\\cdot 4\\cdot h_s$, gdzie $h_s$ wyznacza się z warunku $\\cos\\beta=-\\tfrac{9}{25}$ — wartość liczbowa $P_b$ patrz rachunek"
-  - "$P_b=9\\sqrt{34}\\cdot 3\\sqrt{34}=918$"
-  - "$P_b=0$"
-  - "$P_b$ zależy od $\\beta$ w sposób liniowy"
+  - "$P_b = 918$"
+  - "$P_b = 816$"
+  - "$P_b = 1224$"
+  - "$P_b = 408$"
 correct: 0
 hints:
-  - "① Podstawa $ABCD$ — kwadrat o boku $a=3\\sqrt{34}$. $SA$ jest wysokością ostrosłupa. Ściany $SAB,SAD$ są trójkątami prostokątnymi; ściany $SBC,SCD$ — to trójkąty o wspólnej krawędzi $SC$."
-  - "② Kąt dwuścienny $\\beta$ między ścianami $CDS$ i $BCS$ liczymy z tw. cosinusów w trójkącie utworzonym przez rzuty na płaszczyznę prostopadłą do $SC$. Z $\\cos\\beta=-\\tfrac{9}{25}$ oblicz $\\sin\\beta=\\tfrac{\\sqrt{544}}{25}$."
-  - "③ Niech $H$ — wysokość ostrosłupa $=|SA|=h$. Z warunku kąta dwuściennego wyznacz $h$, a potem pola czterech trójkątnych ścian. Suma $P_b$ to pole powierzchni bocznej. (Pełna rachuba CKE daje konkretną liczbę — tu ważne, by rozumieć SCHEMAT; opcja $A$ opisuje poprawny plan.)"
+  - "① Ustaw układ: $A=(0,0,0)$, $B=(a,0,0)$, $C=(a,a,0)$, $D=(0,a,0)$, $S=(0,0,h)$ przy $a=3\\sqrt{34}$. Ściany $SAB,\\,SAD$ są prostokątne (przyprostokątne $a,h$); ściany $SBC,\\,SCD$ mają wspólną krawędź $SC$ — wzdłuż niej mierzymy $\\beta$."
+  - "② Z iloczynu wektorowego normalnych do ścian $BCS$ i $CDS$ wyjdzie $\\cos\\beta = -\\dfrac{a^2}{a^2+h^2} = -\\dfrac{9}{25}$. Stąd $25a^2 = 9(a^2+h^2)$, więc $16a^2 = 9h^2$ i $h = \\tfrac{4}{3}a = 4\\sqrt{34}$."
+  - "③ Pola: $[SAB]=[SAD]=\\tfrac12\\cdot a\\cdot h = \\tfrac12\\cdot 3\\sqrt{34}\\cdot 4\\sqrt{34}=204$. Dla $[SBC]$ odległość $S$ od krawędzi $BC$ to $\\sqrt{a^2+h^2}=\\sqrt{25\\cdot 34}=5\\sqrt{34}$, więc $[SBC]=[SCD]=\\tfrac12\\cdot a\\cdot 5\\sqrt{34}=255$. Razem $P_b = 2\\cdot 204 + 2\\cdot 255 = 918$."
 tests:
   solid_geom: 1.0
   sin_cos_law: 0.5
 ---
-Ostrosłup $ABCDS$ ma podstawę — kwadrat o boku $3\\sqrt{34}$, krawędź $SA$ jest jego wysokością, a cosinus kąta dwuściennego między ścianami $CDS$ i $BCS$ wynosi $-\\tfrac{9}{25}$. Który schemat poprawnie prowadzi do obliczenia pola powierzchni bocznej $P_b$?
+Ostrosłup $ABCDS$ ma podstawę — kwadrat $ABCD$ o boku $3\\sqrt{34}$, a krawędź $SA$ jest jego wysokością. Cosinus kąta dwuściennego między ścianami $CDS$ i $BCS$ (wzdłuż wspólnej krawędzi $SC$) wynosi $-\\tfrac{9}{25}$. Oblicz pole powierzchni bocznej $P_b$ ostrosłupa.
 `,n5=`---
 options:
   - "6"
