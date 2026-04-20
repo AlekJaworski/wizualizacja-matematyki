@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Przekształcenia wykresów — Warsztat</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; color: rgba(255,255,255,.85); }
@@ -149,6 +151,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
 
   // ── Challenge-local state ──────────────────────────────────────
   const C = {
+    introDone: false, // ch0: intro slide acknowledged
     a: 0,            // ch1: horizontal shift f(x - a)
     c: 0,            // ch2: vertical shift   f(x) + c
     mode: 'none',    // ch3: 'fx' | 'f-x' | '-f-x' | 'none'
@@ -156,10 +159,138 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     bv: 1,           // ch4: inner horizontal scale
   };
 
+  // ── Mini-plot helper for the intro slide ──────────────────────
+  // Draws one panel showing a base curve (dotted gray) and a transformed
+  // curve (colored solid) on a small math-coord region within the canvas.
+  function miniPlot(px, py, pw, ph, title, fBase, fTrans, color) {
+    const xmin = -4, xmax = 4, ymin = -1.5, ymax = 3.2;
+    const padT = 20, padB = 8, padL = 8, padR = 8;
+    const iw = pw - padL - padR;
+    const ih = ph - padT - padB;
+    const ix = px + padL;
+    const iy = py + padT;
+    const toSX = x => ix + ((x - xmin) / (xmax - xmin)) * iw;
+    const toSY = y => iy + ih - ((y - ymin) / (ymax - ymin)) * ih;
+
+    // Panel background
+    ctx.fillStyle = 'rgba(255,255,255,0.02)';
+    ctx.fillRect(px + 2, py + 2, pw - 4, ph - 4);
+
+    // Title
+    ctx.font = '11px monospace';
+    ctx.fillStyle = 'rgba(255,255,255,0.65)';
+    ctx.textAlign = 'left';
+    ctx.fillText(title, px + 8, py + 14);
+
+    // Axes (faint)
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.lineWidth = 0.6;
+    ctx.beginPath();
+    if (ymin < 0 && ymax > 0) { ctx.moveTo(ix, toSY(0)); ctx.lineTo(ix + iw, toSY(0)); }
+    if (xmin < 0 && xmax > 0) { ctx.moveTo(toSX(0), iy); ctx.lineTo(toSX(0), iy + ih); }
+    ctx.stroke();
+
+    // Plot curve helper (clipped to the panel)
+    function plotCurve(fn, style) {
+      ctx.save();
+      ctx.beginPath(); ctx.rect(ix, iy, iw, ih); ctx.clip();
+      ctx.strokeStyle = style.color;
+      ctx.lineWidth = style.width ?? 1.6;
+      if (style.dash) ctx.setLineDash(style.dash);
+      ctx.beginPath();
+      const steps = 160;
+      let first = true;
+      for (let i = 0; i <= steps; i++) {
+        const x = xmin + (xmax - xmin) * (i / steps);
+        const y = fn(x);
+        if (!isFinite(y)) { first = true; continue; }
+        const sx = toSX(x), sy = toSY(y);
+        if (first) { ctx.moveTo(sx, sy); first = false; }
+        else ctx.lineTo(sx, sy);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    plotCurve(fBase, { color: 'rgba(255,255,255,0.35)', width: 1.4, dash: [3, 3] });
+    plotCurve(fTrans, { color, width: 2.2 });
+  }
+
   const near = (a, b, eps = 0.02) => Math.abs(a - b) < eps;
 
   // ── Challenges ─────────────────────────────────────────────────
   const challenges = [
+    // ─── Ch.0: Intro slide — preview of all 4 transformation families ─
+    {
+      id: 'ch0_intro',
+      title: 'Wprowadzenie: cztery rodziny przekszta\u0142ce\u0144',
+      desc: 'Te same zasady dzia\u0142aj\u0105 dla ka\u017Cdej bazowej krzywej. Na g\u00F3rze widzisz parabol\u0119 $y = x^2$, na dole sinusoid\u0119 $y = \\sin x$. W ka\u017Cdej kolumnie inna rodzina przekszta\u0142ce\u0144. W nast\u0119pnych wyzwaniach zbadasz po kolei ka\u017Cd\u0105 z nich.',
+      drawBackground: 'none',
+      init() { C.introDone = false; },
+      choices: {
+        question: 'Kliknij, \u017Ceby przej\u015B\u0107 do \u0107wicze\u0144.',
+        options: [
+          { id: 'go', label: 'Rozumiem \u2014 przejd\u017A dalej', correct: true },
+        ],
+        pick(id) { C.introDone = id === 'go'; },
+      },
+      pips() { return [{ label: 'wprowadzenie przeczytane', ok: C.introDone }]; },
+      solved() { return C.introDone; },
+      hints: [
+        'Wewn\u0105trz argumentu funkcji zmiany dzia\u0142aj\u0105 w POZIOMIE i przeciwnie do intuicji \u2014 $(x - 3)^2$ przesuwa w prawo, nie w lewo.',
+        'Na zewn\u0105trz funkcji zmiany dzia\u0142aj\u0105 w PIONIE i zgodnie z intuicj\u0105 \u2014 $f(x) + 2$ idzie w g\u00F3r\u0119 o 2.',
+        'Ta sama zasada obowi\u0105zuje dla $x^2$, $\\sin x$, $|x|$, $\\sqrt{x}$ i ka\u017Cdej innej bazowej krzywej, kt\u00F3r\u0105 spotkasz.',
+      ],
+      solvedMsg: 'Zaczynamy od przesuni\u0119\u0107 poziomych.',
+      draw() {
+        // 2 rows × 4 columns: top = parabola transformations, bottom = sin.
+        // Canvas 600×360. Column width 150, row height ~165.
+        const cols = 4;
+        const rows = 2;
+        const colW = W / cols;
+        const rowH = (H - 30) / rows;  // leave header strip
+        const y0 = 28;
+
+        // Header row
+        ctx.save();
+        ctx.font = '11px monospace';
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.textAlign = 'center';
+        ctx.fillText('RODZINY PRZEKSZTA\u0141CE\u0143', W/2, 14);
+        ctx.restore();
+
+        // Family definitions: [title, transform-applied-to-base]
+        const families = [
+          { title: 'f(x - 2)',   color: '#58C4DD', fT: (f) => (x) => f(x - 2) },
+          { title: 'f(x) + 1.5', color: '#83C167', fT: (f) => (x) => f(x) + 1.5 },
+          { title: '-f(x)',      color: '#FF6B6B', fT: (f) => (x) => -f(x) },
+          { title: '2 \u00B7 f(x)', color: '#C78DFF', fT: (f) => (x) => 2 * f(x) },
+        ];
+
+        // Top row: parabola base
+        const xSq = (x) => 0.4 * x * x - 0.5;  // gentle parabola that fits the mini y-range
+        // Bottom row: sine base
+        const xSin = (x) => Math.sin(x * 0.9) * 1.1;
+
+        for (let c = 0; c < cols; c++) {
+          const fam = families[c];
+          const px = c * colW;
+          // Top (parabola)
+          miniPlot(px, y0, colW, rowH, fam.title, xSq, fam.fT(xSq), fam.color);
+          // Bottom (sine)
+          miniPlot(px, y0 + rowH, colW, rowH, fam.title, xSin, fam.fT(xSin), fam.color);
+        }
+
+        // Footer rule
+        ctx.save();
+        ctx.font = '10px monospace';
+        ctx.fillStyle = 'rgba(255,255,255,0.45)';
+        ctx.textAlign = 'center';
+        ctx.fillText('linia przerywana = krzywa bazowa  \u2022  linia ci\u0105g\u0142a = po przekszta\u0142ceniu', W/2, H - 4);
+        ctx.restore();
+      },
+    },
+
     // ─── Ch.1: Horizontal shift f(x - a) — the canonical trap ────
     {
       id: 'ch1_horizontal_shift',

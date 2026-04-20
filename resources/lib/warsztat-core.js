@@ -160,7 +160,7 @@ export function renderPredict(refs, ch, S, onPick) {
   let html = '<div class="predict"><div class="q">' + renderMath(ch.predict.question) + '</div><div class="opts">';
   ch.predict.options.forEach((opt, i) => {
     const cls = picked === i ? 'picked' : '';
-    html += '<button class="' + cls + '" data-i="' + i + '" ' + (showFeedback ? 'disabled' : '') + '>' + renderMath(opt.label) + '</button>';
+    html += '<button class="' + cls + '" data-i="' + i + '">' + renderMath(opt.label) + '</button>';
   });
   html += '</div>';
   if (showFeedback) {
@@ -183,7 +183,7 @@ export function renderPredictAfter(refs, ch, S, onPick) {
   let html = '<div class="predict predict-after"><div class="q">' + renderMath(ch.predictAfter.question) + '</div><div class="opts">';
   ch.predictAfter.options.forEach((opt, i) => {
     const cls = picked === i ? 'picked' : '';
-    html += '<button class="' + cls + '" data-i="' + i + '" ' + (showFeedback ? 'disabled' : '') + '>' + renderMath(opt.label) + '</button>';
+    html += '<button class="' + cls + '" data-i="' + i + '">' + renderMath(opt.label) + '</button>';
   });
   html += '</div>';
   if (showFeedback) {
