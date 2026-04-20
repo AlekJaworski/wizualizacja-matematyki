@@ -337,8 +337,51 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         view.dot(C.a, 0, { radius: 6, color: COL_G });
         view.label('(0,0)', 0, -0.55, { color: COL_BASE, align: 'center', font: '11px monospace' });
         view.label('(' + C.a + ',0)', C.a, -0.55, { color: COL_G, align: 'center', font: '11px monospace' });
-        // arrow from (0,0) to (a,0)
-        if (C.a !== 0) dashed(0, 0.2, C.a, 0.2, COL_AX, 0.7);
+
+        // ─ Animated lookup: for each visible x on g, value comes from f(x − a).
+        // Sweep a traveling indicator across the x-axis, showing the mapping
+        //   x on g  ←  (x − a) on f
+        // with dots on both curves at the same height and a connecting arrow.
+        if (C.a !== 0) {
+          const period = 3800;
+          const phase = (Date.now() % period) / period;
+          // Sweep through a range where g(x) stays visible in the y-window
+          const xmin = C.a - 2, xmax = C.a + 2;
+          const xG = xmin + (xmax - xmin) * phase;
+          const xF = xG - C.a;
+          const y = (xG - C.a) * (xG - C.a);
+
+          // Connecting arrow at y + 0.15 (just above x-axis if y=0)
+          const yArrow = Math.max(y + 0.15, 0.2);
+          const sx1 = view.px(xG), sy = view.py(yArrow);
+          const sx2 = view.px(xF);
+          ctx.save();
+          ctx.strokeStyle = COL_AX;
+          ctx.lineWidth = 1.3;
+          ctx.setLineDash([4, 3]);
+          ctx.beginPath(); ctx.moveTo(sx1, sy); ctx.lineTo(sx2, sy); ctx.stroke();
+          // Arrowhead at source end (xF side)
+          ctx.setLineDash([]);
+          ctx.fillStyle = COL_AX;
+          const dir = sx2 < sx1 ? -1 : 1;
+          ctx.beginPath();
+          ctx.moveTo(sx2, sy);
+          ctx.lineTo(sx2 - dir * 7, sy - 4);
+          ctx.lineTo(sx2 - dir * 7, sy + 4);
+          ctx.closePath();
+          ctx.fill();
+          ctx.restore();
+
+          // Traveling dots on each curve
+          view.dot(xG, y, { radius: 6, color: COL_G });
+          view.dot(xF, y, { radius: 5, color: COL_BASE });
+
+          // Label showing the mapping numerically
+          const mapLabel = 'g(' + xG.toFixed(1) + ') = f(' + xF.toFixed(1) + ')';
+          view.label(mapLabel, (xG + xF) / 2, yArrow + 0.35,
+            { color: COL_AX, align: 'center', font: '10px monospace' });
+        }
+
         // equations
         infoBox('f(x) = x\u00B2', W*0.28, 22, COL_BASE.replace('rgba(255,255,255,0.32)', '#BBBBBB'));
         const label = C.a === 0
@@ -519,69 +562,145 @@ import { initWarsztat } from '../lib/warsztat-core.js';
       },
     },
 
-    // ─── Ch.5: Applications — vertex form & nested-modulus W ────────
+    // ─── Ch.5: Zastosowanie — kształt W z zagnieżdżonego modułu ─────
     {
-      id: 'ch5_applications',
-      title: 'Zastosowania: wzór na wierzchołek i kształt W',
-      desc: 'Wzór na wierzchołek paraboli i kształt W zagnieżdżonego modułu — to **te same zasady przekształceń**, zastosowane do różnych bazowych krzywych. Parabola: przesuwasz $y = x^2$. W: przesuwasz $y = |x|$, a potem bierzesz kolejny moduł.',
-      drawBackground: 'graph',
-      view: { xRange: [-2, 8], yRange: [-1, 6], scale: 55 },
+      id: 'ch5_w_shape',
+      title: 'Kształt W z zagnieżdżonego modułu',
+      desc: 'Wzór $y = ||x - h| - d|$ tworzy charakterystyczny kształt W — po tych samych regułach, których używasz do przesuwania paraboli czy sinusoidy. Poniżej cztery wykresy oznaczone A, B, C, D. Który z nich odpowiada wzorowi $y = ||x - 3| - 2|$?',
+      drawBackground: 'none',
       init() { C.ch5Pick = null; },
-      predict: {
-        question: 'Parabola $y = (x - 3)^2 + 2$ to $y = x^2$ przesunięte o:',
-        options: [
-          { label: '3 w lewo, 2 w górę', correct: false, why: 'Wewnątrz jest $x - 3$ — a wewnątrz działa **odwrotnie** do intuicji, więc to przesunięcie w PRAWO.' },
-          { label: '3 w prawo, 2 w górę', correct: true, why: 'Tak — wewnątrz $x - 3$ daje przesunięcie w prawo o 3; na zewnątrz $+ 2$ w górę o 2. Wierzchołek $(0,0)$ przechodzi w $(3, 2)$.' },
-          { label: '3 w prawo, 2 w dół', correct: false, why: 'Zewnętrzne $+2$ działa zgodnie z intuicją: plus = góra. $(3, -2)$ byłoby dla $-2$.' },
-          { label: 'nie, to nowy wykres', correct: false, why: 'Każdy kwadratowy to $y = x^2$ przekształcone. To właśnie sens **wzoru na wierzchołek**.' },
-        ],
-      },
       choices: {
-        question: 'Który opis pasuje do kształtu W: $y = ||x - 3| - 2|$?',
+        question: 'Wybierz wykres pasujący do wzoru $y = ||x - 3| - 2|$.',
         options: [
-          { id: 'a', label: '$|x|$ przesunięte o 3 w prawo, o 2 w dół, potem ponowny moduł', correct: true },
-          { id: 'b', label: '$|x|$ odbite przez oś $y$', correct: false },
-          { id: 'c', label: '$x^2$ skalowane poziomo do kształtu W', correct: false },
-          { id: 'd', label: '$|x|$ przesunięte o 2 w lewo, o 3 w górę', correct: false },
+          { id: 'A', label: 'A', correct: true  },
+          { id: 'B', label: 'B', correct: false },
+          { id: 'C', label: 'C', correct: false },
+          { id: 'D', label: 'D', correct: false },
         ],
         pick(id) { C.ch5Pick = id; },
       },
       pips() {
-        return [{ label: 'opis W rozpoznany', ok: C.ch5Pick === 'a' }];
+        return [{ label: 'wykres rozpoznany', ok: C.ch5Pick === 'A' }];
       },
-      solved() { return C.ch5Pick === 'a'; },
+      solved() { return C.ch5Pick === 'A'; },
       hints: [
-        '① Obie „magiczne" formuły ($y = (x-h)^2 + k$ na wierzchołek paraboli, $y = ||x-h|-d|$ na W) zaczynają od **bazowej krzywej** — $x^2$ lub $|x|$.',
-        '② Każda z nich przesuwa tę bazową krzywą o $h$ w poziomie i o $k$ (lub $-d$) w pionie. Wewnątrz → przeciwnie do intuicji, na zewnątrz → zgodnie.',
-        '③ Dodatkowo zagnieżdżony moduł robi kolejną operację — „odbija" ujemną część w górę, tworząc W. To jedno dodatkowe przekształcenie na tej samej bazie $|x|$.',
+        '① Zacznij od krzywej bazowej $y = |x|$ — litera V z wierzchołkiem w $(0, 0)$.',
+        '② Wewnątrz zewnętrznego modułu mamy $|x - 3| - 2$. Składnik $|x - 3|$ to V przesunięte o 3 w prawo (zasada „wewnątrz działa przeciwnie"); odjęcie $2$ to przesunięcie w dół o 2.',
+        '③ Zewnętrzny moduł bierze z tego wartość bezwzględną, czyli „odbija" ujemną część w górę. W efekcie środkowe ramiona V opadają do zera w punktach $x = 1$ i $x = 5$, a między nimi wyrasta drugi wierzchołek — powstaje W.',
       ],
-      solvedMsg: 'Dwa pozornie różne wzory — **vertex form** paraboli i **W-shape** zagnieżdżonego modułu — to ten sam przepis: **weź bazową krzywą i przesuń ją**. Przesunięcia są tymi samymi regułami, które ćwiczyłeś w pierwszych 4 wyzwaniach. Zobacz też: *Warsztat z wartości bezwzględnej, Ch.5* — to samo z innej strony.',
+      solvedMsg: 'Kształt W to bazowa krzywa $y = |x|$ poddana tym samym regułom przesunięć z wyzwań 1–4, a następnie objęta dodatkowym modułem, który odbija ujemną część w górę.',
       draw() {
-        const COL_BASE = '#BBBBBB';
-        const COL_G = '#58C4DD';
-        // Left half: parabola x² vs (x-3)² + 2
-        // Right half: |x| vs ||x-3|-2|
-        // We plot them all on the same axes so the student sees both transformations together.
-        view.plotFn(x => x * x, { color: COL_BASE, alpha: 0.5, lineWidth: 2 });
-        view.plotFn(x => (x - 3) * (x - 3) + 2, { color: COL_G, alpha: 0.9, lineWidth: 2.5 });
-        view.plotFn(x => Math.abs(x), { color: COL_BASE, alpha: 0.35, lineWidth: 1.6, dash: [3, 3] });
-        view.plotFn(x => Math.abs(Math.abs(x - 3) - 2), { color: '#FFD166', alpha: 0.95, lineWidth: 2.5 });
-        // Vertex dots
-        view.dot(0, 0, { radius: 4, color: COL_BASE });
-        view.dot(3, 2, { radius: 5, color: COL_G });
-        view.dot(3, 2, { radius: 3, color: '#FFD166' });  // both vertices land here for reference
-        // Labels
-        view.label('y = x²', -1.3, 1.7, { color: COL_BASE, align: 'left', font: '11px monospace' });
-        view.label('y = (x−3)²+2', 5.5, 4.7, { color: COL_G, align: 'left', font: '11px monospace' });
-        view.label('y = |x|', -1.6, 0.6, { color: COL_BASE, align: 'left', font: '11px monospace' });
-        view.label('y = ||x−3|−2|', 6.5, 2.9, { color: '#FFD166', align: 'right', font: '11px monospace' });
+        // 2×2 grid of candidate W-shape graphs. One correct (A), three distractors.
+        const cols = 2, rows = 2;
+        const gridPadTop = 38;
+        const gridPadBottom = 22;
+        const panelW = W / cols;
+        const panelH = (H - gridPadTop - gridPadBottom) / rows;
+
+        // Header
+        ctx.save();
+        ctx.font = '12px monospace';
+        ctx.fillStyle = '#FFD166';
+        ctx.textAlign = 'center';
+        ctx.fillText('y = ||x \u2212 3| \u2212 2|', W/2, 18);
+        ctx.font = '10px monospace';
+        ctx.fillStyle = 'rgba(255,255,255,0.45)';
+        ctx.fillText('kt\u00F3ry z wykres\u00F3w pasuje?', W/2, 32);
+        ctx.restore();
+
+        const candidates = [
+          { id: 'A', fn: x => Math.abs(Math.abs(x - 3) - 2) },              // correct
+          { id: 'B', fn: x => Math.abs(x - 3) },                             // V shifted (no nested)
+          { id: 'C', fn: x => Math.abs(Math.abs(x + 3) - 2) },               // W shifted LEFT (wrong sign)
+          { id: 'D', fn: x => 4 - Math.abs(Math.abs(x - 3) - 2) },           // W flipped upside down
+        ];
+
+        const xmin = -2, xmax = 8, ymin = -1, ymax = 5;
+
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const i = r * cols + c;
+            const cand = candidates[i];
+            const px = c * panelW;
+            const py = gridPadTop + r * panelH;
+
+            const innerPadT = 14, innerPadB = 8, innerPadL = 10, innerPadR = 10;
+            const iw = panelW - innerPadL - innerPadR;
+            const ih = panelH - innerPadT - innerPadB;
+            const ix = px + innerPadL;
+            const iy = py + innerPadT;
+            const toSX = x => ix + ((x - xmin) / (xmax - xmin)) * iw;
+            const toSY = y => iy + ih - ((y - ymin) / (ymax - ymin)) * ih;
+
+            // Panel bg + border, highlighted when picked
+            const isPicked = C.ch5Pick === cand.id;
+            const isRight = cand.id === 'A';
+            ctx.fillStyle = 'rgba(255,255,255,0.02)';
+            ctx.fillRect(px + 3, py + 3, panelW - 6, panelH - 6);
+            ctx.lineWidth = isPicked ? 2 : 1;
+            ctx.strokeStyle = isPicked
+              ? (isRight ? '#83C167' : '#FF6B6B')
+              : 'rgba(255,255,255,0.15)';
+            ctx.strokeRect(px + 3, py + 3, panelW - 6, panelH - 6);
+
+            // Label
+            ctx.font = 'bold 13px monospace';
+            ctx.fillStyle = isPicked ? (isRight ? '#83C167' : '#FF6B6B') : 'rgba(255,255,255,0.7)';
+            ctx.textAlign = 'left';
+            ctx.fillText(cand.id, px + 10, py + 16);
+
+            // Axes
+            ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+            ctx.lineWidth = 0.6;
+            ctx.beginPath();
+            ctx.moveTo(ix, toSY(0)); ctx.lineTo(ix + iw, toSY(0));  // x-axis
+            if (xmin < 0) { ctx.moveTo(toSX(0), iy); ctx.lineTo(toSX(0), iy + ih); }  // y-axis
+            ctx.stroke();
+            // Integer ticks on x-axis
+            ctx.font = '9px monospace';
+            ctx.fillStyle = 'rgba(255,255,255,0.35)';
+            ctx.textAlign = 'center';
+            for (let xt = -2; xt <= 8; xt += 2) {
+              const sx = toSX(xt);
+              if (sx < ix - 1 || sx > ix + iw + 1) continue;
+              ctx.fillText(xt, sx, toSY(0) + 11);
+            }
+
+            // Plot curve (clipped)
+            ctx.save();
+            ctx.beginPath(); ctx.rect(ix, iy, iw, ih); ctx.clip();
+            ctx.strokeStyle = '#FFD166';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            const steps = 240;
+            let first = true;
+            for (let s = 0; s <= steps; s++) {
+              const x = xmin + (xmax - xmin) * (s / steps);
+              const y = cand.fn(x);
+              if (!isFinite(y)) { first = true; continue; }
+              const sx = toSX(x), sy = toSY(y);
+              if (first) { ctx.moveTo(sx, sy); first = false; }
+              else ctx.lineTo(sx, sy);
+            }
+            ctx.stroke();
+            ctx.restore();
+          }
+        }
+
+        // Footer
+        ctx.save();
+        ctx.font = '10px monospace';
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.textAlign = 'center';
+        ctx.fillText('kliknij literę w odpowiedziach poni\u017Cej', W/2, H - 6);
+        ctx.restore();
       },
       predictAfter: {
-        question: 'Która z tych „magicznych" formuł MOGŁABY być zastosowana do $y = \\sqrt{x}$, żeby uzyskać $y = \\sqrt{x - 5} + 1$?',
+        question: 'Te same reguły przesunięć stosujesz też do $y = \\sqrt{x}$. Który wzór przesunie bazową krzywą $y = \\sqrt{x}$ o 5 w prawo i 1 w górę?',
         options: [
-          { label: 'Taka sama zasada: przesunięcie o 5 w prawo, o 1 w górę', correct: true, why: 'Tak — zasady przekształceń działają na **dowolnej bazowej krzywej**: $x^2$, $|x|$, $\\sqrt{x}$, $\\sin x$, $\\log x$, $e^x$… wszędzie to samo.' },
-          { label: 'Nie, bo $\\sqrt{x}$ ma dziedzinę', correct: false, why: 'Dziedzina się zmieni (z $x \\geq 0$ na $x \\geq 5$), ale zasada przesunięcia sama działa bez zmian.' },
-          { label: 'Nie, bo pierwiastek nie jest symetryczny', correct: false, why: 'Symetria nie jest warunkiem zastosowania przesunięć.' },
+          { label: '$y = \\sqrt{x - 5} + 1$', correct: true,  why: 'Tak — argument $x - 5$ to przesunięcie w prawo o 5 (wewnątrz działa przeciwnie do intuicji), a $+ 1$ na zewnątrz to przesunięcie w górę o 1. Te same reguły działają dla każdej bazowej krzywej.' },
+          { label: '$y = \\sqrt{x + 5} + 1$', correct: false, why: 'Znak $+ 5$ wewnątrz argumentu przesunąłby wykres w LEWO o 5.' },
+          { label: '$y = \\sqrt{x - 5} - 1$', correct: false, why: 'Zewnętrzne $- 1$ daje przesunięcie w DÓŁ, nie w górę.' },
         ],
       },
     },
@@ -591,7 +710,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     canvasId: 'cv',
     challenges,
     lsKey: 'warsztat:fn_transforms:completed',
-    wrapup: 'Zasada uniwersalna: co jest W ARGUMENCIE (wewn\u0105trz funkcji), dzia\u0142a W POZIOMIE i ODWROTNIE do intuicji. Co jest NA ZEWN\u0104TRZ, dzia\u0142a W PIONIE i zgodnie z intuicj\u0105. Te same przekszta\u0142cenia rozpoznasz jako **wz\u00F3r na wierzcho\u0142ek paraboli** $y=(x-h)^2+k$ oraz **kszta\u0142t W** z zagnie\u017Cd\u017Conego modu\u0142u — to jeden i ten sam przepis.',
+    wrapup: 'Zasada uniwersalna: co jest W ARGUMENCIE (wewn\u0105trz funkcji), dzia\u0142a W POZIOMIE i ODWROTNIE do intuicji. Co jest NA ZEWN\u0104TRZ, dzia\u0142a W PIONIE i zgodnie z intuicj\u0105. Te same przekszta\u0142cenia rozpoznasz jako posta\u0107 kanoniczn\u0105 paraboli $y=(x-h)^2+k$ oraz kszta\u0142t W z zagnie\u017Cd\u017Conego modu\u0142u — to jeden i ten sam przepis.',
     onFrame({ ch }) {
       const vcfg = ch.view || {};
       initView(vcfg.xRange, vcfg.yRange, vcfg.scale);

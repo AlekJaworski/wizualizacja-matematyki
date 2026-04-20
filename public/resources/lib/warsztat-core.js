@@ -117,17 +117,25 @@ function fmtSlider(v, step) {
  * Non-strings pass through untouched.
  */
 export function renderMath(str) {
-  if (typeof str !== 'string' || !str.includes('$')) return str ?? '';
-  if (typeof globalThis.katex === 'undefined') {
-    return str.replace(/\$([^$]+)\$/g, (_, inner) => inner);
-  }
-  return str.replace(/\$([^$]+)\$/g, (_match, inner) => {
-    try {
-      return globalThis.katex.renderToString(inner, { throwOnError: false, output: 'html' });
-    } catch {
-      return inner;
+  if (typeof str !== 'string') return str ?? '';
+  let out = str;
+  if (out.includes('$')) {
+    if (typeof globalThis.katex === 'undefined') {
+      out = out.replace(/\$([^$]+)\$/g, (_, inner) => inner);
+    } else {
+      out = out.replace(/\$([^$]+)\$/g, (_match, inner) => {
+        try {
+          return globalThis.katex.renderToString(inner, { throwOnError: false, output: 'html' });
+        } catch {
+          return inner;
+        }
+      });
     }
-  });
+  }
+  // Lightweight markdown bold/italic (math is already HTML at this point so no clash).
+  out = out.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+  out = out.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>');
+  return out;
 }
 
 // ── Render functions (all take explicit refs; no globals) ──────────────
