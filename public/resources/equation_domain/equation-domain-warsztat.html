@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dziedzina równania — Warsztat</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; color: rgba(255,255,255,.85); }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+
+  .head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+  .head .step { font-size: 11px; color: rgba(255,255,255,.4); letter-spacing: .04em; }
+  .head .title { font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  .desc { font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); margin-bottom: 10px; min-height: 34px; }
+
+  .pips { display: flex; gap: 14px; flex-wrap: wrap; margin: 4px 0 10px; font-size: 12px; }
+  .pip { display: inline-flex; align-items: center; gap: 6px; color: rgba(255,255,255,.55); }
+  .pip .mark { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(255,255,255,.25); display: inline-flex; align-items: center; justify-content: center; font-size: 10px; line-height: 1; }
+  .pip.ok { color: #83C167; }
+  .pip.ok .mark { background: #83C167; border-color: #83C167; color: #0e0e12; }
+  .pip.ok .mark::before { content: "\2713"; }
+
+  .predict { margin-bottom: 10px; }
+  .predict .q { font-size: 13px; color: rgba(255,255,255,.82); margin-bottom: 8px; line-height: 1.55; }
+  .predict .opts { display: flex; flex-direction: column; gap: 6px; }
+  .predict button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.78); padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; transition: background .15s, border-color .15s; }
+  .predict button:hover { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.4); }
+  .predict button.picked { border-color: #58C4DD; color: #58C4DD; }
+  .predict .feedback { margin-top: 8px; font-size: 12px; line-height: 1.55; color: rgba(255,255,255,.7); padding: 8px 10px; border-left: 2px solid #58C4DD; background: rgba(88,196,221,.06); border-radius: 0 4px 4px 0; }
+
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 36px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+
+  .choices { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .choices button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.78); padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; transition: background .15s, border-color .15s; }
+  .choices button:hover { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.4); }
+  .choices button.picked { border-color: #58C4DD; color: #58C4DD; }
+  .choices button.correct { border-color: #83C167; color: #83C167; }
+  .choices button.wrong { border-color: #FF6B6B; color: #FF6B6B; }
+
+  .hints { font-size: 12px; color: rgba(255,255,255,.5); margin: 4px 0 10px; line-height: 1.55; }
+
+  .nav { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+  .nav button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  .nav button:hover:not(:disabled) { background: rgba(255,255,255,.08); }
+  .nav button:disabled { opacity: .3; cursor: default; }
+  .nav button.primary { border-color: #83C167; color: #83C167; }
+  .nav button.primary:hover { background: rgba(131,193,103,.1); }
+
+  .dots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.15); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  .dot.done { background: #83C167; }
+
+  .solved-note { font-size: 13px; color: #83C167; line-height: 1.55; padding: 8px 10px; border-left: 2px solid #83C167; background: rgba(131,193,103,.06); border-radius: 0 4px 4px 0; margin-bottom: 8px; }
+  .wrapup-note { font-size: 13px; color: #C78DFF; line-height: 1.55; padding: 10px 12px; border-left: 2px solid #C78DFF; background: rgba(199,141,255,.06); border-radius: 0 4px 4px 0; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="360"></canvas>
+  <div class="panel">
+    <div class="head">
+      <span class="step" id="step"></span>
+      <div class="dots" id="dots"></div>
+    </div>
+    <p class="title" id="title"></p>
+    <p class="desc" id="desc"></p>
+    <div id="predict"></div>
+    <div id="sliders-wrap"></div>
+    <div id="choices-wrap"></div>
+    <div class="pips" id="pips"></div>
+    <div class="hints" id="hints"></div>
+    <div id="solved-msg"></div>
+    <div class="nav">
+      <button id="prev">&larr;</button>
+      <button id="next" class="primary">Dalej &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { GraphView } from '../lib/graph-core.js';
+import { initWarsztat } from '../lib/warsztat-core.js';
+{
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const W = 600, H = 360;
+
+  // ── Colors ─────────────────────────────────────────────────────
+  const COL_LHS  = '#FF6B6B';   // wrong/naive
+  const COL_RHS  = '#83C167';   // correct
+  const COL_A    = '#58C4DD';
+  const COL_B    = '#FFD166';
+  const COL_AB   = '#C78DFF';
+  const COL_DIM  = 'rgba(255,255,255,0.35)';
+
+  // ── Draw helpers ───────────────────────────────────────────────
+  function roundRect(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x+r,y); c.lineTo(x+w-r,y); c.quadraticCurveTo(x+w,y,x+w,y+r);
+    c.lineTo(x+w,y+h-r); c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    c.lineTo(x+r,y+h); c.quadraticCurveTo(x,y+h,x,y+h-r);
+    c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y);
+    c.closePath();
+  }
+  function infoBox(text, sx, sy, col) {
+    ctx.save();
+    ctx.font = '12px monospace';
+    const w = ctx.measureText(text).width + 14;
+    ctx.fillStyle = 'rgba(14,14,18,0.9)';
+    ctx.strokeStyle = col + '60';
+    ctx.lineWidth = 1;
+    roundRect(ctx, sx - w/2, sy - 11, w, 22, 4);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = col;
+    ctx.textAlign = 'center';
+    ctx.fillText(text, sx, sy + 4);
+    ctx.restore();
+  }
+  function fmt(v, d) { d = d ?? 2; return (Math.abs(v - Math.round(v)) < 1e-9) ? Math.round(v).toString() : v.toFixed(d); }
+
+  // ── Challenge-local state ──────────────────────────────────────
+  const C = {
+    ch1_showBoth: false,   // ch1: has student toggled "show both roots"?
+    ch2_x: 7,              // ch2: log domain candidate x
+    ch2_seenOut: false,    // ch2: has student seen x outside domain?
+    ch2_seenIn:  false,    // ch2: has student seen x inside domain?
+    ch3_x: 3.5,            // ch3: squaring candidate x
+    ch3_seenFake: false,   // ch3: seen x=2 region
+    ch3_seenReal: false,   // ch3: seen x=5 region
+    ch4_x: 0.5,            // ch4: x/(x-1)=1 candidate
+    ch4_seenHole: false,   // ch4: looked near x=1
+    ch5Pick: null,         // ch5: final MCQ pick
+  };
+
+  // ── Views per challenge ────────────────────────────────────────
+  let view;
+  function viewCh1() {
+    view = new GraphView(ctx, { rect: [0, 0, W, H], xRange: [-2, 7], yRange: [-8, 32], scale: 30 });
+  }
+  function viewCh2() {
+    view = new GraphView(ctx, { rect: [0, 0, W, H], xRange: [-1, 14], yRange: [-2, 3], scale: 40 });
+  }
+  function viewCh3() {
+    view = new GraphView(ctx, { rect: [0, 0, W, H], xRange: [-1, 8], yRange: [-4, 5], scale: 40 });
+  }
+  function viewCh4() {
+    view = new GraphView(ctx, { rect: [0, 0, W, H], xRange: [-3, 5], yRange: [-5, 7], scale: 38 });
+  }
+
+  // ── Challenges ─────────────────────────────────────────────────
+  const challenges = [
+
+    // ─── Ch.1: x² = 5x — dividing by x loses a root ───────────────
+    {
+      id: 'ch1_divide_by_x',
+      title: 'Dzielenie przez $x$ gubi pierwiastek',
+      desc: 'Równanie $x^2 = 5x$. Uczeń dzieli obie strony przez $x$ i dostaje $x = 5$. Ale wykresy pokazują DWA punkty przecięcia. Gdzie znika drugie rozwiązanie?',
+      drawBackground: 'none',
+      init() {},
+      predict: {
+        question: 'Jeśli w $x^2 = 5x$ podzielimy obie strony przez $x$, to dostaniemy...',
+        options: [
+          { label: 'tylko $x = 5$ (OK, koniec)', correct: false, why: 'Pozornie OK, ale zgubiliśmy $x = 0$. Dzielenie przez $x$ zakłada $x \\neq 0$ — więc przypadek $x=0$ wypada z gry w cichu.' },
+          { label: '$x = 0$ i $x = 5$ (oba)', correct: true,  why: 'Tak — to pełne rozwiązanie, ale dzielenie przez $x$ samo $x=0$ NIE daje. Trzeba napisać $x^2 - 5x = 0$, czyli $x(x-5) = 0$, i dopiero stąd oba pierwiastki.' },
+          { label: 'nic nie da się rozwiązać', correct: false, why: 'Da się — tylko nie przez dzielenie. Metoda "przenieś na jedną stronę i wyłącz wspólny czynnik" zawsze działa.' },
+        ],
+      },
+      choices: {
+        question: 'Przełącz widok: pokaż OBA pierwiastki.',
+        options: [
+          { id: 'one',  label: 'pokaż tylko $x = 5$ (jak po dzieleniu przez $x$)', correct: false },
+          { id: 'both', label: 'pokaż oba: $x = 0$ ORAZ $x = 5$', correct: true },
+        ],
+        pick(id) { C.ch1_showBoth = (id === 'both'); },
+      },
+      pips() {
+        return [
+          { label: 'widzisz oba punkty przecięcia', ok: C.ch1_showBoth },
+          { label: 'zgubiony pierwiastek: $x = 0$', ok: C.ch1_showBoth },
+        ];
+      },
+      solved() { return C.ch1_showBoth; },
+      hints: [
+        '① Przenieś wszystko na jedną stronę: $x^2 - 5x = 0$. Nie dziel przez $x$, bo $x$ może być zerem.',
+        '② Wyłącz wspólny czynnik: $x(x - 5) = 0$. Iloczyn jest zerem $\\iff$ któryś czynnik to zero.',
+        '③ Stąd $x = 0$ LUB $x = 5$. Dzieląc przez $x$ zakładaliśmy po cichu $x \\neq 0$ — i dlatego $x = 0$ zniknęło.',
+      ],
+      solvedMsg: 'Dzielenie przez wyrażenie zawierające zmienną ZAWSZE może zgubić pierwiastek — dokładnie te $x$, dla których to wyrażenie zeruje się. Bezpieczniej: faktoryzacja.',
+      predictAfter: {
+        question: 'Ile rozwiązań ma równanie $x^3 = 4x$?',
+        options: [
+          { label: 'jedno: $x = 2$ (po podzieleniu przez $x^2$)', correct: false, why: 'Znowu pułapka — dzielenie przez $x^2$ gubi $x=0$. Ponadto: $x^3 = 4x \\iff x(x^2 - 4) = 0$, czyli $x = 0, 2, -2$.' },
+          { label: 'trzy: $x = 0, 2, -2$', correct: true,  why: 'Tak — $x(x-2)(x+2) = 0$. Pełny rozkład daje trzy pierwiastki.' },
+          { label: 'dwa: $x = 2$ i $x = -2$', correct: false, why: 'Brakuje $x = 0$. To ten sam błąd co poprzednio.' },
+        ],
+      },
+      draw() {
+        viewCh1();
+        view.drawGrid({ color: 'rgba(255,255,255,0.04)' });
+        view.drawAxes({ color: 'rgba(255,255,255,0.2)', arrows: false, labels: true, tickSize: 3 });
+
+        // y = x² (blue)
+        view.plotFn(x => x*x, { color: COL_A, lineWidth: 2 });
+        // y = 5x (yellow)
+        view.plotFn(x => 5*x, { color: COL_B, lineWidth: 2 });
+
+        // Intersection x=5 always shown
+        view.dot(5, 25, { radius: 6, color: COL_RHS });
+        view.label('x = 5', 5, 27.5, { color: COL_RHS, font: '12px monospace', align: 'center' });
+
+        // Intersection x=0 — shown only when student picked "both"
+        if (C.ch1_showBoth) {
+          view.dot(0, 0, { radius: 6, color: COL_RHS });
+          view.label('x = 0  (zgubiony!)', 0, -3, { color: COL_RHS, font: '12px monospace', align: 'center' });
+        } else {
+          // Show a red dashed circle hinting that something's missing near origin
+          view.dot(0, 0, { radius: 7, color: COL_LHS });
+          view.label('? brak', 0.6, 2, { color: COL_LHS, font: '11px monospace', align: 'left' });
+        }
+
+        infoBox('y = x\u00B2', W*0.22, 22, COL_A);
+        infoBox('y = 5x',  W*0.50, 22, COL_B);
+        infoBox(C.ch1_showBoth ? '2 rozwiązania' : '1 (niepełne)', W*0.80, 22, C.ch1_showBoth ? COL_RHS : COL_LHS);
+      },
+    },
+
+    // ─── Ch.2: log(x - 2) = 1 — declaring the domain ──────────────
+    {
+      id: 'ch2_log_domain',
+      title: 'Dziedzina logarytmu',
+      desc: 'Rozwiąż $\\log(x - 2) = 1$. Zanim policzysz — zapisz dziedzinę: $x - 2 > 0$, czyli $x > 2$. Przesuwaj kandydata $x$ — zobacz, kiedy wyrażenie $\\log(x-2)$ ma w ogóle sens.',
+      drawBackground: 'log',
+      init() {},
+      predict: {
+        question: 'Jaka jest dziedzina równania $\\log(x - 2) = 1$?',
+        options: [
+          { label: '$\\mathbb{R}$ — logarytm jest zdefiniowany wszędzie', correct: false, why: 'Nie — $\\log$ jest określony tylko dla argumentów DODATNICH. $\\log 0$ i $\\log(-5)$ są nieokreślone.' },
+          { label: '$x > 2$ (argument $> 0$)', correct: true,  why: 'Tak — $x - 2 > 0 \\iff x > 2$. Dopiero na tej dziedzinie wolno liczyć. Rozwiązanie $x = 12$ należy do $D$, więc jest OK.' },
+          { label: '$x \\neq 2$', correct: false, why: 'To byłaby dziedzina dla $\\dfrac{1}{x-2}$, nie dla $\\log$. Logarytm wymaga $>$, nie tylko $\\neq$.' },
+        ],
+      },
+      sliders: [
+        { id: 'ch2_x', lbl: 'x', color: COL_A, min: -0.5, max: 13.5, step: 0.5, get: () => C.ch2_x, set: v => {
+            C.ch2_x = v;
+            if (v <= 2) C.ch2_seenOut = true; else C.ch2_seenIn = true;
+          } },
+      ],
+      pips() {
+        return [
+          { label: 'widziałeś $x \\leq 2$ (poza $D$)', ok: C.ch2_seenOut },
+          { label: 'widziałeś $x > 2$ (w $D$)', ok: C.ch2_seenIn },
+          { label: 'wartość $x = 12$ daje $\\log 10 = 1$', ok: Math.abs(C.ch2_x - 12) < 0.26 },
+        ];
+      },
+      solved() { return C.ch2_seenOut && C.ch2_seenIn; },
+      hints: [
+        '① Regula: $\\log_a(\\text{arg})$ istnieje $\\iff$ $\\text{arg} > 0$. Pisz dziedzinę PRZED rozwiązywaniem.',
+        '② Tutaj: $x - 2 > 0 \\iff x > 2$. Zaznacz to jako $D = (2, +\\infty)$.',
+        '③ Rozwiązanie: $\\log(x-2) = 1 \\iff x - 2 = 10 \\iff x = 12$. Sprawdzamy: $12 > 2$ — OK, $x=12$ należy do $D$, jest prawidłowe.',
+      ],
+      solvedMsg: 'Dziedzina to "gdzie równanie ma prawo istnieć". Deklarując $D$ przed rozwiązywaniem unikasz pułapek typu "log ujemnego", "dzielenie przez zero" czy "pierwiastek z ujemnego".',
+      draw() {
+        viewCh2();
+        view.drawGrid({ color: 'rgba(255,255,255,0.04)' });
+
+        // Shade domain x > 2
+        ctx.save();
+        const xp2 = view.toPx(2, 0)[0];
+        ctx.fillStyle = 'rgba(131,193,103,0.08)';
+        ctx.fillRect(xp2, 0, W - xp2, H);
+        ctx.restore();
+
+        // Shade x <= 2 (outside domain)
+        ctx.save();
+        ctx.fillStyle = 'rgba(255,107,107,0.06)';
+        ctx.fillRect(0, 0, xp2, H);
+        ctx.restore();
+
+        view.drawAxes({ color: 'rgba(255,255,255,0.2)', arrows: false, labels: true, tickSize: 3 });
+
+        // y = log10(x - 2) — only valid for x > 2
+        view.plotFn(x => (x > 2.001) ? Math.log10(x - 2) : NaN, { color: COL_A, lineWidth: 2 });
+        // horizontal line y = 1
+        view.plotFn(x => 1, { color: COL_B, alpha: 0.6, lineWidth: 1.5, dash: [4, 4] });
+
+        // Vertical asymptote at x=2
+        view.segment(2, -2, 2, 3, { color: COL_LHS, alpha: 0.5, lineWidth: 1, dash: [3, 3] });
+
+        // Candidate x marker
+        const inDomain = C.ch2_x > 2;
+        const yVal = inDomain ? Math.log10(C.ch2_x - 2) : NaN;
+        const markerCol = inDomain ? COL_RHS : COL_LHS;
+        view.segment(C.ch2_x, -2, C.ch2_x, 3, { color: markerCol, alpha: 0.7, lineWidth: 1.5 });
+        if (inDomain) {
+          view.dot(C.ch2_x, yVal, { radius: 5, color: markerCol });
+          view.label('log(x-2) = ' + fmt(yVal), C.ch2_x, yVal + 0.3, { color: markerCol, font: '11px monospace', align: 'center' });
+        }
+
+        // Correct solution marker
+        view.dot(12, 1, { radius: 5, color: COL_RHS });
+        view.label('x = 12', 12, 1.3, { color: COL_RHS, font: '11px monospace', align: 'center' });
+
+        // Top info boxes
+        infoBox('D: x > 2', W*0.24, 22, COL_RHS);
+        infoBox(inDomain ? ('x = ' + fmt(C.ch2_x) + ' \u2208 D') : ('x = ' + fmt(C.ch2_x) + ' \u2209 D (poza dziedziną!)'),
+          W*0.70, 22, markerCol);
+      },
+    },
+
+    // ─── Ch.3: √(x-1) = x-3 — squaring introduces fake solutions ──
+    {
+      id: 'ch3_squaring',
+      title: 'Podnoszenie do kwadratu dodaje rozwiązania',
+      desc: 'Rozwiąż $\\sqrt{x - 1} = x - 3$. Po podniesieniu do kwadratu: $x^2 - 7x + 10 = 0$, więc $x = 2$ lub $x = 5$. Ale to $\\sqrt{\\cdot}$ jest $\\geq 0$ — czy oba kandydaci pasują do ORYGINAŁU?',
+      drawBackground: 'none',
+      init() {},
+      predict: {
+        question: 'Który z kandydatów $x = 2, x = 5$ SPEŁNIA oryginalne $\\sqrt{x-1} = x - 3$?',
+        options: [
+          { label: 'oba — skoro wyszły z równania', correct: false, why: 'Sprawdź: $\\sqrt{2-1} = 1$, ale $2 - 3 = -1$. Nie zgadza się — $\\sqrt{\\cdot}$ jest nieujemne.' },
+          { label: 'tylko $x = 5$ (bo RHS musi być $\\geq 0$)', correct: true,  why: 'Tak — $\\sqrt{4} = 2$ i $5 - 3 = 2$, zgodne. Dla $x = 2$: LHS $= 1$ ale RHS $= -1$. Kwadrat wytworzył fałszywego kandydata.' },
+          { label: 'tylko $x = 2$', correct: false, why: 'Dla $x = 2$: $\\sqrt{1} = 1$, a prawa strona $= -1$. Pierwiastek NIGDY nie daje ujemnego — ten kandydat jest fałszywy.' },
+        ],
+      },
+      sliders: [
+        { id: 'ch3_x', lbl: 'x', color: COL_A, min: 1, max: 7, step: 0.25, get: () => C.ch3_x, set: v => {
+            C.ch3_x = v;
+            if (Math.abs(v - 2) < 0.4) C.ch3_seenFake = true;
+            if (Math.abs(v - 5) < 0.4) C.ch3_seenReal = true;
+          } },
+      ],
+      pips() {
+        return [
+          { label: 'sprawdzony kandydat $x = 2$ (fałsz!)', ok: C.ch3_seenFake },
+          { label: 'sprawdzony kandydat $x = 5$ (OK)', ok: C.ch3_seenReal },
+        ];
+      },
+      solved() { return C.ch3_seenFake && C.ch3_seenReal; },
+      hints: [
+        '① Kwadrat jest "jedno-kierunkowy": z $a = b$ wynika $a^2 = b^2$, ale nie odwrotnie — $a^2 = b^2$ oznacza $a = b$ LUB $a = -b$.',
+        '② Dlatego po podniesieniu do kwadratu każdego kandydata TRZEBA sprawdzić w oryginale. Kwadrat może dodać $-b$-rozwiązania.',
+        '③ Alternatywa: od razu zapisz warunek $x - 3 \\geq 0$, czyli $x \\geq 3$ (bo LHS $= \\sqrt{\\cdot} \\geq 0$). Wtedy $x = 2$ od razu odpada.',
+      ],
+      solvedMsg: 'Podnoszenie do kwadratu NIE jest równoważnością. Zasada: po każdym kwadracie sprawdzaj kandydatów w oryginalnym równaniu.',
+      predictAfter: {
+        question: 'Dla $\\sqrt{x+5} = x - 1$: jaki warunek eliminuje fałszywe rozwiązania od razu?',
+        options: [
+          { label: '$x + 5 \\geq 0$, czyli $x \\geq -5$', correct: false, why: 'To warunek istnienia pierwiastka — prawda, ale za słaby. Nie wyklucza $x - 1 < 0$.' },
+          { label: '$x - 1 \\geq 0$, czyli $x \\geq 1$', correct: true,  why: 'Tak — LHS $\\geq 0$, więc i RHS musi być $\\geq 0$. Ten warunek wyklucza "fałszywe" rozwiązania DZIE że patrzymy na znak prawej strony.' },
+          { label: '$x \\neq 1$', correct: false, why: 'Nierówność $\\neq$ to dziedzina ułamka, nie pierwiastka. Tutaj potrzebujesz znaku.' },
+        ],
+      },
+      draw() {
+        viewCh3();
+        view.drawGrid({ color: 'rgba(255,255,255,0.04)' });
+        view.drawAxes({ color: 'rgba(255,255,255,0.2)', arrows: false, labels: true, tickSize: 3 });
+
+        // y = sqrt(x-1)  (green — correct LHS)
+        view.plotFn(x => (x >= 1) ? Math.sqrt(x - 1) : NaN, { color: COL_RHS, lineWidth: 2 });
+        // y = x - 3  (red — RHS)
+        view.plotFn(x => x - 3, { color: COL_LHS, lineWidth: 2 });
+        // y = -(x - 3) — the "ghost" from squaring (green-dashed)
+        view.plotFn(x => -(x - 3), { color: COL_LHS, alpha: 0.4, lineWidth: 1.5, dash: [5, 4] });
+
+        // Mark real intersection x=5
+        view.dot(5, 2, { radius: 6, color: COL_RHS });
+        view.label('x = 5  (prawdziwe)', 5, 2.4, { color: COL_RHS, font: '11px monospace', align: 'center' });
+        // Mark fake intersection x=2 on the sqrt curve
+        view.dot(2, 1, { radius: 6, color: COL_LHS });
+        view.label('x = 2  (fałszywe!)', 2, 1.4, { color: COL_LHS, font: '11px monospace', align: 'center' });
+        // Show where the fake meets: at x=2, sqrt=1, but RHS = -1
+        view.dot(2, -1, { radius: 4, color: COL_LHS });
+        view.segment(2, 1, 2, -1, { color: COL_LHS, alpha: 0.5, lineWidth: 1, dash: [3, 3] });
+
+        // Candidate x
+        const lhs = (C.ch3_x >= 1) ? Math.sqrt(C.ch3_x - 1) : NaN;
+        const rhs = C.ch3_x - 3;
+        const matches = Math.abs(lhs - rhs) < 0.05;
+        view.segment(C.ch3_x, -4, C.ch3_x, 5, { color: COL_A, alpha: 0.5, lineWidth: 1 });
+        if (!isNaN(lhs)) {
+          view.dot(C.ch3_x, lhs, { radius: 4, color: COL_A });
+        }
+        view.dot(C.ch3_x, rhs, { radius: 4, color: COL_B });
+
+        const msg = isNaN(lhs)
+          ? ('x = ' + fmt(C.ch3_x) + '  poza dziedziną $\\sqrt{\\cdot}$')
+          : 'LHS=' + fmt(lhs) + '  RHS=' + fmt(rhs) + (matches ? '  \u2713' : '  \u2717');
+        infoBox('\u221A(x-1) = x-3', W*0.28, 22, COL_RHS);
+        infoBox(msg, W*0.74, 22, matches ? COL_RHS : COL_LHS);
+      },
+    },
+
+    // ─── Ch.4: (x²-1)/(x-1) = x+1 — domain excludes x=1 ───────────
+    {
+      id: 'ch4_hole',
+      title: 'Mianownik $\\neq 0$: "dziura" w wykresie',
+      desc: 'Czy $\\dfrac{x^2 - 1}{x - 1}$ to naprawdę to samo, co $x + 1$? Algebra mówi "skróć" — ale LHS nie jest określone dla $x = 1$. Przesuń $x$ w pobliże dziury.',
+      drawBackground: 'none',
+      init() {},
+      predict: {
+        question: 'Dla jakich $x$ wyrażenia $\\dfrac{x^2 - 1}{x - 1}$ i $x + 1$ są równe?',
+        options: [
+          { label: 'dla wszystkich $x \\in \\mathbb{R}$ — po skróceniu to tożsamość', correct: false, why: 'Nie — LHS nie jest określone dla $x = 1$ (zero w mianowniku). RHS daje 2. "Tożsamość" działa tylko na wspólnej dziedzinie.' },
+          { label: 'dla $x \\neq 1$ (wszędzie poza dziurą)', correct: true,  why: 'Tak — skracanie czynnika $(x-1)$ wymaga $x - 1 \\neq 0$, czyli $x \\neq 1$. Funkcje są równe na $\\mathbb{R} \\setminus \\{1\\}$, ale w samym $x = 1$ LHS jest nieokreślone.' },
+          { label: 'tylko dla $x = 1$', correct: false, why: 'Odwrotnie — $x = 1$ to jedyny punkt, w którym się NIE równają (LHS nieokreślone).' },
+        ],
+      },
+      sliders: [
+        { id: 'ch4_x', lbl: 'x', color: COL_A, min: -2.5, max: 4, step: 0.125, get: () => C.ch4_x, set: v => {
+            C.ch4_x = v;
+            if (Math.abs(v - 1) < 0.35) C.ch4_seenHole = true;
+          } },
+      ],
+      pips() {
+        return [
+          { label: 'zajrzałeś w okolicę $x = 1$', ok: C.ch4_seenHole },
+          { label: 'widać dziurę w wykresie', ok: true },
+        ];
+      },
+      solved() { return C.ch4_seenHole; },
+      hints: [
+        '① Zasada "skracania": $\\dfrac{A \\cdot B}{A} = B$ tylko gdy $A \\neq 0$. Skracanie $(x-1)$ wymaga $x \\neq 1$.',
+        '② $\\dfrac{x^2 - 1}{x - 1} = \\dfrac{(x-1)(x+1)}{x-1}$. Po skróceniu dostajemy $x + 1$, ale dziedzinę POPRZEDNIEGO wyrażenia trzeba zachować: $x \\neq 1$.',
+        '③ Przy rozwiązywaniu równań zapisuj dziedzinę NA POCZĄTKU. Mnożenie obu stron przez $(x-1)$ może wprowadzić fałszywe rozwiązanie $x = 1$.',
+      ],
+      solvedMsg: 'Skracanie i mnożenie przez wyrażenie zawierające zmienną zmieniają dziedzinę. Zawsze zachowuj ograniczenia z ORYGINALNEGO wyrażenia.',
+      draw() {
+        viewCh4();
+        view.drawGrid({ color: 'rgba(255,255,255,0.04)' });
+        view.drawAxes({ color: 'rgba(255,255,255,0.2)', arrows: false, labels: true, tickSize: 3 });
+
+        // y = x + 1 (green — "simplified" RHS, defined everywhere)
+        view.plotFn(x => x + 1, { color: COL_RHS, alpha: 0.45, lineWidth: 2 });
+
+        // y = (x²-1)/(x-1) — same line but with hole at x=1
+        view.plotFn(x => {
+          if (Math.abs(x - 1) < 0.001) return NaN;
+          return (x*x - 1) / (x - 1);
+        }, { color: COL_LHS, lineWidth: 2 });
+
+        // Draw the hole at (1, 2)
+        ctx.save();
+        const [hx, hy] = view.toPx(1, 2);
+        ctx.beginPath();
+        ctx.arc(hx, hy, 5, 0, Math.PI*2);
+        ctx.fillStyle = '#0e0e12';
+        ctx.fill();
+        ctx.strokeStyle = COL_LHS;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+        view.label('dziura: x = 1', 1, 2.7, { color: COL_LHS, font: '11px monospace', align: 'center' });
+
+        // Candidate x
+        const atHole = Math.abs(C.ch4_x - 1) < 0.01;
+        const lhsVal = atHole ? NaN : (C.ch4_x*C.ch4_x - 1) / (C.ch4_x - 1);
+        const rhsVal = C.ch4_x + 1;
+        view.segment(C.ch4_x, -5, C.ch4_x, 7, { color: COL_A, alpha: 0.5, lineWidth: 1 });
+        if (!atHole) view.dot(C.ch4_x, lhsVal, { radius: 4, color: COL_LHS });
+        view.dot(C.ch4_x, rhsVal, { radius: 4, color: COL_RHS });
+
+        // Info boxes
+        infoBox('LHS: (x\u00B2-1)/(x-1)', W*0.26, 22, COL_LHS);
+        infoBox('RHS: x+1', W*0.68, 22, COL_RHS);
+
+        const msg = atHole ? 'x = 1: LHS NIEOKREŚLONE' : 'LHS = RHS = ' + fmt(rhsVal);
+        infoBox(msg, W*0.50, H - 18, atHole ? COL_LHS : COL_RHS);
+      },
+    },
+
+    // ─── Ch.5: Pattern recognition — safe vs dangerous ops ────────
+    {
+      id: 'ch5_safe_vs_dangerous',
+      title: 'Bezpieczne vs niebezpieczne przekształcenia',
+      desc: 'Która operacja na równaniu ZACHOWUJE zbiór rozwiązań (bezpieczna), a która może go zmienić (niebezpieczna)? Wybierz JEDYNĄ bezpieczną.',
+      drawBackground: 'none',
+      init() { C.ch5Pick = null; },
+      predict: {
+        question: 'Która operacja na równaniu ZAWSZE zachowuje zbiór rozwiązań?',
+        options: [
+          { label: 'mnożenie obu stron przez wyrażenie zawierające $x$', correct: false, why: 'Niebezpieczne — mnożenie przez $f(x)$ może DODAĆ rozwiązanie: te $x$, dla których $f(x) = 0$. Tak jak $x = 2$ stało się rozwiązaniem "$0 = 0$" po pomnożeniu przez $(x-2)$.' },
+          { label: 'dodawanie tej samej liczby do obu stron', correct: true, why: 'Tak — to operacja odwracalna ($+c$ ma odwrotność $-c$). Żadnych nowych rozwiązań, żadnych zgubionych. Najbezpieczniejsze przekształcenie w algebrze.' },
+          { label: 'podnoszenie obu stron do kwadratu', correct: false, why: 'Niebezpieczne — kwadrat może dodać fałszywe rozwiązania (te, w których strony różnią się znakiem). Zawsze trzeba sprawdzać kandydatów.' },
+          { label: 'dzielenie obu stron przez $x$ bez sprawdzenia $x = 0$', correct: false, why: 'Niebezpieczne — gubi rozwiązanie $x = 0$. Klasyk Ćwiczenia 1.' },
+        ],
+      },
+      choices: {
+        question: 'Dla utrwalenia: która z poniższych operacji JEST bezpieczna (zachowuje zbiór rozwiązań)?',
+        options: [
+          { id: 'a', label: 'dodawanie tej samej liczby do obu stron', correct: true },
+          { id: 'b', label: 'mnożenie przez wyrażenie z $x$ (np. $\\cdot (x-1)$)', correct: false },
+          { id: 'c', label: 'podnoszenie obu stron do kwadratu', correct: false },
+          { id: 'd', label: 'dzielenie przez $x$ bez sprawdzenia $x = 0$', correct: false },
+        ],
+        pick(id) { C.ch5Pick = id; },
+      },
+      pips() {
+        return [{ label: 'wybrana operacja BEZPIECZNA', ok: C.ch5Pick === 'a' }];
+      },
+      solved() { return C.ch5Pick === 'a'; },
+      hints: [
+        '① "Bezpieczna" = operacja ODWRACALNA. Dodanie $c$ ma odwrotność $-c$. Mnożenie przez stałą $\\neq 0$ ma odwrotność $\\div$.',
+        '② "Niebezpieczna" = operacja, której odwrotność może nie istnieć lub być niejednoznaczna. Kwadrat: $a^2 = b^2$ ma DWA rozwiązania ($a = \\pm b$). Dzielenie przez $x$: jeśli $x = 0$, operacja niewykonalna.',
+        '③ Żelazna lista: $+c, -c, \\cdot c$ (dla $c \\neq 0$), $\\div c$ (dla $c \\neq 0$) — bezpieczne. $\\cdot f(x), \\div f(x), (\\cdot)^2, \\sqrt{\\cdot}$ — WYMAGAJĄ sprawdzenia.',
+      ],
+      solvedMsg: 'Dodawanie stałej to najbezpieczniejsza operacja — nigdy nie dodaje ani nie gubi rozwiązań. Wszystko, co zawiera zmienną lub jest nieliniowe — wymaga ostrożności i sprawdzenia.',
+      draw() {
+        // Cheat-sheet style layout
+        ctx.font = 'bold 14px monospace'; ctx.fillStyle = '#FFFFFF'; ctx.textAlign = 'center';
+        ctx.fillText('Operacje na równaniach — ściągawka', W/2, 36);
+
+        const safe = [
+          { txt: '+c, -c   (ta sama liczba do obu stron)', note: 'zawsze OK' },
+          { txt: '\u00B7c, \u00F7c   (c = stała, c \u2260 0)',   note: 'zawsze OK' },
+        ];
+        const dangerous = [
+          { txt: '\u00F7 x   (dzielenie przez wyrażenie)', note: 'gubi x, gdzie wyr = 0' },
+          { txt: '\u00B7 (x-a)   (mnożenie przez wyrażenie)', note: 'dodaje x = a jako fałsz' },
+          { txt: '(\u00B7)\u00B2   (podnoszenie do kwadratu)',    note: 'dodaje fałszywe rozw.' },
+          { txt: '\u221A(\u00B7)   (pierwiastek)',                 note: 'wymaga arg \u2265 0' },
+          { txt: 'log(\u00B7)   (logarytm)',                       note: 'wymaga arg > 0' },
+        ];
+
+        ctx.font = '12px monospace'; ctx.textAlign = 'left';
+        ctx.fillStyle = COL_RHS;
+        ctx.fillText('BEZPIECZNE (zachowują zbiór rozwiązań):', 40, 70);
+        safe.forEach((it, i) => {
+          const row = 92 + i * 22;
+          ctx.fillStyle = COL_RHS; ctx.fillText('\u2713 ' + it.txt, 52, row);
+          ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.fillText(it.note, 360, row);
+        });
+
+        ctx.fillStyle = COL_LHS;
+        ctx.fillText('NIEBEZPIECZNE (wymagają dziedziny i sprawdzenia):', 40, 160);
+        dangerous.forEach((it, i) => {
+          const row = 182 + i * 22;
+          ctx.fillStyle = COL_LHS; ctx.fillText('\u26A0 ' + it.txt, 52, row);
+          ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.fillText(it.note, 360, row);
+        });
+
+        // User pick indicator
+        if (C.ch5Pick) {
+          const picked = { a: 'dodawanie', b: 'mnożenie przez (x-1)', c: 'kwadrat', d: 'dzielenie przez x' }[C.ch5Pick];
+          const ok = C.ch5Pick === 'a';
+          ctx.font = '11px monospace'; ctx.textAlign = 'center';
+          ctx.fillStyle = ok ? COL_RHS : COL_LHS;
+          ctx.fillText('Wybrane: ' + picked + (ok ? '  (bezpieczne \u2713)' : '  (niebezpieczne \u2717)'), W/2, H - 14);
+        }
+      },
+    },
+
+  ];
+
+  initWarsztat({
+    canvasId: 'cv',
+    challenges,
+    lsKey: 'warsztat:equation_domain:completed',
+    wrapup: 'Zasada żelazna: $(1)$ przed rozwiązywaniem napisz DZIEDZINĘ, $(2)$ po rozwiązaniu SPRAWDŹ kandydatów w oryginale. Operacje bezpieczne: $+c, \\cdot c$ dla stałej $c \\neq 0$. Operacje niebezpieczne (wymagają ostrożności): dzielenie przez wyrażenie z $x$, mnożenie przez wyrażenie z $x$, podnoszenie do kwadratu, pierwiastek, logarytm. Dzielenie GUBI, kwadrat DODAJE, mnożenie przez $(x-a)$ DODAJE fałszywe $x=a$.',
+    onFrame({ ch }) {
+      ctx.save();
+      ctx.fillStyle = '#0e0e12';
+      ctx.fillRect(0, 0, W, H);
+      ctx.restore();
+    },
+  });
+}
+</script>
+</body>
+</html>

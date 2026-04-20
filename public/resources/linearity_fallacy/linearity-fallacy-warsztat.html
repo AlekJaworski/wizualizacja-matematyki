@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pułapka liniowości — Warsztat</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; color: rgba(255,255,255,.85); }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+
+  .head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+  .head .step { font-size: 11px; color: rgba(255,255,255,.4); letter-spacing: .04em; }
+  .head .title { font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  .desc { font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); margin-bottom: 10px; min-height: 34px; }
+
+  .pips { display: flex; gap: 14px; flex-wrap: wrap; margin: 4px 0 10px; font-size: 12px; }
+  .pip { display: inline-flex; align-items: center; gap: 6px; color: rgba(255,255,255,.55); }
+  .pip .mark { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(255,255,255,.25); display: inline-flex; align-items: center; justify-content: center; font-size: 10px; line-height: 1; }
+  .pip.ok { color: #83C167; }
+  .pip.ok .mark { background: #83C167; border-color: #83C167; color: #0e0e12; }
+  .pip.ok .mark::before { content: "\2713"; }
+
+  .predict { margin-bottom: 10px; }
+  .predict .q { font-size: 13px; color: rgba(255,255,255,.82); margin-bottom: 8px; line-height: 1.55; }
+  .predict .opts { display: flex; flex-direction: column; gap: 6px; }
+  .predict button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.78); padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; transition: background .15s, border-color .15s; }
+  .predict button:hover { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.4); }
+  .predict button.picked { border-color: #58C4DD; color: #58C4DD; }
+  .predict .feedback { margin-top: 8px; font-size: 12px; line-height: 1.55; color: rgba(255,255,255,.7); padding: 8px 10px; border-left: 2px solid #58C4DD; background: rgba(88,196,221,.06); border-radius: 0 4px 4px 0; }
+
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 36px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+
+  .choices { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .choices button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.78); padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; transition: background .15s, border-color .15s; }
+  .choices button:hover { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.4); }
+  .choices button.picked { border-color: #58C4DD; color: #58C4DD; }
+  .choices button.correct { border-color: #83C167; color: #83C167; }
+  .choices button.wrong { border-color: #FF6B6B; color: #FF6B6B; }
+
+  .hints { font-size: 12px; color: rgba(255,255,255,.5); margin: 4px 0 10px; line-height: 1.55; }
+
+  .nav { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+  .nav button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  .nav button:hover:not(:disabled) { background: rgba(255,255,255,.08); }
+  .nav button:disabled { opacity: .3; cursor: default; }
+  .nav button.primary { border-color: #83C167; color: #83C167; }
+  .nav button.primary:hover { background: rgba(131,193,103,.1); }
+
+  .dots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.15); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  .dot.done { background: #83C167; }
+
+  .solved-note { font-size: 13px; color: #83C167; line-height: 1.55; padding: 8px 10px; border-left: 2px solid #83C167; background: rgba(131,193,103,.06); border-radius: 0 4px 4px 0; margin-bottom: 8px; }
+  .wrapup-note { font-size: 13px; color: #C78DFF; line-height: 1.55; padding: 10px 12px; border-left: 2px solid #C78DFF; background: rgba(199,141,255,.06); border-radius: 0 4px 4px 0; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="360"></canvas>
+  <div class="panel">
+    <div class="head">
+      <span class="step" id="step"></span>
+      <div class="dots" id="dots"></div>
+    </div>
+    <p class="title" id="title"></p>
+    <p class="desc" id="desc"></p>
+    <div id="predict"></div>
+    <div id="sliders-wrap"></div>
+    <div id="choices-wrap"></div>
+    <div class="pips" id="pips"></div>
+    <div class="hints" id="hints"></div>
+    <div id="solved-msg"></div>
+    <div class="nav">
+      <button id="prev">&larr;</button>
+      <button id="next" class="primary">Dalej &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { GraphView } from '../lib/graph-core.js';
+import { initWarsztat } from '../lib/warsztat-core.js';
+{
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const W = 600, H = 360;
+
+  // ── Colors ─────────────────────────────────────────────────────
+  const COL_LHS  = '#FF6B6B';   // "what students write"
+  const COL_RHS  = '#83C167';   // "what's actually correct"
+  const COL_A    = '#58C4DD';
+  const COL_B    = '#FFD166';
+  const COL_AB   = '#C78DFF';   // the missing cross term (2ab)
+  const COL_DIM  = 'rgba(255,255,255,0.35)';
+
+  // ── Draw helpers ───────────────────────────────────────────────
+  function roundRect(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x+r,y); c.lineTo(x+w-r,y); c.quadraticCurveTo(x+w,y,x+w,y+r);
+    c.lineTo(x+w,y+h-r); c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    c.lineTo(x+r,y+h); c.quadraticCurveTo(x,y+h,x,y+h-r);
+    c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y);
+    c.closePath();
+  }
+  function infoBox(text, sx, sy, col) {
+    ctx.save();
+    ctx.font = '12px monospace';
+    const w = ctx.measureText(text).width + 14;
+    ctx.fillStyle = 'rgba(14,14,18,0.9)';
+    ctx.strokeStyle = col + '60';
+    ctx.lineWidth = 1;
+    roundRect(ctx, sx - w/2, sy - 11, w, 22, 4);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = col;
+    ctx.textAlign = 'center';
+    ctx.fillText(text, sx, sy + 4);
+    ctx.restore();
+  }
+  function fmt(v, d) { d = d ?? 2; return (Math.abs(v - Math.round(v)) < 1e-9) ? Math.round(v).toString() : v.toFixed(d); }
+
+  // ── Challenge-local state ──────────────────────────────────────
+  const C = {
+    a: 3, b: 2,             // ch1: (a+b)²
+    la: 3, lb: 4,           // ch2: √(a²+b²) — triangle legs
+    log_a: 4, log_b: 6,     // ch3: log(a+b)
+    alpha: 30, beta: 60,    // ch4: sin(α+β)  (degrees)
+    ch5Pick: null,
+  };
+
+  // ── View for ch3 (graph of log) ────────────────────────────────
+  let view;
+  function initLogView() {
+    view = new GraphView(ctx, {
+      rect: [0, 0, W, H],
+      xRange: [0.1, 14],
+      yRange: [-1.5, 3.2],
+      scale: 42,
+    });
+  }
+
+  // ── Challenges ─────────────────────────────────────────────────
+  const challenges = [
+
+    // ─── Ch.1: (a + b)² vs a² + b² ─────────────────────────────
+    {
+      id: 'ch1_square_of_sum',
+      title: 'Kwadrat sumy: $(a+b)^2$',
+      desc: 'Najsłynniejszy błąd: $(a+b)^2 = a^2 + b^2$. Zobacz to geometrycznie — kwadrat o boku $a+b$ rozkłada się na CZTERY kawałki, nie dwa.',
+      drawBackground: 'none',
+      init() {},
+      predict: {
+        question: 'Podstaw $a = 3$, $b = 2$. Ile wynosi $(3 + 2)^2$?',
+        options: [
+          { label: '$3^2 + 2^2 = 13$', correct: false, why: 'To właśnie pułapka — tak BY wyglądało, gdyby kwadrat był rozdzielny. Ale $(3+2)^2 = 5^2 = 25$, a nie 13. Brakuje 12 — to jest $2 \\cdot 3 \\cdot 2$.' },
+          { label: '$5^2 = 25$', correct: true,  why: 'Tak — najpierw dodaj, potem podnieś do kwadratu. Różnica: $25 - 13 = 12 = 2 \\cdot 3 \\cdot 2 = 2ab$. To właśnie "brakujący" człon.' },
+          { label: '$3 + 2^2 = 7$', correct: false, why: 'Kolejność: najpierw nawias $(3+2) = 5$, potem kwadrat. A dwójka do kwadratu to 4, nie 2^2=2.' },
+        ],
+      },
+      sliders: [
+        { id: 'a', lbl: 'a', color: COL_A, min: 1, max: 4, step: 1, get: () => C.a, set: v => C.a = v },
+        { id: 'b', lbl: 'b', color: COL_B, min: 1, max: 4, step: 1, get: () => C.b, set: v => C.b = v },
+      ],
+      pips() {
+        return [
+          { label: 'widzisz rozkład $a^2 + 2ab + b^2$', ok: true },
+          { label: 'zmień $a$ lub $b$', ok: C.a !== 3 || C.b !== 2 },
+        ];
+      },
+      solved() { return C.a !== 3 || C.b !== 2; },
+      hints: [
+        '① Narysuj kwadrat o boku $(a+b)$. Podziel każdy bok na kawałek długości $a$ i kawałek długości $b$. Dostajesz siatkę $2 \\times 2$ — CZTERY prostokąty.',
+        '② Z tych czterech: jeden to kwadrat $a \\times a = a^2$, drugi to $b \\times b = b^2$, a dwa pozostałe to prostokąty $a \\times b$. Suma wszystkich: $a^2 + b^2 + 2ab$.',
+        '③ Więc $(a+b)^2 = a^2 + 2ab + b^2$. Brakujące $2ab$ to ROŻNICA między LHS a RHS w błędnej wersji — geometrycznie dwa prostokąty $a \\times b$, które "gubi się" przy rozdzielaniu.',
+      ],
+      solvedMsg: 'Geometryczny dowód: kwadrat o boku $a+b$ ma pole $(a+b)^2$, które składa się z $a^2 + 2ab + b^2$. Zawsze, dla każdych $a, b$.',
+      predictAfter: {
+        question: 'A więc $(a - b)^2 = ?$',
+        options: [
+          { label: '$a^2 - b^2$', correct: false, why: 'Nie — to wzór na RÓŻNICĘ kwadratów: $a^2 - b^2 = (a-b)(a+b)$. Kwadrat różnicy to coś innego.' },
+          { label: '$a^2 - 2ab + b^2$', correct: true,  why: 'Tak — środkowy człon zmienia znak (bo $-b \\cdot a = -ab$ dwa razy), ale $(-b)^2 = +b^2$.' },
+          { label: '$a^2 - 2ab - b^2$', correct: false, why: 'Kwadrat $(-b)^2$ jest DODATNI (każdy kwadrat liczby rzeczywistej jest $\\geq 0$).' },
+        ],
+      },
+      draw() {
+        // Big square of side (a+b), pixel scale
+        const scale = 48;
+        const total = C.a + C.b;
+        const side = total * scale;
+        const x0 = (W - side) / 2;
+        const y0 = (H - side) / 2 - 6;
+        const ax = C.a * scale;
+        const bx = C.b * scale;
+
+        // a² — blue
+        ctx.fillStyle = COL_A + '55';
+        ctx.fillRect(x0, y0, ax, ax);
+        // b² — yellow
+        ctx.fillStyle = COL_B + '55';
+        ctx.fillRect(x0 + ax, y0 + ax, bx, bx);
+        // 2ab — purple (two rectangles)
+        ctx.fillStyle = COL_AB + '55';
+        ctx.fillRect(x0 + ax, y0, bx, ax);
+        ctx.fillRect(x0, y0 + ax, ax, bx);
+
+        // Borders
+        ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x0, y0, side, side);
+        ctx.beginPath();
+        ctx.moveTo(x0 + ax, y0); ctx.lineTo(x0 + ax, y0 + side);
+        ctx.moveTo(x0, y0 + ax); ctx.lineTo(x0 + side, y0 + ax);
+        ctx.stroke();
+
+        // Region labels
+        ctx.font = 'bold 14px monospace';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = COL_A;  ctx.fillText('a\u00B2', x0 + ax/2, y0 + ax/2);
+        ctx.fillStyle = COL_B;  ctx.fillText('b\u00B2', x0 + ax + bx/2, y0 + ax + bx/2);
+        ctx.fillStyle = COL_AB; ctx.fillText('ab',  x0 + ax + bx/2, y0 + ax/2);
+        ctx.fillStyle = COL_AB; ctx.fillText('ab',  x0 + ax/2, y0 + ax + bx/2);
+
+        // Side labels
+        ctx.font = '12px monospace';
+        ctx.fillStyle = COL_A;
+        ctx.fillText('a = ' + C.a, x0 + ax/2, y0 - 10);
+        ctx.fillStyle = COL_B;
+        ctx.fillText('b = ' + C.b, x0 + ax + bx/2, y0 - 10);
+
+        // Formula box at top
+        ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+        const total2 = total * total;
+        const sumSq = C.a*C.a + C.b*C.b;
+        const cross = 2 * C.a * C.b;
+        infoBox('(a+b)\u00B2 = ' + total2, W * 0.25, 22, COL_RHS);
+        infoBox('a\u00B2 + b\u00B2 = ' + sumSq + '  (brak 2ab = ' + cross + ')', W * 0.72, 22, COL_LHS);
+      },
+    },
+
+    // ─── Ch.2: √(a² + b²) vs a + b  (Pythagoras vs naive) ──────
+    {
+      id: 'ch2_sqrt_sum',
+      title: 'Pierwiastek sumy kwadratów: $\\sqrt{a^2 + b^2}$',
+      desc: 'To jest przeciwprostokątna trójkąta prostokątnego o przyprostokątnych $a, b$. Student czasem "upraszcza" to do $a + b$. Zobacz, dlaczego to NIGDY się nie zgadza.',
+      drawBackground: 'none',
+      init() {},
+      predict: {
+        question: 'Dla trójkąta prostokątnego o przyprostokątnych $a = 3$, $b = 4$: która liczba to długość przeciwprostokątnej?',
+        options: [
+          { label: '$3 + 4 = 7$', correct: false, why: 'Nie — to długość ŁAMANEJ (dwie przyprostokątne sklejone). Przeciwprostokątna jest SKRÓTEM między końcami — zawsze krótszym niż suma.' },
+          { label: '$\\sqrt{3^2 + 4^2} = 5$', correct: true,  why: 'Tak — to twierdzenie Pitagorasa. Zauważ: $5 < 7$, więc "skrót" krótszy niż "obejście" o 2 jednostki.' },
+          { label: '$\\sqrt{3 \\cdot 4} = \\sqrt{12}$', correct: false, why: 'To średnia geometryczna, nie Pitagoras. W Pitagorasie SUMUJEMY kwadraty, nie mnożymy liczby.' },
+        ],
+      },
+      sliders: [
+        { id: 'la', lbl: 'a', color: COL_A, min: 1, max: 5, step: 1, get: () => C.la, set: v => C.la = v },
+        { id: 'lb', lbl: 'b', color: COL_B, min: 1, max: 5, step: 1, get: () => C.lb, set: v => C.lb = v },
+      ],
+      pips() {
+        const gap = (C.la + C.lb) - Math.sqrt(C.la*C.la + C.lb*C.lb);
+        return [
+          { label: 'trójkąt pokazuje różnicę', ok: true },
+          { label: 'suma > pierwiastek (zawsze)', ok: gap > 0.01 },
+        ];
+      },
+      solved() { return C.la !== 3 || C.lb !== 4; },
+      hints: [
+        '① Przeciwprostokątna to najkrótszy odcinek między końcami trójkąta — w linii prostej.',
+        '② Suma $a + b$ to długość drogi "po dwóch przyprostokątnych" — łamana. Z nierówności trójkąta ta łamana jest zawsze $\\geq$ skrót, z równością tylko gdy trójkąt zdegeneruje się (czyli $a = 0$ lub $b = 0$).',
+        '③ Formalnie: $\\sqrt{a^2 + b^2} \\leq a + b$, a po podniesieniu do kwadratu dostajemy $a^2 + b^2 \\leq a^2 + 2ab + b^2$, czyli $0 \\leq 2ab$ — prawdziwe dla $a, b \\geq 0$.',
+      ],
+      solvedMsg: 'Nierówność trójkąta: suma dwóch boków > trzeci bok. Dla trójkąta prostokątnego to przekłada się na $a + b > \\sqrt{a^2 + b^2}$ — i dlatego "pierwiastek sumy kwadratów = suma" nigdy nie działa.',
+      draw() {
+        // Draw right triangle with legs a, b
+        const scale = 42;
+        const ax = C.la * scale;
+        const by = C.lb * scale;
+        const x0 = W * 0.32;
+        const y0 = (H - by) / 2 + 30;
+
+        // Leg a (horizontal) — blue
+        ctx.strokeStyle = COL_A; ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(x0, y0 + by); ctx.lineTo(x0 + ax, y0 + by);
+        ctx.stroke();
+        // Leg b (vertical) — yellow
+        ctx.strokeStyle = COL_B; ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(x0, y0); ctx.lineTo(x0, y0 + by);
+        ctx.stroke();
+        // Hypotenuse — green (correct answer)
+        ctx.strokeStyle = COL_RHS; ctx.lineWidth = 3;
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.moveTo(x0, y0); ctx.lineTo(x0 + ax, y0 + by);
+        ctx.stroke();
+
+        // Naive "a+b" polyline (highlighted as wrong answer): emphasize as dotted red overlay along the two legs
+        ctx.strokeStyle = COL_LHS; ctx.lineWidth = 2; ctx.setLineDash([6, 4]);
+        ctx.beginPath();
+        ctx.moveTo(x0 + 3, y0);
+        ctx.lineTo(x0 + 3, y0 + by - 3);
+        ctx.lineTo(x0 + ax, y0 + by - 3);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Right-angle square
+        ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x0, y0 + by - 10, 10, 10);
+
+        // Labels
+        ctx.font = '12px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = COL_A; ctx.fillText('a = ' + C.la, x0 + ax/2, y0 + by + 18);
+        ctx.fillStyle = COL_B; ctx.textAlign = 'right'; ctx.fillText('b = ' + C.lb, x0 - 8, y0 + by/2);
+        ctx.textAlign = 'left';
+        const hyp = Math.sqrt(C.la*C.la + C.lb*C.lb);
+        ctx.fillStyle = COL_RHS;
+        ctx.fillText('\u221A(a\u00B2+b\u00B2) = ' + fmt(hyp), x0 + ax/2 + 10, y0 + by/2 - 4);
+
+        // Numeric comparison boxes
+        ctx.textAlign = 'left';
+        infoBox('\u221A(a\u00B2+b\u00B2) = ' + fmt(hyp), W*0.24, 22, COL_RHS);
+        infoBox('a + b = ' + (C.la + C.lb) + '  (NIGDY nie równe)', W*0.74, 22, COL_LHS);
+      },
+    },
+
+    // ─── Ch.3: log(a+b) vs log a + log b ───────────────────────
+    {
+      id: 'ch3_log_sum',
+      title: 'Logarytm sumy vs iloczynu',
+      desc: 'Reguła logarytmu iloczynu: $\\log(ab) = \\log a + \\log b$. Częsta pomyłka: zamiana iloczynu na sumę w argumencie. Dla sumy logarytm NIE jest rozdzielny.',
+      drawBackground: 'log',
+      init() {},
+      predict: {
+        question: 'Dla $a = 4$, $b = 6$: co równa się $\\log 4 + \\log 6$?',
+        options: [
+          { label: '$\\log(4 + 6) = \\log 10$', correct: false, why: 'To właśnie pułapka — mylenie reguły iloczynu z sumą. $\\log(4+6) = \\log 10 = 1$ (dla $\\log_{10}$), ale $\\log 4 + \\log 6 \\approx 0{,}60 + 0{,}78 = 1{,}38$.' },
+          { label: '$\\log(4 \\cdot 6) = \\log 24$', correct: true,  why: 'Tak — logarytm ILOCZYNU to suma logarytmów: $\\log(ab) = \\log a + \\log b$. Dlatego $\\log 4 + \\log 6 = \\log 24$, nie $\\log 10$.' },
+          { label: '$\\log(4/6)$', correct: false, why: 'Odwrotnie — $\\log(a/b) = \\log a - \\log b$ (różnica, nie suma).' },
+        ],
+      },
+      sliders: [
+        { id: 'log_a', lbl: 'a', color: COL_A, min: 1, max: 8, step: 1, get: () => C.log_a, set: v => C.log_a = v },
+        { id: 'log_b', lbl: 'b', color: COL_B, min: 1, max: 8, step: 1, get: () => C.log_b, set: v => C.log_b = v },
+      ],
+      pips() {
+        return [
+          { label: 'zmień $a$ lub $b$', ok: C.log_a !== 4 || C.log_b !== 6 },
+          { label: 'widzisz 3 różne wartości', ok: true },
+        ];
+      },
+      solved() { return C.log_a !== 4 || C.log_b !== 6; },
+      hints: [
+        '① Zapamiętaj trzy wzory:  $\\log(ab) = \\log a + \\log b$,  $\\log(a/b) = \\log a - \\log b$,  $\\log(a^k) = k \\log a$.',
+        '② Dla SUMY $\\log(a+b)$ — NIE MA prostej postaci. Po prostu zostaw tak jak jest.',
+        '③ Test: podstaw $a = b = 1$ i $\\log = \\log_{10}$. Wtedy $\\log(1 + 1) = \\log 2 \\approx 0{,}30$, ale $\\log 1 + \\log 1 = 0$. Różne — czyli rozdzielność dla sumy NIE zachodzi.',
+      ],
+      solvedMsg: 'Regula kluczowa: logarytm zamienia ILOCZYN w sumę, nie sumę w sumę. Mylenie tych dwóch to jeden z najczęstszych błędów maturalnych.',
+      predictAfter: {
+        question: 'Które wyrażenie JEST poprawne?',
+        options: [
+          { label: '$\\log(a + b) = \\log a + \\log b$', correct: false, why: 'Logarytm SUMY nie ma prostej postaci.' },
+          { label: '$\\log(a \\cdot b) = \\log a + \\log b$', correct: true,  why: 'Tak — logarytm iloczynu. Jedyna z trzech z prawidłową strukturą.' },
+          { label: '$\\log(a^b) = b + \\log a$', correct: false, why: 'Prawie — ale $\\log(a^b) = b \\cdot \\log a$ (mnożenie, nie dodawanie).' },
+        ],
+      },
+      draw() {
+        initLogView();
+        view.drawGrid({ color: 'rgba(255,255,255,0.04)' });
+        view.drawAxes({ color: 'rgba(255,255,255,0.2)', arrows: false, labels: true, tickSize: 3 });
+        // plot log₁₀(x)
+        view.plotFn(x => Math.log10(x), { color: COL_DIM, alpha: 0.7, lineWidth: 2 });
+
+        const a = C.log_a, b = C.log_b;
+        const logA = Math.log10(a);
+        const logB = Math.log10(b);
+        const logSumVal = Math.log10(a + b);   // log(a+b) — what student naively thinks equals logA + logB
+        const logProd   = logA + logB;         // logA + logB = log(a·b)
+        const prodX     = a * b;               // where logA + logB actually lives on the curve
+
+        // Mark log(a) at x=a
+        view.dot(a, logA, { radius: 4, color: COL_A });
+        // Mark log(b) at x=b
+        view.dot(b, logB, { radius: 4, color: COL_B });
+        // Mark log(a+b) — on the curve at x = a+b
+        view.dot(a + b, logSumVal, { radius: 5, color: COL_LHS });
+        // Mark log(a) + log(b) on the curve — happens at x = a·b
+        view.dot(prodX, logProd, { radius: 5, color: COL_RHS });
+
+        // Dashed lines to x-axis for the two candidate locations
+        view.segment(a + b, 0, a + b, logSumVal, { color: COL_LHS, alpha: 0.6, lineWidth: 1, dash: [4, 4] });
+        view.segment(prodX, 0, prodX, logProd, { color: COL_RHS, alpha: 0.6, lineWidth: 1, dash: [4, 4] });
+
+        // Labels
+        view.label('log(a+b) at x=' + (a+b), a + b, logSumVal + 0.25, { color: COL_LHS, font: '10px monospace', align: 'center' });
+        view.label('log(a)+log(b) = log(ab) at x=' + prodX, prodX, logProd + 0.25, { color: COL_RHS, font: '10px monospace', align: 'center' });
+
+        // Top info
+        infoBox('log(a+b) = ' + fmt(logSumVal), W*0.25, 22, COL_LHS);
+        infoBox('log(a)+log(b) = ' + fmt(logProd), W*0.75, 22, COL_RHS);
+      },
+    },
+
+    // ─── Ch.4: sin(α+β) vs sin α + sin β ─────────────────────────
+    {
+      id: 'ch4_sin_sum',
+      title: 'Sinus sumy: $\\sin(\\alpha + \\beta)$',
+      desc: 'Sinus jest ograniczony: $\\sin x \\in [-1, 1]$ zawsze. Ale $\\sin \\alpha + \\sin \\beta$ może urosnąć do 2. Sam ten fakt pokazuje, że rozdzielność nie ma prawa zachodzić.',
+      drawBackground: 'none',
+      init() {},
+      predict: {
+        question: 'Dla $\\alpha = 30°$, $\\beta = 60°$: jak mają się $\\sin(\\alpha + \\beta)$ i $\\sin \\alpha + \\sin \\beta$?',
+        options: [
+          { label: 'Są równe — tak jak w każdej innej funkcji', correct: false, why: 'Sinus sumy nie jest sumą sinusów. $\\sin 90° = 1$, a $\\sin 30° + \\sin 60° = 0{,}5 + \\approx 0{,}87 = 1{,}37$ — różne.' },
+          { label: '$\\sin(\\alpha+\\beta) < \\sin \\alpha + \\sin \\beta$', correct: true,  why: 'Tak — w tym przypadku $1 < 1{,}37$. W ogólności: dla małych kątów suma sinusów rośnie liniowo, a $\\sin$ zakrzywia się i zostaje mniejszy.' },
+          { label: '$\\sin(\\alpha+\\beta) > \\sin \\alpha + \\sin \\beta$', correct: false, why: 'Możliwe tylko dla niektórych kątów ujemnych lub z drugiej ćwiartki. Dla $30°$ i $60°$ jest przeciwnie.' },
+        ],
+      },
+      sliders: [
+        { id: 'alpha', lbl: '\u03B1', color: COL_A, min: 0, max: 90, step: 15, get: () => C.alpha, set: v => C.alpha = v },
+        { id: 'beta',  lbl: '\u03B2', color: COL_B, min: 0, max: 90, step: 15, get: () => C.beta,  set: v => C.beta = v },
+      ],
+      pips() {
+        const a = C.alpha * Math.PI/180, b = C.beta * Math.PI/180;
+        const sumSin = Math.sin(a) + Math.sin(b);
+        return [
+          { label: 'zmień któryś kąt', ok: C.alpha !== 30 || C.beta !== 60 },
+          { label: 'suma sinusów > 1 (gdy sensowne kąty)', ok: sumSin > 1.01 },
+        ];
+      },
+      solved() { return C.alpha !== 30 || C.beta !== 60; },
+      hints: [
+        '① $\\sin(\\alpha + \\beta)$ to POJEDYNCZY sinus o argumencie $\\alpha+\\beta$. Jego wartość zawsze $\\in [-1, 1]$.',
+        '② $\\sin \\alpha + \\sin \\beta$ to SUMA dwóch osobnych sinusów. Jeśli oba dodatnie i bliskie 1 — suma może sięgać 2. To wystarczy, żeby pokazać, że rozdzielność musi zawodzić.',
+        '③ Wzór poprawny: $\\sin(\\alpha+\\beta) = \\sin\\alpha \\cos\\beta + \\cos\\alpha \\sin\\beta$. Miesza sinusy z kosinusami — dlatego nie da się "rozdzielić" wprost.',
+      ],
+      solvedMsg: 'Argument ograniczenia: LHS $\\in [-1, 1]$, RHS może dojść do 2. Dwie różne funkcje — nie ma szansy, żeby były równe w ogólności.',
+      predictAfter: {
+        question: 'Z którego równania skorzystasz, żeby obliczyć $\\sin 75°$ (dokładnie, bez kalkulatora)?',
+        options: [
+          { label: '$\\sin 75° = \\sin 30° + \\sin 45°$', correct: false, why: 'Sinus sumy NIE jest sumą sinusów — ta równość jest fałszywa.' },
+          { label: '$\\sin 75° = \\sin(30° + 45°) = \\sin 30° \\cos 45° + \\cos 30° \\sin 45°$', correct: true,  why: 'Tak — to wzór na sinus sumy. Wszystkie wartości po prawej są znane.' },
+          { label: '$\\sin 75° = \\sqrt{\\sin^2 30° + \\sin^2 45°}$', correct: false, why: 'Nie ma takiego wzoru. To byłoby "Pitagoras dla sinusów" — nie istnieje.' },
+        ],
+      },
+      draw() {
+        // Two horizontal bars comparing the two quantities, plus a small unit circle showing α+β
+        const a = C.alpha * Math.PI/180, b = C.beta * Math.PI/180;
+        const lhs = Math.sin(a + b);
+        const sinA = Math.sin(a);
+        const sinB = Math.sin(b);
+        const rhs = sinA + sinB;
+
+        const barX = 150, barMaxW = 380, barH = 28;
+        const maxVal = 2;
+
+        function drawBar(y, val, label, col) {
+          ctx.fillStyle = 'rgba(255,255,255,0.05)';
+          ctx.fillRect(barX, y, barMaxW, barH);
+          ctx.fillStyle = col + '99';
+          ctx.fillRect(barX, y, Math.max(0, val / maxVal) * barMaxW, barH);
+          // tick at 1 (maximum possible sine)
+          ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 1; ctx.setLineDash([3,3]);
+          ctx.beginPath(); ctx.moveTo(barX + barMaxW/2, y - 2); ctx.lineTo(barX + barMaxW/2, y + barH + 2); ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.font = '12px monospace'; ctx.textAlign = 'right'; ctx.fillStyle = 'rgba(255,255,255,0.7)';
+          ctx.fillText(label, barX - 10, y + barH/2 + 4);
+          ctx.textAlign = 'left'; ctx.fillStyle = col;
+          ctx.fillText('= ' + fmt(val), barX + barMaxW + 10, y + barH/2 + 4);
+        }
+
+        // Title
+        ctx.font = '13px monospace'; ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.textAlign = 'center';
+        ctx.fillText('\u03B1 = ' + C.alpha + '\u00B0,  \u03B2 = ' + C.beta + '\u00B0', W/2, 40);
+
+        drawBar(90,  lhs, 'sin(\u03B1+\u03B2)', COL_RHS);
+        drawBar(140, rhs, 'sin\u03B1 + sin\u03B2', COL_LHS);
+
+        // Tick label for "1 = max sine"
+        ctx.font = '10px monospace'; ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.textAlign = 'center';
+        ctx.fillText('1 (max dla pojedynczego sinusa)', barX + barMaxW/2, 82);
+        ctx.fillText('2', barX + barMaxW, 82);
+        ctx.fillText('0', barX, 82);
+
+        // Difference indicator
+        const diff = rhs - lhs;
+        const gapLabel = Math.abs(diff) < 0.001 ? 'różnica \u2248 0' :
+          'różnica = ' + fmt(diff) + (diff > 0 ? '  (RHS większy)' : '  (LHS większy)');
+        ctx.font = '12px monospace'; ctx.fillStyle = COL_AB; ctx.textAlign = 'center';
+        ctx.fillText(gapLabel, W/2, 200);
+
+        // Small message
+        ctx.font = '11px monospace'; ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.fillText('zielony pasek NIGDY nie przekroczy 1 — bo to pojedynczy sinus', W/2, 230);
+        ctx.fillText('czerwony pasek może dojść do 2 — to suma dwóch sinusów', W/2, 248);
+
+        ctx.textAlign = 'left';
+        infoBox('sin(\u03B1+\u03B2) \u2208 [-1, 1]', W*0.27, 22, COL_RHS);
+        infoBox('sin\u03B1 + sin\u03B2 \u2208 [-2, 2]', W*0.73, 22, COL_LHS);
+      },
+    },
+
+    // ─── Ch.5: Pattern recognition — which IS distributive? ────
+    {
+      id: 'ch5_which_is_true',
+      title: 'Rozpoznaj: która równość JEST prawdziwa?',
+      desc: 'Nie każde wyrażenie jest pułapką. Niektóre operacje NAPRAWDĘ są rozdzielne. Wybierz jedyne poprawne równanie.',
+      drawBackground: 'none',
+      init() { C.ch5Pick = null; },
+      predict: {
+        question: 'Które z tych równań JEST poprawne DLA KAŻDYCH $a, b > 0$?',
+        options: [
+          { label: '$\\sqrt{a + b} = \\sqrt{a} + \\sqrt{b}$', correct: false, why: 'Fałsz — $\\sqrt{1+1} = \\sqrt{2} \\approx 1{,}41$, a $\\sqrt{1}+\\sqrt{1} = 2$.' },
+          { label: '$\\dfrac{1}{a} + \\dfrac{1}{b} = \\dfrac{a + b}{ab}$', correct: true,  why: 'Tak — to POPRAWNY sposób dodawania ułamków. Wspólny mianownik $ab$. Nie mylić z $\\dfrac{1}{a+b}$ (które NIE równa się $\\dfrac{1}{a} + \\dfrac{1}{b}$).' },
+          { label: '$e^{a+b} = e^a + e^b$', correct: false, why: 'Odwrotnie: $e^{a+b} = e^a \\cdot e^b$ (MNOŻENIE potęg). Rozdzielność względem sumy — żadna funkcja wykładnicza.' },
+          { label: '$\\cos(\\alpha + \\beta) = \\cos \\alpha + \\cos \\beta$', correct: false, why: 'Nie. Analogicznie do sinusa: $\\cos(\\alpha+\\beta) = \\cos\\alpha\\cos\\beta - \\sin\\alpha\\sin\\beta$.' },
+        ],
+      },
+      choices: {
+        question: 'Dla utrwalenia — zaznacz którą operację rozdzielność UJĘŁA poprawnie (w tym przykładzie).',
+        options: [
+          { id: 'a', label: '$c \\cdot (a + b) = c \\cdot a + c \\cdot b$ (stałe $c$ razy suma)', correct: true },
+          { id: 'b', label: '$(a+b)^2 = a^2 + b^2$', correct: false },
+          { id: 'c', label: '$\\log(a+b) = \\log a + \\log b$', correct: false },
+          { id: 'd', label: '$\\dfrac{1}{a+b} = \\dfrac{1}{a} + \\dfrac{1}{b}$', correct: false },
+        ],
+        pick(id) { C.ch5Pick = id; },
+      },
+      pips() {
+        return [{ label: 'poprawna operacja rozdzielna', ok: C.ch5Pick === 'a' }];
+      },
+      solved() { return C.ch5Pick === 'a'; },
+      hints: [
+        '① Rozdzielność $f(a+b) = f(a) + f(b)$ działa TYLKO dla funkcji LINIOWYCH: $f(x) = cx$ (mnożenie przez stałą) lub $f(x) = cx + 0$ (bez stałej dodatkowej).',
+        '② Wszystkie nieliniowe funkcje — kwadrat, pierwiastek, logarytm, sinus, kosinus, wykładnicza, odwrotność — ŁAMIĄ rozdzielność.',
+        '③ Test: jeśli wykres $y = f(x)$ nie jest PROSTĄ przechodzącą przez zero, to $f$ nie jest rozdzielne. Koniec.',
+      ],
+      solvedMsg: 'Tylko mnożenie przez stałą jest prawdziwie rozdzielne. Dlatego $2(a+b) = 2a + 2b$ działa, ale $(a+b)^2 \\neq a^2 + b^2$.',
+      draw() {
+        // List of true vs false distributivity statements, color-coded
+        ctx.font = 'bold 14px monospace'; ctx.fillStyle = '#FFFFFF'; ctx.textAlign = 'center';
+        ctx.fillText('Rozdzielność — ściągawka', W/2, 40);
+
+        const items = [
+          { txt: 'c\u00B7(a+b) = c\u00B7a + c\u00B7b', ok: true,  note: 'mnożenie przez stałą' },
+          { txt: '(a+b)\u00B2 = a\u00B2 + 2ab + b\u00B2', ok: true,  note: 'TAK — ale z członem 2ab' },
+          { txt: '(a+b)\u00B2 = a\u00B2 + b\u00B2',        ok: false, note: 'brak 2ab' },
+          { txt: '\u221A(a\u00B2+b\u00B2) = a + b',          ok: false, note: 'łamie nier. trójkąta' },
+          { txt: 'log(a\u00B7b) = log a + log b',           ok: true,  note: 'iloczyn, nie suma' },
+          { txt: 'log(a+b) = log a + log b',                 ok: false, note: 'pomylone z iloczynem' },
+          { txt: 'sin(\u03B1+\u03B2) = sin\u03B1\u00B7cos\u03B2 + cos\u03B1\u00B7sin\u03B2', ok: true,  note: 'wzór na sin sumy' },
+          { txt: 'sin(\u03B1+\u03B2) = sin\u03B1 + sin\u03B2',                ok: false, note: 'przekracza 1' },
+          { txt: '1/(a+b) = 1/a + 1/b',                      ok: false, note: '1/(1+1)=0.5 \u2260 2' },
+        ];
+
+        ctx.font = '12px monospace'; ctx.textAlign = 'left';
+        items.forEach((it, i) => {
+          const row = 72 + i * 28;
+          ctx.fillStyle = it.ok ? COL_RHS : COL_LHS;
+          ctx.fillText((it.ok ? '\u2713 ' : '\u2717 ') + it.txt, 40, row);
+          ctx.fillStyle = 'rgba(255,255,255,0.45)';
+          ctx.fillText(it.note, 340, row);
+        });
+      },
+    },
+
+  ];
+
+  initWarsztat({
+    canvasId: 'cv',
+    challenges,
+    lsKey: 'warsztat:linearity_fallacy:completed',
+    wrapup: 'Zasada ogólna: $f(a+b) \\neq f(a) + f(b)$ dla praktycznie każdej funkcji poza liniowymi $f(x) = cx$. Kwadrat, pierwiastek, logarytm, sinus, kosinus, wykładnicza, odwrotność — ŻADNA nie jest rozdzielna. Gdy masz wątpliwości: podstaw $a = b = 1$. To prawie zawsze demaskuje pułapkę w jednej linijce.',
+    onFrame({ ch }) {
+      // Clear canvas manually — some challenges draw without GraphView.
+      ctx.save();
+      ctx.fillStyle = '#0e0e12';
+      ctx.fillRect(0, 0, W, H);
+      ctx.restore();
+    },
+  });
+}
+</script>
+</body>
+</html>

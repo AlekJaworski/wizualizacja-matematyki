@@ -83,6 +83,7 @@ export function createState() {
   return {
     phase:            Phase.PREDICT,
     hintLevel:        0,
+    hintsOpen:        [],    // indices of hints the student has chosen to reveal
     predictAnswer:    null,
     predictConfirmed: false,
     predictAfterAnswer: null, // transfer-check MCQ pick; stays null until student picks
@@ -311,15 +312,37 @@ export function renderPips(refs, ch, S) {
 }
 
 export function renderHints(refs, ch, S) {
-  if (S.phase !== Phase.WORKING) { refs.hints.innerHTML = ''; return; }
-  const elapsed = (Date.now() - S.startTime) / 1000;
-  const thresholds = [20, 45, 90];
-  let level = 0;
-  for (let i = 0; i < thresholds.length; i++) if (elapsed >= thresholds[i]) level = i + 1;
-  level = Math.max(level, S.hintLevel);
-  S.hintLevel = level;
-  const shown = ch.hints.slice(0, level);
-  refs.hints.innerHTML = shown.map(h => '<div class="hint">\u{1F4A1} ' + renderMath(h) + '</div>').join('');
+  if (S.phase !== Phase.WORKING || !ch.hints || ch.hints.length === 0) {
+    refs.hints.innerHTML = '';
+    return;
+  }
+  // Sequential reveal: chip N is visible only after chip N-1 has been opened.
+  // This preserves the "earn a hint" friction while putting the student in
+  // control — no timer, no spoilers until a click.
+  const open = new Set(S.hintsOpen);
+  const maxVisible = open.size + 1; // one chip ahead of current open set
+  const n = Math.min(ch.hints.length, maxVisible);
+  const parts = [];
+  for (let i = 0; i < n; i++) {
+    const isOpen = open.has(i);
+    const body = isOpen
+      ? '<div class="hint-body">' + renderMath(ch.hints[i]) + '</div>'
+      : '<div class="hint-label">Wska\u017A\u00F3wka ' + (i + 1) + '</div>';
+    parts.push(
+      '<div class="hint-chip' + (isOpen ? ' open' : '') + '" data-idx="' + i + '">' +
+      '<span class="hint-icon">\u{1F4A1}</span>' + body +
+      '</div>'
+    );
+  }
+  refs.hints.innerHTML = parts.join('');
+  refs.hints.querySelectorAll('.hint-chip:not(.open)').forEach(el => {
+    el.addEventListener('click', () => {
+      const idx = Number(el.dataset.idx);
+      if (!S.hintsOpen.includes(idx)) S.hintsOpen.push(idx);
+      S.hintLevel = S.hintsOpen.length;
+      renderHints(refs, ch, S);
+    });
+  });
 }
 
 export function renderSolvedMsg(refs, ch, S, isLast, wrapup) {
@@ -356,6 +379,32 @@ export function renderNav(refs, S, currentIdx, total, ch) {
       refs.next.classList.toggle('primary', !needsTransfer);
     }
   }
+}
+
+// ── One-time CSS injection for click-to-expand hint chips ──────────────
+function injectHintStyles() {
+  if (document.getElementById('warsztat-hint-styles')) return;
+  const css = `
+    #hints { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+    .hint-chip {
+      display: flex; align-items: flex-start; gap: 8px;
+      padding: 6px 10px; border-radius: 8px;
+      background: rgba(255,209,102,.08);
+      border-left: 3px solid #FFD166;
+      font-size: 12px; line-height: 1.45;
+      cursor: pointer; user-select: none;
+      transition: background .15s ease;
+    }
+    .hint-chip:not(.open):hover { background: rgba(255,209,102,.18); }
+    .hint-chip.open { cursor: default; background: rgba(255,209,102,.05); }
+    .hint-chip .hint-icon { flex: 0 0 auto; }
+    .hint-chip .hint-label { color: #FFD166; font-weight: 600; }
+    .hint-chip .hint-body  { flex: 1; }
+  `;
+  const style = document.createElement('style');
+  style.id = 'warsztat-hint-styles';
+  style.textContent = css;
+  document.head.appendChild(style);
 }
 
 // ── Main entry: wires DOM, nav, render loop ────────────────────────────
@@ -399,6 +448,8 @@ export function initWarsztat(opts) {
     prev:      panelIds.prev      || 'prev',
     next:      panelIds.next      || 'next',
   };
+
+  injectHintStyles();
 
   const canvas = document.getElementById(canvasId);
   const ctx = canvas.getContext('2d');
@@ -458,6 +509,7 @@ export function initWarsztat(opts) {
     S.predictAfterAnswer = null;
     S.phase = ch.predict ? Phase.PREDICT : Phase.WORKING;
     S.hintLevel = 0;
+    S.hintsOpen = [];
     S.startTime = Date.now();
     S.debugPicked = null;
     S.debugSolved = false;
@@ -501,7 +553,6 @@ export function initWarsztat(opts) {
     if (onFrame) onFrame({ ctx, canvas, ch, S });
     ch.draw();
     renderPips(refs, ch, S);
-    renderHints(refs, ch, S);
     requestAnimationFrame(tick);
   }
 

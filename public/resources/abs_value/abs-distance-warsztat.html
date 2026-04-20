@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<title>Moduł jako odległość — Warsztat</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; color: rgba(255,255,255,.85); }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+
+  .head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+  .head .step { font-size: 11px; color: rgba(255,255,255,.4); letter-spacing: .04em; }
+  .head .title { font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  .desc { font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); margin-bottom: 10px; min-height: 34px; }
+
+  .pips { display: flex; gap: 14px; flex-wrap: wrap; margin: 4px 0 10px; font-size: 12px; }
+  .pip { display: inline-flex; align-items: center; gap: 6px; color: rgba(255,255,255,.55); }
+  .pip .mark { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(255,255,255,.25); display: inline-flex; align-items: center; justify-content: center; font-size: 10px; line-height: 1; }
+  .pip.ok { color: #83C167; }
+  .pip.ok .mark { background: #83C167; border-color: #83C167; color: #0e0e12; }
+  .pip.ok .mark::before { content: "\2713"; }
+
+  .predict { margin-bottom: 10px; }
+  .predict .q { font-size: 13px; color: rgba(255,255,255,.82); margin-bottom: 8px; line-height: 1.55; }
+  .predict .opts { display: flex; flex-direction: column; gap: 6px; }
+  .predict button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.78); padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; transition: background .15s, border-color .15s; }
+  .predict button:hover { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.4); }
+  .predict button.picked { border-color: #58C4DD; color: #58C4DD; }
+  .predict .feedback { margin-top: 8px; font-size: 12px; line-height: 1.55; color: rgba(255,255,255,.7); padding: 8px 10px; border-left: 2px solid #58C4DD; background: rgba(88,196,221,.06); border-radius: 0 4px 4px 0; }
+
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 36px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+
+  .choices { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .choices button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.78); padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; transition: background .15s, border-color .15s; }
+  .choices button:hover { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.4); }
+  .choices button.picked { border-color: #58C4DD; color: #58C4DD; }
+  .choices button.correct { border-color: #83C167; color: #83C167; }
+  .choices button.wrong { border-color: #FF6B6B; color: #FF6B6B; }
+
+  .hints { font-size: 12px; color: rgba(255,255,255,.5); margin: 4px 0 10px; line-height: 1.55; }
+
+  .nav { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+  .nav button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  .nav button:hover:not(:disabled) { background: rgba(255,255,255,.08); }
+  .nav button:disabled { opacity: .3; cursor: default; }
+  .nav button.primary { border-color: #83C167; color: #83C167; }
+  .nav button.primary:hover { background: rgba(131,193,103,.1); }
+
+  .dots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.15); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  .dot.done { background: #83C167; }
+
+  .solved-note { font-size: 13px; color: #83C167; line-height: 1.55; padding: 8px 10px; border-left: 2px solid #83C167; background: rgba(131,193,103,.06); border-radius: 0 4px 4px 0; margin-bottom: 8px; }
+  .wrapup-note { font-size: 13px; color: #C78DFF; line-height: 1.55; padding: 10px 12px; border-left: 2px solid #C78DFF; background: rgba(199,141,255,.06); border-radius: 0 4px 4px 0; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="360"></canvas>
+  <div class="panel">
+    <div class="head">
+      <span class="step" id="step"></span>
+      <div class="dots" id="dots"></div>
+    </div>
+    <p class="title" id="title"></p>
+    <p class="desc" id="desc"></p>
+    <div id="predict"></div>
+    <div id="sliders-wrap"></div>
+    <div id="choices-wrap"></div>
+    <div class="pips" id="pips"></div>
+    <div class="hints" id="hints"></div>
+    <div id="solved-msg"></div>
+    <div class="nav">
+      <button id="prev">&larr;</button>
+      <button id="next" class="primary">Dalej &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initWarsztat } from '../lib/warsztat-core.js';
+{
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const W = 600, H = 360;
+
+  // ── Colors ─────────────────────────────────────────────────────
+  const COL_A    = '#58C4DD';   // "x" (the variable point)
+  const COL_B    = '#FFD166';   // anchors (a, b)
+  const COL_OK   = '#83C167';   // distance / solution
+  const COL_BAD  = '#FF6B6B';
+  const COL_DIM  = 'rgba(255,255,255,0.35)';
+  const COL_PURP = '#C78DFF';
+
+  // ── Challenge-local state ──────────────────────────────────────
+  const C = {
+    x1: 5,          // ch1 slider (|x - 3|)
+    x2: 3,          // ch2 slider (|x - 3| < 2)
+    x3: 1,          // ch3 slider (|x - 2| = |x - 6|)
+    ch4Pick: null,  // MCQ
+  };
+
+  // ── Number-line helpers (generic) ──────────────────────────────
+  function fmt(v) { return (Math.abs(v - Math.round(v)) < 1e-9) ? String(Math.round(v)) : v.toFixed(1); }
+
+  // map data x in [xMin, xMax] to canvas pixel
+  function makeMap(xMin, xMax, pxLeft, pxRight) {
+    return x => pxLeft + (x - xMin) / (xMax - xMin) * (pxRight - pxLeft);
+  }
+
+  function drawNumberLine(yL, xMin, xMax, pxLeft, pxRight) {
+    const toS = makeMap(xMin, xMax, pxLeft, pxRight);
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(pxLeft - 6, yL); ctx.lineTo(pxRight + 6, yL);
+    ctx.stroke();
+    // arrowheads
+    ctx.beginPath();
+    ctx.moveTo(pxRight + 6, yL); ctx.lineTo(pxRight, yL - 4); ctx.lineTo(pxRight, yL + 4); ctx.closePath();
+    ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(pxLeft - 6, yL); ctx.lineTo(pxLeft, yL - 4); ctx.lineTo(pxLeft, yL + 4); ctx.closePath();
+    ctx.fill();
+    // ticks
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    for (let t = Math.ceil(xMin); t <= Math.floor(xMax); t++) {
+      const sx = toS(t);
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+      ctx.beginPath();
+      ctx.moveTo(sx, yL - 4); ctx.lineTo(sx, yL + 4);
+      ctx.stroke();
+      ctx.fillText(String(t), sx, yL + 18);
+    }
+    ctx.restore();
+    return toS;
+  }
+
+  function markPoint(sx, sy, col, label, labelPos) {
+    ctx.save();
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.arc(sx, sy, 7, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = '#0e0e12';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    if (label) {
+      ctx.font = 'bold 12px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = col;
+      const ly = labelPos === 'below' ? sy + 24 : sy - 14;
+      ctx.fillText(label, sx, ly);
+    }
+    ctx.restore();
+  }
+
+  function drawSegment(sx1, sx2, sy, col, label) {
+    ctx.save();
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(sx1, sy); ctx.lineTo(sx2, sy);
+    ctx.stroke();
+    if (label != null) {
+      ctx.font = 'bold 13px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = col;
+      // background chip
+      const text = label;
+      const mw = ctx.measureText(text).width + 10;
+      const cx = (sx1 + sx2) / 2;
+      ctx.fillStyle = 'rgba(14,14,18,0.9)';
+      ctx.fillRect(cx - mw/2, sy - 22, mw, 16);
+      ctx.strokeStyle = col + '80';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(cx - mw/2, sy - 22, mw, 16);
+      ctx.fillStyle = col;
+      ctx.fillText(text, cx, sy - 10);
+    }
+    ctx.restore();
+  }
+
+  function roundRect(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x+r,y); c.lineTo(x+w-r,y); c.quadraticCurveTo(x+w,y,x+w,y+r);
+    c.lineTo(x+w,y+h-r); c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    c.lineTo(x+r,y+h); c.quadraticCurveTo(x,y+h,x,y+h-r);
+    c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y);
+    c.closePath();
+  }
+  function infoBox(text, sx, sy, col) {
+    ctx.save();
+    ctx.font = '12px monospace';
+    const w = ctx.measureText(text).width + 14;
+    ctx.fillStyle = 'rgba(14,14,18,0.9)';
+    ctx.strokeStyle = col + '60';
+    ctx.lineWidth = 1;
+    roundRect(ctx, sx - w/2, sy - 11, w, 22, 4);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = col;
+    ctx.textAlign = 'center';
+    ctx.fillText(text, sx, sy + 4);
+    ctx.restore();
+  }
+
+  // ── Challenges ─────────────────────────────────────────────────
+  const challenges = [
+
+    // ─── Ch.1: |x - 3| = odległość x od 3 ───────────────────────
+    {
+      id: 'ch1_distance_from_anchor',
+      title: 'Moduł jako odległość: $|x - 3|$',
+      desc: 'Przesuwaj punkt $x$. Zielony odcinek pokazuje odległość od $3$ na osi. $|x - 3|$ to właśnie ta długość — nigdy ujemna.',
+      drawBackground: 'none',
+      init() {},
+      predict: {
+        question: 'Czym NAPRAWDĘ jest $|x - 3|$?',
+        options: [
+          { label: '"Zdjęciem minusa" przed $x$', correct: false, why: 'Nie — $|\\cdot|$ nie dotyka pojedynczego symbolu, tylko mierzy odległość całego wyrażenia od zera. $|x - 3|$ mierzy odległość $x$ od $3$.' },
+          { label: 'Odległością między $x$ a $3$ na osi liczbowej', correct: true,  why: 'Tak. To jest kluczowa intuicja: $|x - a|$ = odległość $x$ od $a$. Niezależnie czy $x < 3$ czy $x > 3$, wartość jest zawsze nieujemna.' },
+          { label: 'Wartością $x - 3$ bez znaku minus', correct: false, why: 'Pozornie — ale tylko dla $x \\geq 3$. Dla $x < 3$ wyrażenie $x - 3$ jest ujemne, a $|x-3|$ dalej dodatnie. To NIE "zdejmowanie minusa".' },
+          { label: 'Zawsze równe $x - 3$', correct: false, why: 'Tylko gdy $x \\geq 3$. Dla $x = 1$: $x - 3 = -2$, ale $|x - 3| = 2$.' },
+        ],
+      },
+      sliders: [
+        { id: 'x1', lbl: 'x', color: COL_A, min: -5, max: 10, step: 0.5, get: () => C.x1, set: v => C.x1 = v },
+      ],
+      pips() {
+        return [
+          { label: 'przesuń $x$ na lewo od $3$', ok: C.x1 < 3 },
+          { label: 'przesuń $x$ na prawo od $3$', ok: C.x1 > 3 },
+          { label: 'zobacz: odległość = $|x-3|$ dla każdego $x$', ok: C.x1 !== 5 },
+        ];
+      },
+      solved() { return C.x1 < 3 && C._ch1SeenRight; },
+      hints: [
+        '① Ustaw $x = 1$. Wtedy $x - 3 = -2$, ale odległość między $1$ a $3$ to $2$ — bez znaku. $|1 - 3| = 2$.',
+        '② Ustaw $x = 7$. Wtedy $x - 3 = 4$, odległość też $4$. $|7 - 3| = 4$.',
+        '③ Uogólnienie: $|x - a|$ to odległość $x$ od $a$ na osi liczbowej. Zawsze $\\geq 0$, zawsze symetryczne względem $a$.',
+      ],
+      solvedMsg: '$|x - a|$ = **odległość $x$ od $a$**. To jedna z najważniejszych intuicji w całej szkolnej matematyce — od nierówności, przez funkcje, po analizę.',
+      draw() {
+        if (C.x1 > 3) C._ch1SeenRight = true;
+        const yL = 200;
+        const xMin = -5, xMax = 10;
+        const pxLeft = 60, pxRight = W - 60;
+        const toS = drawNumberLine(yL, xMin, xMax, pxLeft, pxRight);
+
+        const a = 3;
+        const xv = C.x1;
+        const dist = Math.abs(xv - a);
+
+        // distance segment
+        const sxA = toS(a), sxX = toS(xv);
+        drawSegment(Math.min(sxA, sxX), Math.max(sxA, sxX), yL, COL_OK,
+          '|x - 3| = ' + fmt(dist));
+
+        // anchor point (3)
+        markPoint(sxA, yL, COL_B, 'a = 3', 'below');
+        // x point
+        markPoint(sxX, yL, COL_A, 'x = ' + fmt(xv), 'above');
+
+        // Title
+        ctx.save();
+        ctx.font = 'bold 15px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillText('|x - 3|  =  odległość od 3', W/2, 40);
+        ctx.restore();
+
+        // Side-by-side formula
+        const sub = 'x - 3 = ' + fmt(xv - a) + '   |x - 3| = ' + fmt(dist);
+        infoBox(sub, W/2, 76, xv >= a ? COL_OK : COL_PURP);
+
+        // bottom hint text
+        ctx.save();
+        ctx.font = '11px monospace';
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.textAlign = 'center';
+        if (xv < a) {
+          ctx.fillText('x na lewo od 3 → x - 3 jest ujemne, ale ODLEGŁOŚĆ dodatnia', W/2, 290);
+        } else if (xv > a) {
+          ctx.fillText('x na prawo od 3 → x - 3 dodatnie, odległość też dodatnia', W/2, 290);
+        } else {
+          ctx.fillText('x = 3 → odległość = 0', W/2, 290);
+        }
+        ctx.fillText('Moduł MIERZY, nie "usuwa minus". Przesuwaj w obie strony — odległość zawsze ≥ 0.', W/2, 315);
+        ctx.restore();
+      },
+    },
+
+    // ─── Ch.2: |x - 3| < 2 — "within 2 of 3" ────────────────────
+    {
+      id: 'ch2_inequality_as_interval',
+      title: 'Nierówność jako "bliżej niż": $|x - 3| < 2$',
+      desc: 'Zamiast rozbijać algebraicznie na przypadki, przeczytaj to geometrycznie: $x$ ma być bliżej niż $2$ od $3$. Przesuń suwak i zobacz, gdzie nierówność jest spełniona.',
+      drawBackground: 'none',
+      init() {},
+      predict: {
+        question: 'Jak przeczytać $|x - 3| < 2$?',
+        options: [
+          { label: '$x - 3$ jest mniejsze od $2$ (czyli $x < 5$)', correct: false, why: 'Tylko połowa historii. Traci się wszystkie $x$, dla których $x - 3 < -2$ — tam moduł też $\\geq 2$. Pełny warunek: $-2 < x - 3 < 2$.' },
+          { label: '$x$ leży BLIŻEJ NIŻ $2$ od punktu $3$', correct: true,  why: 'Tak — to geometryczne tłumaczenie. "Odległość od $3$ mniejsza niż $2$" = wszystkie punkty w przedziale $(3-2, 3+2) = (1, 5)$.' },
+          { label: 'Którykolwiek z $x < 2$ lub $x < 3$', correct: false, why: 'To nie ma związku z tą nierównością. Moduł mierzy CAŁE wyrażenie $x - 3$, nie $x$ i $3$ osobno.' },
+          { label: 'Tylko $x = 2$ lub $x = 3$', correct: false, why: 'Nierówność (nie równanie) daje PRZEDZIAŁ, nie pojedyncze punkty.' },
+        ],
+      },
+      sliders: [
+        { id: 'x2', lbl: 'x', color: COL_A, min: -1, max: 7, step: 0.25, get: () => C.x2, set: v => C.x2 = v },
+      ],
+      pips() {
+        const a = 3, r = 2;
+        const d = Math.abs(C.x2 - a);
+        const inside = d < r;
+        return [
+          { label: 'znajdź $x$ WEWNĄTRZ przedziału', ok: inside && C._ch2SeenOut },
+          { label: 'znajdź $x$ POZA przedziałem', ok: C._ch2SeenOut },
+          { label: 'intuicja: $(1, 5)$', ok: inside && C._ch2SeenOut },
+        ];
+      },
+      solved() {
+        const inside = Math.abs(C.x2 - 3) < 2;
+        return inside && C._ch2SeenOut;
+      },
+      hints: [
+        '① Zapisz $|x - 3| < 2$ jako "odległość $x$ od $3$ mniejsza niż $2$".',
+        '② Wszystkie punkty bliżej niż $2$ od $3$: od $3 - 2 = 1$ do $3 + 2 = 5$. Nawiasy otwarte (nierówność ostra).',
+        '③ Ogólny wzór: $|x - a| < r$ → $x \\in (a - r, a + r)$. Prościej niż case-split na $\\pm$.',
+      ],
+      solvedMsg: '$|x - a| < r$ = "$x$ w odległości mniejszej niż $r$ od $a$" = przedział $(a-r, a+r)$. Geometria pokonuje case-split w 2 sekundy.',
+      predictAfter: {
+        question: 'A jaki jest zbiór rozwiązań $|x + 4| \\leq 1$?',
+        options: [
+          { label: '$[-5, -3]$', correct: true, why: 'Tak — $|x + 4| = |x - (-4)|$ to odległość od $-4$. "Nie większa niż $1$" daje przedział domknięty $[-5, -3]$.' },
+          { label: '$[3, 5]$', correct: false, why: 'Zły znak środka. $|x + 4|$ = odległość od $-4$, nie od $+4$.' },
+          { label: '$[-1, 1]$', correct: false, why: 'Zapomniane przesunięcie. Bez $+4$ środkiem byłoby $0$.' },
+        ],
+      },
+      draw() {
+        const a = 3, r = 2;
+        const xv = C.x2;
+        const d = Math.abs(xv - a);
+        const inside = d < r;
+        if (!inside) C._ch2SeenOut = true;
+
+        const yL = 200;
+        const xMin = -1, xMax = 7;
+        const pxLeft = 60, pxRight = W - 60;
+        const toS = drawNumberLine(yL, xMin, xMax, pxLeft, pxRight);
+
+        // Shade solution interval (1, 5)
+        const sxLo = toS(a - r), sxHi = toS(a + r);
+        ctx.save();
+        ctx.fillStyle = COL_OK + '33';
+        ctx.fillRect(sxLo, yL - 14, sxHi - sxLo, 28);
+        // thick line
+        ctx.strokeStyle = COL_OK;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(sxLo, yL); ctx.lineTo(sxHi, yL);
+        ctx.stroke();
+        // open endpoints
+        [sxLo, sxHi].forEach(sx => {
+          ctx.fillStyle = '#16161a';
+          ctx.beginPath(); ctx.arc(sx, yL, 6, 0, Math.PI*2); ctx.fill();
+          ctx.strokeStyle = COL_OK; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(sx, yL, 6, 0, Math.PI*2); ctx.stroke();
+        });
+        // endpoint labels
+        ctx.font = '11px monospace';
+        ctx.fillStyle = COL_OK;
+        ctx.textAlign = 'center';
+        ctx.fillText('1', sxLo, yL + 36);
+        ctx.fillText('5', sxHi, yL + 36);
+        ctx.restore();
+
+        // anchor 3
+        markPoint(toS(a), yL, COL_B, 'a = 3', 'below');
+
+        // distance segment from x to 3
+        const sxX = toS(xv), sxA = toS(a);
+        const segCol = inside ? COL_OK : COL_BAD;
+        drawSegment(Math.min(sxA, sxX), Math.max(sxA, sxX), yL - 40, segCol,
+          'odl = ' + fmt(d) + (inside ? ' < 2 ✓' : ' ≥ 2 ✗'));
+        // connector from x point to segment
+        ctx.save();
+        ctx.strokeStyle = segCol + '80';
+        ctx.setLineDash([3,3]);
+        ctx.beginPath();
+        ctx.moveTo(sxX, yL); ctx.lineTo(sxX, yL - 40);
+        ctx.moveTo(sxA, yL); ctx.lineTo(sxA, yL - 40);
+        ctx.stroke();
+        ctx.restore();
+
+        markPoint(sxX, yL, COL_A, 'x = ' + fmt(xv), 'above');
+
+        // Title + translation
+        ctx.save();
+        ctx.font = 'bold 15px monospace';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.textAlign = 'center';
+        ctx.fillText('|x - 3| < 2', W/2, 36);
+        ctx.font = '12px monospace';
+        ctx.fillStyle = COL_PURP;
+        ctx.fillText('"x bliżej niż 2 od 3"   →   x ∈ (1, 5)', W/2, 60);
+        ctx.restore();
+
+        // status
+        ctx.save();
+        ctx.font = '12px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = inside ? COL_OK : COL_BAD;
+        ctx.fillText(inside ? 'x JEST w zbiorze rozwiązań' : 'x poza zbiorem rozwiązań',
+          W/2, 290);
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.font = '11px monospace';
+        ctx.fillText('Ogólnie: |x - a| < r  ⇔  x ∈ (a - r, a + r)', W/2, 315);
+        ctx.restore();
+      },
+    },
+
+    // ─── Ch.3: |x - 2| = |x - 6| — equidistant → midpoint ────────
+    {
+      id: 'ch3_equidistant_midpoint',
+      title: 'Równoodległość: $|x - 2| = |x - 6|$',
+      desc: 'Szukamy $x$, który jest w tej samej odległości od $2$ i od $6$. Intuicja: punkt musi leżeć DOKŁADNIE w środku — w $x = 4$.',
+      drawBackground: 'none',
+      init() {},
+      predict: {
+        question: 'Które $x$ jest równo oddalone od $2$ i od $6$?',
+        options: [
+          { label: '$x = 0$ (bo neutralne)', correct: false, why: 'Od $0$ do $2$ jest $2$; od $0$ do $6$ jest $6$. Nie są równe.' },
+          { label: '$x = 4$ (średnia arytmetyczna)', correct: true,  why: 'Tak — środek odcinka $[2, 6]$ to $(2+6)/2 = 4$. Odległość od $4$ do $2$ = $2$; od $4$ do $6$ = $2$. Równe.' },
+          { label: '$x = 2$ lub $x = 6$ (końce)', correct: false, why: 'W $x = 2$ odległość od $2$ to $0$, od $6$ to $4$. Nierówne.' },
+          { label: 'Nie ma takiego $x$', correct: false, why: 'Jest — dokładnie jeden. Środek odcinka zawsze istnieje.' },
+        ],
+      },
+      sliders: [
+        { id: 'x3', lbl: 'x', color: COL_A, min: -2, max: 10, step: 0.25, get: () => C.x3, set: v => C.x3 = v },
+      ],
+      pips() {
+        const dA = Math.abs(C.x3 - 2);
+        const dB = Math.abs(C.x3 - 6);
+        const equal = Math.abs(dA - dB) < 0.1;
+        return [
+          { label: 'znajdź $x$, dla którego paski są równe', ok: equal },
+          { label: 'środek to $(a + b)/2$', ok: equal },
+        ];
+      },
+      solved() {
+        return Math.abs(C.x3 - 4) < 0.15;
+      },
+      hints: [
+        '① $|x - 2|$ = odległość od $2$. $|x - 6|$ = odległość od $6$. Szukamy $x$ z równymi odległościami.',
+        '② Graficznie: oś ma dwa kotwiczne punkty $a = 2$ i $b = 6$. Równoodległy punkt to **środek odcinka** $[a, b]$.',
+        '③ Wzór: $x = \\dfrac{a + b}{2} = \\dfrac{2 + 6}{2} = 4$.',
+      ],
+      solvedMsg: '$|x - a| = |x - b|$ ma JEDNO rozwiązanie: $x = \\dfrac{a+b}{2}$ — średnia arytmetyczna (= środek odcinka $[a,b]$).',
+      predictAfter: {
+        question: 'Rozwiązanie $|x + 1| = |x - 7|$ to:',
+        options: [
+          { label: '$x = 3$', correct: true, why: '$|x + 1| = |x - (-1)|$ to odległość od $-1$. Środek między $-1$ a $7$ to $(-1 + 7)/2 = 3$.' },
+          { label: '$x = 6$', correct: false, why: 'Za daleko od $-1$ (odległość $7$), podczas gdy od $7$ tylko $1$. Niezrównoważone.' },
+          { label: '$x = -4$', correct: false, why: 'Odległość do $-1$ = $3$, do $7$ = $11$. Nierówne.' },
+        ],
+      },
+      draw() {
+        const a = 2, b = 6;
+        const mid = (a + b) / 2;
+        const xv = C.x3;
+        const dA = Math.abs(xv - a);
+        const dB = Math.abs(xv - b);
+        const equal = Math.abs(dA - dB) < 0.1;
+
+        const yL = 220;
+        const xMin = -2, xMax = 10;
+        const pxLeft = 60, pxRight = W - 60;
+        const toS = drawNumberLine(yL, xMin, xMax, pxLeft, pxRight);
+
+        // midpoint marker (faint)
+        const sxMid = toS(mid);
+        ctx.save();
+        ctx.strokeStyle = COL_PURP + '55';
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(sxMid, yL - 80); ctx.lineTo(sxMid, yL + 30);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.font = '10px monospace';
+        ctx.fillStyle = COL_PURP;
+        ctx.textAlign = 'center';
+        ctx.fillText('środek: (a+b)/2 = 4', sxMid, yL - 85);
+        ctx.restore();
+
+        // two distance segments, stacked
+        const sxA = toS(a), sxB = toS(b), sxX = toS(xv);
+        const colA = equal ? COL_OK : COL_A;
+        const colB = equal ? COL_OK : COL_BAD;
+
+        drawSegment(Math.min(sxA, sxX), Math.max(sxA, sxX), yL - 30, colA,
+          '|x - 2| = ' + fmt(dA));
+        drawSegment(Math.min(sxB, sxX), Math.max(sxB, sxX), yL - 58, colB,
+          '|x - 6| = ' + fmt(dB));
+
+        // anchors
+        markPoint(sxA, yL, COL_B, 'a = 2', 'below');
+        markPoint(sxB, yL, COL_B, 'b = 6', 'below');
+        markPoint(sxX, yL, COL_A, 'x = ' + fmt(xv), 'above');
+
+        // Title
+        ctx.save();
+        ctx.font = 'bold 15px monospace';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.textAlign = 'center';
+        ctx.fillText('|x - 2|  =  |x - 6|', W/2, 36);
+        ctx.font = '12px monospace';
+        ctx.fillStyle = COL_PURP;
+        ctx.fillText('"równie daleko od 2 i od 6"  →  środek', W/2, 58);
+        ctx.restore();
+
+        // status
+        ctx.save();
+        ctx.font = '12px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = equal ? COL_OK : 'rgba(255,255,255,0.5)';
+        const msg = equal
+          ? 'paski równe — rozwiązanie: x = ' + fmt(xv)
+          : 'różnica odległości: ' + fmt(Math.abs(dA - dB));
+        ctx.fillText(msg, W/2, 305);
+        ctx.font = '11px monospace';
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.fillText('Wzór: x = (a + b)/2 = (2 + 6)/2 = 4', W/2, 328);
+        ctx.restore();
+      },
+    },
+
+    // ─── Ch.4: Pattern recognition — +/- inside modulus ──────────
+    {
+      id: 'ch4_plus_minus_translation',
+      title: 'Przekład: $|x + 5|$ to odległość od...?',
+      desc: 'Uwaga na znaki! $|x + 5|$ to ta sama wartość co $|x - (-5)|$. Moduł mierzy odległość od kotwicy — ale kotwica może być ujemna.',
+      drawBackground: 'none',
+      init() { C.ch4Pick = null; },
+      predict: {
+        question: 'Czym jest $|x + 5|$?',
+        options: [
+          { label: 'Odległość $x$ od $5$', correct: false, why: 'Typowa pułapka — "widzę 5, więc pewnie chodzi o 5". Ale $|x + 5| = |x - (-5)|$: kotwica przesunięta o ZNAK MINUS, czyli $-5$.' },
+          { label: 'Odległość $x$ od $-5$', correct: true,  why: 'Tak. $|x + 5| = |x - (-5)|$. Znak wewnątrz jest MINUSEM kotwicy: $|x + a| = |x - (-a)|$.' },
+          { label: '$x + 5$ bez znaku', correct: false, why: 'Nie — to nie jest "zdjęcie znaku". $|x + 5|$ dla $x = -10$ wynosi $5$ (odległość od $-5$), a $x + 5 = -5$. Różnią się.' },
+          { label: 'Zawsze $x + 5$ (bo w środku plus)', correct: false, why: 'Tylko gdy $x + 5 \\geq 0$, czyli $x \\geq -5$. Dla $x < -5$ dostajemy $-(x+5)$.' },
+        ],
+      },
+      choices: {
+        question: 'Dopasuj zapis do kotwicy:',
+        options: [
+          { id: 'a', label: '$|x - 7|$ → odległość od $7$;    $|x + 3|$ → odległość od $-3$', correct: true  },
+          { id: 'b', label: '$|x - 7|$ → odległość od $-7$;  $|x + 3|$ → odległość od $3$', correct: false },
+          { id: 'c', label: '$|x - 7|$ → odległość od $7$;    $|x + 3|$ → odległość od $3$',  correct: false },
+          { id: 'd', label: '$|x - 7|$ → odległość od $-7$;  $|x + 3|$ → odległość od $-3$', correct: false },
+        ],
+        pick(id) { C.ch4Pick = id; },
+      },
+      pips() {
+        return [{ label: 'poprawnie dopasowane kotwice', ok: C.ch4Pick === 'a' }];
+      },
+      solved() { return C.ch4Pick === 'a'; },
+      hints: [
+        '① Sztuczka: zapisz każdy moduł w postaci $|x - (\\text{kotwica})|$. Znak przed kotwicą jest PRZECIWNY do tego w środku.',
+        '② $|x + 3| = |x - (-3)|$ → kotwica $-3$. $|x - 7| = |x - 7|$ → kotwica $+7$. Znak w środku FLIPUJE się, kiedy wyciągasz kotwicę.',
+        '③ Test: $|x + 3|$ dla $x = -3$ powinno być $0$ (bo $x$ równy kotwicy). $|-3 + 3| = 0$ ✓. Kotwica to $-3$.',
+      ],
+      solvedMsg: 'Reguła: $|x \\pm c|$ = odległość od $\\mp c$. Przeciwny znak. Ta sama zasada co rozróżnianie $(x - h)^2$ w równaniu paraboli — przesunięcie ma przeciwny znak do tego w nawiasie.',
+      draw() {
+        // Title
+        ctx.save();
+        ctx.font = 'bold 15px monospace';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.textAlign = 'center';
+        ctx.fillText('|x + 5| = |x - (-5)|', W/2, 36);
+        ctx.font = '12px monospace';
+        ctx.fillStyle = COL_PURP;
+        ctx.fillText('znak FLIPUJE się, gdy wyciągamy kotwicę', W/2, 58);
+        ctx.restore();
+
+        // Number line showing anchor at -5 and a few x positions
+        const yL = 180;
+        const xMin = -10, xMax = 5;
+        const pxLeft = 60, pxRight = W - 60;
+        const toS = drawNumberLine(yL, xMin, xMax, pxLeft, pxRight);
+
+        const a = -5;
+        const sxA = toS(a);
+
+        // show three sample distances
+        const samples = [-8, -2, 2];
+        const ySeg = [yL - 28, yL - 52, yL - 76];
+        samples.forEach((xv, i) => {
+          const sxX = toS(xv);
+          const d = Math.abs(xv - a);
+          drawSegment(Math.min(sxA, sxX), Math.max(sxA, sxX), ySeg[i], COL_OK,
+            'x = ' + xv + ': |x+5| = ' + d);
+          // small dot at x on number line
+          ctx.save();
+          ctx.fillStyle = COL_A + '80';
+          ctx.beginPath(); ctx.arc(sxX, yL, 4, 0, Math.PI*2); ctx.fill();
+          ctx.restore();
+        });
+
+        markPoint(sxA, yL, COL_B, 'kotwica: -5', 'below');
+
+        // Rule box
+        ctx.save();
+        ctx.font = '12px monospace';
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.textAlign = 'center';
+        ctx.fillText('|x - 7|   → kotwica +7     (znak taki sam)', W/2, 270);
+        ctx.fillStyle = COL_PURP;
+        ctx.fillText('|x + 3|   → kotwica -3     (znak PRZECIWNY)', W/2, 292);
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.font = '11px monospace';
+        ctx.fillText('Test kontrolny: $|x - a|$ = 0 dokładnie dla x = a (kotwica).', W/2, 320);
+        ctx.restore();
+      },
+    },
+
+  ];
+
+  initWarsztat({
+    canvasId: 'cv',
+    challenges,
+    lsKey: 'warsztat:abs_distance:completed',
+    wrapup: 'Jedno zdanie, które zapamiętasz na zawsze: **$|x - a|$ = odległość $x$ od $a$ na osi liczbowej**. Z tego wynika wszystko: (1) $|x - a| = r$ ma DWA rozwiązania $a \\pm r$; (2) $|x - a| < r$ to przedział $(a - r, a + r)$; (3) $|x - a| = |x - b|$ to $x = (a+b)/2$ (środek); (4) $|x + c| = |x - (-c)|$ (uwaga na znak kotwicy). Moduł nie "usuwa minusa" — on MIERZY.',
+    onFrame({ ch }) {
+      ctx.save();
+      ctx.fillStyle = '#0e0e12';
+      ctx.fillRect(0, 0, W, H);
+      ctx.restore();
+    },
+  });
+}
+</script>
+</body>
+</html>
