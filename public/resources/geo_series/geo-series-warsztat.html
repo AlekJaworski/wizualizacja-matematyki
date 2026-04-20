@@ -170,10 +170,10 @@ import { initWarsztat } from '../lib/warsztat-core.js';
       predict: {
         question: 'Dla jakich $q$ wyrazy ciągu geometrycznego $a_n = q^{n-1}$ dążą do zera?',
         options: [
-          { label: '$q > 0$', correct: false, why: 'Częściowo — dla $0 < q < 1$ zanikają, ale dla $q \\geq 1$ już nie. Sam znak to za mało.' },
-          { label: '$|q| < 1$', correct: true,  why: 'Tak. Tylko gdy $|q| < 1$ mnożenie przez $q$ zmniejsza wartość bezwzględną — wyrazy dążą do zera. Dla $q$ ujemnych ale $|q| < 1$ oscylują, ale też zanikają.' },
-          { label: '$q > 1$', correct: false, why: 'Wręcz przeciwnie — tu ciąg rośnie wykładniczo. Każdy krok mnoży przez liczbę $> 1$.' },
-          { label: '$q < 0$', correct: false, why: 'Dla $q < 0$ wyrazy zmieniają znak, ale to nie gwarantuje zaniku. Na przykład $q = -2$: $1, -2, 4, -8, \\ldots$ — wartości bezwzględne rosną.' },
+          { label: '$q > 0$', correct: false, why: 'Tylko częściowo — dla $0 < q < 1$ wyrazy zanikają, a dla $q \\geq 1$ już nie. Sam znak nie wystarcza.' },
+          { label: '$|q| < 1$', correct: true,  why: 'Tylko przy $|q| < 1$ mnożenie przez $q$ zmniejsza wartość bezwzględną wyrazu, więc ciąg dąży do zera. Dla ujemnych $q$ o $|q| < 1$ wyrazy oscylują, ale również zanikają.' },
+          { label: '$q > 1$', correct: false, why: 'Przy takim $q$ ciąg rośnie wykładniczo, bo każdy krok mnoży poprzedni wyraz przez liczbę większą od $1$.' },
+          { label: '$q < 0$', correct: false, why: 'Ujemne $q$ powoduje zmianę znaków, ale nie gwarantuje zaniku. Na przykład dla $q = -2$ ciąg $1, -2, 4, -8, \\ldots$ rośnie co do wartości bezwzględnej.' },
         ],
       },
       sliders: [
@@ -189,7 +189,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         'Dla $q > 1$: każdy krok mnoży przez liczbę większą niż 1 → rośnie. Dla $q = 1$: wszystkie wyrazy równe $a_1$.',
         'Dla $q = -0{,}5$: wyrazy oscylują ale zanikają (naprzemiennie dodatnie/ujemne, co do wartości bezwzględnej → 0).',
       ],
-      solvedMsg: '$|q| < 1$ to **klucz do wszystkiego** w ciągach geometrycznych. Tylko wtedy suma nieskończona istnieje.',
+      solvedMsg: 'Warunek $|q| < 1$ jest kluczowy w ciągach geometrycznych — tylko przy nim suma nieskończona w ogóle istnieje.',
       draw() {
         const q = C.q;
         const N = 20;
@@ -262,10 +262,10 @@ import { initWarsztat } from '../lib/warsztat-core.js';
       predict: {
         question: 'Dla $a_1 = 2$, $q = \\tfrac{1}{2}$, suma wszystkich wyrazów wynosi:',
         options: [
-          { label: '$2$', correct: false, why: 'To tylko pierwszy wyraz. Ale doliczamy jeszcze $1 + 0{,}5 + 0{,}25 + \\ldots$ — sumaryczny efekt jest większy.' },
-          { label: '$4$', correct: true,  why: 'Tak. $S_\\infty = \\tfrac{a_1}{1-q} = \\tfrac{2}{1 - 0{,}5} = \\tfrac{2}{0{,}5} = 4$.' },
-          { label: '$\\infty$', correct: false, why: 'Tu $|q| < 1$, więc szereg jest zbieżny. Nieskończenie wiele składników może dać skończoną sumę — zobacz pasek.' },
-          { label: '$\\tfrac{1}{2}$', correct: false, why: 'To wartość $q$, nie suma. Wzór daje $\\tfrac{a_1}{1-q}$, a nie $q$ samo.' },
+          { label: '$2$', correct: false, why: 'To tylko pierwszy wyraz — do niego doliczamy jeszcze $1 + 0{,}5 + 0{,}25 + \\ldots$, więc sumaryczny efekt jest większy.' },
+          { label: '$4$', correct: true,  why: 'Ze wzoru $S_\\infty = \\tfrac{a_1}{1-q} = \\tfrac{2}{1 - 0{,}5} = \\tfrac{2}{0{,}5} = 4$.' },
+          { label: '$\\infty$', correct: false, why: 'W tym przypadku $|q| < 1$, więc szereg jest zbieżny — nieskończenie wiele składników składa się na skończoną sumę, co widać na pasku.' },
+          { label: '$\\tfrac{1}{2}$', correct: false, why: 'To wartość ilorazu $q$, nie sumy. Wzór daje $\\tfrac{a_1}{1-q}$, a nie samo $q$.' },
         ],
       },
       choices: {
@@ -286,7 +286,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         'Wtedy $q^n \\to 0$, więc $1 - q^n \\to 1$.',
         '$S_\\infty = \\lim_{n \\to \\infty} S_n = \\tfrac{a_1}{1 - q} = \\tfrac{2}{1 - 0{,}5} = \\tfrac{2}{0{,}5} = 4$.',
       ],
-      solvedMsg: 'Nieskończenie wielu wyrazów zmieściło się w pasku długości 4. To jest magia $|q| < 1$.',
+      solvedMsg: 'Nieskończenie wiele wyrazów zmieściło się w pasku długości $4$ — to właśnie efekt warunku $|q| < 1$.',
       draw() {
         ctx.save();
         ctx.fillStyle = '#0e0e12';
@@ -401,7 +401,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         'Dla $q = 2$ ciąg to $3, 6, 12, 24, \\ldots$ — rośnie. Suma nie może być skończona, a już na pewno nie ujemna.',
         'Wzór $S_\\infty = \\tfrac{a_1}{1-q}$ pochodzi z granicy $q^n \\to 0$ — ta granica istnieje TYLKO dla $|q| < 1$.',
       ],
-      solvedMsg: 'Wzór bez warunku to pułapka. $S_\\infty = \\tfrac{a_1}{1-q}$ ma sens wyłącznie w strefie zaniku $|q| < 1$.',
+      solvedMsg: 'Stosowanie wzoru bez sprawdzenia warunku prowadzi do absurdów. $S_\\infty = \\tfrac{a_1}{1-q}$ ma sens wyłącznie w strefie zaniku $|q| < 1$.',
       draw() {
         // Illustrate the divergent sequence visually
         ctx.save();
@@ -465,11 +465,11 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         question: 'Ułamek $0{,}(3)$ można zapisać jako:',
         options: [
           { label: '$\\tfrac{3}{10} + \\tfrac{3}{100} + \\tfrac{3}{1000} + \\ldots$', correct: true,
-            why: 'Tak. Każda trójka to kolejna potęga $\\tfrac{1}{10}$ razy $\\tfrac{3}{10}$. Mamy ciąg geometryczny z $a_1 = 0{,}3$, $q = 0{,}1$.' },
+            why: 'Każda kolejna trójka to potęga $\\tfrac{1}{10}$ pomnożona przez $\\tfrac{3}{10}$, więc mamy ciąg geometryczny z $a_1 = 0{,}3$ oraz $q = 0{,}1$.' },
           { label: '$\\tfrac{3}{10}$ (tylko pierwsza cyfra)', correct: false,
-            why: 'To tylko $0{,}3$. Brakuje pozostałych cyfr $0{,}03 + 0{,}003 + \\ldots$' },
+            why: 'Ten zapis daje tylko $0{,}3$, brakuje pozostałych cyfr $0{,}03 + 0{,}003 + \\ldots$' },
           { label: '$0{,}3 \\cdot \\tfrac{1}{9}$', correct: false,
-            why: 'Wynik działania to $\\tfrac{1}{30}$ — za mało. Prawidłowy zapis to SUMA potęg $\\tfrac{1}{10}$.' },
+            why: 'Wynik tego działania to $\\tfrac{1}{30}$, a potrzebujemy sumy potęg $\\tfrac{1}{10}$.' },
         ],
       },
       choices: {
@@ -491,7 +491,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '$|q| = 0{,}1 < 1$ ✓, więc możemy użyć wzoru na sumę nieskończoną.',
         '$S = \\tfrac{0{,}3}{1 - 0{,}1} = \\tfrac{0{,}3}{0{,}9} = \\tfrac{1}{3}$.',
       ],
-      solvedMsg: 'Ułamek okresowy = suma geometryczna. Każde $0{,}(abc\\ldots)$ można zamienić na prostą frakcję tym wzorem.',
+      solvedMsg: 'Ułamek okresowy to w istocie suma geometryczna — każdy zapis $0{,}(abc\\ldots)$ można tym wzorem zamienić na ułamek zwykły.',
       draw() {
         ctx.save();
         ctx.fillStyle = '#0e0e12';
@@ -564,7 +564,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     canvasId: 'cv',
     challenges,
     lsKey: 'warsztat:geo-series:completed',
-    wrapup: 'Trzy rzeczy: (1) $|q| < 1$ to magiczna granica — bez niej ciąg nie zanika i suma nie istnieje; (2) $S_\\infty = \\tfrac{a_1}{1-q}$ tylko w strefie zaniku; (3) ułamek okresowy to maskowany ciąg geometryczny.',
+    wrapup: 'Trzy rzeczy do zapamiętania: (1) warunek $|q| < 1$ decyduje o tym, czy ciąg zanika i czy suma nieskończona istnieje; (2) wzór $S_\\infty = \\tfrac{a_1}{1-q}$ obowiązuje wyłącznie w tej strefie zaniku; (3) ułamek okresowy to zamaskowana suma geometryczna.',
     extraState: { pick: null, pick4b: null },
     onFrame({ ch }) {
       // Clear canvas each frame; per-challenge draw handles its own background

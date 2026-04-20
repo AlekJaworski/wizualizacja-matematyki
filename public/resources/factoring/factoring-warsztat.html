@@ -308,7 +308,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     {
       id: 'ch3',
       title: 'Rozłóż: x² − 5x + 6',
-      desc: 'Zasuwaj pierwiastkami x₁, x₂ tak, by ich suma i iloczyn pasowały do współczynników. Vieta robi to, czego wzór kwadratowy nie musi.',
+      desc: 'Ustaw pierwiastki x₁, x₂ tak, by ich suma i iloczyn pasowały do współczynników trójmianu. Wzory Vièty pozwalają odczytać pierwiastki wprost z postaci ogólnej, bez liczenia wyróżnika.',
       drawBackground: 'graph',
       init() { C.x1 = 0; C.x2 = 0; },
       predict: {
@@ -340,7 +340,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         'x₁ + x₂ = 5   I   x₁ · x₂ = 6. Które pary liczb dają iloczyn 6?',
         'Pary o iloczynie 6: (1,6), (2,3), (−1,−6), (−2,−3). Która daje sumę 5? Para (2, 3).',
       ],
-      solvedMsg: 'Vieta w akcji — współczynniki mówią wprost, jakie pierwiastki tkwią w trójmianie. x² − 5x + 6 = (x − 2)(x − 3).',
+      solvedMsg: 'Wzory Vièty pokazują, że współczynniki trójmianu niosą bezpośrednią informację o pierwiastkach: x² − 5x + 6 = (x − 2)(x − 3).',
       draw() {
         view.plotFn(x => x*x - 5*x + 6, { color: COL_TARGET, alpha: 0.35, lineWidth: 2, dash: [5,4] });
         const s = C.x1 + C.x2, p = C.x1 * C.x2;

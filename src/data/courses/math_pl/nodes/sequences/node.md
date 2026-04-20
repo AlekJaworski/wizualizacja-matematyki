@@ -17,5 +17,5 @@ Na przykład: ciąg arytmetyczny $2, 5, 8, 11, \ldots$ ma $a_1 = 2$, $d = 3$. Wi
 
 <!-- mistakes -->
 - **Indeksowanie od 1 czy 0**: matura CKE indeksuje od 1 (pierwszy wyraz to $a_1$), niektóre podręczniki od 0. Zawsze sprawdź w zadaniu.
-- **Wzór na $n$-ty wyraz vs rekurencyjny**: $a_n = a_1 + (n-1)d$ to bezpośredni, $a_{n+1} = a_n + d$ to rekurencja. Nie mieszać w jednym zadaniu.
-- **Suma $n$ wyrazów**: $S_n = \frac{n(a_1 + a_n)}{2}$ dla arytmetycznego. Zapominanie o podzieleniu przez 2 = typowy błąd rachunkowy.
+- **Wzór na $n$-ty wyraz vs rekurencyjny**: $a_n = a_1 + (n-1)d$ to postać bezpośrednia, a $a_{n+1} = a_n + d$ to rekurencja — w jednym zadaniu warto trzymać się jednej konwencji.
+- **Suma $n$ wyrazów**: $S_n = \frac{n(a_1 + a_n)}{2}$ dla arytmetycznego — łatwo w pośpiechu pominąć dzielenie przez 2.

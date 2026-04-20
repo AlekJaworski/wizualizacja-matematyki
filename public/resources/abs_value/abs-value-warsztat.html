@@ -269,7 +269,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② Wszystkie $x$ bliższe niż $3$ od $-2$: od $-2 - 3 = -5$ do $-2 + 3 = 1$.',
         '③ Nawiasy otwarte (nierówność ostra): $(-5, 1)$.',
       ],
-      solvedMsg: '$|x - a| < b$ = "odległość od $a$ mniejsza niż $b$" = przedział $(a-b, a+b)$. Geometryczna intuicja bije algebraiczny case-split.',
+      solvedMsg: '$|x - a| < b$ oznacza "odległość od $a$ mniejsza niż $b$", czyli przedział $(a-b, a+b)$. Geometryczna interpretacja jest tu często szybsza niż rozbicie na przypadki.',
       draw() {
         // Number line at y=0
         const yL = 0;
@@ -338,7 +338,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② W każdym przedziale **usuwamy moduły z konkretnym znakiem** i rozwiązujemy.',
         '③ Pamiętaj o **sprawdzeniu**: czy rozwiązanie leży w przedziale, w którym je znalazłeś. $x = -1$ leży w $x < 0$ ✓; środkowy przedział daje sprzeczność.',
       ],
-      solvedMsg: '$n$ modułów → do $n+1$ przedziałów po case-splicie. Zawsze **sprawdź, czy rozwiązanie leży w swoim przedziale** — inaczej pozorny pierwiastek.',
+      solvedMsg: '$n$ modułów daje do $n+1$ przedziałów po rozbiciu na przypadki. Zawsze sprawdzamy, czy znalezione rozwiązanie leży w przedziale, na którym pracowaliśmy — w przeciwnym razie jest to pozorny pierwiastek.',
       draw() {
         // Title
         centerText('|x| + |x - 4| = 6', W/2, 22, COL_PAR, 15);
@@ -434,7 +434,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② $|A| = b$ ma **dwa** przypadki: $A = b$ ORAZ $A = -b$. Marta zapomniała o drugim.',
         '③ Drugi przypadek: $2x - 6 = -10 \\Rightarrow 2x = -4 \\Rightarrow x = -2$. Pełny zbiór: $\\{-2, 8\\}$.',
       ],
-      solvedMsg: 'Nigdy nie pisz "usuwam moduł". Pisz "$|A| = b$ daje $A = b$ lub $A = -b$" — i rozwiązuj oba równania.',
+      solvedMsg: 'Zamiast "usuwam moduł" warto zapisywać: "$|A| = b$ daje $A = b$ lub $A = -b$", a następnie rozwiązać oba równania.',
       draw() {
         centerText('|2x - 6| = 10', W/2, 40, COL_PAR, 22);
 
@@ -554,7 +554,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     canvasId: 'cv',
     challenges,
     lsKey: 'warsztat:abs-value:completed',
-    wrapup: 'Moduł = przypadki. Cztery wzorce: (1) $|A| = b$ → $A = \\pm b$; (2) $|A| < b$ → $-b < A < b$; (3) $|A_1| + |A_2| = c$ → podziel oś na przedziały po punktach krytycznych; (4) **zagnieżdżony moduł = kształt W** → rozwiązuj od zewnątrz, każda warstwa podwaja liczbę przypadków ($n$ warstw → do $2^n$ rozwiązań).',
+    wrapup: 'Moduł sprowadza się do rozbicia na przypadki. Cztery podstawowe wzorce: (1) $|A| = b$ daje $A = \\pm b$; (2) $|A| < b$ odpowiada $-b < A < b$; (3) w $|A_1| + |A_2| = c$ oś dzielimy na przedziały wyznaczone przez punkty krytyczne; (4) **zagnieżdżony moduł daje wykres w kształcie W** — rozwiązujemy go od zewnątrz, a każda warstwa podwaja liczbę przypadków (dla $n$ warstw otrzymujemy do $2^n$ rozwiązań).',
     onFrame({ ch }) {
       if (ch.view) viewCfg = ch.view;
       initView();

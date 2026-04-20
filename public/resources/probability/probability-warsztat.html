@@ -297,9 +297,9 @@ import { drawProbTree } from '../lib/prob-tree.js';
       predict: {
         question: 'Jak to policzyć najszybciej?',
         options: [
-          { label: 'n · 1/6',                                       correct: false, why: 'Nadprzeliczanie. Dla n = 6 dałoby 1 (pewność), ale można rzucić 6 razy bez szóstki.' },
+          { label: 'n · 1/6',                                       correct: false, why: 'To nadprzeliczenie — dla n = 6 dałoby 1 (pewność), a przecież można rzucić 6 razy bez szóstki.' },
           { label: '1 − P(żadna szóstka)',                          correct: true,  why: 'Tak — „co najmniej 1" to dopełnienie „żadnej". Jedno odjęcie zamiast sumy n składników.' },
-          { label: 'P(=1) + P(=2) + … + P(=n)',                     correct: false, why: 'Formalnie poprawne, ale n składników zamiast 1. Na maturze strata czasu.' },
+          { label: 'P(=1) + P(=2) + … + P(=n)',                     correct: false, why: 'Formalnie poprawne, ale wymaga n składników zamiast jednego odejmowania.' },
         ],
       },
       sliders: [

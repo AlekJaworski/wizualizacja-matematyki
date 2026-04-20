@@ -17,5 +17,5 @@ Na przykład: kostka sześcienna. Zdarzenia parzyste: $\{2, 4, 6\}$, więc $P(\t
 
 <!-- mistakes -->
 - **Ze zwracaniem vs bez zwracania**: w zadaniu z urną musisz wyraźnie sprawdzić, czy kula wraca. Inaczej $|\Omega|$ się różni.
-- **"Co najmniej 1" przez dopełnienie**: $P(\geq 1) = 1 - P(0)$, nie suma $P(1)+P(2)+\ldots$ — to chyba najszybszy trick na maturze.
+- **"Co najmniej 1" przez dopełnienie**: $P(\geq 1) = 1 - P(0)$, zamiast sumy $P(1)+P(2)+\ldots$ — znacznie krótsza droga.
 - **Sumowanie niezależnych zdarzeń**: $P(A \cup B)$ to NIE zawsze $P(A) + P(B)$. Odejmij iloczyn, jeśli mogą wystąpić razem.

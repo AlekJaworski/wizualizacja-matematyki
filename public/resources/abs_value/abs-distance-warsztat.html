@@ -252,7 +252,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② Ustaw $x = 7$. Wtedy $x - 3 = 4$, odległość też $4$. $|7 - 3| = 4$.',
         '③ Uogólnienie: $|x - a|$ to odległość $x$ od $a$ na osi liczbowej. Zawsze $\\geq 0$, zawsze symetryczne względem $a$.',
       ],
-      solvedMsg: '$|x - a|$ = **odległość $x$ od $a$**. To jedna z najważniejszych intuicji w całej szkolnej matematyce — od nierówności, przez funkcje, po analizę.',
+      solvedMsg: '$|x - a|$ to **odległość $x$ od $a$** na osi liczbowej. Ta intuicja wraca wielokrotnie — przy nierównościach, funkcjach i później w analizie.',
       draw() {
         if (C.x1 > 3) C._ch1SeenRight = true;
         const yL = 200;
@@ -341,7 +341,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② Wszystkie punkty bliżej niż $2$ od $3$: od $3 - 2 = 1$ do $3 + 2 = 5$. Nawiasy otwarte (nierówność ostra).',
         '③ Ogólny wzór: $|x - a| < r$ → $x \\in (a - r, a + r)$. Prościej niż case-split na $\\pm$.',
       ],
-      solvedMsg: '$|x - a| < r$ = "$x$ w odległości mniejszej niż $r$ od $a$" = przedział $(a-r, a+r)$. Geometria pokonuje case-split w 2 sekundy.',
+      solvedMsg: '$|x - a| < r$ oznacza, że $x$ leży w odległości mniejszej niż $r$ od $a$, czyli w przedziale $(a-r, a+r)$. Taka geometryczna interpretacja jest często wygodniejsza niż rozbicie na przypadki.',
       predictAfter: {
         question: 'A jaki jest zbiór rozwiązań $|x + 4| \\leq 1$?',
         options: [
@@ -580,7 +580,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
       solved() { return C.ch4Pick === 'a'; },
       hints: [
         '① Sztuczka: zapisz każdy moduł w postaci $|x - (\\text{kotwica})|$. Znak przed kotwicą jest PRZECIWNY do tego w środku.',
-        '② $|x + 3| = |x - (-3)|$ → kotwica $-3$. $|x - 7| = |x - 7|$ → kotwica $+7$. Znak w środku FLIPUJE się, kiedy wyciągasz kotwicę.',
+        '② $|x + 3| = |x - (-3)|$ → kotwica $-3$. $|x - 7| = |x - 7|$ → kotwica $+7$. Znak w środku zmienia się na przeciwny, gdy zapisujemy wyrażenie w postaci $|x - (\\text{kotwica})|$.',
         '③ Test: $|x + 3|$ dla $x = -3$ powinno być $0$ (bo $x$ równy kotwicy). $|-3 + 3| = 0$ ✓. Kotwica to $-3$.',
       ],
       solvedMsg: 'Reguła: $|x \\pm c|$ = odległość od $\\mp c$. Przeciwny znak. Ta sama zasada co rozróżnianie $(x - h)^2$ w równaniu paraboli — przesunięcie ma przeciwny znak do tego w nawiasie.',
@@ -593,7 +593,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         ctx.fillText('|x + 5| = |x - (-5)|', W/2, 36);
         ctx.font = '12px monospace';
         ctx.fillStyle = COL_PURP;
-        ctx.fillText('znak FLIPUJE się, gdy wyciągamy kotwicę', W/2, 58);
+        ctx.fillText('znak zmienia się na przeciwny przy zapisie |x - (kotwica)|', W/2, 58);
         ctx.restore();
 
         // Number line showing anchor at -5 and a few x positions
@@ -643,7 +643,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     canvasId: 'cv',
     challenges,
     lsKey: 'warsztat:abs_distance:completed',
-    wrapup: 'Jedno zdanie, które zapamiętasz na zawsze: **$|x - a|$ = odległość $x$ od $a$ na osi liczbowej**. Z tego wynika wszystko: (1) $|x - a| = r$ ma DWA rozwiązania $a \\pm r$; (2) $|x - a| < r$ to przedział $(a - r, a + r)$; (3) $|x - a| = |x - b|$ to $x = (a+b)/2$ (środek); (4) $|x + c| = |x - (-c)|$ (uwaga na znak kotwicy). Moduł nie "usuwa minusa" — on MIERZY.',
+    wrapup: 'Główna intuicja, którą warto zapamiętać: **$|x - a|$ to odległość $x$ od $a$ na osi liczbowej**. Wynika z niej reszta: (1) $|x - a| = r$ ma dwa rozwiązania $a \\pm r$; (2) $|x - a| < r$ to przedział $(a - r, a + r)$; (3) $|x - a| = |x - b|$ daje $x = (a+b)/2$, czyli środek odcinka; (4) $|x + c| = |x - (-c)|$, więc kotwica ma znak przeciwny do tego w nawiasie. Moduł mierzy odległość, a nie "usuwa minus".',
     onFrame({ ch }) {
       ctx.save();
       ctx.fillStyle = '#0e0e12';

@@ -153,7 +153,7 @@ import { drawProbTree } from '../lib/prob-tree.js';
         '② Z $10$ chorych — $99\\%$ testów pozytywnych $= 9{,}9$ prawdziwie dodatnich. Z $9990$ zdrowych — $1\\%$ testów fałszywie dodatnich $= 99{,}9$ błędnych alarmów.',
         '③ Z $\\approx 110$ osób z testem $+$ tylko $9{,}9$ to naprawdę chorzy: $P \\approx 9\\%$. Rzadkość choroby $\\gg$ dokładność testu.',
       ],
-      solvedMsg: 'To jest **paradoks podstawy**: przy rzadkich chorobach liczba błędnych alarmów przewyższa liczbę trafień. Jedyny ratunek to *bardzo* niska fałszywa dodatnia.',
+      solvedMsg: 'Jest to tzw. **paradoks podstawy**: przy rzadkich chorobach liczba fałszywie dodatnich wyników potrafi wielokrotnie przewyższyć liczbę prawdziwych trafień. Aby $P(\\text{chory}|+)$ było wysokie, swoistość testu musi być znacząco wyższa niż częstość choroby.',
       predictAfter: {
         question: 'Jaka częstość choroby sprawia, że $P(\\text{chory}|+) \\approx 50\\%$?',
         options: [
@@ -239,7 +239,7 @@ import { drawProbTree } from '../lib/prob-tree.js';
         '② $P(C|S) = \\frac{P(C \\cap S)}{P(S)}$. Licznik: chłopak I szachy. Mianownik: ktokolwiek z szachami.',
         '③ Licznik $= 0{,}4 \\cdot 0{,}3 = 0{,}12$; mianownik $= 0{,}6 \\cdot 0{,}4 + 0{,}4 \\cdot 0{,}3 = 0{,}36$. Stąd $P(C|S) = \\frac{0{,}12}{0{,}36} = \\frac{1}{3}$.',
       ],
-      solvedMsg: 'Prawdopodobieństwo warunkowe *zawęża przestrzeń* do tych, co spełniają warunek. Wybieram tylko spośród grających w szachy — a z nich ilu to chłopcy?',
+      solvedMsg: 'Prawdopodobieństwo warunkowe zawęża przestrzeń zdarzeń do tych, które spełniają warunek. Liczymy tylko wśród grających w szachy i sprawdzamy, jaka część z nich to chłopcy.',
       draw() {
         clearBG();
         const hl = C.picked2 === 'b';
@@ -309,7 +309,7 @@ import { drawProbTree } from '../lib/prob-tree.js';
         '② Definicja: $P(A|B) = \\frac{P(A \\cap B)}{P(B)}$. Jeśli pominę mianownik — dostaję $P(A \\cap B)$, nie warunek.',
         '③ Żeby policzyć $P(A|B)$ potrzeba jeszcze $P(B)$ — np. z prawdopodobieństwa całkowitego.',
       ],
-      solvedMsg: '$P(A|B)$ i $P(A \\cap B)$ to DWIE RÓŻNE rzeczy — różnią się dzieleniem przez $P(B)$. Częsty błąd: traktować „iloczyn zdarzeń" jako „warunek".',
+      solvedMsg: '$P(A|B)$ i $P(A \\cap B)$ to dwie różne wielkości — pierwsza jest drugą podzieloną przez $P(B)$. Iloczynu zdarzeń nie należy utożsamiać z prawdopodobieństwem warunkowym.',
       draw() {
         clearBG();
         // Simple illustration: two boxes side by side showing the difference.
@@ -403,7 +403,7 @@ import { drawProbTree } from '../lib/prob-tree.js';
         '② $P(\\text{biała}) = P(\\text{U1}) \\cdot P(\\text{biała}|\\text{U1}) + P(\\text{U2}) \\cdot P(\\text{biała}|\\text{U2})$.',
         '③ $= \\frac{1}{3} \\cdot \\frac{3}{5} + \\frac{2}{3} \\cdot \\frac{1}{5} = \\frac{1}{5} + \\frac{2}{15} = \\frac{3 + 2}{15} = \\frac{5}{15} = \\frac{1}{3}$.',
       ],
-      solvedMsg: 'Prawdopodobieństwo całkowite to ważona suma po rozłącznych przypadkach. *Wagi* = prawdopodobieństwa przypadków.',
+      solvedMsg: 'Prawdopodobieństwo całkowite to ważona suma po rozłącznych przypadkach, gdzie wagami są prawdopodobieństwa poszczególnych przypadków.',
       draw() {
         clearBG();
         const hl = C.picked4 === 'a';
@@ -448,7 +448,7 @@ import { drawProbTree } from '../lib/prob-tree.js';
     canvasId: 'cv',
     challenges,
     lsKey: 'warsztat:cond_prob:completed',
-    wrapup: 'Dwie reguły do zabrania: (1) paradoks podstawy — przy rzadkich zdarzeniach dokładność testu *nie gwarantuje* dokładności wyniku; (2) $P(A|B) \\neq P(B|A)$ — kierunek warunku ma znaczenie.',
+    wrapup: 'Dwie reguły, które warto zapamiętać: (1) paradoks podstawy — przy rzadkich zdarzeniach sama dokładność testu nie przekłada się na dokładność wyniku; (2) $P(A|B) \\neq P(B|A)$ — kierunek warunku ma znaczenie.',
   });
 }
 </script>

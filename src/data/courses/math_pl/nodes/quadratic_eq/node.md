@@ -17,6 +17,6 @@ Równanie kwadratowe to jedno z najczęstszych równań w matematyce — rozwią
 Na przykład: $x^2 - 5x + 6 = 0$. Tu $a=1$, $b=-5$, $c=6$.<br><br>$\Delta = 25 - 24 = 1$. Rozwiązania: $x = \frac{5 \pm 1}{2}$, czyli $x=3$ lub $x=2$.<br><br>Sprawdź: $3^2 - 5 \cdot 3 + 6 = 9 - 15 + 6 = 0$ ✓.
 
 <!-- mistakes -->
-- **Znaki Viète'a**: $x_1 + x_2 = -b/a$ i $x_1 \cdot x_2 = c/a$. Nie zapominaj o minusie przy $b$.
-- **Wzór kwadratowy z $2a$ w mianowniku**: $x = \frac{-b \pm \sqrt{\Delta}}{2a}$, nie $\frac{-b \pm \sqrt{\Delta}}{a}$. Widzimy to w klasy trzeciej regularnie.
+- **Znaki Viète'a**: $x_1 + x_2 = -b/a$ i $x_1 \cdot x_2 = c/a$ — łatwo pominąć minus przy $b$.
+- **Wzór kwadratowy z $2a$ w mianowniku**: $x = \frac{-b \pm \sqrt{\Delta}}{2a}$, nie $\frac{-b \pm \sqrt{\Delta}}{a}$.
 - **Ujemna delta — brak rozwiązań rzeczywistych**: to ≠ "równanie jest źle postawione". To po prostu informacja.

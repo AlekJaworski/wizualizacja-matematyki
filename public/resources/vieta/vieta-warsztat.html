@@ -293,7 +293,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         'Rozłóż 6 na pary: 1·6, 2·3. Która para sumuje się do 5?',
         '2 + 3 = 5, 2 · 3 = 6. Pierwiastki to 2 i 3.',
       ],
-      solvedMsg: 'Bez wzoru kwadratowego, bez delty. Dla wielu zadań maturalnych to szybsza droga.',
+      solvedMsg: 'Bez wzoru kwadratowego i bez liczenia delty — w wielu zadaniach maturalnych to wyraźnie krótsza droga.',
       predictAfter: {
         question: 'Szybki test: zmień $c$ z 6 na 12, $b$ zostaje $-5$. Co się stanie z pierwiastkami?',
         options: [
@@ -324,7 +324,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
       predict: {
         question: 'Przed dotknięciem suwaka — zgadnij. Ile RÓŻNYCH wielomianów (z a ≠ 0) ma pierwiastki dokładnie w 1 i 3?',
         options: [
-          { label: 'dokładnie jeden', correct: false, why: 'To najczęstsza intuicja. Zobaczmy razem dlaczego nie — przesuń suwak a. Dla każdego a ≠ 0 dostajesz inny wielomian z tymi samymi pierwiastkami 1 i 3.' },
+          { label: 'dokładnie jeden', correct: false, why: 'Przesuń suwak a — dla każdego a ≠ 0 dostajesz inny wielomian z tymi samymi pierwiastkami 1 i 3.' },
           { label: 'nieskończenie wiele', correct: true,  why: 'Tak. f(x) = a·(x−1)(x−3) dla dowolnego a ≠ 0 to osobny wielomian — wszystkie z pierwiastkami 1 i 3. Przesuwaj a i zobacz rodzinę.' },
           { label: 'dokładnie dwa', correct: false, why: 'Jest ich więcej, niż się wydaje. Przesuwając a zobaczysz całą rodzinę — każda wartość a ≠ 0 to osobny wielomian.' },
         ],

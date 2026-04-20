@@ -15,6 +15,6 @@ Przekształcenia wykresów funkcji pozwalają z jednego znanego wykresu $y = f(x
 Niech $f(x) = x^2$ (parabola z wierzchołkiem w $(0,0)$).<br><br>**Przesunięcie poziome:** $g(x) = f(x - 3) = (x - 3)^2$. Wierzchołek przesuwa się z $(0,0)$ do $(3, 0)$ — czyli w PRAWO o 3, choć w nawiasie jest minus.<br><br>**Przesunięcie pionowe:** $h(x) = f(x) + 2 = x^2 + 2$. Wierzchołek idzie z $(0,0)$ do $(0, 2)$ — w górę o 2, zgodnie z intuicją.<br><br>**Połączenie:** $k(x) = (x - 3)^2 + 2$ — wierzchołek w $(3, 2)$. To dokładnie postać kanoniczna funkcji kwadratowej.
 
 <!-- mistakes -->
-- **$f(x-2)$ przesuwa W PRAWO, nie w lewo** — to najczęstsza pomyłka. Myśl: "chcę, żeby nowe $x$ dawało stare wartości — jeśli nowe $x = 5$, to $f(5 - 2) = f(3)$, czyli wartość, która dawniej była w $x = 3$. Wykres przesunął się w prawo o 2."
-- **$f(2x)$ ŚCISKA, nie rozciąga** — bo już przy małym $x$ argument rośnie szybko. Rozciąga $f(x/2)$.
-- **Mnożenie zewnętrzne vs wewnętrzne**: $2 \cdot f(x)$ to pion (rozciąga wartość), $f(2x)$ to poziom (ściska argument). Łatwo pomylić.
+- **$f(x-2)$ przesuwa W PRAWO, nie w lewo** — kierunek łatwo wyprowadzić z podstawienia: jeśli nowe $x = 5$, to $f(5 - 2) = f(3)$, czyli wartość, którą dawniej funkcja miała w $x = 3$, pojawia się teraz w $x = 5$ — wykres przesunął się w prawo o 2.
+- **$f(2x)$ ŚCISKA, nie rozciąga** — już przy małym $x$ argument rośnie szybko, więc pełny kształt mieści się na krótszym przedziale. Rozciąga natomiast $f(x/2)$.
+- **Mnożenie zewnętrzne a wewnętrzne** — $2 \cdot f(x)$ działa w pionie (rozciąga wartość), a $f(2x)$ w poziomie (ściska argument); warto świadomie rozróżniać te dwa przypadki.
