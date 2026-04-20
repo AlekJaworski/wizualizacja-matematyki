@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { FONT, COLORS } from "../../styles/tokens.js";
+import { t } from "../../i18n.js";
 
 /**
  * "You are here" minimap — a windowed cutout of the full curriculum graph
@@ -108,9 +109,9 @@ export function LocalMap({
           boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
           zIndex: 60,
         }}
-        title={lang === "pl" ? "Pokaż fragment mapy" : "Show map cutout"}
+        title={t("mapShowCutout", lang)}
       >
-        {lang === "pl" ? "⌖ Mapa" : "⌖ Map"}
+        ⌖ {t("mapLabel", lang)}
       </button>
     );
   }
@@ -127,7 +128,7 @@ export function LocalMap({
         borderRadius: 8,
         zIndex: 60,
       }}>
-        {lang === "pl" ? "Brak sąsiadów w zasięgu." : "No neighbors in range."}
+        {t("mapNoNeighbors", lang)}
         <button
           onClick={() => setOpen(false)}
           style={{
@@ -165,9 +166,9 @@ export function LocalMap({
           fontSize: 10, color: COLORS.textFaint,
           letterSpacing: "0.08em", textTransform: "uppercase",
         }}>
-          {lang === "pl" ? "Fragment mapy" : "Map cutout"}
+          {t("mapCutoutTitle", lang)}
           <span style={{ marginLeft: 8, color: COLORS.textDim, textTransform: "none", letterSpacing: 0 }}>
-            · {layout.nodes.length} {lang === "pl" ? "tematów" : "topics"}
+            · {layout.nodes.length} {t("mapTopics", lang)}
           </span>
         </div>
         <button
@@ -177,7 +178,7 @@ export function LocalMap({
             color: COLORS.textFaint, cursor: "pointer",
             fontSize: 16, lineHeight: 1, padding: "2px 6px",
           }}
-          title={lang === "pl" ? "Schowaj" : "Close"}
+          title={t("mapClose", lang)}
         >×</button>
       </div>
       <svg

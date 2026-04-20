@@ -34,7 +34,9 @@ export function TopicView({
 
   const color      = SCOPE_COLORS?.[node.scope] ?? "#4a9eff";
   const scopeLabel = SCOPE_LABELS?.[node.scope]?.[lang === "pl" ? "pl" : "en"] ?? "";
-  const sectionLbl = SECTIONS?.[node.section]?.label ?? "";
+  const sectionLbl = (lang === "pl"
+    ? SECTIONS?.[node.section]?.labelPl
+    : SECTIONS?.[node.section]?.labelEn) ?? "";
   const prereqs    = adjacency.prereqs[nodeId] ?? [];
   const deps       = adjacency.dependents[nodeId] ?? [];
   const resources  = node.resources ?? [];
@@ -184,7 +186,7 @@ export function TopicView({
                   onMouseEnter={e => { e.currentTarget.style.background = "#FFD16620"; }}
                   onMouseLeave={e => { e.currentTarget.style.background = "#FFD16610"; }}
                 >
-                  <span>{lang === "pl" ? "Pytania maturalne (CKE)" : "Past matura questions (CKE)"}</span>
+                  <span>{t("quizMaturaQuestions", lang)}</span>
                   <span style={{
                     fontSize: 11, padding: "2px 6px", borderRadius: 4,
                     background: "#FFD16622", letterSpacing: "0.04em",
@@ -405,7 +407,7 @@ function EvidenceBlock({ nodeId, status, evidence, adjacency, belief, nodes, lan
                 fontSize: 11, fontFamily: FONT,
               }}
             >
-              {lang === "pl" ? "Na podstawie:" : "Based on:"} {getLabel(inferredFrom)} →
+              {t("basedOn", lang)} {getLabel(inferredFrom)} →
             </button>
           )}
         </div>
@@ -455,9 +457,7 @@ function NodeDescription({ body, lang }) {
               transition: "all 0.15s",
             }}
           >
-            {showExample
-              ? (lang === "pl" ? "Schowaj przykład" : "Hide example")
-              : (lang === "pl" ? "Nie kumam — pokaż na liczbach" : "Show me a concrete example")}
+            {showExample ? t("exampleHide", lang) : t("exampleShow", lang)}
           </button>
           {showExample && (
             <div
@@ -489,9 +489,7 @@ function NodeDescription({ body, lang }) {
               transition: "all 0.15s",
             }}
           >
-            {showMistakes
-              ? (lang === "pl" ? "Schowaj najczęstsze błędy" : "Hide common mistakes")
-              : (lang === "pl" ? "Najczęstsze błędy" : "Common mistakes")}
+            {showMistakes ? t("mistakesHide", lang) : t("mistakesShow", lang)}
           </button>
           {showMistakes && (
             <div

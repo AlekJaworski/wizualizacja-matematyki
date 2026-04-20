@@ -275,6 +275,43 @@ const STRINGS = {
   profileStartNewConfirm: { pl: "Na pewno? Obecny postęp zostanie utracony.",
                             en: "Are you sure? Current progress will be lost." },
   profileTimeline:   { pl: "Ścieżka nauki",                en: "Learning timeline" },
+  profileMaturaTips: { pl: "Wskazówki maturalne (opcjonalnie)",
+                       en: "Matura exam tips (optional)" },
+  profileMaturaTipsSub: { pl: "Krótkie meta-lekcje o tym, jak czytać polecenia i jak pisać odpowiedzi. Nie musisz ich robić — ale pomagają na maturze.",
+                          en: "Short meta-lessons on how to read commands and write answers. Optional — but they help on the matura." },
+  lessonResources:   { pl: "Dodatkowe materiały",          en: "More resources" },
+
+  // ── Topic view — extra buttons / panels ─────────────────────────
+  quizMaturaQuestions: { pl: "Pytania maturalne (CKE)",  en: "Past matura questions (CKE)" },
+  basedOn:           { pl: "Na podstawie:",                en: "Based on:" },
+  exampleShow:       { pl: "Nie kumam — pokaż na liczbach", en: "Show me a concrete example" },
+  exampleHide:       { pl: "Schowaj przykład",             en: "Hide example" },
+  mistakesShow:      { pl: "Najczęstsze błędy",            en: "Common mistakes" },
+  mistakesHide:      { pl: "Schowaj najczęstsze błędy",    en: "Hide common mistakes" },
+  hintShowNext:      { pl: "Pokaż kolejną wskazówkę",      en: "Show next hint" },
+  copiedClipboard:   { pl: "Skopiowano do schowka!",       en: "Copied to clipboard!" },
+  quizCorrect:       { pl: "Poprawnie!",                   en: "Correct!" },
+  quizIncorrect:     { pl: "Niepoprawnie",                 en: "Incorrect" },
+
+  // ── Coffee / support link ───────────────────────────────────────
+  heroCoffee:        { pl: "Postaw kawę — wspieraj projekt",
+                       en: "Buy me a coffee — support this project" },
+
+  // ── Goal selection modal ────────────────────────────────────────
+  goalSelectTitle:   { pl: "Wybierz cel",                  en: "Select Goal" },
+  goalSelectSubtitle:{ pl: "Wybierz temat docelowy. Przediagnozujemy wszystkie wymagania wstępne.",
+                       en: "Pick a target topic. We'll diagnose all its prerequisites." },
+  goalSelectSearch:  { pl: "Szukaj tematu...",             en: "Search topics..." },
+  goalSelectNoResults:{ pl: "Brak wyników",                en: "No results" },
+  goalSelectTopics:  { pl: "tematów",                      en: "topics" },
+
+  // ── LocalMap ────────────────────────────────────────────────────
+  mapShowCutout:     { pl: "Pokaż mapę kontekstu",         en: "Show context map" },
+  mapLabel:          { pl: "Mapa kontekstu",               en: "Context map" },
+  mapNoNeighbors:    { pl: "Brak sąsiadów",                en: "No neighbours" },
+  mapCutoutTitle:    { pl: "Wycinek mapy",                 en: "Map slice" },
+  mapTopics:         { pl: "tematów",                      en: "topics" },
+  mapClose:          { pl: "Zamknij",                      en: "Close" },
   profileEmpty:      { pl: "Nie masz jeszcze zapisanego kursu.",
                        en: "You don't have a saved course yet." },
   profileStartQuiz:  { pl: "Rozwiąż test, żeby rozpocząć", en: "Take a quiz to get started" },

@@ -322,7 +322,7 @@ export function HeroScreen({ lang, setLang, themeId, onThemeChange, onStartQuiz,
             e.currentTarget.style.color = COLORS.textDim;
           }}
         >
-          ☕ {lang === "pl" ? "Postaw kawę — wspieraj projekt" : "Buy me a coffee — support this project"}
+          ☕ {t("heroCoffee", lang)}
         </a>
       </div>
     </div>

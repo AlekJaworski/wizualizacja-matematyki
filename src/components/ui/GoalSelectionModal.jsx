@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { COLORS } from "../../styles/tokens.js";
+import { t } from "../../i18n.js";
 
 /**
  * Modal for selecting a deep-dive goal node.
@@ -87,14 +88,12 @@ export function GoalSelectionModal({ nodes, lang, onSelect, onClose, SECTIONS, S
   useEffect(() => { setFocusedIndex(-1); }, [search]);
 
   const labels = {
-    title: lang === "pl" ? "Wybierz cel" : "Select Goal",
-    subtitle: lang === "pl"
-      ? "Wybierz temat docelowy. Przediagnozujemy wszystkie wymagania wstępne."
-      : "Pick a target topic. We'll diagnose all its prerequisites.",
-    searchPlaceholder: lang === "pl" ? "Szukaj tematu..." : "Search topics...",
-    noResults: lang === "pl" ? "Brak wyników" : "No results",
-    footer: `${filtered.length} / ${nodes.length} ${lang === "pl" ? "tematów" : "topics"}`,
-    cancel: lang === "pl" ? "Anuluj" : "Cancel",
+    title: t("goalSelectTitle", lang),
+    subtitle: t("goalSelectSubtitle", lang),
+    searchPlaceholder: t("goalSelectSearch", lang),
+    noResults: t("goalSelectNoResults", lang),
+    footer: `${filtered.length} / ${nodes.length} ${t("goalSelectTopics", lang)}`,
+    cancel: t("cancel", lang),
   };
 
   return (
@@ -156,7 +155,7 @@ export function GoalSelectionModal({ nodes, lang, onSelect, onClose, SECTIONS, S
                   fontSize: 9, fontWeight: 700, color: secInfo?.color ?? "#6b7d9a",
                   textTransform: "uppercase", letterSpacing: 1, marginBottom: 5,
                 }}>
-                  {secInfo?.label ?? sec}
+                  {(lang === "pl" ? secInfo?.labelPl : secInfo?.labelEn) ?? sec}
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
                   {items.map(n => {

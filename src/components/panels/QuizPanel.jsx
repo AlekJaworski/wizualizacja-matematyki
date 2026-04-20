@@ -259,7 +259,7 @@ export function QuizPanel({ nodeId, nodes, questionBank, onAnswer, onSkip, lang,
                       opacity: 0.75,
                     }}
                   >
-                    {lang === "pl" ? "Pokaż kolejną wskazówkę" : "Show next hint"}
+                    {t("hintShowNext", lang)}
                   </button>
                 )}
               </div>

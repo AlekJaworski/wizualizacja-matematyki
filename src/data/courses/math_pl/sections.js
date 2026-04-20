@@ -1,8 +1,8 @@
 export const SECTIONS = {
-  SP8: { label: "SP kl. 8",         color: "#4a9eff" },
-  LP:  { label: "Matura podst.",    color: "#f5a623" },
-  LR:  { label: "Matura rozszerz.", color: "#e05cef" },
-  UNIV:{ label: "Uczelnia / IB",    color: "#6b7d9a" },
+  SP8:  { labelEn: "Primary y8",        labelPl: "SP kl. 8",         color: "#4a9eff" },
+  LP:   { labelEn: "Matura (basic)",    labelPl: "Matura podst.",    color: "#f5a623" },
+  LR:   { labelEn: "Matura (extended)", labelPl: "Matura rozszerz.", color: "#e05cef" },
+  UNIV: { labelEn: "University / IB",   labelPl: "Uczelnia / IB",    color: "#6b7d9a" },
 };
 
 export const SCOPE_COLORS = {

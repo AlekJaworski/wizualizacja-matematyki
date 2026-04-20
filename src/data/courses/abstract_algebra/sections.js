@@ -1,9 +1,9 @@
 export const SECTIONS = {
-  FOUNDATIONS: { label: "Foundations",   color: "#4a9eff" },
-  GROUPS:      { label: "Group Theory",  color: "#2ecc71" },
-  RINGS:       { label: "Ring Theory",   color: "#e74c3c" },
-  FIELDS:      { label: "Field Theory",  color: "#9b59b6" },
-  MODULES:     { label: "Module Theory", color: "#f39c12" },
+  FOUNDATIONS: { labelEn: "Foundations",   labelPl: "Podstawy",         color: "#4a9eff" },
+  GROUPS:      { labelEn: "Group Theory",  labelPl: "Teoria grup",      color: "#2ecc71" },
+  RINGS:       { labelEn: "Ring Theory",   labelPl: "Teoria pierścieni", color: "#e74c3c" },
+  FIELDS:      { labelEn: "Field Theory",  labelPl: "Teoria ciał",      color: "#9b59b6" },
+  MODULES:     { labelEn: "Module Theory", labelPl: "Teoria modułów",   color: "#f39c12" },
 };
 
 export const SCOPE_COLORS = {

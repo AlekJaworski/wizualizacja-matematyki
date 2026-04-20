@@ -49,7 +49,7 @@ export function InfoPanel({ nodeId, nodes, adjacency, lang, SCOPE_COLORS, SCOPE_
       </div>
 
       <div style={{ color: COLORS.textDim, fontSize: fsSmall, marginBottom: 8, lineHeight: 1.6 }}>
-        {SECTIONS?.[node.section]?.label}
+        {lang === "pl" ? SECTIONS?.[node.section]?.labelPl : SECTIONS?.[node.section]?.labelEn}
         {" · "}
         {SCOPE_LABELS?.[node.scope]?.[lang === "pl" ? "pl" : "en"]}
         {" · "}{t("level", lang)} {node.level}

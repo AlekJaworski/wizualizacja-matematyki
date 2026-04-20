@@ -285,7 +285,7 @@ export function ResultsScreen({
                 navigator.share({ title: "oczochodzi.pl", text, url: shareUrl }).catch(() => {});
               } else {
                 navigator.clipboard.writeText(`${text} ${shareUrl}`).then(() => {
-                  alert(lang === "pl" ? "Skopiowano do schowka!" : "Copied to clipboard!");
+                  alert(t("copiedClipboard", lang));
                 });
               }
             }}
