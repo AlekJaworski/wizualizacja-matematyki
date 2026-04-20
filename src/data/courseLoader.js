@@ -91,6 +91,7 @@ export function buildNodes(nodeFiles, idPattern) {
       scope:     meta.scope     ?? "default",
       section:   meta.section   ?? "default",
       level:     meta.level     ?? 1,
+      tag:       meta.tag       ?? null,
       x:         meta.x         ?? 0,
       y:         meta.y         ?? 0,
       // Optional array of learning resource objects parsed from pipe-delimited strings:

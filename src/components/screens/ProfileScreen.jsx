@@ -35,11 +35,11 @@ export function ProfileScreen({
 
   // Compute topologically-sorted path
   // If goalId: prereqs of goalId. If null: ALL nodes in topo order.
-  const path = useMemo(() => {
+  // Matura-tip nodes are pulled out into a separate optional section.
+  const { path, maturaTips } = useMemo(() => {
     const subgraph = new Set();
 
     if (goalId) {
-      // BFS to find all transitive prerequisites of goalId
       const queue = [goalId];
       while (queue.length) {
         const cur = queue.shift();
@@ -51,20 +51,14 @@ export function ProfileScreen({
         }
       }
     } else {
-      // Full course: all nodes
       for (const n of RAW_NODES) subgraph.add(n.id);
     }
 
-    // Kahn's algorithm for topological sort
     const inDegree = {};
-    for (const id of subgraph) {
-      inDegree[id] = 0;
-    }
+    for (const id of subgraph) inDegree[id] = 0;
     for (const id of subgraph) {
       for (const dep of (adjacency.dependents[id] ?? [])) {
-        if (subgraph.has(dep)) {
-          inDegree[dep] = (inDegree[dep] || 0) + 1;
-        }
+        if (subgraph.has(dep)) inDegree[dep] = (inDegree[dep] || 0) + 1;
       }
     }
 
@@ -85,7 +79,13 @@ export function ProfileScreen({
       }
     }
 
-    return sorted;
+    const tips = [];
+    const main = [];
+    for (const id of sorted) {
+      if (nodeById[id]?.tag === "matura_tip") tips.push(id);
+      else main.push(id);
+    }
+    return { path: main, maturaTips: tips };
   }, [goalId, adjacency, nodeById, RAW_NODES]);
 
   // Stats
@@ -238,7 +238,9 @@ export function ProfileScreen({
             const directlyTested = !!ev;
             const scopeColor = SCOPE_COLORS?.[node?.scope] ?? "#4a9eff";
             const scopeLabel = SCOPE_LABELS?.[node?.scope]?.[lang === "pl" ? "pl" : "en"] ?? "";
-            const sectionLabel = SECTIONS?.[node?.section]?.label ?? "";
+            const sectionLabel = (lang === "pl"
+              ? SECTIONS?.[node?.section]?.labelPl
+              : SECTIONS?.[node?.section]?.labelEn) ?? "";
 
             let dotColor = COLORS.textFaint;
             let dotBorder = COLORS.border;
@@ -287,12 +289,13 @@ export function ProfileScreen({
                     }
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
                     <span
                       style={{
                         fontSize: 13, fontWeight: isGoal ? 700 : 500,
                         color: isGoal ? COLORS.textPrimary : COLORS.textBody,
-                        flex: 1,
+                        flex: 1, minWidth: 0,
+                        overflowWrap: "break-word", wordBreak: "break-word",
                       }}
                       dangerouslySetInnerHTML={{ __html: renderLatex(getLabel(id) ?? "") }}
                     />
@@ -335,6 +338,19 @@ export function ProfileScreen({
             );
           })}
         </div>
+
+        {/* Optional matura tips — separate, at the end of the path */}
+        {maturaTips.length > 0 && (
+          <MaturaTipsSection
+            tips={maturaTips}
+            nodeById={nodeById}
+            belief={belief}
+            evidence={evidence}
+            lang={lang}
+            getLabel={getLabel}
+            onOpen={onResumePath}
+          />
+        )}
 
         {/* Actions */}
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
@@ -441,17 +457,109 @@ export function ProfileScreen({
 function MiniStat({ count, label, color }) {
   return (
     <div style={{
-      flex: 1, textAlign: "center",
-      padding: "8px 6px", borderRadius: 6,
+      flex: 1, minWidth: 0, textAlign: "center",
+      padding: "8px 4px", borderRadius: 6,
       background: `${color}08`,
       border: `1px solid ${color}20`,
     }}>
       <div style={{ fontSize: 20, fontWeight: 700, color, lineHeight: 1 }}>
         {count}
       </div>
-      <div style={{ fontSize: 10, color: COLORS.textFaint, marginTop: 4 }}>
+      <div style={{
+        fontSize: 10, color: COLORS.textFaint, marginTop: 4,
+        overflowWrap: "break-word", wordBreak: "break-word",
+        lineHeight: 1.3,
+      }}>
         {label}
       </div>
+    </div>
+  );
+}
+
+/** Optional matura-tips collapsible section shown under the main path. */
+function MaturaTipsSection({ tips, nodeById, belief, evidence, lang, getLabel, onOpen }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ marginBottom: 32, marginTop: -12 }}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        style={{
+          width: "100%", padding: "12px 14px",
+          fontSize: 12, fontFamily: FONT, fontWeight: 600,
+          borderRadius: 8,
+          border: `1px solid ${open ? "#FFD16640" : COLORS.border}`,
+          background: open ? "#FFD16610" : "transparent",
+          color: open ? "#FFD166" : COLORS.textDim,
+          cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+          textAlign: "left",
+        }}
+      >
+        <span>{open ? "▾" : "▸"} {t("profileMaturaTips", lang)}</span>
+        <span style={{
+          fontSize: 10, padding: "2px 6px", borderRadius: 4,
+          background: "#FFD16622", color: "#FFD166",
+          letterSpacing: "0.04em", flexShrink: 0,
+        }}>{tips.length}</span>
+      </button>
+      {open && (
+        <>
+          <p style={{
+            margin: "10px 2px 10px", fontSize: 11, color: COLORS.textFaint,
+            lineHeight: 1.6,
+          }}>
+            {t("profileMaturaTipsSub", lang)}
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {tips.map(id => {
+              const status = belief?.[id];
+              const ev = evidence?.[id];
+              const directlyTested = !!ev;
+              let dotColor = COLORS.textFaint;
+              if (status === "known") dotColor = COLORS.known;
+              else if (status === "unknown") dotColor = "#e74c3c";
+              return (
+                <div
+                  key={id}
+                  onClick={() => onOpen(id)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    padding: "10px 14px", borderRadius: 8,
+                    background: "#FFD16608",
+                    border: "1px solid #FFD16620",
+                    cursor: "pointer", minWidth: 0,
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = "#FFD16614"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = "#FFD16608"; }}
+                >
+                  <span style={{
+                    width: 8, height: 8, borderRadius: "50%",
+                    background: status ? dotColor : "transparent",
+                    border: `1.5px solid ${status ? dotColor : COLORS.textFaint}`,
+                    flexShrink: 0,
+                  }} />
+                  <span
+                    style={{
+                      fontSize: 13, color: COLORS.textBody, flex: 1, minWidth: 0,
+                      overflowWrap: "break-word", wordBreak: "break-word",
+                    }}
+                    dangerouslySetInnerHTML={{ __html: renderLatex(getLabel(id) ?? "") }}
+                  />
+                  {directlyTested && (
+                    <span style={{
+                      fontSize: 9, padding: "2px 6px", borderRadius: 3,
+                      background: ev.correct ? "#27ae6015" : "#e74c3c15",
+                      color: ev.correct ? "#2ecc71" : "#ff6b6b",
+                      border: `1px solid ${ev.correct ? "#27ae6030" : "#e74c3c30"}`,
+                      flexShrink: 0,
+                    }}>{ev.correct ? "✓" : "✗"}</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 }

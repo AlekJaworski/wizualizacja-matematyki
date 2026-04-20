@@ -127,7 +127,9 @@ export function LessonView({
   const lbl = lang === "pl" ? node.labelPl : node.label;
   const scopeColor = SCOPE_COLORS?.[node.scope] ?? "#4a9eff";
   const scopeLabel = SCOPE_LABELS?.[node.scope]?.[lang === "pl" ? "pl" : "en"] ?? "";
-  const sectionLabel = SECTIONS?.[node.section]?.label ?? "";
+  const sectionLabel = (lang === "pl"
+    ? SECTIONS?.[node.section]?.labelPl
+    : SECTIONS?.[node.section]?.labelEn) ?? "";
 
   // Find first interactive resource for iframe
   const interactiveResource = (node.resources ?? []).find(r => r.type === "interactive");
@@ -144,6 +146,8 @@ export function LessonView({
           from { opacity: 0; transform: translateY(12px); }
           to   { opacity: 1; transform: translateY(0); }
         }
+        .lesson-body .katex-display { overflow-x: auto; overflow-y: hidden; max-width: 100%; }
+        .lesson-body .katex-display > .katex { display: inline-block; min-width: 0; }
       `}</style>
 
       <div style={{
@@ -203,6 +207,7 @@ export function LessonView({
           style={{
             margin: "0 0 16px", fontSize: 22, fontWeight: 700,
             color: COLORS.textPrimary, lineHeight: 1.3,
+            overflowWrap: "break-word", wordBreak: "break-word",
           }}
           dangerouslySetInnerHTML={{ __html: renderLatex(lbl ?? "") }}
         />
@@ -210,9 +215,11 @@ export function LessonView({
         {/* Body text */}
         {node.body && (
           <div
+            className="lesson-body"
             style={{
               fontSize: 13, color: COLORS.textBody, lineHeight: 1.7,
               marginBottom: 24,
+              overflowWrap: "break-word", wordBreak: "break-word",
             }}
             dangerouslySetInnerHTML={{ __html: renderLatex(node.body.split("<!-- example -->")[0]?.trim() ?? "") }}
           />
@@ -222,6 +229,9 @@ export function LessonView({
         {interactiveResource && (
           <VizSection resource={interactiveResource} lang={lang} />
         )}
+
+        {/* Additional resource links (video/article + extra interactive ones) */}
+        <ExtraResources resources={node.resources ?? []} interactive={interactiveResource} lang={lang} />
 
         {/* Quiz */}
         <QuizSection
@@ -234,55 +244,127 @@ export function LessonView({
           onUpdateBelief={onUpdateBelief}
         />
 
-        {/* Navigation buttons */}
+        {/* Navigation: primary on top, prev/next row below */}
         <div style={{
           borderTop: `1px solid ${COLORS.border}`,
           paddingTop: 20, marginTop: 28,
-          display: "flex", gap: 10, alignItems: "center",
-          flexWrap: "wrap",
+          display: "flex", flexDirection: "column", gap: 10,
         }}>
-          {currentIndex > 0 && (
-            <button
-              onClick={handlePrev}
-              style={{
-                padding: "12px 18px", fontSize: 13, fontFamily: FONT,
-                borderRadius: 8, border: `1px solid ${COLORS.border}`,
-                background: "transparent", color: COLORS.textDim,
-                cursor: "pointer",
-              }}
-            >
-              {t("lessonPrev", lang)}
-            </button>
-          )}
-
           <button
             onClick={handleMarkKnown}
             style={{
-              flex: 1, padding: "14px 20px", fontSize: 14,
+              width: "100%", padding: "14px 20px", fontSize: 14,
               fontWeight: 600, fontFamily: FONT, borderRadius: 8,
               border: "1px solid #f39c1250",
               background: "#f39c1218", color: "#f39c12",
               cursor: "pointer", textAlign: "center",
-              minWidth: 180,
             }}
           >
             {t("iUnderstand", lang)}
           </button>
 
-          {currentIndex < totalCount - 1 && (
-            <button
-              onClick={handleNext}
-              style={{
-                padding: "12px 18px", fontSize: 13, fontFamily: FONT,
-                borderRadius: 8, border: `1px solid ${COLORS.border}`,
-                background: "transparent", color: COLORS.textDim,
-                cursor: "pointer",
-              }}
-            >
-              {t("lessonNext", lang)}
-            </button>
+          {(currentIndex > 0 || currentIndex < totalCount - 1) && (
+            <div style={{ display: "flex", gap: 10 }}>
+              {currentIndex > 0 ? (
+                <button
+                  onClick={handlePrev}
+                  style={{
+                    flex: 1, padding: "12px 18px", fontSize: 13, fontFamily: FONT,
+                    borderRadius: 8, border: `1px solid ${COLORS.border}`,
+                    background: "transparent", color: COLORS.textDim,
+                    cursor: "pointer",
+                  }}
+                >
+                  {t("lessonPrev", lang)}
+                </button>
+              ) : <div style={{ flex: 1 }} />}
+              {currentIndex < totalCount - 1 ? (
+                <button
+                  onClick={handleNext}
+                  style={{
+                    flex: 1, padding: "12px 18px", fontSize: 13, fontFamily: FONT,
+                    borderRadius: 8, border: `1px solid ${COLORS.border}`,
+                    background: "transparent", color: COLORS.textDim,
+                    cursor: "pointer",
+                  }}
+                >
+                  {t("lessonNext", lang)}
+                </button>
+              ) : <div style={{ flex: 1 }} />}
+            </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/** Additional resource links shown in the lesson (video/article + any extra
+ * interactive ones beyond the main embedded viz). Skipped entirely when empty. */
+function ExtraResources({ resources, interactive, lang }) {
+  const extras = (resources ?? []).filter(r => r !== interactive);
+  if (extras.length === 0) return null;
+
+  const typeColor = {
+    interactive: "#58C4DD",
+    video:       "#FF6B35",
+    article:     "#83C167",
+  };
+  const typeKey = (type) => type === "interactive" ? "resourceInteractive"
+    : type === "video" ? "resourceVideo" : "resourceArticle";
+
+  return (
+    <div style={{ marginBottom: 24 }}>
+      <div style={{
+        fontSize: 11, fontWeight: 600, color: "#83C167",
+        letterSpacing: "0.06em", textTransform: "uppercase",
+        marginBottom: 10,
+      }}>
+        {t("lessonResources", lang)}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {extras.map((res, i) => {
+          const title = lang === "pl" ? res.titlePl : res.titleEn;
+          const tc = typeColor[res.type] ?? "#8a9dbe";
+          const base = import.meta.env.BASE_URL ?? "/";
+          const href = res.url.startsWith("http")
+            ? res.url
+            : `${base.replace(/\/$/, "")}/${res.url.replace(/^\//, "")}${res.url.includes("?") ? "&" : "?"}lang=${lang}`;
+          return (
+            <a
+              key={i}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "10px 14px", borderRadius: 8,
+                background: `${tc}0a`, border: `1px solid ${tc}25`,
+                textDecoration: "none", fontFamily: FONT, minWidth: 0,
+              }}
+            >
+              <span style={{ fontSize: 16, flexShrink: 0 }}>
+                {res.type === "interactive" ? "⬡" : res.type === "video" ? "▶" : "📄"}
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  fontSize: 13, color: COLORS.textBody, fontWeight: 500,
+                  lineHeight: 1.4,
+                  overflowWrap: "break-word", wordBreak: "break-word",
+                }}>
+                  {title}
+                </div>
+                <div style={{
+                  fontSize: 10, color: tc, marginTop: 2,
+                  fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase",
+                }}>
+                  {t(typeKey(res.type), lang)}
+                </div>
+              </div>
+              <span style={{ fontSize: 13, color: COLORS.textFaint, flexShrink: 0 }}>→</span>
+            </a>
+          );
+        })}
       </div>
     </div>
   );
@@ -518,9 +600,7 @@ function QuizSection({ nodeId, QUESTION_BANK, belief, evidence, adjacency, lang,
             fontSize: 13, fontWeight: 600, marginBottom: 6,
             color: isCorrect ? "#2ecc71" : "#ff6b6b",
           }}>
-            {isCorrect
-              ? (lang === "pl" ? "Poprawnie!" : "Correct!")
-              : (lang === "pl" ? "Niepoprawnie" : "Incorrect")}
+            {isCorrect ? t("quizCorrect", lang) : t("quizIncorrect", lang)}
           </div>
           {question.hint && (
             <div

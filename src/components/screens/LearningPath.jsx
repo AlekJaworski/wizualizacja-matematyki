@@ -34,12 +34,12 @@ export function LearningPath({
   const getLabel = (id) => lang === "pl" ? nodeById[id]?.labelPl : nodeById[id]?.label;
   const goalNode = nodeById[goalId];
 
-  // Compute topologically-sorted prerequisite chain (BFS from goal, reverse order)
-  const path = useMemo(() => {
+  // Compute topologically-sorted prerequisite chain (BFS from goal, reverse order).
+  // Matura-tip nodes are pulled out into a separate optional list.
+  const { path, maturaTips } = useMemo(() => {
     const visited = new Set();
     const order = [];
 
-    // BFS to find all transitive prerequisites
     const queue = [goalId];
     while (queue.length) {
       const cur = queue.shift();
@@ -52,18 +52,12 @@ export function LearningPath({
       }
     }
 
-    // Topological sort within the subgraph
-    // Use Kahn's algorithm
     const subgraph = new Set(order);
     const inDegree = {};
-    for (const id of subgraph) {
-      inDegree[id] = 0;
-    }
+    for (const id of subgraph) inDegree[id] = 0;
     for (const id of subgraph) {
       for (const dep of (adjacency.dependents[id] ?? [])) {
-        if (subgraph.has(dep)) {
-          inDegree[dep] = (inDegree[dep] || 0) + 1;
-        }
+        if (subgraph.has(dep)) inDegree[dep] = (inDegree[dep] || 0) + 1;
       }
     }
 
@@ -73,7 +67,6 @@ export function LearningPath({
       if (inDegree[id] === 0) q.push(id);
     }
     while (q.length) {
-      // Sort by section level to get a natural ordering
       q.sort((a, b) => (nodeById[a]?.level ?? 0) - (nodeById[b]?.level ?? 0));
       const cur = q.shift();
       sorted.push(cur);
@@ -85,7 +78,14 @@ export function LearningPath({
       }
     }
 
-    return sorted;
+    const tips = [];
+    const main = [];
+    for (const id of sorted) {
+      // Never filter the goal itself, even if it happens to be tagged.
+      if (id !== goalId && nodeById[id]?.tag === "matura_tip") tips.push(id);
+      else main.push(id);
+    }
+    return { path: main, maturaTips: tips };
   }, [goalId, adjacency, nodeById]);
 
   // Stats
@@ -202,7 +202,9 @@ export function LearningPath({
             const hasResources = node?.resources?.length > 0;
             const scopeColor = SCOPE_COLORS?.[node?.scope] ?? "#4a9eff";
             const scopeLabel = SCOPE_LABELS?.[node?.scope]?.[lang === "pl" ? "pl" : "en"] ?? "";
-            const sectionLabel = SECTIONS?.[node?.section]?.label ?? "";
+            const sectionLabel = (lang === "pl"
+              ? SECTIONS?.[node?.section]?.labelPl
+              : SECTIONS?.[node?.section]?.labelEn) ?? "";
 
             let dotColor = COLORS.textFaint;
             let dotBorder = COLORS.border;
@@ -252,13 +254,14 @@ export function LearningPath({
                   }}
                 >
                   <div style={{
-                    display: "flex", alignItems: "center", gap: 8,
+                    display: "flex", alignItems: "center", gap: 8, minWidth: 0,
                   }}>
                     <span
                       style={{
                         fontSize: 13, fontWeight: isGoal ? 700 : 500,
                         color: isGoal ? COLORS.textPrimary : COLORS.textBody,
-                        flex: 1,
+                        flex: 1, minWidth: 0,
+                        overflowWrap: "break-word", wordBreak: "break-word",
                       }}
                       dangerouslySetInnerHTML={{ __html: renderLatex(getLabel(id) ?? "") }}
                     />
@@ -295,7 +298,91 @@ export function LearningPath({
             );
           })}
         </div>
+
+        {maturaTips.length > 0 && (
+          <MaturaTipsBlock
+            tips={maturaTips}
+            nodeById={nodeById}
+            belief={belief}
+            lang={lang}
+            getLabel={getLabel}
+            onOpen={onSelectTopic}
+          />
+        )}
       </div>
+    </div>
+  );
+}
+
+function MaturaTipsBlock({ tips, nodeById, belief, lang, getLabel, onOpen }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ marginTop: 24 }}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        style={{
+          width: "100%", padding: "12px 14px",
+          fontSize: 12, fontFamily: FONT, fontWeight: 600,
+          borderRadius: 8,
+          border: `1px solid ${open ? "#FFD16640" : COLORS.border}`,
+          background: open ? "#FFD16610" : "transparent",
+          color: open ? "#FFD166" : COLORS.textDim,
+          cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+          textAlign: "left",
+        }}
+      >
+        <span>{open ? "▾" : "▸"} {t("profileMaturaTips", lang)}</span>
+        <span style={{
+          fontSize: 10, padding: "2px 6px", borderRadius: 4,
+          background: "#FFD16622", color: "#FFD166",
+          letterSpacing: "0.04em", flexShrink: 0,
+        }}>{tips.length}</span>
+      </button>
+      {open && (
+        <>
+          <p style={{
+            margin: "10px 2px 10px", fontSize: 11, color: COLORS.textFaint, lineHeight: 1.6,
+          }}>
+            {t("profileMaturaTipsSub", lang)}
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {tips.map(id => {
+              const status = belief?.[id];
+              let dot = COLORS.textFaint;
+              if (status === "known") dot = COLORS.known;
+              else if (status === "unknown") dot = "#e74c3c";
+              return (
+                <div
+                  key={id}
+                  onClick={() => onOpen(id)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    padding: "10px 14px", borderRadius: 8,
+                    background: "#FFD16608",
+                    border: "1px solid #FFD16620",
+                    cursor: "pointer", minWidth: 0,
+                  }}
+                >
+                  <span style={{
+                    width: 8, height: 8, borderRadius: "50%",
+                    background: status ? dot : "transparent",
+                    border: `1.5px solid ${status ? dot : COLORS.textFaint}`,
+                    flexShrink: 0,
+                  }} />
+                  <span
+                    style={{
+                      fontSize: 13, color: COLORS.textBody, flex: 1, minWidth: 0,
+                      overflowWrap: "break-word", wordBreak: "break-word",
+                    }}
+                    dangerouslySetInnerHTML={{ __html: renderLatex(getLabel(id) ?? "") }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 }

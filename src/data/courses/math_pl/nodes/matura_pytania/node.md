@@ -4,6 +4,7 @@ labelPl: "Polecenia maturalne — jak czytać"
 scope: logika
 section: LP
 level: 1
+tag: matura_tip
 x: 60
 y: 1040
 ---
