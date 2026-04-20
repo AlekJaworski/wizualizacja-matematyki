@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stereometria — Warsztat</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; color: rgba(255,255,255,.85); }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+
+  .head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+  .head .step { font-size: 11px; color: rgba(255,255,255,.4); letter-spacing: .04em; }
+  .head .title { font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  .desc { font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); margin-bottom: 10px; min-height: 34px; }
+
+  .pips { display: flex; gap: 14px; flex-wrap: wrap; margin: 4px 0 10px; font-size: 12px; }
+  .pip { display: inline-flex; align-items: center; gap: 6px; color: rgba(255,255,255,.55); }
+  .pip .mark { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(255,255,255,.25); display: inline-flex; align-items: center; justify-content: center; font-size: 10px; line-height: 1; }
+  .pip.ok { color: #83C167; }
+  .pip.ok .mark { background: #83C167; border-color: #83C167; color: #0e0e12; }
+  .pip.ok .mark::before { content: "\2713"; }
+
+  .predict { margin-bottom: 10px; }
+  .predict .q { font-size: 13px; color: rgba(255,255,255,.82); margin-bottom: 8px; line-height: 1.55; }
+  .predict .opts { display: flex; flex-direction: column; gap: 6px; }
+  .predict button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.78); padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; transition: background .15s, border-color .15s; }
+  .predict button:hover { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.4); }
+  .predict button.picked { border-color: #58C4DD; color: #58C4DD; }
+  .predict .feedback { margin-top: 8px; font-size: 12px; line-height: 1.55; color: rgba(255,255,255,.7); padding: 8px 10px; border-left: 2px solid #58C4DD; background: rgba(88,196,221,.06); border-radius: 0 4px 4px 0; }
+
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 36px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+
+  .choices { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .choices button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.78); padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; transition: background .15s, border-color .15s; }
+  .choices button:hover { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.4); }
+  .choices button.picked { border-color: #58C4DD; color: #58C4DD; }
+  .choices button.correct { border-color: #83C167; color: #83C167; }
+  .choices button.wrong { border-color: #FF6B6B; color: #FF6B6B; }
+
+  .hints { font-size: 12px; color: rgba(255,255,255,.5); margin: 4px 0 10px; line-height: 1.55; }
+
+  .nav { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+  .nav button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  .nav button:hover:not(:disabled) { background: rgba(255,255,255,.08); }
+  .nav button:disabled { opacity: .3; cursor: default; }
+  .nav button.primary { border-color: #83C167; color: #83C167; }
+  .nav button.primary:hover { background: rgba(131,193,103,.1); }
+
+  .dots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.15); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  .dot.done { background: #83C167; }
+
+  .solved-note { font-size: 13px; color: #83C167; line-height: 1.55; padding: 8px 10px; border-left: 2px solid #83C167; background: rgba(131,193,103,.06); border-radius: 0 4px 4px 0; margin-bottom: 8px; }
+  .wrapup-note { font-size: 13px; color: #C78DFF; line-height: 1.55; padding: 10px 12px; border-left: 2px solid #C78DFF; background: rgba(199,141,255,.06); border-radius: 0 4px 4px 0; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="360"></canvas>
+  <div class="panel">
+    <div class="head">
+      <span class="step" id="step"></span>
+      <div class="dots" id="dots"></div>
+    </div>
+    <p class="title" id="title"></p>
+    <p class="desc" id="desc"></p>
+    <div id="predict"></div>
+    <div id="sliders-wrap"></div>
+    <div id="choices-wrap"></div>
+    <div class="pips" id="pips"></div>
+    <div class="hints" id="hints"></div>
+    <div id="solved-msg"></div>
+    <div class="nav">
+      <button id="prev">&larr;</button>
+      <button id="next" class="primary">Dalej &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initWarsztat } from '../lib/warsztat-core.js';
+{
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const W = 600, H = 360;
+
+  // ── Colors ─────────────────────────────────────────────────────
+  const COL_A   = '#58C4DD';  // edges
+  const COL_B   = '#FFD166';  // highlighted element (diagonal / section / angle)
+  const COL_RHS = '#83C167';
+  const COL_LHS = '#FF6B6B';
+  const COL_AB  = '#C78DFF';
+  const COL_DIM = 'rgba(255,255,255,0.35)';
+  const HIDDEN  = 'rgba(150,150,170,0.5)';
+
+  // ── 3D axonometric projection (30° isometric) ─────────────────
+  const COS30 = Math.cos(Math.PI/6), SIN30 = Math.sin(Math.PI/6);
+  function project3D(p, cx, cy, s) {
+    const [x, y, z] = p;
+    return {
+      sx: cx + (x - y) * COS30 * s,
+      sy: cy - z * s + (x + y) * SIN30 * s,
+    };
+  }
+  function line3D(P, Q, cx, cy, s, col, lw, dash) {
+    const a = project3D(P, cx, cy, s), b = project3D(Q, cx, cy, s);
+    ctx.save();
+    ctx.strokeStyle = col;
+    ctx.lineWidth = lw ?? 2;
+    ctx.setLineDash(dash || []);
+    ctx.beginPath();
+    ctx.moveTo(a.sx, a.sy); ctx.lineTo(b.sx, b.sy);
+    ctx.stroke();
+    ctx.restore();
+  }
+  function dot3D(P, cx, cy, s, col, r) {
+    const a = project3D(P, cx, cy, s);
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(a.sx, a.sy, r ?? 3, 0, 2*Math.PI); ctx.fill();
+  }
+  function text3D(P, cx, cy, s, txt, col, dx, dy) {
+    const a = project3D(P, cx, cy, s);
+    ctx.fillStyle = col;
+    ctx.fillText(txt, a.sx + (dx||0), a.sy + (dy||0));
+  }
+
+  // Cuboid with corners at (0,0,0)..(a,b,c). For standard isometric
+  // orientation with x→right-front, y→right-back, z→up — visible edges
+  // are everything EXCEPT the three edges meeting at the hidden corner (a,b,0).
+  // (The back-bottom corner is hidden behind the solid.)
+  function drawCuboid(a, b, c, cx, cy, s, highlightSet) {
+    // vertices:
+    const V = {
+      o:   [0,0,0],
+      x:   [a,0,0],
+      y:   [0,b,0],
+      xy:  [a,b,0],
+      z:   [0,0,c],
+      xz:  [a,0,c],
+      yz:  [0,b,c],
+      xyz: [a,b,c],
+    };
+    // edges as pairs; mark which are hidden (touch xy corner that's furthest back-down)
+    // With (x-y) horizontal and (x+y) depth, the vertex (a,b,0) lies at the back-bottom
+    // — its three edges (o->?, x->xy, y->xy, xy->xyz) should be dashed except xy->xyz visible on top.
+    // Actually hidden edges are: o-y is at back-left-bottom visible? Let's hardcode:
+    // Top face (z=c): all visible solid.
+    // Bottom face (z=0): front edges visible, back edges hidden.
+    // Vertical edges: front ones visible, back-bottom corner edges hidden.
+    const edges = [
+      // bottom face
+      ['o','x',  true],       // front-bottom
+      ['o','y',  false],      // left-bottom-back
+      ['x','xy', false],      // right-bottom-back
+      ['y','xy', false],      // back-bottom
+      // top face
+      ['z','xz', true],
+      ['z','yz', true],
+      ['xz','xyz', true],
+      ['yz','xyz', true],
+      // vertical
+      ['o','z',   true],
+      ['x','xz',  true],
+      ['y','yz',  true],
+      ['xy','xyz',true],
+    ];
+    // With our projection, actually (0,b,0) projects to top-left-ish (negative x-y=-b, positive x+y=b).
+    // The BACK-BOTTOM corner is (a,b,0). Hidden edges are the three meeting at (a,b,0)
+    // that are not also top-face: o->y? no that's not touching xy. Let me reconsider.
+    // Three edges at vertex xy=(a,b,0): x->xy, y->xy, xy->xyz. Top edge xy->xyz is visible along silhouette? No it's behind.
+    // Actually for standard isometric with this projection, the HIDDEN edges are
+    // the three meeting at the vertex that's "deepest" behind — which is (0,0,0) origin? No.
+    // Let's test: project o=(0,0,0): sx=cx, sy=cy. x=(a,0,0): sx=cx+a*COS30*s, sy=cy+a*SIN30*s (down-right).
+    // y=(0,b,0): sx=cx-b*COS30*s, sy=cy+b*SIN30*s (down-left). xy=(a,b,0): sx=cx+(a-b)*COS30*s, sy=cy+(a+b)*SIN30*s (bottom).
+    // z=(0,0,c): sx=cx, sy=cy-c*s (top).
+    // So xy is the BOTTOM-most projected vertex (front). o is BACK-TOP of bottom face.
+    // That means o is the hidden vertex (behind), and its three edges are hidden.
+    // Edges at o: o-x, o-y, o-z. These are the HIDDEN ones.
+    const hiddenEdges = new Set(['o-x', 'o-y', 'o-z']);
+    edges.forEach(([A, B]) => {
+      const key1 = A + '-' + B, key2 = B + '-' + A;
+      const hidden = hiddenEdges.has(key1) || hiddenEdges.has(key2);
+      const isHi = highlightSet && (highlightSet.has(key1) || highlightSet.has(key2));
+      if (isHi) return;
+      line3D(V[A], V[B], cx, cy, s,
+        hidden ? HIDDEN : COL_A,
+        2,
+        hidden ? [4, 4] : []);
+    });
+    return V;
+  }
+
+  function fmt(v, d) { d = d ?? 2; return (Math.abs(v - Math.round(v)) < 1e-9) ? Math.round(v).toString() : v.toFixed(d); }
+
+  function roundRect(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x+r,y); c.lineTo(x+w-r,y); c.quadraticCurveTo(x+w,y,x+w,y+r);
+    c.lineTo(x+w,y+h-r); c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    c.lineTo(x+r,y+h); c.quadraticCurveTo(x,y+h,x,y+h-r);
+    c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y);
+    c.closePath();
+  }
+  function infoBox(text, sx, sy, col) {
+    ctx.save();
+    ctx.font = '12px monospace';
+    const w = ctx.measureText(text).width + 14;
+    ctx.fillStyle = 'rgba(14,14,18,0.9)';
+    ctx.strokeStyle = col + '60';
+    ctx.lineWidth = 1;
+    roundRect(ctx, sx - w/2, sy - 11, w, 22, 4);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = col;
+    ctx.textAlign = 'center';
+    ctx.fillText(text, sx, sy + 4);
+    ctx.restore();
+  }
+
+  // ── Challenge-local state ──────────────────────────────────────
+  const C = {
+    a1: 3, b1: 2, c1: 2,   // Ch1 cuboid
+    h2: 0.4,               // Ch2 cut height as fraction of H
+    a3: 3, h3: 4,          // Ch3 base side, height
+    a4: 4, b4: 3, c4: 3,   // Ch4 cuboid for angle (c = height)
+    ch5Pick: null,
+  };
+
+  // ── Challenges ─────────────────────────────────────────────────
+  const challenges = [
+
+    // ─── Ch.1: Space diagonal of cuboid ─────────────────────────
+    {
+      id: 'ch1_space_diagonal',
+      title: 'Przekątna prostopadłościanu',
+      desc: 'Prostopadłościan o bokach $a, b, c$ ma przekątną przestrzenną $d = \\sqrt{a^2 + b^2 + c^2}$. Nie mylić z przekątną ściany!',
+      drawBackground: 'none',
+      init() {},
+      predict: {
+        question: 'Prostopadłościan ma boki $a=3, b=2, c=2$. Ile wynosi przekątna PRZESTRZENNA (łącząca dwa przeciwległe wierzchołki)?',
+        options: [
+          { label: '$\\sqrt{3^2 + 2^2} = \\sqrt{13}$', correct: false, why: 'To tylko przekątna ŚCIANY (2D Pitagoras). Przekątna przestrzenna przechodzi przez środek bryły — potrzebuje trzeciego kwadratu $c^2$.' },
+          { label: '$\\sqrt{3^2 + 2^2 + 2^2} = \\sqrt{17}$', correct: true,  why: 'Tak — 3D Pitagoras. Najpierw przekątna podstawy $\\sqrt{a^2+b^2}$, potem trójkąt prostokątny z tą przekątną i wysokością $c$: $d = \\sqrt{(a^2+b^2) + c^2}$.' },
+          { label: '$3 + 2 + 2 = 7$', correct: false, why: 'Nie — to długość łamanej wzdłuż trzech krawędzi, nie odcinka prostego. Przekątna to NAJKRÓTSZA droga przez bryłę.' },
+        ],
+      },
+      sliders: [
+        { id: 'a1', lbl: 'a', color: COL_A, min: 1, max: 4, step: 1, get: () => C.a1, set: v => C.a1 = v },
+        { id: 'b1', lbl: 'b', color: COL_A, min: 1, max: 4, step: 1, get: () => C.b1, set: v => C.b1 = v },
+        { id: 'c1', lbl: 'c', color: COL_A, min: 1, max: 4, step: 1, get: () => C.c1, set: v => C.c1 = v },
+      ],
+      pips() {
+        return [
+          { label: 'widzisz przekątną 3D', ok: true },
+          { label: 'zmień któryś bok', ok: C.a1 !== 3 || C.b1 !== 2 || C.c1 !== 2 },
+        ];
+      },
+      solved() { return C.a1 !== 3 || C.b1 !== 2 || C.c1 !== 2; },
+      hints: [
+        '① Najpierw przekątna PODSTAWY (Pitagoras w 2D): $p = \\sqrt{a^2 + b^2}$.',
+        '② Teraz trójkąt prostokątny USTAWIONY PIONOWO: jedna przyprostokątna to $p$ (leży na podstawie), druga to wysokość $c$, a przeciwprostokątna to szukana przekątna przestrzenna $d$.',
+        '③ Z Pitagorasa: $d^2 = p^2 + c^2 = (a^2+b^2) + c^2$. Czyli $d = \\sqrt{a^2+b^2+c^2}$ — jeden pierwiastek, trzy kwadraty.',
+      ],
+      solvedMsg: 'Przekątna przestrzenna = $\\sqrt{a^2+b^2+c^2}$. Symetryczna względem wszystkich trzech boków — bo nie ma znaczenia, który wymiar nazwiesz "wysokością".',
+      draw() {
+        const a = C.a1, b = C.b1, c = C.c1;
+        const s = 48;
+        const cx = W/2, cy = H/2 + 20;
+        const V = drawCuboid(a, b, c, cx, cy, s);
+
+        // diagonal face of base (for hint): from o to xy
+        line3D(V.o, V.xy, cx, cy, s, COL_DIM, 1, [3, 3]);
+
+        // space diagonal from xy (front-bottom) to z (back-top) — long visible one
+        // Actually longest visible: from xy=(a,b,0) to z=(0,0,c) — but that's back-top.
+        // Better: xy (front-bottom) to z (back-top) — passes through interior. Yes, that's the space diagonal.
+        line3D(V.xy, V.z, cx, cy, s, COL_B, 3, []);
+
+        const p = Math.sqrt(a*a + b*b);
+        const d = Math.sqrt(a*a + b*b + c*c);
+
+        // labels
+        ctx.font = '12px monospace';
+        ctx.textAlign = 'center';
+        text3D([a/2, b, 0], cx, cy, s, 'a = ' + a, COL_A, 0, 16);
+        text3D([a, b/2, 0], cx, cy, s, 'b = ' + b, COL_A, 28, 4);
+        text3D([a, 0, c/2], cx, cy, s, 'c = ' + c, COL_A, 28, 0);
+
+        // diagonal label
+        ctx.fillStyle = COL_B;
+        const mid = project3D([a/2, b/2, c/2], cx, cy, s);
+        ctx.fillText('d = \u221A(a\u00B2+b\u00B2+c\u00B2)', mid.sx + 30, mid.sy - 6);
+
+        ctx.textAlign = 'left';
+        infoBox('2D: \u221A(a\u00B2+b\u00B2) = ' + fmt(p), W*0.25, 22, COL_LHS);
+        infoBox('3D: \u221A(a\u00B2+b\u00B2+c\u00B2) = ' + fmt(d), W*0.74, 22, COL_B);
+      },
+    },
+
+    // ─── Ch.2: Cross-section of pyramid parallel to base ─────────
+    {
+      id: 'ch2_pyramid_section',
+      title: 'Przekrój ostrosłupa równoległy do podstawy',
+      desc: 'Tniemy ostrosłup prawidłowy czworokątny płaszczyzną równoległą do podstawy na wysokości $h$. Długość boku przekroju: $a(1 - h/H)$.',
+      drawBackground: 'none',
+      init() {},
+      predict: {
+        question: 'Ostrosłup o wysokości $H$ i podstawie kwadratowej $a = 4$. Tniemy go na wysokości $h = H/2$. Jaki jest bok przekroju?',
+        options: [
+          { label: '$a = 4$ (taki sam jak podstawa)', correct: false, why: 'Nie — przekrój ZMNIEJSZA się w górę. Na połowie wysokości przekrój jest dwa razy mniejszy niż podstawa.' },
+          { label: '$a/2 = 2$', correct: true,  why: 'Tak — trójkąty podobne. Na wysokości $H/2$ przekrój ma bok $a(1 - 1/2) = a/2 = 2$.' },
+          { label: '$0$ (w ogóle nie ma przekroju)', correct: false, why: 'Przekrój znika dopiero na samym wierzchołku ($h = H$). Na $H/2$ jest to mniejszy kwadrat.' },
+        ],
+      },
+      sliders: [
+        { id: 'h2', lbl: 'h/H', color: COL_B, min: 0, max: 0.95, step: 0.05, get: () => C.h2, set: v => C.h2 = v },
+      ],
+      pips() {
+        return [
+          { label: 'zmień wysokość cięcia', ok: C.h2 !== 0.4 },
+          { label: 'przekrój maleje → 0 przy wierzchołku', ok: true },
+        ];
+      },
+      solved() { return C.h2 !== 0.4; },
+      hints: [
+        '① Narysuj przekrój osiowy — trójkąt równoramienny (podstawa $a$, wysokość $H$). Na wysokości $h$ jest linia pozioma.',
+        '② Trójkąt NAD cięciem (od wierzchołka w dół do linii cięcia) JEST PODOBNY do całego trójkąta osiowego. Skala podobieństwa: $(H - h)/H = 1 - h/H$.',
+        '③ Bok przekroju = $a \\cdot (1 - h/H)$. Gdy $h = 0$ — dostajemy pełny bok $a$. Gdy $h = H$ — zero (sam wierzchołek).',
+      ],
+      solvedMsg: 'Trójkąty podobne: skala $(H-h)/H$. Każdy rozmiar (bok, obwód, apotema) skaluje się tak samo. POLE przekroju: $a^2(1-h/H)^2$ — kwadratowo szybciej.',
+      predictAfter: {
+        question: 'Jak skaluje się POLE przekroju w zależności od $h$?',
+        options: [
+          { label: 'liniowo: $B \\cdot (1 - h/H)$', correct: false, why: 'Pole zawiera kwadrat boku, więc skala pola to KWADRAT skali boku.' },
+          { label: 'kwadratowo: $B \\cdot (1 - h/H)^2$', correct: true,  why: 'Tak — bok skaluje się $\\times k$, więc pole $\\times k^2$.' },
+          { label: 'wcale nie zależy od $h$', correct: false, why: 'Jak najbardziej zależy — inaczej objętość ostrosłupa też by się nie zmniejszała.' },
+        ],
+      },
+      draw() {
+        // Draw pyramid in isometric. Base (0,0,0)..(a,a,0), apex (a/2, a/2, H)
+        const a = 4, HH = 4.5;
+        const s = 36;
+        const cx = W/2, cy = H/2 + 30;
+
+        // base corners
+        const B0 = [0, 0, 0];
+        const B1 = [a, 0, 0];
+        const B2 = [a, a, 0];
+        const B3 = [0, a, 0];
+        const AP = [a/2, a/2, HH];
+
+        // base edges: front B0-B1 and B1-B2 visible, back B0-B3, B3-B2 hidden (dashed)
+        line3D(B0, B1, cx, cy, s, COL_A, 2);
+        line3D(B1, B2, cx, cy, s, COL_A, 2);
+        line3D(B0, B3, cx, cy, s, HIDDEN, 1.5, [4, 4]);
+        line3D(B3, B2, cx, cy, s, HIDDEN, 1.5, [4, 4]);
+        // lateral edges: front B1-AP, B2-AP, B0-AP visible; B3-AP hidden
+        line3D(B0, AP, cx, cy, s, COL_A, 2);
+        line3D(B1, AP, cx, cy, s, COL_A, 2);
+        line3D(B2, AP, cx, cy, s, COL_A, 2);
+        line3D(B3, AP, cx, cy, s, HIDDEN, 1.5, [4, 4]);
+
+        // height (dashed)
+        line3D([a/2, a/2, 0], AP, cx, cy, s, COL_DIM, 1, [3, 3]);
+
+        // cross-section at height h
+        const k = 1 - C.h2;
+        const h = C.h2 * HH;
+        const off = a * (1 - k) / 2; // inset
+        const S0 = [off, off, h];
+        const S1 = [a - off, off, h];
+        const S2 = [a - off, a - off, h];
+        const S3 = [off, a - off, h];
+
+        // fill section
+        ctx.save();
+        ctx.fillStyle = COL_B + '44';
+        ctx.strokeStyle = COL_B;
+        ctx.lineWidth = 2;
+        const p0 = project3D(S0, cx, cy, s);
+        const p1 = project3D(S1, cx, cy, s);
+        const p2 = project3D(S2, cx, cy, s);
+        const p3 = project3D(S3, cx, cy, s);
+        ctx.beginPath();
+        ctx.moveTo(p0.sx, p0.sy);
+        ctx.lineTo(p1.sx, p1.sy);
+        ctx.lineTo(p2.sx, p2.sy);
+        ctx.lineTo(p3.sx, p3.sy);
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
+        ctx.restore();
+
+        // labels
+        ctx.font = '12px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = COL_A;
+        text3D([a/2, 0, 0], cx, cy, s, 'a = ' + a, COL_A, 0, 18);
+        text3D([a/2, a/2, HH/2], cx, cy, s, 'H', COL_DIM, 14, 0);
+
+        ctx.textAlign = 'left';
+        const sideCut = a * k;
+        infoBox('h/H = ' + C.h2.toFixed(2), W*0.22, 22, COL_B);
+        infoBox('bok przekroju = a\u00B7(1 - h/H) = ' + fmt(sideCut), W*0.72, 22, COL_B);
+      },
+    },
+
+    // ─── Ch.3: Pyramid volume = 1/3 prism volume ───────────────
+    {
+      id: 'ch3_pyramid_volume',
+      title: 'Objętość ostrosłupa vs graniastosłupa',
+      desc: 'Ta sama podstawa, ta sama wysokość: $V_{\\text{ost}} = \\frac{1}{3} V_{\\text{gran}}$. TRZY ostrosłupy wypełniają graniastosłup, nie dwa.',
+      drawBackground: 'none',
+      init() {},
+      predict: {
+        question: 'Graniastosłup i ostrosłup mają tę samą kwadratową podstawę i tę samą wysokość. Jaka jest relacja objętości?',
+        options: [
+          { label: '$V_{\\text{ost}} = \\frac{1}{2} V_{\\text{gran}}$', correct: false, why: 'Klasyczna pułapka — intuicja mówi "połowa, bo ostrosłup zwęża się do punktu". Ale CAŁKA (suma cienkich warstw kwadratowych) daje $\\frac{1}{3}$, nie $\\frac{1}{2}$.' },
+          { label: '$V_{\\text{ost}} = \\frac{1}{3} V_{\\text{gran}}$', correct: true,  why: 'Tak — trzy ostrosłupy (przy tej samej podstawie i wysokości) wypełniają graniastosłup. Wzór: $V = \\frac{1}{3} B h$.' },
+          { label: 'są równe', correct: false, why: 'Nie — ostrosłup ma mniej "objętości" niż graniastosłup, bo zwęża się ku górze.' },
+        ],
+      },
+      sliders: [
+        { id: 'a3', lbl: 'a', color: COL_A, min: 2, max: 5, step: 1, get: () => C.a3, set: v => C.a3 = v },
+        { id: 'h3', lbl: 'h', color: COL_A, min: 2, max: 6, step: 1, get: () => C.h3, set: v => C.h3 = v },
+      ],
+      pips() {
+        return [
+          { label: 'zmień podstawę lub wysokość', ok: C.a3 !== 3 || C.h3 !== 4 },
+          { label: '$V_{\\text{ost}} = V_{\\text{gran}}/3$', ok: true },
+        ];
+      },
+      solved() { return C.a3 !== 3 || C.h3 !== 4; },
+      hints: [
+        '① Dowód przez "pocięcie": sześcian można rozciąć na TRZY PRZYSTAJĄCE ostrosłupy, z których każdy ma za podstawę jedną ścianę sześcianu i za wierzchołek przeciwległy róg.',
+        '② Każdy z tych ostrosłupów ma podstawę = ściana sześcianu (pole $a^2$) i wysokość $a$. Trzy takie zmieszczą się dokładnie w sześcianie o objętości $a^3$, więc każdy ma $V = a^3/3$.',
+        '③ To uogólnia się na dowolny graniastosłup/ostrosłup o tej samej podstawie i wysokości: $V_{\\text{ostrosłup}} = \\frac{1}{3} B h$.',
+      ],
+      solvedMsg: 'Wzór maturalny: $V_{\\text{ost}} = \\frac{1}{3} B h$. Pamiętaj — trzecia, nie połowa. Ta sama logika działa dla stożka: $V = \\frac{1}{3} \\pi r^2 h$.',
+      draw() {
+        const a = C.a3, hh = C.h3;
+        const s = 30;
+        // two bryły side by side
+        const cxL = W * 0.27, cxR = W * 0.73;
+        const cy = H/2 + 50;
+
+        // ── LEFT: prism ─────────────────
+        const B0 = [0,0,0], B1 = [a,0,0], B2 = [a,a,0], B3 = [0,a,0];
+        const T0 = [0,0,hh], T1 = [a,0,hh], T2 = [a,a,hh], T3 = [0,a,hh];
+        // bottom
+        line3D(B0, B1, cxL, cy, s, COL_A, 2);
+        line3D(B1, B2, cxL, cy, s, COL_A, 2);
+        line3D(B0, B3, cxL, cy, s, HIDDEN, 1.5, [4,4]);
+        line3D(B3, B2, cxL, cy, s, HIDDEN, 1.5, [4,4]);
+        // top
+        line3D(T0, T1, cxL, cy, s, COL_A, 2);
+        line3D(T1, T2, cxL, cy, s, COL_A, 2);
+        line3D(T0, T3, cxL, cy, s, COL_A, 2);
+        line3D(T3, T2, cxL, cy, s, COL_A, 2);
+        // vertical
+        line3D(B0, T0, cxL, cy, s, HIDDEN, 1.5, [4,4]);
+        line3D(B1, T1, cxL, cy, s, COL_A, 2);
+        line3D(B2, T2, cxL, cy, s, COL_A, 2);
+        line3D(B3, T3, cxL, cy, s, COL_A, 2);
+
+        // ── RIGHT: pyramid ─────────────
+        const AP = [a/2, a/2, hh];
+        line3D(B0, B1, cxR, cy, s, COL_A, 2);
+        line3D(B1, B2, cxR, cy, s, COL_A, 2);
+        line3D(B0, B3, cxR, cy, s, HIDDEN, 1.5, [4,4]);
+        line3D(B3, B2, cxR, cy, s, HIDDEN, 1.5, [4,4]);
+        line3D(B0, AP, cxR, cy, s, COL_A, 2);
+        line3D(B1, AP, cxR, cy, s, COL_A, 2);
+        line3D(B2, AP, cxR, cy, s, COL_A, 2);
+        line3D(B3, AP, cxR, cy, s, HIDDEN, 1.5, [4,4]);
+
+        // labels
+        ctx.font = '13px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = 'rgba(255,255,255,0.75)';
+        ctx.fillText('graniastosłup', cxL, 30);
+        ctx.fillText('ostrosłup', cxR, 30);
+
+        const B = a*a;
+        const Vp = B * hh;
+        const Vo = B * hh / 3;
+        ctx.textAlign = 'left';
+        infoBox('V = a\u00B2\u00B7h = ' + Vp, cxL, 52, COL_A);
+        infoBox('V = a\u00B2\u00B7h/3 = ' + fmt(Vo), cxR, 52, COL_B);
+
+        // ratio banner
+        ctx.font = '12px monospace';
+        ctx.fillStyle = COL_B; ctx.textAlign = 'center';
+        ctx.fillText('V_ost / V_gran = 1/3  (\u2248 ' + fmt(Vo/Vp) + ')', W/2, H - 14);
+      },
+    },
+
+    // ─── Ch.4: Angle between space diagonal and base ─────────────
+    {
+      id: 'ch4_diag_angle',
+      title: 'Kąt między przekątną a podstawą',
+      desc: 'Kąt $\\alpha$ między przekątną przestrzenną prostopadłościanu a płaszczyzną podstawy: $\\tan \\alpha = c / \\sqrt{a^2 + b^2}$.',
+      drawBackground: 'none',
+      init() {},
+      predict: {
+        question: 'W prostopadłościanie o podstawie $a=4, b=3$ i wysokości $c=3$: tangens kąta między PRZEKĄTNĄ PRZESTRZENNĄ a PODSTAWĄ to...',
+        options: [
+          { label: '$\\tan \\alpha = c/a = 3/4$', correct: false, why: 'To byłby kąt z krawędzią $a$, nie z podstawą. Rzut przekątnej na podstawę to jej PRZEKĄTNA PODSTAWY, nie pojedynczy bok.' },
+          { label: '$\\tan \\alpha = c / \\sqrt{a^2+b^2} = 3/5$', correct: true,  why: 'Tak — trójkąt prostokątny: przyprostokątna pozioma = $\\sqrt{a^2+b^2}$ (rzut na podstawę), pionowa = $c$, przeciwprostokątna = przekątna 3D. $\\tan = $ pion/poziom.' },
+          { label: '$\\tan \\alpha = c / (a+b) = 3/7$', correct: false, why: 'Mylenie przekątnej z sumą. Rzut to $\\sqrt{a^2+b^2}$, nie $a+b$.' },
+        ],
+      },
+      sliders: [
+        { id: 'a4', lbl: 'a', color: COL_A, min: 2, max: 5, step: 1, get: () => C.a4, set: v => C.a4 = v },
+        { id: 'b4', lbl: 'b', color: COL_A, min: 2, max: 5, step: 1, get: () => C.b4, set: v => C.b4 = v },
+        { id: 'c4', lbl: 'c', color: COL_B, min: 1, max: 6, step: 1, get: () => C.c4, set: v => C.c4 = v },
+      ],
+      pips() {
+        return [
+          { label: 'zmień którąś wartość', ok: C.a4 !== 4 || C.b4 !== 3 || C.c4 !== 3 },
+          { label: 'widzisz rzut przekątnej na podstawę', ok: true },
+        ];
+      },
+      solved() { return C.a4 !== 4 || C.b4 !== 3 || C.c4 !== 3; },
+      hints: [
+        '① Kąt między PROSTĄ a PŁASZCZYZNĄ = kąt między prostą a jej rzutem prostokątnym na tę płaszczyznę.',
+        '② Rzut przekątnej przestrzennej na podstawę to przekątna PODSTAWY (długości $p = \\sqrt{a^2+b^2}$). Kąt $\\alpha$ jest więc między przekątną 3D a tym rzutem.',
+        '③ Trójkąt prostokątny: $p$ (pozioma), $c$ (pionowa), $d = \\sqrt{a^2+b^2+c^2}$ (przeciwprostokątna). Stąd $\\tan \\alpha = c/p$, $\\sin \\alpha = c/d$, $\\cos \\alpha = p/d$.',
+      ],
+      solvedMsg: 'Zawsze: kąt prostej z płaszczyzną = kąt z JEJ RZUTEM na płaszczyznę. Trójkąt prostokątny "pion/poziom" rozwiązuje problem w jednej linijce.',
+      draw() {
+        const a = C.a4, b = C.b4, c = C.c4;
+        const s = 42;
+        const cx = W/2, cy = H/2 + 30;
+        const V = drawCuboid(a, b, c, cx, cy, s);
+
+        // diagonal projection on base: from xy=(a,b,0) to o=(0,0,0)
+        line3D(V.xy, V.o, cx, cy, s, COL_AB, 2, [5, 4]);
+        // space diagonal from xy to z=(0,0,c)
+        line3D(V.xy, V.z, cx, cy, s, COL_B, 3);
+        // vertical from o to z
+        line3D(V.o, V.z, cx, cy, s, COL_B + '99', 1.5, [3, 3]);
+
+        // angle arc at xy between diagonal and its projection
+        const pXY = project3D(V.xy, cx, cy, s);
+        const pZ  = project3D(V.z,  cx, cy, s);
+        const pO  = project3D(V.o,  cx, cy, s);
+        const angToZ = Math.atan2(pZ.sy - pXY.sy, pZ.sx - pXY.sx);
+        const angToO = Math.atan2(pO.sy - pXY.sy, pO.sx - pXY.sx);
+        ctx.strokeStyle = COL_B;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        // draw small arc at xy
+        let a1 = angToO, a2 = angToZ;
+        ctx.arc(pXY.sx, pXY.sy, 22, Math.min(a1,a2), Math.max(a1,a2));
+        ctx.stroke();
+
+        // Label alpha near arc
+        const am = (a1 + a2) / 2;
+        ctx.fillStyle = COL_B; ctx.font = '13px monospace'; ctx.textAlign = 'center';
+        ctx.fillText('\u03B1', pXY.sx + 34 * Math.cos(am), pXY.sy + 34 * Math.sin(am) + 4);
+
+        // labels for sides
+        ctx.font = '12px monospace';
+        text3D([a/2, b, 0], cx, cy, s, 'a = ' + a, COL_A, 0, 16);
+        text3D([a, b/2, 0], cx, cy, s, 'b = ' + b, COL_A, 26, 4);
+        text3D([a, 0, c/2], cx, cy, s, 'c = ' + c, COL_B, 26, 0);
+        text3D([a/2, b/2, 0], cx, cy, s, 'rzut = \u221A(a\u00B2+b\u00B2)', COL_AB, -40, -6);
+
+        const p = Math.sqrt(a*a + b*b);
+        const alpha = Math.atan2(c, p) * 180/Math.PI;
+        ctx.textAlign = 'left';
+        infoBox('tan \u03B1 = c/\u221A(a\u00B2+b\u00B2) = ' + fmt(c) + '/' + fmt(p), W*0.27, 22, COL_B);
+        infoBox('\u03B1 \u2248 ' + fmt(alpha, 1) + '\u00B0', W*0.80, 22, COL_B);
+      },
+    },
+
+    // ─── Ch.5: Pattern recognition — 2D vs 3D Pythagoras ────────
+    {
+      id: 'ch5_2d_or_3d',
+      title: 'Kiedy 2D Pitagoras, a kiedy 3D?',
+      desc: 'Rozpoznaj: w której sytuacji wystarczy zwykły Pitagoras 2D, a gdzie potrzebujesz wersji 3D $\\sqrt{a^2+b^2+c^2}$?',
+      drawBackground: 'none',
+      init() { C.ch5Pick = null; },
+      predict: {
+        question: 'Która z poniższych wielkości wymaga 3D Pitagorasa $\\sqrt{a^2+b^2+c^2}$?',
+        options: [
+          { label: 'Przekątna ściany prostopadłościanu', correct: false, why: 'Ściana to PROSTOKĄT w 2D — wystarczy zwykły Pitagoras $\\sqrt{a^2+b^2}$.' },
+          { label: 'Przekątna przestrzenna prostopadłościanu', correct: true,  why: 'Tak — tu właśnie wchodzi trzeci wymiar. Przekątna łączy przeciwległe WIERZCHOŁKI bryły i "przebija" ją na wylot.' },
+          { label: 'Wysokość ostrosłupa gdy znasz krawędź boczną i apotemę podstawy', correct: false, why: 'To TRÓJKĄT PROSTOKĄTNY w płaszczyźnie osiowej — 2D Pitagoras.' },
+        ],
+      },
+      choices: {
+        question: 'Dla utrwalenia — wybierz zadanie, gdzie jawnie potrzebny jest pełny 3D pierwiastek $\\sqrt{a^2+b^2+c^2}$.',
+        options: [
+          { id: 'a', label: 'Długość odcinka łączącego dwa przeciwległe wierzchołki prostopadłościanu', correct: true },
+          { id: 'b', label: 'Długość przekątnej ściany bocznej prostopadłościanu', correct: false },
+          { id: 'c', label: 'Wysokość trójkąta równobocznego o boku $a$', correct: false },
+          { id: 'd', label: 'Obwód podstawy ostrosłupa prawidłowego czworokątnego', correct: false },
+        ],
+        pick(id) { C.ch5Pick = id; },
+      },
+      pips() {
+        return [{ label: 'poprawne rozpoznanie 3D', ok: C.ch5Pick === 'a' }];
+      },
+      solved() { return C.ch5Pick === 'a'; },
+      hints: [
+        '① Pitagoras 2D działa ZAWSZE w jednej płaszczyźnie — ścianie, osi, przekroju. Jeśli rysunek twojego trójkąta mieści się na kartce, to 2D.',
+        '② 3D Pitagoras $\\sqrt{a^2+b^2+c^2}$ pojawia się, gdy odcinek "ucieka" z każdej ściany — przekątna przestrzenna, odległość między niepołączonymi wierzchołkami na przeciwległych ścianach.',
+        '③ Trick: w ostrosłupach najpierw patrzysz na PRZEKRÓJ OSIOWY lub ŚCIANĘ — prawie zawsze sprowadzasz zadanie do 2D. W prostopadłościanach 3D pojawia się głównie przy przekątnej przestrzennej.',
+      ],
+      solvedMsg: 'Zasada: sprowadzaj do 2D tam, gdzie tylko się da (przekroje, ściany, trójkąty osiowe). Pełne 3D $\\sqrt{a^2+b^2+c^2}$ wchodzi głównie przy przekątnej przestrzennej prostopadłościanu.',
+      draw() {
+        // Reference sheet of 2D vs 3D situations
+        ctx.font = 'bold 14px monospace';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.textAlign = 'center';
+        ctx.fillText('Pitagoras: 2D czy 3D?', W/2, 32);
+
+        const rows = [
+          { txt: 'przekątna ściany prostopadłościanu',       tag: '2D', note: '\u221A(a\u00B2+b\u00B2)' },
+          { txt: 'przekątna PRZESTRZENNA prostopadłościanu', tag: '3D', note: '\u221A(a\u00B2+b\u00B2+c\u00B2)' },
+          { txt: 'wysokość ostrosłupa z kraw. bocznej i apotemy podstawy', tag: '2D', note: 'w przekroju osiowym' },
+          { txt: 'kąt krawędzi bocznej z podstawą ostrosłupa', tag: '2D', note: 'w trójkącie krawędź/rzut' },
+          { txt: 'odległość wierzchołka podstawy od wierzchołka ostrosłupa', tag: '2D', note: 'kraw. boczna — Pitagoras w ścianie' },
+          { txt: 'kąt przekątnej przestrzennej z podstawą',   tag: '3D', note: 'trójkąt pion/\u221A(a\u00B2+b\u00B2)' },
+          { txt: 'wysokość stożka z tworzącej $l$ i promienia $r$', tag: '2D', note: 'osiowy trójkąt' },
+        ];
+
+        ctx.font = '12px monospace';
+        ctx.textAlign = 'left';
+        rows.forEach((r, i) => {
+          const y = 62 + i * 32;
+          const isHi = r.tag === '3D';
+          ctx.fillStyle = isHi ? COL_B : COL_RHS;
+          ctx.font = 'bold 11px monospace';
+          ctx.fillText('[' + r.tag + ']', 20, y);
+          ctx.font = '12px monospace';
+          ctx.fillStyle = 'rgba(255,255,255,0.82)';
+          ctx.fillText(r.txt, 62, y);
+          ctx.fillStyle = 'rgba(255,255,255,0.4)';
+          ctx.font = '11px monospace';
+          ctx.fillText(r.note, 62, y + 14);
+          ctx.font = '12px monospace';
+        });
+      },
+    },
+
+  ];
+
+  initWarsztat({
+    canvasId: 'cv',
+    challenges,
+    lsKey: 'warsztat:solid_geom:completed',
+    wrapup: 'Stereometria = znajdź właściwy trójkąt prostokątny wewnątrz bryły. W większości zadań wystarczy 2D Pitagoras w przekroju osiowym lub ścianie. Pełne 3D $\\sqrt{a^2+b^2+c^2}$ pojawia się głównie przy przekątnej przestrzennej. A dla objętości pamiętaj: ostrosłup to $\\frac{1}{3}$ graniastosłupa, nie $\\frac{1}{2}$.',
+    onFrame({ ch }) {
+      ctx.save();
+      ctx.fillStyle = '#0e0e12';
+      ctx.fillRect(0, 0, W, H);
+      ctx.restore();
+    },
+  });
+}
+</script>
+</body>
+</html>

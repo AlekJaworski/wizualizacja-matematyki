@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<title>Ćwiartki i wzory redukcyjne — Warsztat</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; color: rgba(255,255,255,.85); }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+
+  .head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+  .head .step { font-size: 11px; color: rgba(255,255,255,.4); letter-spacing: .04em; }
+  .head .title { font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  .desc { font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); margin-bottom: 10px; min-height: 34px; }
+
+  .pips { display: flex; gap: 14px; flex-wrap: wrap; margin: 4px 0 10px; font-size: 12px; }
+  .pip { display: inline-flex; align-items: center; gap: 6px; color: rgba(255,255,255,.55); }
+  .pip .mark { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(255,255,255,.25); display: inline-flex; align-items: center; justify-content: center; font-size: 10px; line-height: 1; }
+  .pip.ok { color: #83C167; }
+  .pip.ok .mark { background: #83C167; border-color: #83C167; color: #0e0e12; }
+  .pip.ok .mark::before { content: "\2713"; }
+
+  .predict { margin-bottom: 10px; }
+  .predict .q { font-size: 13px; color: rgba(255,255,255,.82); margin-bottom: 8px; line-height: 1.55; }
+  .predict .opts { display: flex; flex-direction: column; gap: 6px; }
+  .predict button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.78); padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; transition: background .15s, border-color .15s; }
+  .predict button:hover { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.4); }
+  .predict button.picked { border-color: #58C4DD; color: #58C4DD; }
+  .predict .feedback { margin-top: 8px; font-size: 12px; line-height: 1.55; color: rgba(255,255,255,.7); padding: 8px 10px; border-left: 2px solid #58C4DD; background: rgba(88,196,221,.06); border-radius: 0 4px 4px 0; }
+
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 36px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+
+  .choices { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .choices button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.78); padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; text-align: left; transition: background .15s, border-color .15s; }
+  .choices button:hover { background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.4); }
+  .choices button.picked { border-color: #58C4DD; color: #58C4DD; }
+  .choices button.correct { border-color: #83C167; color: #83C167; }
+  .choices button.wrong { border-color: #FF6B6B; color: #FF6B6B; }
+
+  .hints { font-size: 12px; color: rgba(255,255,255,.5); margin: 4px 0 10px; line-height: 1.55; }
+
+  .nav { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+  .nav button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  .nav button:hover:not(:disabled) { background: rgba(255,255,255,.08); }
+  .nav button:disabled { opacity: .3; cursor: default; }
+  .nav button.primary { border-color: #83C167; color: #83C167; }
+  .nav button.primary:hover { background: rgba(131,193,103,.1); }
+
+  .dots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.15); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+  .dot.done { background: #83C167; }
+
+  .solved-note { font-size: 13px; color: #83C167; line-height: 1.55; padding: 8px 10px; border-left: 2px solid #83C167; background: rgba(131,193,103,.06); border-radius: 0 4px 4px 0; margin-bottom: 8px; }
+  .wrapup-note { font-size: 13px; color: #C78DFF; line-height: 1.55; padding: 10px 12px; border-left: 2px solid #C78DFF; background: rgba(199,141,255,.06); border-radius: 0 4px 4px 0; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="360"></canvas>
+  <div class="panel">
+    <div class="head">
+      <span class="step" id="step"></span>
+      <div class="dots" id="dots"></div>
+    </div>
+    <p class="title" id="title"></p>
+    <p class="desc" id="desc"></p>
+    <div id="predict"></div>
+    <div id="sliders-wrap"></div>
+    <div id="choices-wrap"></div>
+    <div class="pips" id="pips"></div>
+    <div class="hints" id="hints"></div>
+    <div id="solved-msg"></div>
+    <div class="nav">
+      <button id="prev">&larr;</button>
+      <button id="next" class="primary">Dalej &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { GraphView } from '../lib/graph-core.js';
+import { initWarsztat } from '../lib/warsztat-core.js';
+{
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const W = 600, H = 360;
+
+  // ── Colors ─────────────────────────────────────────────────────
+  const COL_OK   = '#83C167';
+  const COL_LHS  = '#FF6B6B';
+  const COL_A    = '#58C4DD';
+  const COL_B    = '#FFD166';
+  const COL_ACC  = '#C78DFF';
+  const COL_DIM  = 'rgba(255,255,255,0.35)';
+
+  // Unit-circle geometry: centered on canvas, radius R_PX ≈ 110 px.
+  const CX = W * 0.5;
+  const CY = H * 0.5 + 6;
+  const R_PX = 110;
+
+  // Convert (cos α, sin α) in math coords to pixel coords on our circle.
+  function px(x) { return CX + x * R_PX; }
+  function py(y) { return CY - y * R_PX; }
+
+  // ── Draw helpers ───────────────────────────────────────────────
+  function roundRect(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x+r,y); c.lineTo(x+w-r,y); c.quadraticCurveTo(x+w,y,x+w,y+r);
+    c.lineTo(x+w,y+h-r); c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    c.lineTo(x+r,y+h); c.quadraticCurveTo(x,y+h,x,y+h-r);
+    c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y);
+    c.closePath();
+  }
+  function infoBox(text, sx, sy, col) {
+    ctx.save();
+    ctx.font = '12px monospace';
+    const w = ctx.measureText(text).width + 14;
+    ctx.fillStyle = 'rgba(14,14,18,0.9)';
+    ctx.strokeStyle = col + '60';
+    ctx.lineWidth = 1;
+    roundRect(ctx, sx - w/2, sy - 11, w, 22, 4);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = col;
+    ctx.textAlign = 'center';
+    ctx.fillText(text, sx, sy + 4);
+    ctx.restore();
+  }
+  function text(msg, sx, sy, col, size, align, baseline) {
+    ctx.save();
+    ctx.font = (size || 12) + 'px monospace';
+    ctx.fillStyle = col;
+    ctx.textAlign = align || 'left';
+    ctx.textBaseline = baseline || 'alphabetic';
+    ctx.fillText(msg, sx, sy);
+    ctx.restore();
+  }
+  function fmt(v, d) { d = d ?? 2; return (Math.abs(v - Math.round(v)) < 1e-9) ? Math.round(v).toString() : v.toFixed(d); }
+
+  // Draw axes+unit circle centered at (CX,CY).
+  function drawAxesCircle() {
+    ctx.save();
+    // Axes
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(CX - R_PX * 1.55, CY); ctx.lineTo(CX + R_PX * 1.55, CY);
+    ctx.moveTo(CX, CY - R_PX * 1.4); ctx.lineTo(CX, CY + R_PX * 1.4);
+    ctx.stroke();
+    // x-ticks at ±1
+    ctx.font = '10px monospace';
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.textAlign = 'center';
+    ctx.fillText('1', CX + R_PX, CY + 14);
+    ctx.fillText('-1', CX - R_PX, CY + 14);
+    ctx.textAlign = 'left';
+    ctx.fillText('1', CX + 5, CY - R_PX + 3);
+    ctx.fillText('-1', CX + 5, CY + R_PX + 3);
+    // Unit circle
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(CX, CY, R_PX, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Draw angle arc from 0 to α (radians) in unit circle.
+  function drawAngleArc(alpha, radius, col) {
+    ctx.save();
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    // Canvas Y is flipped; positive α (math ccw) == negative direction in canvas.
+    ctx.arc(CX, CY, radius, 0, -alpha, alpha < 0);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Draw a labeled point (cos α, sin α) with projections onto axes.
+  function drawAnglePoint(alpha, col, label) {
+    const cA = Math.cos(alpha), sA = Math.sin(alpha);
+    const dx = px(cA), dy = py(sA);
+    // Radius line
+    ctx.save();
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(CX, CY); ctx.lineTo(dx, dy);
+    ctx.stroke();
+    // Projections (dashed)
+    ctx.strokeStyle = col + '99';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(dx, dy); ctx.lineTo(dx, CY);  // vertical drop to x-axis
+    ctx.moveTo(dx, dy); ctx.lineTo(CX, dy);  // horizontal to y-axis
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // Point
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.arc(dx, dy, 5, 0, Math.PI * 2);
+    ctx.fill();
+    if (label) {
+      ctx.font = '11px monospace';
+      ctx.fillStyle = col;
+      ctx.textAlign = cA >= 0 ? 'left' : 'right';
+      ctx.fillText(label, dx + (cA >= 0 ? 8 : -8), dy - 8);
+    }
+    ctx.restore();
+    return { cA, sA };
+  }
+
+  // Determine quadrant (1..4) from angle in radians (normalized).
+  function quadrantOf(alpha) {
+    let a = alpha % (2 * Math.PI);
+    if (a < 0) a += 2 * Math.PI;
+    if (a < Math.PI / 2) return 1;
+    if (a < Math.PI) return 2;
+    if (a < 3 * Math.PI / 2) return 3;
+    return 4;
+  }
+
+  // Signs per quadrant: [sin, cos, tan] as +1/-1.
+  const QUAD_SIGNS = {
+    1: { sin: +1, cos: +1, tan: +1 },
+    2: { sin: +1, cos: -1, tan: -1 },
+    3: { sin: -1, cos: -1, tan: +1 },
+    4: { sin: -1, cos: +1, tan: -1 },
+  };
+  const QUAD_MNEMONIC = {
+    1: 'wszystkie +',
+    2: 'sinus +',
+    3: 'tangens +',
+    4: 'cosinus +',
+  };
+
+  // ── Challenge-local state ──────────────────────────────────────
+  const C = {
+    alpha1: 0.6,   // ch1: quadrant explorer
+    alpha1Moved: false,
+    ch1Visited: new Set(),
+    alpha2: 40 * Math.PI / 180,  // ch2: sin(180-α), cos(180-α)
+    alpha2Moved: false,
+    ch2Pick: null,
+    alpha3: 50 * Math.PI / 180,  // ch3: parity
+    alpha3Moved: false,
+    ch3Pick: null,
+    ch4Pick: null, // final MCQ
+  };
+
+  // ── Challenges ─────────────────────────────────────────────────
+  const challenges = [
+
+    // ─── Ch.1: Quadrant sign explorer ──────────────────────────
+    {
+      id: 'ch1_quadrant_signs',
+      title: 'Znaki $\\sin, \\cos, \\tan$ w ćwiartkach',
+      desc: 'Przesuwaj $\\alpha$ i obserwuj znaki. Mnemonik polski: „wszystkie, sinus, tangens, cosinus" — która funkcja jest DODATNIA w danej ćwiartce.',
+      drawBackground: 'none',
+      init() { C.alpha1 = 0.6; C.alpha1Moved = false; C.ch1Visited = new Set([1]); },
+      predict: {
+        question: 'W której ćwiartce $\\sin\\alpha > 0$ i $\\cos\\alpha < 0$?',
+        options: [
+          { label: 'I ćwiartka', correct: false, why: 'W I ćwiartce oba są dodatnie ($x>0, y>0$).' },
+          { label: 'II ćwiartka', correct: true, why: 'Tak — II ćwiartka: $x<0$ (lewo od osi $y$) więc $\\cos<0$; $y>0$ (nad osią $x$) więc $\\sin>0$. Kąty między $90°$ a $180°$.' },
+          { label: 'III ćwiartka', correct: false, why: 'W III ćwiartce oba są ujemne ($x<0, y<0$).' },
+          { label: 'IV ćwiartka', correct: false, why: 'W IV ćwiartce $\\sin<0$, $\\cos>0$ — dokładnie odwrotnie.' },
+        ],
+      },
+      sliders: [
+        { id: 'alpha1', lbl: '\u03B1', color: COL_B, min: 0, max: Math.PI * 2, step: 0.02,
+          get: () => C.alpha1,
+          set: v => {
+            C.alpha1 = v;
+            C.alpha1Moved = true;
+            C.ch1Visited.add(quadrantOf(v));
+          } },
+      ],
+      pips() {
+        return [
+          { label: 'odwiedzono wszystkie 4 ćwiartki', ok: C.ch1Visited.size >= 4 },
+        ];
+      },
+      solved() { return C.ch1Visited.size >= 4; },
+      hints: [
+        'Znak $\\sin\\alpha$ = znak współrzędnej $y$ punktu. Znak $\\cos\\alpha$ = znak $x$. To podstawowa regula.',
+        'Mnemonik „wszystkie, sinus, tangens, cosinus" (ang. „All Students Take Calculus"): w I wszystkie dodatnie, w II tylko sinus, w III tylko tangens, w IV tylko cosinus.',
+        '$\\tan\\alpha = \\sin\\alpha / \\cos\\alpha$ — więc tangens jest dodatni, gdy $\\sin$ i $\\cos$ mają TEN SAM znak (I i III), a ujemny gdy różne znaki (II i IV).',
+      ],
+      solvedMsg: 'Znak $\\sin$ = znak $y$, znak $\\cos$ = znak $x$, znak $\\tan$ = ich iloczyn. Mnemonik „wszystkie, sinus, tangens, cosinus" działa dla kolejnych ćwiartek I → II → III → IV.',
+      predictAfter: {
+        question: 'W którym przedziale $\\tan\\alpha < 0$?',
+        options: [
+          { label: '$\\alpha \\in (0, \\pi/2)$ (I ćwiartka)', correct: false, why: 'W I ćwiartce oba $\\sin, \\cos > 0$, więc $\\tan > 0$.' },
+          { label: '$\\alpha \\in (\\pi/2, \\pi)$ (II ćwiartka)', correct: true, why: 'Tak — $\\sin>0$, $\\cos<0$, iloraz ujemny. Tangens jest też ujemny w IV ćwiartce.' },
+          { label: '$\\alpha \\in (\\pi, 3\\pi/2)$ (III ćwiartka)', correct: false, why: 'W III obie funkcje ujemne — iloraz dwóch ujemnych to dodatnia.' },
+        ],
+      },
+      draw() {
+        drawAxesCircle();
+
+        // Highlight current quadrant
+        const q = quadrantOf(C.alpha1);
+        const qAngles = { 1: [0, Math.PI/2], 2: [Math.PI/2, Math.PI], 3: [Math.PI, 3*Math.PI/2], 4: [3*Math.PI/2, 2*Math.PI] };
+        const [qs, qe] = qAngles[q];
+        ctx.save();
+        ctx.fillStyle = COL_ACC + '22';
+        ctx.beginPath();
+        ctx.moveTo(CX, CY);
+        ctx.arc(CX, CY, R_PX, -qe, -qs, true);  // canvas-y flipped
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+
+        // Angle arc at origin
+        drawAngleArc(C.alpha1, 26, COL_B);
+
+        // Point on circle with projections
+        drawAnglePoint(C.alpha1, COL_ACC, 'P');
+
+        const cA = Math.cos(C.alpha1), sA = Math.sin(C.alpha1);
+        const s = QUAD_SIGNS[q];
+
+        // Quadrant labels (4 corners)
+        const labels = [
+          { x: 0.5, y: 0.5, title: 'I', note: 'wszystkie +' },
+          { x: -0.5, y: 0.5, title: 'II', note: 'sinus +' },
+          { x: -0.5, y: -0.5, title: 'III', note: 'tangens +' },
+          { x: 0.5, y: -0.5, title: 'IV', note: 'cosinus +' },
+        ];
+        labels.forEach(L => {
+          const highlight = (L.title === ['I','II','III','IV'][q-1]);
+          const col = highlight ? COL_ACC : 'rgba(255,255,255,0.5)';
+          text(L.title, px(L.x), py(L.y), col, highlight ? 15 : 13, 'center', 'middle');
+          text(L.note, px(L.x), py(L.y) + 14, col, 10, 'center', 'middle');
+        });
+
+        // Top: angle value
+        const deg = (C.alpha1 * 180 / Math.PI);
+        infoBox('\u03B1 = ' + fmt(C.alpha1) + ' rad  \u2248  ' + deg.toFixed(0) + '\u00B0   [ćwiartka ' + ['I','II','III','IV'][q-1] + ']', CX, 20, COL_B);
+
+        // Left side: sign readout
+        const rows = [
+          { lbl: 'sin \u03B1 = ' + fmt(sA), pos: sA >= 0, col: sA >= 0 ? COL_OK : COL_LHS },
+          { lbl: 'cos \u03B1 = ' + fmt(cA), pos: cA >= 0, col: cA >= 0 ? COL_OK : COL_LHS },
+          { lbl: 'tan \u03B1 = ' + (Math.abs(cA) < 1e-4 ? '\u221E' : fmt(sA / cA)), pos: s.tan > 0, col: s.tan > 0 ? COL_OK : COL_LHS },
+        ];
+        rows.forEach((r, i) => {
+          text(r.lbl, 18, H - 78 + i * 20, r.col, 12);
+          text(r.pos ? '(+)' : '(\u2212)', 150, H - 78 + i * 20, r.col, 12);
+        });
+
+        // Right side: mnemonic
+        text('Mnemonik:', W - 140, H - 78, 'rgba(255,255,255,0.7)', 11);
+        text('I: wszystkie', W - 140, H - 62, q === 1 ? COL_ACC : COL_DIM, 11);
+        text('II: sinus', W - 140, H - 48, q === 2 ? COL_ACC : COL_DIM, 11);
+        text('III: tangens', W - 140, H - 34, q === 3 ? COL_ACC : COL_DIM, 11);
+        text('IV: cosinus', W - 140, H - 20, q === 4 ? COL_ACC : COL_DIM, 11);
+      },
+    },
+
+    // ─── Ch.2: sin(180°-α) and cos(180°-α) ──────────────────────
+    {
+      id: 'ch2_reduction_180_minus',
+      title: 'Wzory redukcyjne: $\\sin(180°-\\alpha)$, $\\cos(180°-\\alpha)$',
+      desc: 'Punkty $\\alpha$ i $180°-\\alpha$ są SYMETRYCZNE względem osi $y$. Zobacz, która współrzędna się zmienia, a która zostaje.',
+      drawBackground: 'none',
+      init() { C.alpha2 = 40 * Math.PI / 180; C.alpha2Moved = false; C.ch2Pick = null; },
+      predict: {
+        question: 'Jeżeli odbijemy punkt $(\\cos\\alpha, \\sin\\alpha)$ względem osi $y$, to otrzymamy punkt o współrzędnych:',
+        options: [
+          { label: '$(\\cos\\alpha, -\\sin\\alpha)$ — zmienia się $y$', correct: false, why: 'Odbicie względem osi $y$ zmienia $x$, nie $y$. To byłoby odbicie względem osi $x$.' },
+          { label: '$(-\\cos\\alpha, \\sin\\alpha)$ — zmienia się $x$', correct: true, why: 'Tak — odbicie wokół osi $y$ odwraca znak $x$, zostawia $y$. A ten nowy punkt leży pod kątem $180°-\\alpha$.' },
+          { label: '$(-\\cos\\alpha, -\\sin\\alpha)$ — zmieniają się obie', correct: false, why: 'To odbicie przez środek $(0,0)$, czyli obrót o $180°$. Tu mamy tylko odbicie, więc tylko jedna współrzędna zmienia znak.' },
+        ],
+      },
+      sliders: [
+        { id: 'alpha2', lbl: '\u03B1', color: COL_A, min: 0.1, max: Math.PI / 2 - 0.05, step: 0.02,
+          get: () => C.alpha2, set: v => { C.alpha2 = v; C.alpha2Moved = true; } },
+      ],
+      choices: {
+        question: 'Stąd wynika, że:',
+        options: [
+          { id: 'a', label: '$\\sin(180°-\\alpha) = \\sin\\alpha$,  $\\cos(180°-\\alpha) = -\\cos\\alpha$', correct: true },
+          { id: 'b', label: '$\\sin(180°-\\alpha) = -\\sin\\alpha$,  $\\cos(180°-\\alpha) = \\cos\\alpha$', correct: false },
+          { id: 'c', label: '$\\sin(180°-\\alpha) = -\\sin\\alpha$,  $\\cos(180°-\\alpha) = -\\cos\\alpha$', correct: false },
+          { id: 'd', label: 'oba pozostają takie same jak dla $\\alpha$', correct: false },
+        ],
+        pick(id) { C.ch2Pick = id; },
+      },
+      pips() {
+        const msgs = {
+          b: 'Odwrotnie — to $\\sin$ zostaje, a $\\cos$ zmienia znak (bo odbicie względem osi $y$ wpływa na $x$).',
+          c: 'Zbyt mocno — tylko JEDNA współrzędna zmienia znak. Odbicie, nie obrót o $180°$.',
+          d: 'Nie — jedna ze współrzędnych MUSI zmienić znak, bo nowy punkt leży w II ćwiartce (inna strona osi $y$).',
+        };
+        if (C.ch2Pick === 'a') return [{ label: 'poprawne wzory redukcyjne', ok: true }];
+        if (C.ch2Pick && msgs[C.ch2Pick]) return [{ label: msgs[C.ch2Pick], ok: false }];
+        return [{ label: 'wybierz poprawne wzory', ok: false }];
+      },
+      solved() { return C.ch2Pick === 'a' && C.alpha2Moved; },
+      hints: [
+        'Punkt pod kątem $180°-\\alpha$ leży w II ćwiartce, symetrycznie do punktu pod kątem $\\alpha$ względem osi $y$.',
+        'Odbicie względem osi $y$: $(x, y) \\to (-x, y)$. Współrzędna $y$ (czyli $\\sin$) NIE zmienia się; $x$ (czyli $\\cos$) zmienia znak.',
+        'Stąd: $\\sin(180°-\\alpha) = \\sin\\alpha$ (bez zmiany), $\\cos(180°-\\alpha) = -\\cos\\alpha$ (minus).',
+      ],
+      solvedMsg: 'Zasada: odbicie wokół osi $y$ zostawia $\\sin$, odwraca $\\cos$. Używasz tego codziennie — np. $\\sin 150° = \\sin 30° = 1/2$, $\\cos 150° = -\\cos 30° = -\\sqrt{3}/2$.',
+      draw() {
+        drawAxesCircle();
+
+        const a = C.alpha2;
+        const beta = Math.PI - a;  // 180° - α
+
+        // Reflected dashed guide (axis y highlighted)
+        ctx.save();
+        ctx.strokeStyle = COL_ACC + '66';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(px(Math.cos(a)), py(Math.sin(a)));
+        ctx.lineTo(px(Math.cos(beta)), py(Math.sin(beta)));
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+
+        // Angle arcs
+        drawAngleArc(a, 24, COL_A);
+        drawAngleArc(beta, 34, COL_LHS);
+
+        // Points
+        const p1 = drawAnglePoint(a, COL_A, '\u03B1');
+        const p2 = drawAnglePoint(beta, COL_LHS, '180°\u2212\u03B1');
+
+        // Sin equality hint: horizontal dashed line at y = sin α
+        ctx.save();
+        ctx.strokeStyle = COL_OK + '88';
+        ctx.setLineDash([3, 3]);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(px(-1.2), py(p1.sA));
+        ctx.lineTo(px(1.2), py(p1.sA));
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+        text('ten sam sin \u03B1', px(0), py(p1.sA) - 6, COL_OK, 10, 'center');
+
+        // Labels for each point coords
+        text('(' + fmt(p1.cA) + ', ' + fmt(p1.sA) + ')', px(p1.cA) + 8, py(p1.sA) + 12, COL_A, 10);
+        text('(' + fmt(p2.cA) + ', ' + fmt(p2.sA) + ')', px(p2.cA) - 8, py(p2.sA) + 12, COL_LHS, 10, 'right');
+
+        // Top info
+        infoBox('\u03B1 = ' + (a * 180 / Math.PI).toFixed(0) + '\u00B0,  180\u00B0\u2212\u03B1 = ' + (beta * 180 / Math.PI).toFixed(0) + '\u00B0', CX, 20, COL_B);
+
+        // Bottom identities
+        const y0 = H - 48;
+        text('sin(180\u00B0\u2212\u03B1) = +sin \u03B1  =  ' + fmt(Math.sin(beta)), 18, y0, COL_OK, 12);
+        text('cos(180\u00B0\u2212\u03B1) = \u2212cos \u03B1  =  ' + fmt(Math.cos(beta)), 18, y0 + 20, COL_LHS, 12);
+      },
+    },
+
+    // ─── Ch.3: Parity — sin(-α), cos(-α) ─────────────────────────
+    {
+      id: 'ch3_parity',
+      title: 'Parzystość: $\\sin(-\\alpha)$ i $\\cos(-\\alpha)$',
+      desc: 'Kąt $-\\alpha$ to lustrzane odbicie $\\alpha$ względem osi $x$ (odwrócenie kierunku obrotu). Która współrzędna teraz zmienia znak?',
+      drawBackground: 'none',
+      init() { C.alpha3 = 50 * Math.PI / 180; C.alpha3Moved = false; C.ch3Pick = null; },
+      predict: {
+        question: 'Odbicie punktu $(\\cos\\alpha, \\sin\\alpha)$ względem osi $x$ daje:',
+        options: [
+          { label: '$(\\cos\\alpha, -\\sin\\alpha)$ — zmienia się $y$', correct: true, why: 'Tak — oś $x$ odbija znak $y$, zostawia $x$. Czyli $\\cos$ zostaje, $\\sin$ zmienia znak.' },
+          { label: '$(-\\cos\\alpha, \\sin\\alpha)$ — zmienia się $x$', correct: false, why: 'To by było odbicie względem osi $y$ (czyli wzór na $180°-\\alpha$ z poprzedniej planszy).' },
+          { label: '$(-\\cos\\alpha, -\\sin\\alpha)$', correct: false, why: 'To obrót o $180°$, nie odbicie.' },
+        ],
+      },
+      sliders: [
+        { id: 'alpha3', lbl: '\u03B1', color: COL_A, min: 0.1, max: Math.PI - 0.1, step: 0.02,
+          get: () => C.alpha3, set: v => { C.alpha3 = v; C.alpha3Moved = true; } },
+      ],
+      choices: {
+        question: 'Wniosek — jak zachowują się $\\sin$ i $\\cos$ dla kąta ujemnego?',
+        options: [
+          { id: 'a', label: '$\\sin(-\\alpha) = -\\sin\\alpha$,  $\\cos(-\\alpha) = \\cos\\alpha$  (sinus nieparzysty, cosinus parzysty)', correct: true },
+          { id: 'b', label: '$\\sin(-\\alpha) = \\sin\\alpha$,  $\\cos(-\\alpha) = -\\cos\\alpha$', correct: false },
+          { id: 'c', label: 'oba zmieniają znak: $\\sin(-\\alpha) = -\\sin\\alpha$,  $\\cos(-\\alpha) = -\\cos\\alpha$', correct: false },
+          { id: 'd', label: 'oba zostają takie same', correct: false },
+        ],
+        pick(id) { C.ch3Pick = id; },
+      },
+      pips() {
+        const msgs = {
+          b: 'Odwrotnie — to $\\cos$ jest parzysty (zostaje), a $\\sin$ nieparzysty (zmienia znak).',
+          c: 'Tylko jedna ze współrzędnych zmienia znak przy odbiciu — nie obie.',
+          d: 'Niemożliwe — punkt naprawdę przenosi się na drugą stronę osi $x$, więc $\\sin$ musi zmienić znak.',
+        };
+        if (C.ch3Pick === 'a') return [{ label: 'poprawna parzystość', ok: true }];
+        if (C.ch3Pick && msgs[C.ch3Pick]) return [{ label: msgs[C.ch3Pick], ok: false }];
+        return [{ label: 'wybierz poprawną parzystość', ok: false }];
+      },
+      solved() { return C.ch3Pick === 'a' && C.alpha3Moved; },
+      hints: [
+        'Kąt $-\\alpha$ mierzymy w przeciwnym kierunku (zgodnie ze wskazówkami zegara). Punkt trafia na lustrzane odbicie względem osi $x$.',
+        'Odbicie względem osi $x$: $(x, y) \\to (x, -y)$. $\\cos$ (czyli $x$) zostaje, $\\sin$ (czyli $y$) zmienia znak.',
+        'Funkcja $f$ nieparzysta: $f(-x) = -f(x)$ (symetria względem $(0,0)$). Parzysta: $f(-x) = f(x)$ (symetria względem osi $y$). $\\sin$ jest nieparzysty, $\\cos$ parzysty.',
+      ],
+      solvedMsg: 'Sinus jest NIEPARZYSTY: $\\sin(-\\alpha) = -\\sin\\alpha$. Cosinus PARZYSTY: $\\cos(-\\alpha) = \\cos\\alpha$. Konsekwencja: $\\tan(-\\alpha) = -\\tan\\alpha$ (iloraz parzystego i nieparzystego jest nieparzysty).',
+      draw() {
+        drawAxesCircle();
+
+        const a = C.alpha3;
+        const neg = -a;
+
+        // Mirror guide
+        ctx.save();
+        ctx.strokeStyle = COL_ACC + '66';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(px(Math.cos(a)), py(Math.sin(a)));
+        ctx.lineTo(px(Math.cos(neg)), py(Math.sin(neg)));
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+
+        // Arcs — show both directions
+        drawAngleArc(a, 24, COL_A);
+        drawAngleArc(neg, 34, COL_LHS);
+
+        // Points
+        const p1 = drawAnglePoint(a, COL_A, '\u03B1');
+        const p2 = drawAnglePoint(neg, COL_LHS, '\u2212\u03B1');
+
+        // Cos equality hint: vertical dashed line at x = cos α
+        ctx.save();
+        ctx.strokeStyle = COL_OK + '88';
+        ctx.setLineDash([3, 3]);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(px(p1.cA), py(-1.2));
+        ctx.lineTo(px(p1.cA), py(1.2));
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+        text('ten sam cos \u03B1', px(p1.cA) + 6, py(0), COL_OK, 10);
+
+        text('(' + fmt(p1.cA) + ', ' + fmt(p1.sA) + ')', px(p1.cA) + 8, py(p1.sA) - 6, COL_A, 10);
+        text('(' + fmt(p2.cA) + ', ' + fmt(p2.sA) + ')', px(p2.cA) + 8, py(p2.sA) + 14, COL_LHS, 10);
+
+        infoBox('\u03B1 = ' + (a * 180 / Math.PI).toFixed(0) + '\u00B0,  \u2212\u03B1 = ' + (neg * 180 / Math.PI).toFixed(0) + '\u00B0', CX, 20, COL_B);
+
+        const y0 = H - 48;
+        text('sin(\u2212\u03B1) = \u2212sin \u03B1  =  ' + fmt(Math.sin(neg)) + '   (nieparzysty)', 18, y0, COL_LHS, 12);
+        text('cos(\u2212\u03B1) = +cos \u03B1  =  ' + fmt(Math.cos(neg)) + '   (parzysty)', 18, y0 + 20, COL_OK, 12);
+      },
+    },
+
+    // ─── Ch.4: Pattern MCQ — rapid quadrant + reduction drill ────
+    {
+      id: 'ch4_pattern_mcq',
+      title: 'Trening: szybka analiza ćwiartki',
+      desc: 'Zastosuj wszystko naraz: znaki w ćwiartkach + wzory redukcyjne + parzystość.',
+      drawBackground: 'none',
+      init() { C.ch4Pick = null; },
+      predict: {
+        question: 'Dla $\\alpha \\in (\\pi, 3\\pi/2)$ (III ćwiartka): jaki znak ma $\\sin\\alpha \\cdot \\cos\\alpha$?',
+        options: [
+          { label: 'dodatni', correct: true, why: 'Tak — w III ćwiartce oba $\\sin<0$ i $\\cos<0$. Iloczyn dwóch ujemnych to dodatnia.' },
+          { label: 'ujemny', correct: false, why: 'Nie — mimo że oba są ujemne (bo III ćwiartka), ich ILOCZYN jest dodatni. To mnożenie: $(-) \\cdot (-) = (+)$.' },
+          { label: 'zero', correct: false, why: 'Ani $\\sin$, ani $\\cos$ nie jest zerem w środku III ćwiartki.' },
+        ],
+      },
+      choices: {
+        question: 'Uprość $\\cos(180° - \\alpha) + \\sin(-\\alpha)$:',
+        options: [
+          { id: 'a', label: '$\\cos\\alpha + \\sin\\alpha$', correct: false },
+          { id: 'b', label: '$-\\cos\\alpha - \\sin\\alpha$', correct: true },
+          { id: 'c', label: '$-\\cos\\alpha + \\sin\\alpha$', correct: false },
+          { id: 'd', label: '$\\cos\\alpha - \\sin\\alpha$', correct: false },
+        ],
+        pick(id) { C.ch4Pick = id; },
+      },
+      pips() {
+        const msgs = {
+          a: 'Brak minusów — ale $\\cos(180°-\\alpha) = -\\cos\\alpha$ (znak minus!) i $\\sin(-\\alpha) = -\\sin\\alpha$ (znak minus!).',
+          c: 'Masz jeden minus dobrze, drugi źle. Sprawdź: $\\sin(-\\alpha) = -\\sin\\alpha$, nie $+\\sin\\alpha$.',
+          d: 'Odwrotnie — pomyliłeś, która funkcja dostaje minus. Zarówno $\\cos(180°-\\alpha)$ jak i $\\sin(-\\alpha)$ dostają minus.',
+        };
+        if (C.ch4Pick === 'b') return [{ label: 'poprawne uproszczenie', ok: true }];
+        if (C.ch4Pick && msgs[C.ch4Pick]) return [{ label: msgs[C.ch4Pick], ok: false }];
+        return [{ label: 'uprość wyrażenie', ok: false }];
+      },
+      solved() { return C.ch4Pick === 'b'; },
+      hints: [
+        '$\\cos(180°-\\alpha) = -\\cos\\alpha$ (odbicie względem osi $y$ zmienia znak $x$).',
+        '$\\sin(-\\alpha) = -\\sin\\alpha$ (sinus nieparzysty).',
+        'Razem: $(-\\cos\\alpha) + (-\\sin\\alpha) = -\\cos\\alpha - \\sin\\alpha$.',
+      ],
+      solvedMsg: 'Algorytm na każde zadanie z redukcjami: (1) narysuj $\\alpha$ na kole; (2) zobacz, gdzie leży przekształcony kąt (inna ćwiartka); (3) sprawdź, która współrzędna zmienia znak. Koniec — żadnego wzoru do zapamiętania.',
+      draw() {
+        ctx.save();
+
+        // Title
+        ctx.font = 'bold 14px monospace'; ctx.fillStyle = COL_ACC; ctx.textAlign = 'center';
+        ctx.fillText('Ściągawka — wzory redukcyjne i parzystość', W/2, 34);
+
+        // Two-column summary
+        const items = [
+          { l: 'sin(180\u00B0\u2212\u03B1)', r: '= +sin \u03B1', note: 'II ćw.  (sin zostaje)' },
+          { l: 'cos(180\u00B0\u2212\u03B1)', r: '= \u2212cos \u03B1', note: 'II ćw.  (cos zmienia)' },
+          { l: 'sin(\u2212\u03B1)',           r: '= \u2212sin \u03B1', note: 'IV ćw.  (nieparzysty)' },
+          { l: 'cos(\u2212\u03B1)',           r: '= +cos \u03B1', note: 'IV ćw.  (parzysty)' },
+          { l: 'sin(180\u00B0+\u03B1)',       r: '= \u2212sin \u03B1', note: 'III ćw.' },
+          { l: 'cos(180\u00B0+\u03B1)',       r: '= \u2212cos \u03B1', note: 'III ćw.' },
+          { l: 'sin(360\u00B0\u2212\u03B1)', r: '= \u2212sin \u03B1', note: 'IV ćw.  (= sin(\u2212\u03B1))' },
+          { l: 'cos(360\u00B0\u2212\u03B1)', r: '= +cos \u03B1', note: 'IV ćw.  (= cos(\u2212\u03B1))' },
+        ];
+
+        ctx.font = '13px monospace';
+        items.forEach((it, i) => {
+          const row = 72 + i * 28;
+          ctx.textAlign = 'right';
+          ctx.fillStyle = COL_A;
+          ctx.fillText(it.l, 220, row);
+          ctx.textAlign = 'left';
+          ctx.fillStyle = it.r.includes('\u2212') ? COL_LHS : COL_OK;
+          ctx.fillText(it.r, 232, row);
+          ctx.fillStyle = 'rgba(255,255,255,0.45)';
+          ctx.font = '11px monospace';
+          ctx.fillText(it.note, 380, row);
+          ctx.font = '13px monospace';
+        });
+
+        // Bottom mantra
+        ctx.textAlign = 'center';
+        ctx.font = '11px monospace';
+        ctx.fillStyle = COL_ACC;
+        ctx.fillText('Nie zapamiętuj wzorów — narysuj punkt na kole i odczytaj znaki.', W/2, H - 12);
+
+        ctx.restore();
+      },
+    },
+
+  ];
+
+  initWarsztat({
+    canvasId: 'cv',
+    challenges,
+    lsKey: 'warsztat:trig_quadrants:completed',
+    wrapup: 'Trzy zasady: (1) znak $\\sin$ = znak $y$, znak $\\cos$ = znak $x$ — ćwiartka mówi Ci wszystko; (2) $180°-\\alpha$ = odbicie przez oś $y$: $\\sin$ zostaje, $\\cos$ zmienia znak; (3) $-\\alpha$ = odbicie przez oś $x$: $\\cos$ zostaje (parzysty), $\\sin$ zmienia znak (nieparzysty). Gdy zapomnisz wzoru — narysuj kółko.',
+    onFrame({ ch }) {
+      ctx.save();
+      ctx.fillStyle = '#0e0e12';
+      ctx.fillRect(0, 0, W, H);
+      ctx.restore();
+    },
+  });
+}
+</script>
+</body>
+</html>
