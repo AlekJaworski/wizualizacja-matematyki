@@ -217,6 +217,7 @@ export default function CourseApp() {
           lang={lang}
           onClose={handleBackToHero}
           onBrowseAll={handleBrowseAllVizzes}
+          onSelectTopic={(id) => handleSeeMap(id)}
         />
       );
 

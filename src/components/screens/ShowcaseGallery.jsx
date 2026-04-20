@@ -88,7 +88,7 @@ const HERO_VIZ = {
 
 // ── Component ─────────────────────────────────────────────────────────
 
-export function ShowcaseGallery({ RAW_NODES, SCOPE_COLORS, SCOPE_LABELS, lang, onClose, onBrowseAll }) {
+export function ShowcaseGallery({ RAW_NODES, SCOPE_COLORS, SCOPE_LABELS, lang, onClose, onBrowseAll, onSelectTopic }) {
   const [openResource, setOpenResource] = useState(null);
 
   const nodeById = useMemo(
@@ -97,6 +97,8 @@ export function ShowcaseGallery({ RAW_NODES, SCOPE_COLORS, SCOPE_LABELS, lang, o
   );
 
   // Resolve a (nodeId, match) pair to an actual resource object.
+  // Returns null when the node has no interactive resources — card then becomes
+  // "topic-only" (clicking opens the topic description instead).
   function resolveResource(item) {
     const node = nodeById[item.nodeId];
     if (!node?.resources) return null;
@@ -116,20 +118,24 @@ export function ShowcaseGallery({ RAW_NODES, SCOPE_COLORS, SCOPE_LABELS, lang, o
   const heroResource = useMemo(() => resolveResource(HERO_VIZ), [RAW_NODES]);
   const heroUrl = heroResource ? resolveUrl(heroResource.url, lang) : null;
 
-  // Resolve section items, dropping unresolvable ones
+  // Resolve section items — keep all, use topic-only mode for those with no
+  // interactive resource. Drop only items whose node doesn't exist at all.
   const resolvedSections = useMemo(() => SECTIONS.map(section => ({
     ...section,
     cards: section.items
       .map(it => {
-        const resource = resolveResource(it);
-        if (!resource) return null;
         const node = nodeById[it.nodeId];
+        if (!node) return null;
+        const resource = resolveResource(it);
         return {
           item: it,
           resource,
           node,
-          title: lang === "pl" ? resource.titlePl : resource.titleEn,
+          title: resource
+            ? (lang === "pl" ? resource.titlePl : resource.titleEn)
+            : (lang === "pl" ? node.labelPl : node.label),
           nodeLabel: lang === "pl" ? node.labelPl : node.label,
+          topicOnly: !resource,
         };
       })
       .filter(Boolean),
@@ -186,6 +192,9 @@ export function ShowcaseGallery({ RAW_NODES, SCOPE_COLORS, SCOPE_LABELS, lang, o
             section={section}
             lang={lang}
             onOpen={(res) => setOpenResource(res)}
+            onSelectTopic={(id) => {
+              if (onSelectTopic) onSelectTopic(id);
+            }}
           />
         ))}
 
@@ -289,7 +298,7 @@ function HeroEmbed({ url, caption, onOpen, lang }) {
 }
 
 // ── Section (header + card grid) ──────────────────────────────────────
-function Section({ section, lang, onOpen }) {
+function Section({ section, lang, onOpen, onSelectTopic }) {
   if (section.cards.length === 0) return null;
   const title = lang === "pl" ? section.titlePl : section.titleEn;
   const subtitle = lang === "pl" ? section.subtitlePl : section.subtitleEn;
@@ -316,7 +325,10 @@ function Section({ section, lang, onOpen }) {
             card={card}
             accent={section.accent}
             hook={lang === "pl" ? card.item.hookPl : (card.item.hookEn ?? card.item.hookPl)}
-            onOpen={() => onOpen(card.resource)}
+            onOpen={() => {
+              if (card.topicOnly) onSelectTopic(card.node.id);
+              else onOpen(card.resource);
+            }}
             lang={lang}
           />
         ))}
@@ -365,7 +377,9 @@ function Card({ card, accent, hook, onOpen, lang }) {
         dangerouslySetInnerHTML={{ __html: renderInlineMath(hook) }}
       />
       <div style={{ marginTop: "auto", fontSize: 11, color: accent, paddingTop: 6 }}>
-        {lang === "pl" ? "Otwórz →" : "Open →"}
+        {card.topicOnly
+          ? (lang === "pl" ? "Przeczytaj →" : "Read →")
+          : (lang === "pl" ? "Otwórz →" : "Open →")}
       </div>
     </button>
   );
