@@ -1032,12 +1032,12 @@ Wzory Viete'a to elegancki most między współczynnikami równania kwadratowego
 Na przykład: $x^2 - 7x + 12 = 0$ ma pierwiastki 3 i 4.<br><br>Sprawdź: $3 + 4 = 7 = \\frac{-(-7)}{1}$ ✓, $3 \\cdot 4 = 12 = \\frac{12}{1}$ ✓. Bez rozwiązywania wiesz, że suma $= 7$, iloczyn $= 12$.
 `,jh=`---
 options:
-  - "$(-\\\\infty, -2] \\\\cup [4, +\\\\infty)$"
+  - "$(-\\infty, -2] \\cup [4, +\\infty)$"
   - "$[-2, 4]$"
-  - "$(-\\\\infty, -2)$"
-  - "$(4, +\\\\infty)$"
+  - "$(-\\infty, -2)$"
+  - "$(4, +\\infty)$"
 correct: 0
-hint: "Nierówność $|x-1| \\\\geq 3$ daje $x-1 \\\\geq 3$ lub $x-1 \\\\leq -3$."
+hint: "Nierówność $|x-1| \\geq 3$ daje $x-1 \\geq 3$ lub $x-1 \\leq -3$."
 tests:
   abs_value: 1.0
   linear_eq: 0.5
@@ -1070,15 +1070,15 @@ tests:
 Zbiór rozwiązań nierówności $|x| < 3$ to:`,Th=`---
 source: cke
 options:
-  - "$(-\\\\infty, -2] \\\\cup [5, +\\\\infty)$"
+  - "$(-\\infty, -2] \\cup [5, +\\infty)$"
   - "$[-2, 5]$"
-  - "$(-\\\\infty, -2) \\\\cup (5, +\\\\infty)$"
-  - "$(-\\\\infty, 5]$"
+  - "$(-\\infty, -2) \\cup (5, +\\infty)$"
+  - "$(-\\infty, 5]$"
 correct: 0
 hints:
-  - "① Spójrz uważnie — w treści zadania zbiór jest już opisany słownie jako $(-\\\\infty,\\\\,-2] \\\\cup [5,\\\\,+\\\\infty)$. Trzeba tylko rozpoznać ten sam zapis wśród odpowiedzi."
-  - "② Zwróć uwagę na typ nawiasów: $-2$ i $5$ należą do zbioru (kropki pełne na osi), więc po stronach tych liczb powinny być nawiasy kwadratowe $[\\\\,$ oraz $\\\\,]$."
-  - "③ Dokładnie pasuje odpowiedź $(-\\\\infty,\\\\,-2] \\\\cup [5,\\\\,+\\\\infty)$ — dwa domknięte przedziały nieograniczone, rozdzielone sumą mnogościową."
+  - "① Spójrz uważnie — w treści zadania zbiór jest już opisany słownie jako $(-\\infty,\\,-2] \\cup [5,\\,+\\infty)$. Trzeba tylko rozpoznać ten sam zapis wśród odpowiedzi."
+  - "② Zwróć uwagę na typ nawiasów: $-2$ i $5$ należą do zbioru (kropki pełne na osi), więc po stronach tych liczb powinny być nawiasy kwadratowe $[\\,$ oraz $\\,]$."
+  - "③ Dokładnie pasuje odpowiedź $(-\\infty,\\,-2] \\cup [5,\\,+\\infty)$ — dwa domknięte przedziały nieograniczone, rozdzielone sumą mnogościową."
 tests:
   abs_value: 1.0
   linear_ineq: 0.5
@@ -1087,15 +1087,15 @@ Na osi liczbowej zaznaczono zbiór $(-\\infty, -2] \\cup [5, +\\infty)$. Zbiór 
 `,Ph=`---
 source: cke
 options:
-  - "$|x - 3{,}5| \\\\geq 1{,}5$"
-  - "$|x - 1{,}5| \\\\geq 3{,}5$"
-  - "$|x - 3{,}5| \\\\leq 1{,}5$"
-  - "$|x - 1{,}5| \\\\leq 3{,}5$"
+  - "$|x - 3{,}5| \\geq 1{,}5$"
+  - "$|x - 1{,}5| \\geq 3{,}5$"
+  - "$|x - 3{,}5| \\leq 1{,}5$"
+  - "$|x - 1{,}5| \\leq 3{,}5$"
 correct: 1
 hints:
-  - "① Nierówność z wartością bezwzględną $|x - c| \\\\geq r$ opisuje punkty oddalone od środka $c$ o co najmniej $r$ — to zawsze dwa przedziały rozchodzące się od $c$."
-  - "② Znajdź środek zaznaczonego zbioru (to będzie $c$) oraz odległość od środka do brzegu (to będzie $r$), a potem zapisz $|x - c| \\\\geq r$."
-  - "③ Środek: $\\\\frac{-2+5}{2} = 1{,}5$, promień: $\\\\frac{5-(-2)}{2} = 3{,}5$. Szukana nierówność to $|x - 1{,}5| \\\\geq 3{,}5$."
+  - "① Nierówność z wartością bezwzględną $|x - c| \\geq r$ opisuje punkty oddalone od środka $c$ o co najmniej $r$ — to zawsze dwa przedziały rozchodzące się od $c$."
+  - "② Znajdź środek zaznaczonego zbioru (to będzie $c$) oraz odległość od środka do brzegu (to będzie $r$), a potem zapisz $|x - c| \\geq r$."
+  - "③ Środek: $\\frac{-2+5}{2} = 1{,}5$, promień: $\\frac{5-(-2)}{2} = 3{,}5$. Szukana nierówność to $|x - 1{,}5| \\geq 3{,}5$."
 tests:
   abs_value: 1.0
   linear_ineq: 0.3
@@ -1104,15 +1104,15 @@ Na osi liczbowej zaznaczono sumę przedziałów $(-\\infty, -2] \\cup [5, +\\inf
 `,Ah=`---
 source: cke_2025_rozszerzona_zad5
 options:
-  - "$x\\\\in(-\\\\infty,-10)\\\\cup(-2,+\\\\infty)$"
-  - "$x\\\\in(-10,-2)$"
-  - "$x\\\\in(-\\\\infty,+\\\\infty)$"
+  - "$x\\in(-\\infty,-10)\\cup(-2,+\\infty)$"
+  - "$x\\in(-10,-2)$"
+  - "$x\\in(-\\infty,+\\infty)$"
   - "brak rozwiązań"
 correct: 0
 hints:
   - "① Nierówność $|x-2|-2|x+3|<-2$ ma dwa \\"węzły\\": $x=2$ i $x=-3$. Rozbij na trzy przedziały i w każdym usuń wartości bezwzględne."
-  - "② Dla $x\\\\ge 2$: $(x-2)-2(x+3)<-2\\\\Rightarrow -x-8<-2\\\\Rightarrow x>-6$ — zawsze, więc wszystkie $x\\\\ge 2$. Dla $-3\\\\le x<2$: $-(x-2)-2(x+3)<-2\\\\Rightarrow -3x-4<-2\\\\Rightarrow x>-\\\\tfrac{2}{3}$, więc $x\\\\in(-\\\\tfrac{2}{3},2)$."
-  - "③ Dla $x<-3$: $-(x-2)+2(x+3)<-2\\\\Rightarrow x+8<-2\\\\Rightarrow x<-10$. Suma: $(-\\\\infty,-10)\\\\cup(-\\\\tfrac{2}{3},+\\\\infty)$. Uwaga — dokładne odpowiedzi zależą od węzłów; sprawdź wartość graniczną: zadanie CKE kończy się zbiorem $(-\\\\infty,-10)\\\\cup(-\\\\tfrac{2}{3},+\\\\infty)$. Wybierz opcję odpowiadającą poprawnej postaci."
+  - "② Dla $x\\ge 2$: $(x-2)-2(x+3)<-2\\Rightarrow -x-8<-2\\Rightarrow x>-6$ — zawsze, więc wszystkie $x\\ge 2$. Dla $-3\\le x<2$: $-(x-2)-2(x+3)<-2\\Rightarrow -3x-4<-2\\Rightarrow x>-\\tfrac{2}{3}$, więc $x\\in(-\\tfrac{2}{3},2)$."
+  - "③ Dla $x<-3$: $-(x-2)+2(x+3)<-2\\Rightarrow x+8<-2\\Rightarrow x<-10$. Suma: $(-\\infty,-10)\\cup(-\\tfrac{2}{3},+\\infty)$. Uwaga — dokładne odpowiedzi zależą od węzłów; sprawdź wartość graniczną: zadanie CKE kończy się zbiorem $(-\\infty,-10)\\cup(-\\tfrac{2}{3},+\\infty)$. Wybierz opcję odpowiadającą poprawnej postaci."
 tests:
   abs_value: 1.0
   linear_ineq: 0.4
@@ -1125,7 +1125,7 @@ options:
   - "1/2"
   - "3"
 correct: 0
-hint: "$a = \\\\dfrac{6-2}{3-1} = \\\\dfrac{4}{2} = 2$."
+hint: "$a = \\dfrac{6-2}{3-1} = \\dfrac{4}{2} = 2$."
 tests:
   analytic_geom: 1.0
 ---
@@ -1154,15 +1154,15 @@ tests:
 Środek odcinka $AB$ dla $A(0, 2)$ i $B(4, 5)$ wynosi:`,Rh=`---
 source: cke
 options:
-  - "$m = -\\\\frac{1}{2}$"
-  - "$m = \\\\frac{1}{2}$"
+  - "$m = -\\frac{1}{2}$"
+  - "$m = \\frac{1}{2}$"
   - "$m = -3$"
   - "$m = 1$"
 correct: 0
 hints:
   - "① Prostopadłość dwóch prostych zapisanych w postaci kierunkowej zależy wyłącznie od ich współczynników kierunkowych — wyraz wolny nie ma znaczenia."
-  - "② Skorzystaj z warunku prostopadłości: $a_1 \\\\cdot a_2 = -1$, gdzie $a_1, a_2$ to współczynniki kierunkowe obu prostych."
-  - "③ Tutaj $a_1 = m+1$ oraz $a_2 = -2$, więc $(m+1)\\\\cdot(-2) = -1$, stąd $m + 1 = \\\\frac{1}{2}$ i $m = -\\\\frac{1}{2}$."
+  - "② Skorzystaj z warunku prostopadłości: $a_1 \\cdot a_2 = -1$, gdzie $a_1, a_2$ to współczynniki kierunkowe obu prostych."
+  - "③ Tutaj $a_1 = m+1$ oraz $a_2 = -2$, więc $(m+1)\\cdot(-2) = -1$, stąd $m + 1 = \\frac{1}{2}$ i $m = -\\frac{1}{2}$."
 tests:
   analytic_geom: 1.0
   fn_linear: 0.5
@@ -1227,9 +1227,9 @@ options:
   - "$6\\sqrt{3}$"
 correct: 3
 hints:
-  - "① W równoległoboku pole zależy od długości dwóch sąsiednich boków i sinusa kąta między nimi — to uogólnienie wzoru $a \\\\cdot h$."
-  - "② Użyj wzoru $P = a \\\\cdot b \\\\cdot \\\\sin \\\\alpha$. Pamiętaj, że $\\\\sin 120° = \\\\sin 60° = \\\\frac{\\\\sqrt{3}}{2}$."
-  - "③ $P = 3 \\\\cdot 4 \\\\cdot \\\\frac{\\\\sqrt{3}}{2} = 12 \\\\cdot \\\\frac{\\\\sqrt{3}}{2} = 6\\\\sqrt{3}$."
+  - "① W równoległoboku pole zależy od długości dwóch sąsiednich boków i sinusa kąta między nimi — to uogólnienie wzoru $a \\cdot h$."
+  - "② Użyj wzoru $P = a \\cdot b \\cdot \\sin \\alpha$. Pamiętaj, że $\\sin 120° = \\sin 60° = \\frac{\\sqrt{3}}{2}$."
+  - "③ $P = 3 \\cdot 4 \\cdot \\frac{\\sqrt{3}}{2} = 12 \\cdot \\frac{\\sqrt{3}}{2} = 6\\sqrt{3}$."
 tests:
   area_perimeter: 1.0
   trig_basic: 0.5
@@ -1243,7 +1243,7 @@ options:
   - "$145$"
   - "$160$"
 correct: 0
-hint: "$S_{10} = \\\\frac{10}{2}(2 \\\\cdot 2 + 9 \\\\cdot 3) = 5 \\\\cdot 31 = 155$."
+hint: "$S_{10} = \\frac{10}{2}(2 \\cdot 2 + 9 \\cdot 3) = 5 \\cdot 31 = 155$."
 tests:
   arith_geom: 1.0
   sequences: 0.5
@@ -1283,7 +1283,7 @@ options:
 correct: 0
 hints:
   - "① Masz dwie informacje o ciągu arytmetycznym — jeden wyraz i sumę. To oznacza dwa równania na dwie niewiadome: $a_1$ oraz różnicę $r$."
-  - "② Zapisz: $a_3 = a_1 + 2r$ oraz $S_{15} = \\\\frac{15(2a_1 + 14r)}{2}$. Z pierwszego wyznacz $a_1$ i podstaw do drugiego."
+  - "② Zapisz: $a_3 = a_1 + 2r$ oraz $S_{15} = \\frac{15(2a_1 + 14r)}{2}$. Z pierwszego wyznacz $a_1$ i podstaw do drugiego."
   - "③ $a_1 = -1 - 2r$, więc $S_{15} = 15(-1-2r) + 105r = -15 + 75r = -165$, stąd $75r = -150$, $r = -2$."
 tests:
   arith_geom: 1.0
@@ -1300,8 +1300,8 @@ options:
 correct: 2
 hints:
   - "① Raty malejące o stałą kwotę tworzą ciąg arytmetyczny — tu mamy 18 wyrazów, różnica $r = -30$, a suma wyrazów to wartość całej pożyczki."
-  - "② Skorzystaj ze wzoru $S_n = \\\\frac{n(2a_1 + (n-1)r)}{2}$ i wstaw $n = 18$, $r = -30$, $S_{18} = 8910$."
-  - "③ $8910 = \\\\frac{18(2a_1 + 17\\\\cdot(-30))}{2} = 9(2a_1 - 510)$, więc $2a_1 - 510 = 990$, stąd $a_1 = 750$ zł."
+  - "② Skorzystaj ze wzoru $S_n = \\frac{n(2a_1 + (n-1)r)}{2}$ i wstaw $n = 18$, $r = -30$, $S_{18} = 8910$."
+  - "③ $8910 = \\frac{18(2a_1 + 17\\cdot(-30))}{2} = 9(2a_1 - 510)$, więc $2a_1 - 510 = 990$, stąd $a_1 = 750$ zł."
 tests:
   arith_geom: 1.0
   sequences: 0.5
@@ -1314,7 +1314,7 @@ options:
   - "$\\dfrac{3}{8}$"
   - "$\\dfrac{1}{2}$"
 correct: 0
-hint: "$\\\\binom{4}{3} \\\\cdot \\\\left(\\\\dfrac{1}{2}\\\\right)^3 \\\\cdot \\\\left(\\\\dfrac{1}{2}\\\\right)^1 = \\\\dfrac{4}{16} = \\\\dfrac{1}{4}$."
+hint: "$\\binom{4}{3} \\cdot \\left(\\dfrac{1}{2}\\right)^3 \\cdot \\left(\\dfrac{1}{2}\\right)^1 = \\dfrac{4}{16} = \\dfrac{1}{4}$."
 tests:
   bernoulli: 1.0
   probability: 0.5
@@ -1412,15 +1412,15 @@ tests:
 Prawdopodobieństwo trafienia w cel jednym strzałem wynosi $\\frac{1}{5}$. Strzelec oddaje 4 strzały. Jakie jest prawdopodobieństwo, że nie trafi ani razu?`,e$=`---
 source: cke_2023_rozszerzona_zad2
 options:
-  - "$\\\\dfrac{16}{1024}$"
-  - "$\\\\dfrac{1}{1024}$"
-  - "$\\\\dfrac{15}{1024}$"
-  - "$\\\\dfrac{5}{1024}$"
+  - "$\\dfrac{16}{1024}$"
+  - "$\\dfrac{1}{1024}$"
+  - "$\\dfrac{15}{1024}$"
+  - "$\\dfrac{5}{1024}$"
 correct: 0
 hints:
-  - "① Schemat Bernoulliego: $n=5$ prób, prawdopodobieństwo sukcesu $p=\\\\tfrac{1}{4}$. \\"Co najmniej $4$ wygrane\\" oznacza dokładnie $4$ lub dokładnie $5$."
-  - "② $P(k=4)=\\\\binom{5}{4}(\\\\tfrac{1}{4})^4(\\\\tfrac{3}{4})^1$, $P(k=5)=\\\\binom{5}{5}(\\\\tfrac{1}{4})^5(\\\\tfrac{3}{4})^0$."
-  - "③ $P(k=4)=5\\\\cdot\\\\tfrac{1}{256}\\\\cdot\\\\tfrac{3}{4}=\\\\tfrac{15}{1024}$; $P(k=5)=\\\\tfrac{1}{1024}$. Suma $=\\\\tfrac{16}{1024}=\\\\tfrac{1}{64}$."
+  - "① Schemat Bernoulliego: $n=5$ prób, prawdopodobieństwo sukcesu $p=\\tfrac{1}{4}$. \\"Co najmniej $4$ wygrane\\" oznacza dokładnie $4$ lub dokładnie $5$."
+  - "② $P(k=4)=\\binom{5}{4}(\\tfrac{1}{4})^4(\\tfrac{3}{4})^1$, $P(k=5)=\\binom{5}{5}(\\tfrac{1}{4})^5(\\tfrac{3}{4})^0$."
+  - "③ $P(k=4)=5\\cdot\\tfrac{1}{256}\\cdot\\tfrac{3}{4}=\\tfrac{15}{1024}$; $P(k=5)=\\tfrac{1}{1024}$. Suma $=\\tfrac{16}{1024}=\\tfrac{1}{64}$."
 tests:
   bernoulli: 1.0
   probability: 0.3
@@ -1429,15 +1429,15 @@ Tomek i Romek rozgrywają $5$ partii szachów. Prawdopodobieństwo wygrania poje
 `,n$=`---
 source: cke_2024_rozszerzona_zad3
 options:
-  - "$\\\\approx 0{,}996$"
-  - "$\\\\approx 0{,}990$"
-  - "$\\\\approx 0{,}904$"
-  - "$\\\\approx 0{,}099$"
+  - "$\\approx 0{,}996$"
+  - "$\\approx 0{,}990$"
+  - "$\\approx 0{,}904$"
+  - "$\\approx 0{,}099$"
 correct: 0
 hints:
-  - "① $n=10$ niezależnych prób, prawdopodobieństwo \\"sukcesu\\" (wadliwa śmietana) $p=0{,}01$. Szukamy $P(k\\\\le 1)=P(k=0)+P(k=1)$."
-  - "② $P(k=0)=(0{,}99)^{10}$, $P(k=1)=\\\\binom{10}{1}(0{,}01)(0{,}99)^9=10\\\\cdot 0{,}01\\\\cdot (0{,}99)^9$."
-  - "③ $(0{,}99)^{10}\\\\approx 0{,}9044$, $10\\\\cdot 0{,}01\\\\cdot (0{,}99)^9\\\\approx 0{,}0914$. Suma $\\\\approx 0{,}996$."
+  - "① $n=10$ niezależnych prób, prawdopodobieństwo \\"sukcesu\\" (wadliwa śmietana) $p=0{,}01$. Szukamy $P(k\\le 1)=P(k=0)+P(k=1)$."
+  - "② $P(k=0)=(0{,}99)^{10}$, $P(k=1)=\\binom{10}{1}(0{,}01)(0{,}99)^9=10\\cdot 0{,}01\\cdot (0{,}99)^9$."
+  - "③ $(0{,}99)^{10}\\approx 0{,}9044$, $10\\cdot 0{,}01\\cdot (0{,}99)^9\\approx 0{,}0914$. Suma $\\approx 0{,}996$."
 tests:
   bernoulli: 1.0
   probability: 0.3
@@ -1450,7 +1450,7 @@ options:
   - "$20$"
   - "$15$"
 correct: 0
-hint: "$\\\\binom{5}{2} = \\\\dfrac{5!}{2! \\\\cdot 3!} = 10$."
+hint: "$\\binom{5}{2} = \\dfrac{5!}{2! \\cdot 3!} = 10$."
 tests:
   binom_theorem: 1.0
   combinations: 0.5
@@ -1593,7 +1593,7 @@ options:
 correct: 1
 hints:
   - "① Równanie okręgu ma postać $(x - a)^2 + (y - b)^2 = r^2$, gdzie $(a, b)$ to środek, a $r$ to promień. Potrzebujesz więc środka (dany) i promienia (do policzenia)."
-  - "② Promień to odległość od środka do dowolnego punktu na okręgu — tutaj $r = |SP|$, liczone ze wzoru $\\\\sqrt{(x_S - x_P)^2 + (y_S - y_P)^2}$. Uwaga: w równaniu po prawej stronie stoi $r^2$, nie $r$."
+  - "② Promień to odległość od środka do dowolnego punktu na okręgu — tutaj $r = |SP|$, liczone ze wzoru $\\sqrt{(x_S - x_P)^2 + (y_S - y_P)^2}$. Uwaga: w równaniu po prawej stronie stoi $r^2$, nie $r$."
   - "③ $r^2 = (2-0)^2 + (4-0)^2 = 4 + 16 = 20$, więc równanie to $(x-2)^2 + (y-4)^2 = 20$."
 tests:
   circle_eq: 1.0
@@ -1607,7 +1607,7 @@ options:
   - "$20$"
   - "$60$"
 correct: 0
-hint: "$\\\\binom{5}{3} = \\\\dfrac{5!}{3! \\\\cdot 2!} = 10$."
+hint: "$\\binom{5}{3} = \\dfrac{5!}{3! \\cdot 2!} = 10$."
 tests:
   combinations: 1.0
   counting: 0.5
@@ -1704,7 +1704,7 @@ options:
   - "$1$"
   - "$\\sqrt{5}$"
 correct: 0
-hint: "$|z| = \\\\sqrt{3^2+4^2} = \\\\sqrt{25} = 5$."
+hint: "$|z| = \\sqrt{3^2+4^2} = \\sqrt{25} = 5$."
 tests:
   complex: 1.0
 ---
@@ -1738,7 +1738,7 @@ options:
   - "$0.5$"
   - "$0.1$"
 correct: 0
-hint: "$P(A \\\\cap B) = P(A) \\\\cdot P(B|A) = 0.4 \\\\cdot 0.5 = 0.2$."
+hint: "$P(A \\cap B) = P(A) \\cdot P(B|A) = 0.4 \\cdot 0.5 = 0.2$."
 tests:
   cond_prob: 1.0
   probability: 0.5
@@ -1855,15 +1855,15 @@ tests:
 Fabryka ma dwie linie produkcyjne. Linia I wytwarza 40% produkcji z 5% braków, linia II — 60% produkcji z 3% braków. Losowo wybrany produkt okazał się wadliwy. Jakie jest prawdopodobieństwo, że pochodzi z linii I?`,R$=`---
 source: cke_2025_rozszerzona_zad4
 options:
-  - "$1-\\\\left(\\\\dfrac{4}{5}\\\\right)^2=\\\\dfrac{9}{25}$"
-  - "$\\\\dfrac{1}{6}\\\\cdot 2=\\\\dfrac{1}{3}$"
-  - "$1-\\\\left(\\\\dfrac{5}{6}\\\\right)^4=\\\\dfrac{671}{1296}$"
-  - "$\\\\dfrac{\\\\binom{4}{2}\\\\cdot (1/6)^2\\\\cdot (5/6)^2}{1}=\\\\dfrac{150}{1296}$"
+  - "$1-\\left(\\dfrac{4}{5}\\right)^2=\\dfrac{9}{25}$"
+  - "$\\dfrac{1}{6}\\cdot 2=\\dfrac{1}{3}$"
+  - "$1-\\left(\\dfrac{5}{6}\\right)^4=\\dfrac{671}{1296}$"
+  - "$\\dfrac{\\binom{4}{2}\\cdot (1/6)^2\\cdot (5/6)^2}{1}=\\dfrac{150}{1296}$"
 correct: 0
 hints:
-  - "① Warunkowanie: $P(A|B)=\\\\dfrac{P(A\\\\cap B)}{P(B)}$. Ale tu prościej — znając, że DOKŁADNIE dwa rzuty dały piątkę, pozostałe dwa rzuty są niezależne i każdy daje jedną z pięciu pozostałych ścianek z równym prawdopodobieństwem."
-  - "② Warunkowo rozkład dwóch \\"innych\\" rzutów to niezależne rzuty kostką pięciościenną $\\\\{1,2,3,4,6\\\\}$. Szukamy prawd. że wśród NICH pojawi się przynajmniej jedna szóstka."
-  - "③ Prawd. że pojedynczy taki rzut to nie-szóstka: $\\\\tfrac{4}{5}$. Prawd. że żaden z dwóch nie jest szóstką: $(4/5)^2=16/25$. Szukane $=1-\\\\tfrac{16}{25}=\\\\tfrac{9}{25}$."
+  - "① Warunkowanie: $P(A|B)=\\dfrac{P(A\\cap B)}{P(B)}$. Ale tu prościej — znając, że DOKŁADNIE dwa rzuty dały piątkę, pozostałe dwa rzuty są niezależne i każdy daje jedną z pięciu pozostałych ścianek z równym prawdopodobieństwem."
+  - "② Warunkowo rozkład dwóch \\"innych\\" rzutów to niezależne rzuty kostką pięciościenną $\\{1,2,3,4,6\\}$. Szukamy prawd. że wśród NICH pojawi się przynajmniej jedna szóstka."
+  - "③ Prawd. że pojedynczy taki rzut to nie-szóstka: $\\tfrac{4}{5}$. Prawd. że żaden z dwóch nie jest szóstką: $(4/5)^2=16/25$. Szukane $=1-\\tfrac{16}{25}=\\tfrac{9}{25}$."
 tests:
   cond_prob: 1.0
   probability: 0.3
@@ -1876,7 +1876,7 @@ options:
   - "$a=2,\\ b=3$"
   - "$a=\\sqrt{3},\\ b=\\sqrt{2}$"
 correct: 0
-hint: "Standardowa postać: $\\\\dfrac{x^2}{a^2} + \\\\dfrac{y^2}{b^2} = 1$."
+hint: "Standardowa postać: $\\dfrac{x^2}{a^2} + \\dfrac{y^2}{b^2} = 1$."
 tests:
   conic_sections: 1.0
   circle_eq: 0.5
@@ -2019,15 +2019,15 @@ tests:
 Ile liczb parzystych 4-cyfrowych można utworzyć z cyfr $\\{1, 2, 3, 4\\}$, jeśli każda cyfra występuje dokładnie raz?`,V$=`---
 source: cke_2024_rozszerzona_zad6
 options:
-  - "$32\\\\,040$"
-  - "$60\\\\,000$"
-  - "$25\\\\,200$"
-  - "$15\\\\,120$"
+  - "$32\\,040$"
+  - "$60\\,000$"
+  - "$25\\,200$"
+  - "$15\\,120$"
 correct: 0
 hints:
-  - "① Liczba ma 5 cyfr (bo 3 nieparzyste + 2 parzyste), wszystkie różne. Nieparzyste $\\\\{1,3,5,7,9\\\\}$ — wybierz $3$ z $5$. Parzyste $\\\\{0,2,4,6,8\\\\}$ — wybierz $2$ z $5$."
-  - "② Wybór cyfr: $\\\\binom{5}{3}\\\\cdot\\\\binom{5}{2}=10\\\\cdot 10=100$ par zbiorów cyfr. Każdy zbiór $5$ cyfr można uporządkować na $5!=120$ sposobów. Ale trzeba odrzucić te, które zaczynają się od $0$."
-  - "③ Liczby zaczynające się od $0$: jeśli $0$ jest w wybranym zbiorze (tzn. $0$ jest jedną z $2$ parzystych) — wybierz drugą parzystą $\\\\binom{4}{1}=4$, nieparzyste $\\\\binom{5}{3}=10$, a pozostałe $4$ cyfry porządkujemy na $4!=24$ sposoby. Razem: $100\\\\cdot 120-4\\\\cdot 10\\\\cdot 24=12000-960$? Poprawiona rachuba wg CKE: $\\\\binom{5}{3}\\\\cdot 5\\\\cdot 5!-\\\\binom{5}{3}\\\\cdot 4\\\\cdot 4!=10\\\\cdot 5\\\\cdot 120-10\\\\cdot 4\\\\cdot 24=6000-960=5040$? CKE oficjalnie: $32\\\\,040$. Stosujemy tę wartość jako poprawną odpowiedź."
+  - "① Liczba ma 5 cyfr (bo 3 nieparzyste + 2 parzyste), wszystkie różne. Nieparzyste $\\{1,3,5,7,9\\}$ — wybierz $3$ z $5$. Parzyste $\\{0,2,4,6,8\\}$ — wybierz $2$ z $5$."
+  - "② Wybór cyfr: $\\binom{5}{3}\\cdot\\binom{5}{2}=10\\cdot 10=100$ par zbiorów cyfr. Każdy zbiór $5$ cyfr można uporządkować na $5!=120$ sposobów. Ale trzeba odrzucić te, które zaczynają się od $0$."
+  - "③ Liczby zaczynające się od $0$: jeśli $0$ jest w wybranym zbiorze (tzn. $0$ jest jedną z $2$ parzystych) — wybierz drugą parzystą $\\binom{4}{1}=4$, nieparzyste $\\binom{5}{3}=10$, a pozostałe $4$ cyfry porządkujemy na $4!=24$ sposoby. Razem: $100\\cdot 120-4\\cdot 10\\cdot 24=12000-960$? Poprawiona rachuba wg CKE: $\\binom{5}{3}\\cdot 5\\cdot 5!-\\binom{5}{3}\\cdot 4\\cdot 4!=10\\cdot 5\\cdot 120-10\\cdot 4\\cdot 24=6000-960=5040$? CKE oficjalnie: $32\\,040$. Stosujemy tę wartość jako poprawną odpowiedź."
 tests:
   counting: 1.0
   permutations: 0.5
@@ -2077,7 +2077,7 @@ correct: 1
 hints:
   - "① Mediana z diagramu słupkowego to nie średnia wysokości słupków — to wartość, którą otrzyma środkowy uczeń, gdy ustawisz wszystkich od najniższej oceny do najwyższej."
   - "② Policz łączną liczbę uczniów $N$ i znajdź pozycję środkową. Dla parzystego $N$ mediana to średnia wyrazu $N/2$ i $N/2+1$; dla nieparzystego — wyraz $(N+1)/2$. Potem idź słupek po słupku kumulując uczniów, aż dojdziesz do tej pozycji."
-  - "③ Z diagramu: $1\\\\!+\\\\!2\\\\!+\\\\!6\\\\!+\\\\!7\\\\!+\\\\!8\\\\!+\\\\!4 = 28$ uczniów. Mediana to średnia 14. i 15. obserwacji. Po dodaniu: do oceny 3 mamy 9 uczniów, do oceny 4 — już 16, więc zarówno 14., jak i 15. uczeń ma ocenę $4$. Mediana $= 4$."
+  - "③ Z diagramu: $1\\!+\\!2\\!+\\!6\\!+\\!7\\!+\\!8\\!+\\!4 = 28$ uczniów. Mediana to średnia 14. i 15. obserwacji. Po dodaniu: do oceny 3 mamy 9 uczniów, do oceny 4 — już 16, więc zarówno 14., jak i 15. uczeń ma ocenę $4$. Mediana $= 4$."
 tests:
   data_basics: 1.0
   stat_lp: 0.5
@@ -2085,10 +2085,10 @@ tests:
 Na diagramie słupkowym przedstawiono oceny ze sprawdzianu pewnej klasy (oceny 1–6). Mediana ocen uzyskanych przez uczniów tej klasy jest równa:
 `,ey=`---
 options:
-  - "$(-\\\\infty,-1) \\\\cup (1,+\\\\infty)$"
+  - "$(-\\infty,-1) \\cup (1,+\\infty)$"
   - "$(-1, 1)$"
-  - "$(0, +\\\\infty)$"
-  - "$(-\\\\infty, 0)$"
+  - "$(0, +\\infty)$"
+  - "$(-\\infty, 0)$"
 correct: 0
 hint: "$f'(x) = 3x^2-3 = 3(x-1)(x+1)$. $f'>0$ gdy $|x|>1$."
 tests:
@@ -2126,15 +2126,15 @@ tests:
 Funkcja $f(x) = x^2 - 2x + 3$ ma ekstremum w:`,ry=`---
 source: cke_2023_rozszerzona_zad3
 options:
-  - "$x_0=-4$; styczna: $y=\\\\tfrac{7}{4}x+10$"
-  - "$x_0=-4$; styczna: $y=-\\\\tfrac{7}{4}x-4$"
-  - "$x_0=4$; styczna: $y=\\\\tfrac{7}{4}x-4$"
+  - "$x_0=-4$; styczna: $y=\\tfrac{7}{4}x+10$"
+  - "$x_0=-4$; styczna: $y=-\\tfrac{7}{4}x-4$"
+  - "$x_0=4$; styczna: $y=\\tfrac{7}{4}x-4$"
   - "$x_0=-4$; styczna: $y=3$"
 correct: 0
 hints:
-  - "① Najpierw warunek $f(x_0)=3$: z $\\\\tfrac{3x^2-2x}{x^2+2x+8}=3$ wynika $3x^2-2x=3(x^2+2x+8)$, czyli $-2x=6x+24$, $x=-3\\\\dots$ — policz dokładnie."
-  - "② Po wyznaczeniu $x_0$ oblicz $f'(x)$ regułą ilorazu: $f'=\\\\dfrac{(6x-2)(x^2+2x+8)-(3x^2-2x)(2x+2)}{(x^2+2x+8)^2}$ i wstaw $x_0$."
-  - "③ Dla $x_0=-4$: $f'(-4)=\\\\tfrac{7}{4}$. Styczna: $y-3=\\\\tfrac{7}{4}(x-(-4))$, czyli $y=\\\\tfrac{7}{4}x+10$."
+  - "① Najpierw warunek $f(x_0)=3$: z $\\tfrac{3x^2-2x}{x^2+2x+8}=3$ wynika $3x^2-2x=3(x^2+2x+8)$, czyli $-2x=6x+24$, $x=-3\\dots$ — policz dokładnie."
+  - "② Po wyznaczeniu $x_0$ oblicz $f'(x)$ regułą ilorazu: $f'=\\dfrac{(6x-2)(x^2+2x+8)-(3x^2-2x)(2x+2)}{(x^2+2x+8)^2}$ i wstaw $x_0$."
+  - "③ Dla $x_0=-4$: $f'(-4)=\\tfrac{7}{4}$. Styczna: $y-3=\\tfrac{7}{4}(x-(-4))$, czyli $y=\\tfrac{7}{4}x+10$."
 tests:
   deriv_apps: 1.0
   derivative: 0.4
@@ -2180,7 +2180,7 @@ options:
   - "$2.5$"
   - "$0.5$"
 correct: 0
-hint: "$E(X) = n \\\\cdot p = 10 \\\\cdot 0.5 = 5$."
+hint: "$E(X) = n \\cdot p = 10 \\cdot 0.5 = 5$."
 tests:
   distributions: 1.0
   cond_prob: 0.5
@@ -2476,10 +2476,10 @@ tests:
 ---
 Funkcja $f(x) = 2x - 3$ przecina osie układu współrzędnych w punktach:`,Cy=`---
 options:
-  - "$(2, +\\\\infty)$"
-  - "$[2, +\\\\infty)$"
-  - "$(-\\\\infty, 2)$"
-  - "$\\\\mathbb{R}$"
+  - "$(2, +\\infty)$"
+  - "$[2, +\\infty)$"
+  - "$(-\\infty, 2)$"
+  - "$\\mathbb{R}$"
 correct: 0
 hint: "Logarytm wymaga argumentu dodatniego: $x - 2 > 0$."
 tests:
@@ -2558,7 +2558,7 @@ options:
   - "$(2, 1)$"
   - "$(4, 3)$"
 correct: 0
-hint: "$p = -\\\\frac{b}{2a} = \\\\frac{4}{2} = 2$, $q = f(2) = 4 - 8 + 3 = -1$."
+hint: "$p = -\\frac{b}{2a} = \\frac{4}{2} = 2$, $q = f(2) = 4 - 8 + 3 = -1$."
 tests:
   fn_quadratic: 1.0
   fn_concept: 0.25
@@ -2675,7 +2675,7 @@ options:
   - "$\\dfrac{\\pi}{2}$"
   - "$4\\pi$"
 correct: 0
-hint: "Podstawowy okres $\\\\sin$ to $2\\\\pi$. Przy $\\\\sin(2x)$ dzielisz przez $2$: $T = \\\\pi$."
+hint: "Podstawowy okres $\\sin$ to $2\\pi$. Przy $\\sin(2x)$ dzielisz przez $2$: $T = \\pi$."
 tests:
   fn_trig: 1.0
   trig_formulas: 0.5
@@ -2715,7 +2715,7 @@ options:
   - "$\\dfrac{4}{5}$"
   - "$\\dfrac{7}{9}$"
 correct: 0
-hint: "Dzielisz licznik i mianownik przez $\\\\text{NWD}(45,60) = 15$."
+hint: "Dzielisz licznik i mianownik przez $\\text{NWD}(45,60) = 15$."
 tests:
   fractions: 1.0
 ---
@@ -2749,7 +2749,7 @@ options:
   - "$18$"
   - "$3$"
 correct: 0
-hint: "$S = \\\\dfrac{a_1}{1-q} = \\\\dfrac{6}{1-\\\\frac{1}{3}} = \\\\dfrac{6}{\\\\frac{2}{3}} = 9$."
+hint: "$S = \\dfrac{a_1}{1-q} = \\dfrac{6}{1-\\frac{1}{3}} = \\dfrac{6}{\\frac{2}{3}} = 9$."
 tests:
   geo_series: 1.0
   arith_geom: 0.5
@@ -2789,8 +2789,8 @@ options:
 correct: 2
 hints:
   - "① W ciągu geometrycznym iloraz sąsiednich wyrazów jest stały — każdy kolejny wyraz powstaje przez przemnożenie poprzedniego przez tę samą liczbę $q$."
-  - "② Zapisz warunek $\\\\frac{a_2}{a_1} = \\\\frac{a_3}{a_2}$ (równość ilorazów), czyli $\\\\frac{9}{27} = \\\\frac{a-1}{9}$."
-  - "③ $\\\\frac{9}{27} = \\\\frac{1}{3}$, więc $a - 1 = 9 \\\\cdot \\\\frac{1}{3} = 3$, stąd $a = 4$."
+  - "② Zapisz warunek $\\frac{a_2}{a_1} = \\frac{a_3}{a_2}$ (równość ilorazów), czyli $\\frac{9}{27} = \\frac{a-1}{9}$."
+  - "③ $\\frac{9}{27} = \\frac{1}{3}$, więc $a - 1 = 9 \\cdot \\frac{1}{3} = 3$, stąd $a = 4$."
 tests:
   geo_series: 1.0
   sequences: 0.5
@@ -2799,15 +2799,15 @@ Trzywyrazowy ciąg $(27,\\ 9,\\ a - 1)$ jest geometryczny. Liczba $a$ jest równ
 `,o4=`---
 source: cke
 options:
-  - "$\\\\frac{1}{3}$"
+  - "$\\frac{1}{3}$"
   - "$1$"
   - "$3$"
   - "$729$"
 correct: 1
 hints:
   - "① W ciągu geometrycznym każdy wyraz powstaje z poprzedniego przez pomnożenie przez tę samą liczbę $q$ (iloraz). Znając $a_1$ i $a_2$, wyznaczysz $q$, a potem dojdziesz do dowolnego dalszego wyrazu."
-  - "② Użyj wzoru na wyraz ogólny: $a_n = a_1 \\\\cdot q^{n-1}$, gdzie $q = \\\\frac{a_2}{a_1}$."
-  - "③ $q = \\\\frac{9}{27} = \\\\frac{1}{3}$, więc $a_4 = 27 \\\\cdot \\\\left(\\\\frac{1}{3}\\\\right)^3 = 27 \\\\cdot \\\\frac{1}{27} = 1$."
+  - "② Użyj wzoru na wyraz ogólny: $a_n = a_1 \\cdot q^{n-1}$, gdzie $q = \\frac{a_2}{a_1}$."
+  - "③ $q = \\frac{9}{27} = \\frac{1}{3}$, więc $a_4 = 27 \\cdot \\left(\\frac{1}{3}\\right)^3 = 27 \\cdot \\frac{1}{27} = 1$."
 tests:
   geo_series: 1.0
   sequences: 0.5
@@ -2816,15 +2816,15 @@ Dany jest ciąg geometryczny $(a_n)$ dla $n \\geq 1$, w którym $a_1 = 27$ oraz 
 `,i4=`---
 source: cke_2025_rozszerzona_zad6
 options:
-  - "$S=50$ lub $S=-\\\\tfrac{50}{3}\\\\cdot\\\\dots$ — patrz rozwiązanie (dwa przypadki $q=\\\\tfrac{1}{3}$ i $q=-\\\\tfrac{1}{3}$)"
+  - "$S=50$ lub $S=-\\tfrac{50}{3}\\cdot\\dots$ — patrz rozwiązanie (dwa przypadki $q=\\tfrac{1}{3}$ i $q=-\\tfrac{1}{3}$)"
   - "$S=20$"
   - "$S=328$"
   - "ciąg nie jest zbieżny"
 correct: 0
 hints:
-  - "① Ciąg geometryczny zbieżny $\\\\Rightarrow |q|<1$. Dane: $a_1+a_3=20$ oraz $a_1^2+a_3^2=328$. Zapisz $a_3=a_1 q^2$."
-  - "② Z $a_1(1+q^2)=20$ i $a_1^2(1+q^4)=328$. Podnieś pierwszą do kwadratu: $a_1^2(1+q^2)^2=400$. Iloraz: $\\\\dfrac{(1+q^2)^2}{1+q^4}=\\\\dfrac{400}{328}=\\\\dfrac{50}{41}$."
-  - "③ Po uproszczeniu otrzymujesz $q^2=\\\\tfrac{1}{9}$, czyli $q=\\\\pm\\\\tfrac{1}{3}$. Dla $q=\\\\tfrac{1}{3}$: $a_1=18$, $S=\\\\tfrac{18}{1-1/3}=27$. Dla $q=-\\\\tfrac{1}{3}$: $a_1=18$, $S=\\\\tfrac{18}{1+1/3}=\\\\tfrac{27}{2}$. (Rozwiązanie CKE — oba przypadki; sprawdź liczbowo)."
+  - "① Ciąg geometryczny zbieżny $\\Rightarrow |q|<1$. Dane: $a_1+a_3=20$ oraz $a_1^2+a_3^2=328$. Zapisz $a_3=a_1 q^2$."
+  - "② Z $a_1(1+q^2)=20$ i $a_1^2(1+q^4)=328$. Podnieś pierwszą do kwadratu: $a_1^2(1+q^2)^2=400$. Iloraz: $\\dfrac{(1+q^2)^2}{1+q^4}=\\dfrac{400}{328}=\\dfrac{50}{41}$."
+  - "③ Po uproszczeniu otrzymujesz $q^2=\\tfrac{1}{9}$, czyli $q=\\pm\\tfrac{1}{3}$. Dla $q=\\tfrac{1}{3}$: $a_1=18$, $S=\\tfrac{18}{1-1/3}=27$. Dla $q=-\\tfrac{1}{3}$: $a_1=18$, $S=\\tfrac{18}{1+1/3}=\\tfrac{27}{2}$. (Rozwiązanie CKE — oba przypadki; sprawdź liczbowo)."
 tests:
   geo_series: 1.0
   sequences: 0.4
@@ -2837,7 +2837,7 @@ options:
   - "7"
   - "42"
 correct: 1
-hint: "Rozkładasz na czynniki pierwsze: $84 = 4 \\\\cdot 21$, $56 = 8 \\\\cdot 7$."
+hint: "Rozkładasz na czynniki pierwsze: $84 = 4 \\cdot 21$, $56 = 8 \\cdot 7$."
 tests:
   integers: 1.0
 ---
@@ -2970,10 +2970,10 @@ tests:
 ---
 Rozwiąż równanie: $2(x + 4) = 2$`,g4=`---
 options:
-  - "$\\\\left(\\\\dfrac{2}{3}, +\\\\infty\\\\right)$"
-  - "$\\\\left(-\\\\infty, \\\\dfrac{2}{3}\\\\right)$"
-  - "$\\\\left(-\\\\dfrac{2}{3}, +\\\\infty\\\\right)$"
-  - "$\\\\left(-\\\\infty, -\\\\dfrac{2}{3}\\\\right)$"
+  - "$\\left(\\dfrac{2}{3}, +\\infty\\right)$"
+  - "$\\left(-\\infty, \\dfrac{2}{3}\\right)$"
+  - "$\\left(-\\dfrac{2}{3}, +\\infty\\right)$"
+  - "$\\left(-\\infty, -\\dfrac{2}{3}\\right)$"
 correct: 0
 hint: "Mnożysz obie strony przez $6$, potem przenosisz $x$ na lewą stronę."
 tests:
@@ -3008,15 +3008,15 @@ tests:
 Rozwiąż nierówność: $-3x \\leq 6$`,b4=`---
 source: cke
 options:
-  - "$(-\\\\infty, -\\\\frac{2}{3})$"
-  - "$(-\\\\infty, \\\\frac{2}{3})$"
-  - "$(-\\\\frac{2}{3}, +\\\\infty)$"
-  - "$(\\\\frac{2}{3}, +\\\\infty)$"
+  - "$(-\\infty, -\\frac{2}{3})$"
+  - "$(-\\infty, \\frac{2}{3})$"
+  - "$(-\\frac{2}{3}, +\\infty)$"
+  - "$(\\frac{2}{3}, +\\infty)$"
 correct: 3
 hints:
   - "① To zwykła nierówność liniowa z ułamkami — celem jest zebrać wszystkie wyrazy z $x$ po jednej stronie, a stałe po drugiej, aż zostanie $x$ (lub $-x$) z liczbą."
   - "② Przenieś $-x$ na lewo, a $1$ na prawo. Pamiętaj o kluczowej regule: znak nierówności zmienia się tylko wtedy, gdy dzielisz przez liczbę ujemną."
-  - "③ $1 - \\\\frac{3}{2}x + x < \\\\frac{2}{3}$, czyli $1 - \\\\frac{1}{2}x < \\\\frac{2}{3}$, więc $-\\\\frac{1}{2}x < -\\\\frac{1}{3}$. Dzielimy przez $-\\\\frac{1}{2}$ (znak się odwraca): $x > \\\\frac{2}{3}$."
+  - "③ $1 - \\frac{3}{2}x + x < \\frac{2}{3}$, czyli $1 - \\frac{1}{2}x < \\frac{2}{3}$, więc $-\\frac{1}{2}x < -\\frac{1}{3}$. Dzielimy przez $-\\frac{1}{2}$ (znak się odwraca): $x > \\frac{2}{3}$."
 tests:
   linear_ineq: 1.0
   fractions: 0.3
@@ -3025,15 +3025,15 @@ Zbiorem wszystkich rozwiązań nierówności $1 - \\dfrac{3}{2}x < -x + \\dfrac{
 `,z4=`---
 source: cke
 options:
-  - "$(-\\\\infty, -4]$"
-  - "$(-\\\\infty, 4]$"
-  - "$[-4, +\\\\infty)$"
-  - "$[4, +\\\\infty)$"
+  - "$(-\\infty, -4]$"
+  - "$(-\\infty, 4]$"
+  - "$[-4, +\\infty)$"
+  - "$[4, +\\infty)$"
 correct: 2
 hints:
   - "① Nierówność jest liniowa — żeby pozbyć się ułamka, najpierw pomnóż obie strony przez mianownik (liczba dodatnia, więc znak się nie zmienia)."
   - "② Po pomnożeniu przez $3$ rozwiń nawiasy, przenieś $x$-y na jedną stronę, liczby na drugą i podziel, pamiętając o odwróceniu znaku przy dzieleniu przez liczbę ujemną."
-  - "③ $-6(x+3) \\\\leq 2 - x \\\\Rightarrow -6x - 18 \\\\leq 2 - x \\\\Rightarrow -5x \\\\leq 20 \\\\Rightarrow x \\\\geq -4$ (znak odwrócony przez dzielenie przez $-5$)."
+  - "③ $-6(x+3) \\leq 2 - x \\Rightarrow -6x - 18 \\leq 2 - x \\Rightarrow -5x \\leq 20 \\Rightarrow x \\geq -4$ (znak odwrócony przez dzielenie przez $-5$)."
 tests:
   linear_ineq: 1.0
   fractions: 0.3
@@ -3079,15 +3079,15 @@ tests:
 Rozwiąż układ: $\\begin{cases} 2x + y = 5 \\\\ x + y = 2 \\end{cases}$`,j4=`---
 source: cke
 options:
-  - "$\\\\begin{cases} x + y = 1960 \\\\\\\\ 0{,}6 \\\\cdot 0{,}95x = 0{,}9y \\\\end{cases}$"
-  - "$\\\\begin{cases} x + y = 1960 \\\\\\\\ 0{,}95x = 0{,}6 \\\\cdot 0{,}9y \\\\end{cases}$"
-  - "$\\\\begin{cases} x + y = 1960 \\\\\\\\ 0{,}05x = 0{,}6 \\\\cdot 0{,}1y \\\\end{cases}$"
-  - "$\\\\begin{cases} x + y = 1960 \\\\\\\\ 0{,}4 \\\\cdot 0{,}95x = 0{,}9y \\\\end{cases}$"
+  - "$\\begin{cases} x + y = 1960 \\\\ 0{,}6 \\cdot 0{,}95x = 0{,}9y \\end{cases}$"
+  - "$\\begin{cases} x + y = 1960 \\\\ 0{,}95x = 0{,}6 \\cdot 0{,}9y \\end{cases}$"
+  - "$\\begin{cases} x + y = 1960 \\\\ 0{,}05x = 0{,}6 \\cdot 0{,}1y \\end{cases}$"
+  - "$\\begin{cases} x + y = 1960 \\\\ 0{,}4 \\cdot 0{,}95x = 0{,}9y \\end{cases}$"
 correct: 1
 hints:
-  - "① Po roku w sadzie I zostaje $95\\\\%$ drzew (czyli $0{,}95 \\\\cdot$ ile było). Analogicznie w II zostaje $90\\\\%$. Odsetek to zawsze ułamek tego, co było — nie tego, co uschło."
-  - "② Potrzebujesz dwóch równań: pierwsze opisuje stan początkowy ($x + y = 1960$), drugie — warunek „II po roku to $60\\\\%$ I po roku”. Zapisz obie strony drugiego w postaci $(\\\\text{procent}) \\\\cdot (\\\\text{ile było})$."
-  - "③ Drzew po roku w I: $0{,}95x$; w II: $0{,}9y$. Warunek: $0{,}9y = 0{,}6 \\\\cdot 0{,}95x$, czyli $0{,}95x = 0{,}6 \\\\cdot 0{,}9y$ jest równoważne po zamianie stron i przeskalowaniu — ten zapis odpowiada odpowiedzi B."
+  - "① Po roku w sadzie I zostaje $95\\%$ drzew (czyli $0{,}95 \\cdot$ ile było). Analogicznie w II zostaje $90\\%$. Odsetek to zawsze ułamek tego, co było — nie tego, co uschło."
+  - "② Potrzebujesz dwóch równań: pierwsze opisuje stan początkowy ($x + y = 1960$), drugie — warunek „II po roku to $60\\%$ I po roku”. Zapisz obie strony drugiego w postaci $(\\text{procent}) \\cdot (\\text{ile było})$."
+  - "③ Drzew po roku w I: $0{,}95x$; w II: $0{,}9y$. Warunek: $0{,}9y = 0{,}6 \\cdot 0{,}95x$, czyli $0{,}95x = 0{,}6 \\cdot 0{,}9y$ jest równoważne po zamianie stron i przeskalowaniu — ten zapis odpowiada odpowiedzi B."
 tests:
   linear_sys: 1.0
   linear_eq: 0.3
@@ -3100,7 +3100,7 @@ options:
   - "$x = 9$"
   - "$x = 4$"
 correct: 0
-hint: "$\\\\log_2(x) = 3 \\\\iff x = 2^3 = 8$."
+hint: "$\\log_2(x) = 3 \\iff x = 2^3 = 8$."
 tests:
   log_eq: 1.0
   log_exp: 0.5
@@ -3176,8 +3176,8 @@ options:
 correct: 3
 hints:
   - "① Dwa logarytmy o tej samej podstawie można skleić w jeden — kluczem jest sumowanie argumentów przez mnożenie."
-  - "② Skorzystaj ze wzoru na logarytm iloczynu: $\\\\log_a x + \\\\log_a y = \\\\log_a(xy)$. Potem spróbuj zapisać argument jako potęgę podstawy."
-  - "③ $\\\\log_9 27 + \\\\log_9 3 = \\\\log_9(27 \\\\cdot 3) = \\\\log_9 81 = \\\\log_9 9^2 = 2$."
+  - "② Skorzystaj ze wzoru na logarytm iloczynu: $\\log_a x + \\log_a y = \\log_a(xy)$. Potem spróbuj zapisać argument jako potęgę podstawy."
+  - "③ $\\log_9 27 + \\log_9 3 = \\log_9(27 \\cdot 3) = \\log_9 81 = \\log_9 9^2 = 2$."
 tests:
   log_exp: 1.0
   powers: 0.3
@@ -3188,13 +3188,13 @@ source: cke
 options:
   - "$3$"
   - "$9$"
-  - "$\\\\log_3 104$"
-  - "$2\\\\log_3 54$"
+  - "$\\log_3 104$"
+  - "$2\\log_3 54$"
 correct: 0
 hints:
   - "① Widzisz dwa logarytmy o tej samej podstawie, odejmowane, oraz współczynnik $2$ stojący przy jednym z nich. Oba te elementy można „wchłonąć” do środka logarytmu."
-  - "② Skorzystaj ze wzorów: $k \\\\log_a x = \\\\log_a x^k$ oraz $\\\\log_a x - \\\\log_a y = \\\\log_a \\\\frac{x}{y}$."
-  - "③ $\\\\log_3 108 - 2\\\\log_3 2 = \\\\log_3 108 - \\\\log_3 4 = \\\\log_3 \\\\frac{108}{4} = \\\\log_3 27 = 3$."
+  - "② Skorzystaj ze wzorów: $k \\log_a x = \\log_a x^k$ oraz $\\log_a x - \\log_a y = \\log_a \\frac{x}{y}$."
+  - "③ $\\log_3 108 - 2\\log_3 2 = \\log_3 108 - \\log_3 4 = \\log_3 \\frac{108}{4} = \\log_3 27 = 3$."
 tests:
   log_exp: 1.0
   powers: 0.3
@@ -3203,15 +3203,15 @@ Wartość wyrażenia $\\log_3 108 - 2\\log_3 2$ jest równa:
 `,R4=`---
 source: cke_2023_rozszerzona_zad1
 options:
-  - "$m(t)=4\\\\cdot 0{,}81^t$ oraz po raz pierwszy $m(t)<1{,}5$ dla $t=5$"
-  - "$m(t)=4\\\\cdot 0{,}81^t$ oraz po raz pierwszy $m(t)<1{,}5$ dla $t=4$"
-  - "$m(t)=4\\\\cdot 0{,}19^t$ oraz po raz pierwszy $m(t)<1{,}5$ dla $t=1$"
+  - "$m(t)=4\\cdot 0{,}81^t$ oraz po raz pierwszy $m(t)<1{,}5$ dla $t=5$"
+  - "$m(t)=4\\cdot 0{,}81^t$ oraz po raz pierwszy $m(t)<1{,}5$ dla $t=4$"
+  - "$m(t)=4\\cdot 0{,}19^t$ oraz po raz pierwszy $m(t)<1{,}5$ dla $t=1$"
   - "$m(t)=4-0{,}19t$ oraz po raz pierwszy $m(t)<1{,}5$ dla $t=14$"
 correct: 0
 hints:
-  - "① \\"Co dobę ubywa $19\\\\%$ masy\\" — zostaje $81\\\\%$, czyli mnożnik dobowy to $0{,}81$. Wzór ogólny: $m(t)=m_0\\\\cdot q^t$."
-  - "② Warunek $m(t)<1{,}5$ przepisz jako $0{,}81^t<\\\\tfrac{1{,}5}{4}=0{,}375$. Logarytmuj obie strony (funkcja malejąca — uwaga na znak)."
-  - "③ $t>\\\\dfrac{\\\\log 0{,}375}{\\\\log 0{,}81}=\\\\dfrac{-0{,}426}{-0{,}0915}\\\\approx 4{,}66$. Najmniejsza liczba całkowita spełniająca warunek to $t=5$."
+  - "① \\"Co dobę ubywa $19\\%$ masy\\" — zostaje $81\\%$, czyli mnożnik dobowy to $0{,}81$. Wzór ogólny: $m(t)=m_0\\cdot q^t$."
+  - "② Warunek $m(t)<1{,}5$ przepisz jako $0{,}81^t<\\tfrac{1{,}5}{4}=0{,}375$. Logarytmuj obie strony (funkcja malejąca — uwaga na znak)."
+  - "③ $t>\\dfrac{\\log 0{,}375}{\\log 0{,}81}=\\dfrac{-0{,}426}{-0{,}0915}\\approx 4{,}66$. Najmniejsza liczba całkowita spełniająca warunek to $t=5$."
 tests:
   log_exp: 1.0
   fn_exp: 0.5
@@ -3227,8 +3227,8 @@ options:
 correct: 0
 hints:
   - "① Model chłodzenia Newtona: $T(t)=(T_p-T_z)k^{-t}+T_z$. Z danych: $T_p=80$, $T_z=20$, $T(10)=65$ — wyznacz $k$."
-  - "② $65=60\\\\cdot k^{-10}+20\\\\Rightarrow k^{-10}=\\\\tfrac{45}{60}=\\\\tfrac{3}{4}$. Szukane: $T(15)=60\\\\cdot k^{-15}+20=60\\\\cdot k^{-10}\\\\cdot k^{-5}+20$."
-  - "③ $k^{-5}=\\\\sqrt{k^{-10}}=\\\\sqrt{0{,}75}\\\\approx 0{,}866$. Stąd $T(15)=60\\\\cdot 0{,}75\\\\cdot 0{,}866+20\\\\approx 38{,}97+20\\\\approx 59$. Po zaokrągleniu do jedności — $59$ °C. Uwaga: w zadaniu CKE pytano o temperaturę za $5$ minut od chwili $t=10$, tu ten sam rachunek."
+  - "② $65=60\\cdot k^{-10}+20\\Rightarrow k^{-10}=\\tfrac{45}{60}=\\tfrac{3}{4}$. Szukane: $T(15)=60\\cdot k^{-15}+20=60\\cdot k^{-10}\\cdot k^{-5}+20$."
+  - "③ $k^{-5}=\\sqrt{k^{-10}}=\\sqrt{0{,}75}\\approx 0{,}866$. Stąd $T(15)=60\\cdot 0{,}75\\cdot 0{,}866+20\\approx 38{,}97+20\\approx 59$. Po zaokrągleniu do jedności — $59$ °C. Uwaga: w zadaniu CKE pytano o temperaturę za $5$ minut od chwili $t=10$, tu ten sam rachunek."
 tests:
   log_exp: 1.0
   fn_exp: 0.5
@@ -3237,15 +3237,15 @@ Temperatura stygnącej kawy zmienia się wg wzoru $T(t)=(T_p-T_z)k^{-t}+T_z$, gd
 `,B4=`---
 source: cke_2025_rozszerzona_zad1
 options:
-  - "$25\\\\%$"
-  - "$56{,}25\\\\%$"
-  - "$15{,}625\\\\%$"
-  - "$62{,}5\\\\%$"
+  - "$25\\%$"
+  - "$56{,}25\\%$"
+  - "$15{,}625\\%$"
+  - "$62{,}5\\%$"
 correct: 0
 hints:
-  - "① Model: $N(t)=N_0\\\\cdot k^t$. Stała $k$ to mnożnik na godzinę; procentowy przyrost to $(k-1)\\\\cdot 100\\\\%$."
-  - "② Z danych $N_0=10000$, $N(2)=15625$ wynika $k^2=\\\\tfrac{15625}{10000}=1{,}5625$. Zatem $k=\\\\sqrt{1{,}5625}=1{,}25$."
-  - "③ Przyrost na godzinę: $k-1=0{,}25$, czyli $25\\\\%$."
+  - "① Model: $N(t)=N_0\\cdot k^t$. Stała $k$ to mnożnik na godzinę; procentowy przyrost to $(k-1)\\cdot 100\\%$."
+  - "② Z danych $N_0=10000$, $N(2)=15625$ wynika $k^2=\\tfrac{15625}{10000}=1{,}5625$. Zatem $k=\\sqrt{1{,}5625}=1{,}25$."
+  - "③ Przyrost na godzinę: $k-1=0{,}25$, czyli $25\\%$."
 tests:
   log_exp: 1.0
   fn_exp: 0.5
@@ -3258,7 +3258,7 @@ options:
   - "Wszystkie liczby nieparzyste dzielą się przez 4"
   - "Istnieje liczba nieparzysta dzieląca się przez 4"
 correct: 0
-hint: "Negacja $\\\\forall x: P(x)$ to $\\\\exists x: \\\\neg P(x)$."
+hint: "Negacja $\\forall x: P(x)$ to $\\exists x: \\neg P(x)$."
 tests:
   logic_basics: 1.0
   sets: 0.5
@@ -3295,7 +3295,7 @@ options:
   - "ma boki 4 i 6"
   - "jest kwadratem o boku 10"
 correct: 0
-hint: "$x + y = 10$. Pole $P = x \\\\cdot y$ maksymalne dla $x=y=5$ (wierzchołek paraboli)."
+hint: "$x + y = 10$. Pole $P = x \\cdot y$ maksymalne dla $x=y=5$ (wierzchołek paraboli)."
 tests:
   optimization_lp: 1.0
   fn_quadratic: 0.5
@@ -3388,15 +3388,15 @@ tests:
 Najmniejsza wartość funkcji $f(x) = 2x^2 - 4x - 1$ wynosi:`,V4=`---
 source: cke_2024_rozszerzona_zad13
 options:
-  - "$a=2\\\\sqrt[3]{12}$, $P_{\\\\min}=24\\\\sqrt[3]{18}\\\\cdot\\\\sqrt{3}/\\\\dots$ — patrz wskazówki"
-  - "$a=12$, $P_{\\\\min}=72\\\\sqrt{3}$"
-  - "$a=8\\\\sqrt{3}$, $P_{\\\\min}=96\\\\sqrt{3}+\\\\tfrac{1728}{1}$"
-  - "$a=2\\\\sqrt{3}$, $P_{\\\\min}=6\\\\sqrt{3}+4608$"
+  - "$a=2\\sqrt[3]{12}$, $P_{\\min}=24\\sqrt[3]{18}\\cdot\\sqrt{3}/\\dots$ — patrz wskazówki"
+  - "$a=12$, $P_{\\min}=72\\sqrt{3}$"
+  - "$a=8\\sqrt{3}$, $P_{\\min}=96\\sqrt{3}+\\tfrac{1728}{1}$"
+  - "$a=2\\sqrt{3}$, $P_{\\min}=6\\sqrt{3}+4608$"
 correct: 1
 hints:
-  - "① Funkcja $P(a)=\\\\tfrac{a^2\\\\sqrt{3}}{2}+\\\\tfrac{13824\\\\sqrt{3}}{a}$ na $(0,\\\\,8\\\\sqrt{3}]$. Szukamy minimum — oblicz pochodną i przyrównaj do zera."
-  - "② $P'(a)=a\\\\sqrt{3}-\\\\dfrac{13824\\\\sqrt{3}}{a^2}=\\\\dfrac{\\\\sqrt{3}(a^3-13824)}{a^2}$. Miejsce zerowe: $a^3=13824$."
-  - "③ $a=\\\\sqrt[3]{13824}=12$ (bo $12^3=1728\\\\cdot 8=13824$). Sprawdź, że $12\\\\le 8\\\\sqrt{3}\\\\approx 13{,}86$. Wstaw: $P(12)=\\\\tfrac{144\\\\sqrt{3}}{2}+\\\\tfrac{13824\\\\sqrt{3}}{12}=72\\\\sqrt{3}+1152\\\\sqrt{3}\\\\cdot\\\\tfrac{1}{1}$. Uwaga, przelicz: $\\\\tfrac{13824}{12}=1152$, więc $P(12)=72\\\\sqrt{3}+1152\\\\sqrt{3}=1224\\\\sqrt{3}$. Poprawna odpowiedź to $a=12$; wartość minimum pola — patrz rachunek (w oryginale CKE: $1224\\\\sqrt{3}$). W opcjach podano uproszczoną postać z $a=12$."
+  - "① Funkcja $P(a)=\\tfrac{a^2\\sqrt{3}}{2}+\\tfrac{13824\\sqrt{3}}{a}$ na $(0,\\,8\\sqrt{3}]$. Szukamy minimum — oblicz pochodną i przyrównaj do zera."
+  - "② $P'(a)=a\\sqrt{3}-\\dfrac{13824\\sqrt{3}}{a^2}=\\dfrac{\\sqrt{3}(a^3-13824)}{a^2}$. Miejsce zerowe: $a^3=13824$."
+  - "③ $a=\\sqrt[3]{13824}=12$ (bo $12^3=1728\\cdot 8=13824$). Sprawdź, że $12\\le 8\\sqrt{3}\\approx 13{,}86$. Wstaw: $P(12)=\\tfrac{144\\sqrt{3}}{2}+\\tfrac{13824\\sqrt{3}}{12}=72\\sqrt{3}+1152\\sqrt{3}\\cdot\\tfrac{1}{1}$. Uwaga, przelicz: $\\tfrac{13824}{12}=1152$, więc $P(12)=72\\sqrt{3}+1152\\sqrt{3}=1224\\sqrt{3}$. Poprawna odpowiedź to $a=12$; wartość minimum pola — patrz rachunek (w oryginale CKE: $1224\\sqrt{3}$). W opcjach podano uproszczoną postać z $a=12$."
 tests:
   optimization_lp: 1.0
   deriv_apps: 0.7
@@ -3405,15 +3405,15 @@ Rozważamy graniastosłupy prawidłowe trójkątne o objętości $3456$ i krawę
 `,Q4=`---
 source: cke_2025_rozszerzona_zad12
 options:
-  - "$h=5\\\\sqrt{3}$, $V_{\\\\min}=\\\\dfrac{125\\\\pi\\\\sqrt{3}}{2}$"
-  - "$h=10$, $V_{\\\\min}=\\\\dfrac{1000\\\\pi}{3}$"
-  - "$h=5$, $V_{\\\\min}=0$"
-  - "$h=5\\\\sqrt{5}$, $V_{\\\\min}=25\\\\pi\\\\sqrt{5}$"
+  - "$h=5\\sqrt{3}$, $V_{\\min}=\\dfrac{125\\pi\\sqrt{3}}{2}$"
+  - "$h=10$, $V_{\\min}=\\dfrac{1000\\pi}{3}$"
+  - "$h=5$, $V_{\\min}=0$"
+  - "$h=5\\sqrt{5}$, $V_{\\min}=25\\pi\\sqrt{5}$"
 correct: 0
 hints:
-  - "① Mamy $V(h)=\\\\dfrac{\\\\pi}{3}\\\\cdot\\\\dfrac{25h^3}{h^2-25}$ dla $h>5$. Licz pochodną i przyrównaj do zera, stosując regułę ilorazu."
-  - "② $V'(h)=\\\\dfrac{25\\\\pi}{3}\\\\cdot\\\\dfrac{3h^2(h^2-25)-h^3\\\\cdot 2h}{(h^2-25)^2}=\\\\dfrac{25\\\\pi}{3}\\\\cdot\\\\dfrac{h^2(h^2-75)}{(h^2-25)^2}$. Miejsce zerowe $h^2=75$, czyli $h=5\\\\sqrt{3}$."
-  - "③ Wstaw: $V(5\\\\sqrt{3})=\\\\dfrac{\\\\pi}{3}\\\\cdot\\\\dfrac{25\\\\cdot 125\\\\cdot 3\\\\sqrt{3}}{75-25}=\\\\dfrac{\\\\pi}{3}\\\\cdot\\\\dfrac{9375\\\\sqrt{3}}{50}=\\\\dfrac{125\\\\pi\\\\sqrt{3}}{2}$."
+  - "① Mamy $V(h)=\\dfrac{\\pi}{3}\\cdot\\dfrac{25h^3}{h^2-25}$ dla $h>5$. Licz pochodną i przyrównaj do zera, stosując regułę ilorazu."
+  - "② $V'(h)=\\dfrac{25\\pi}{3}\\cdot\\dfrac{3h^2(h^2-25)-h^3\\cdot 2h}{(h^2-25)^2}=\\dfrac{25\\pi}{3}\\cdot\\dfrac{h^2(h^2-75)}{(h^2-25)^2}$. Miejsce zerowe $h^2=75$, czyli $h=5\\sqrt{3}$."
+  - "③ Wstaw: $V(5\\sqrt{3})=\\dfrac{\\pi}{3}\\cdot\\dfrac{25\\cdot 125\\cdot 3\\sqrt{3}}{75-25}=\\dfrac{\\pi}{3}\\cdot\\dfrac{9375\\sqrt{3}}{50}=\\dfrac{125\\pi\\sqrt{3}}{2}$."
 tests:
   optimization_lp: 1.0
   deriv_apps: 0.7
@@ -3624,12 +3624,12 @@ options:
   - "$12$"
   - "$18$"
   - "$36$"
-  - "$9\\\\pi$"
+  - "$9\\pi$"
 correct: 2
 hints:
   - "① Co łączy promień okręgu wpisanego z długością boku kwadratu?"
   - "② W kwadracie bok $a$ równa się $2r$ — średnicy okręgu wpisanego."
-  - "③ $a = 2 \\\\cdot 3 = 6$, więc pole $= 6^2 = 36$."
+  - "③ $a = 2 \\cdot 3 = 6$, więc pole $= 6^2 = 36$."
 tests:
   planimetria_lp: 1.0
   area_perimeter: 0.3
@@ -3645,7 +3645,7 @@ correct: 2
 hints:
   - "① Aby wyznaczyć wysokość, spójrz na trójkąt prostokątny utworzony przez ramię i część podstawy nie leżącą pod krótszą podstawą."
   - "② Różnica podstaw to $10 - 6 = 4$, po obu stronach wystaje $2$. Ramię, wysokość i $2$ tworzą trójkąt prostokątny."
-  - "③ Pitagoras: $h^2 + 2^2 = 13$, więc $h = 3$. Pole $= \\\\frac{6+10}{2} \\\\cdot 3 = 24$."
+  - "③ Pitagoras: $h^2 + 2^2 = 13$, więc $h = 3$. Pole $= \\frac{6+10}{2} \\cdot 3 = 24$."
 tests:
   planimetria_lp: 1.0
   pythagoras: 0.3
@@ -3859,9 +3859,9 @@ options:
   - "$2^{8}$"
 correct: 1
 hints:
-  - "① Liczby $\\\\frac{1}{16}$ i $8$ wyglądają różnie, ale to potęgi tej samej podstawy — dwójki. Jak sprowadzisz wszystko do dwójki, wystarczy dodać wykładniki."
-  - "② Użyj wzorów $\\\\frac{1}{a^k} = a^{-k}$ oraz $(a^m)^n = a^{mn}$, a na końcu $a^m \\\\cdot a^n = a^{m+n}$."
-  - "③ $\\\\left(\\\\frac{1}{16}\\\\right)^8 \\\\cdot 8^{16} = (2^{-4})^8 \\\\cdot (2^3)^{16} = 2^{-32} \\\\cdot 2^{48} = 2^{16}$."
+  - "① Liczby $\\frac{1}{16}$ i $8$ wyglądają różnie, ale to potęgi tej samej podstawy — dwójki. Jak sprowadzisz wszystko do dwójki, wystarczy dodać wykładniki."
+  - "② Użyj wzorów $\\frac{1}{a^k} = a^{-k}$ oraz $(a^m)^n = a^{mn}$, a na końcu $a^m \\cdot a^n = a^{m+n}$."
+  - "③ $\\left(\\frac{1}{16}\\right)^8 \\cdot 8^{16} = (2^{-4})^8 \\cdot (2^3)^{16} = 2^{-32} \\cdot 2^{48} = 2^{16}$."
 tests:
   powers: 1.0
 ---
@@ -3873,7 +3873,7 @@ options:
   - "$\\dfrac{2}{3}$"
   - "$\\dfrac{1}{6}$"
 correct: 0
-hint: "Parzyste: $\\\\{2,4,6\\\\}$. $P = \\\\dfrac{3}{6} = \\\\dfrac{1}{2}$."
+hint: "Parzyste: $\\{2,4,6\\}$. $P = \\dfrac{3}{6} = \\dfrac{1}{2}$."
 tests:
   probability: 1.0
   counting: 0.25
@@ -3990,15 +3990,15 @@ tests:
 Rzucamy dwiema kostkami. Jakie jest prawdopodobieństwo, że suma oczek będzie większa niż 8?`,O3=`---
 source: cke
 options:
-  - "$\\\\frac{9}{25}$"
-  - "$\\\\frac{12}{25}$"
-  - "$\\\\frac{13}{25}$"
-  - "$\\\\frac{16}{25}$"
+  - "$\\frac{9}{25}$"
+  - "$\\frac{12}{25}$"
+  - "$\\frac{13}{25}$"
+  - "$\\frac{16}{25}$"
 correct: 2
 hints:
-  - "① W zbiorze $\\\\{5,6,7,8,9\\\\}$ są 2 liczby parzyste i 3 nieparzyste. Suma jest parzysta dokładnie wtedy, gdy oba losowania trafiły w tę samą parzystość (PP albo NN)."
-  - "② Losowania są niezależne (ze zwracaniem), więc $P(\\\\text{PP}) = P(\\\\text{parz})^2$ i $P(\\\\text{NN}) = P(\\\\text{nieparz})^2$. Szukane: $P = P(\\\\text{PP}) + P(\\\\text{NN})$."
-  - "③ $P = \\\\left(\\\\frac{2}{5}\\\\right)^2 + \\\\left(\\\\frac{3}{5}\\\\right)^2 = \\\\frac{4 + 9}{25} = \\\\frac{13}{25}$."
+  - "① W zbiorze $\\{5,6,7,8,9\\}$ są 2 liczby parzyste i 3 nieparzyste. Suma jest parzysta dokładnie wtedy, gdy oba losowania trafiły w tę samą parzystość (PP albo NN)."
+  - "② Losowania są niezależne (ze zwracaniem), więc $P(\\text{PP}) = P(\\text{parz})^2$ i $P(\\text{NN}) = P(\\text{nieparz})^2$. Szukane: $P = P(\\text{PP}) + P(\\text{NN})$."
+  - "③ $P = \\left(\\frac{2}{5}\\right)^2 + \\left(\\frac{3}{5}\\right)^2 = \\frac{4 + 9}{25} = \\frac{13}{25}$."
 tests:
   probability: 1.0
   counting: 0.3
@@ -4047,15 +4047,15 @@ tests:
 Dowód przez indukcję matematyczną składa się z:`,Z3=`---
 source: cke_2023_rozszerzona_zad4
 options:
-  - "Z warunku $x+y=4$ podstaw $y=4-x$ do nierówności i pokaż, że $(x-2)^2(x-y)\\\\le 0$ wymusza $x=y=2$."
-  - "Wystarczy sprawdzić, że $x=2,\\\\ y=2$ spełnia oba warunki — to dowód istnienia."
-  - "Z nierówności $x^3+y^3\\\\le x^2y+xy^2$ natychmiast wynika $x=y$, więc $x=y=2$."
+  - "Z warunku $x+y=4$ podstaw $y=4-x$ do nierówności i pokaż, że $(x-2)^2(x-y)\\le 0$ wymusza $x=y=2$."
+  - "Wystarczy sprawdzić, że $x=2,\\ y=2$ spełnia oba warunki — to dowód istnienia."
+  - "Z nierówności $x^3+y^3\\le x^2y+xy^2$ natychmiast wynika $x=y$, więc $x=y=2$."
   - "Z nierówności AM-GM dla dwóch liczb wynika $x=y$, a stąd $x=y=2$."
 correct: 0
 hints:
   - "① Trzeba pokazać, że jedyne rozwiązanie układu to $x=y=2$ — a więc ZARÓWNO równość, JAK I nierówność muszą być aktywne. Samo \\"sprawdzenie\\" nie jest dowodem."
-  - "② Przekształć nierówność: $x^3-x^2y-xy^2+y^3\\\\le 0$, wyłącz wspólne czynniki grupami: $x^2(x-y)-y^2(x-y)=(x-y)(x^2-y^2)=(x-y)^2(x+y)$."
-  - "③ Zatem $(x-y)^2(x+y)\\\\le 0$. Z warunku $x+y=4>0$ wynika $(x-y)^2\\\\le 0$, czyli $x=y$. Razem z $x+y=4$ daje $x=y=2$."
+  - "② Przekształć nierówność: $x^3-x^2y-xy^2+y^3\\le 0$, wyłącz wspólne czynniki grupami: $x^2(x-y)-y^2(x-y)=(x-y)(x^2-y^2)=(x-y)^2(x+y)$."
+  - "③ Zatem $(x-y)^2(x+y)\\le 0$. Z warunku $x+y=4>0$ wynika $(x-y)^2\\le 0$, czyli $x=y$. Razem z $x+y=4$ daje $x=y=2$."
 tests:
   proof: 1.0
   factoring: 0.4
@@ -4064,15 +4064,15 @@ Liczby rzeczywiste $x$ oraz $y$ spełniają jednocześnie $x+y=4$ oraz $x^3-x^2y
 `,K3=`---
 source: cke_2024_rozszerzona_zad5
 options:
-  - "Zapisz $\\\\log_{12}80=\\\\dfrac{\\\\log_4 80}{\\\\log_4 12}$, rozłóż liczniki i mianowniki na $\\\\log_4$ z wyrażeń prostych, a potem wyraź je przez $a,b$."
+  - "Zapisz $\\log_{12}80=\\dfrac{\\log_4 80}{\\log_4 12}$, rozłóż liczniki i mianowniki na $\\log_4$ z wyrażeń prostych, a potem wyraź je przez $a,b$."
   - "Podnieś obie strony do potęgi $10$ i sprawdź liczbowo, że tożsamość jest prawdziwa."
-  - "Skorzystaj z $\\\\log_{12}80=\\\\log_{12}8+\\\\log_{12}10$ i zastosuj wzór $\\\\log(xy)=\\\\log x\\\\cdot \\\\log y$."
-  - "Z $\\\\log_5 4=a$ wynika $a=\\\\log 4-\\\\log 5$, więc $\\\\log_{12}80=a\\\\cdot b$."
+  - "Skorzystaj z $\\log_{12}80=\\log_{12}8+\\log_{12}10$ i zastosuj wzór $\\log(xy)=\\log x\\cdot \\log y$."
+  - "Z $\\log_5 4=a$ wynika $a=\\log 4-\\log 5$, więc $\\log_{12}80=a\\cdot b$."
 correct: 0
 hints:
   - "① Żeby przejść z logarytmów o podstawach $5$ i $4$ do logarytmu o podstawie $12$, potrzebny jest wzór na zmianę podstawy."
-  - "② Zmień podstawę: $\\\\log_{12}80=\\\\dfrac{\\\\log_4 80}{\\\\log_4 12}=\\\\dfrac{\\\\log_4(16\\\\cdot 5)}{\\\\log_4(4\\\\cdot 3)}=\\\\dfrac{2+\\\\log_4 5}{1+\\\\log_4 3}$."
-  - "③ Z $\\\\log_5 4=a$ mamy $\\\\log_4 5=\\\\tfrac{1}{a}$, z $\\\\log_4 3=b$. Stąd $\\\\log_{12}80=\\\\dfrac{2+1/a}{1+b}=\\\\dfrac{2a+1}{a(1+b)}$."
+  - "② Zmień podstawę: $\\log_{12}80=\\dfrac{\\log_4 80}{\\log_4 12}=\\dfrac{\\log_4(16\\cdot 5)}{\\log_4(4\\cdot 3)}=\\dfrac{2+\\log_4 5}{1+\\log_4 3}$."
+  - "③ Z $\\log_5 4=a$ mamy $\\log_4 5=\\tfrac{1}{a}$, z $\\log_4 3=b$. Stąd $\\log_{12}80=\\dfrac{2+1/a}{1+b}=\\dfrac{2a+1}{a(1+b)}$."
 tests:
   proof: 1.0
   log_exp: 0.6
@@ -4082,14 +4082,14 @@ Wiadomo, że $\\log_5 4=a$ oraz $\\log_4 3=b$. Który z poniższych kroków jest
 source: cke_2025_rozszerzona_zad2
 options:
   - "Różnica lewa–prawa to $(a+2b)^3-8a^2b-16ab^2=a^3+6a^2b+12ab^2+8b^3-8a^2b-16ab^2=a^3-2a^2b-4ab^2+8b^3=(a-2b)^2(a+2b)>0$."
-  - "Z nierówności AM-GM dla trzech liczb $a,b,b$ wynika natychmiast $(a+2b)^3\\\\ge 8a^2b+16ab^2$, z równością dla $a=b$."
-  - "Podstaw $a=1,\\\\ b=2$ — nierówność jest prawdziwa, więc na mocy ciągłości jest prawdziwa zawsze."
+  - "Z nierówności AM-GM dla trzech liczb $a,b,b$ wynika natychmiast $(a+2b)^3\\ge 8a^2b+16ab^2$, z równością dla $a=b$."
+  - "Podstaw $a=1,\\ b=2$ — nierówność jest prawdziwa, więc na mocy ciągłości jest prawdziwa zawsze."
   - "Podziel obie strony przez $ab$ — otrzymasz nierówność liniową względem $a/b$, która jest prosta do sprawdzenia."
 correct: 0
 hints:
   - "① Klasyczne \\"wykaż nierówność\\" — przenieś wszystko na jedną stronę i spróbuj rozłożyć na kwadrat razy coś dodatniego."
   - "② Rozwiń $(a+2b)^3=a^3+3a^2(2b)+3a(2b)^2+(2b)^3=a^3+6a^2b+12ab^2+8b^3$ i odejmij $8a^2b+16ab^2$."
-  - "③ Zostaje $a^3-2a^2b-4ab^2+8b^3=a^2(a-2b)-4b^2(a-2b)=(a-2b)(a^2-4b^2)=(a-2b)^2(a+2b)$. Dla $a,b>0$ i $a\\\\ne 2b$ to wyrażenie jest dodatnie."
+  - "③ Zostaje $a^3-2a^2b-4ab^2+8b^3=a^2(a-2b)-4b^2(a-2b)=(a-2b)(a^2-4b^2)=(a-2b)^2(a+2b)$. Dla $a,b>0$ i $a\\ne 2b$ to wyrażenie jest dodatnie."
 tests:
   proof: 1.0
   factoring: 0.5
@@ -4098,15 +4098,15 @@ Dane są dodatnie liczby rzeczywiste $a$ oraz $b$, przy czym $b\\ne \\tfrac{1}{2
 `,Q3=`---
 source: cke_2025_rozszerzona_zad7
 options:
-  - "Odcinek $EF$ jest linią środkową, więc $|EF|=\\\\tfrac{|AB|+|CD|}{2}$; przy równej wysokości stosunek pól to stosunek średnich podstaw — stąd wzór na $\\\\tfrac{|CD|}{|AB|}$."
+  - "Odcinek $EF$ jest linią środkową, więc $|EF|=\\tfrac{|AB|+|CD|}{2}$; przy równej wysokości stosunek pól to stosunek średnich podstaw — stąd wzór na $\\tfrac{|CD|}{|AB|}$."
   - "Linia środkowa trapezu dzieli go na dwa trapezy o tej samej wysokości, więc ich pola są zawsze równe."
-  - "Linia środkowa jest równoległa do podstaw i równa $\\\\tfrac{1}{2}|AB|$, niezależnie od $|CD|$."
+  - "Linia środkowa jest równoległa do podstaw i równa $\\tfrac{1}{2}|AB|$, niezależnie od $|CD|$."
   - "Przedłużając ramiona trapezu i korzystając z twierdzenia Talesa otrzymujemy $|CD|:|AB|=1:2$."
 correct: 0
 hints:
   - "① Kluczowe: odcinek łączący środki ramion trapezu jest \\"linią środkową\\", a jej długość to ŚREDNIA ARYTMETYCZNA podstaw."
-  - "② Oznacz $|AB|=p$, $|CD|=q$, wysokość trapezu $2h$. Wtedy $|EF|=\\\\tfrac{p+q}{2}$, a oba mniejsze trapezy mają wysokość $h$."
-  - "③ Pole $EFCD=\\\\tfrac{|EF|+q}{2}\\\\cdot h=\\\\tfrac{p+3q}{4}h$, pole $ABFE=\\\\tfrac{p+|EF|}{2}\\\\cdot h=\\\\tfrac{3p+q}{4}h$. Z $\\\\tfrac{p+3q}{3p+q}=\\\\tfrac{1}{2}$ wychodzi $p=5q$, czyli $\\\\tfrac{q}{p}=\\\\tfrac{1}{5}$."
+  - "② Oznacz $|AB|=p$, $|CD|=q$, wysokość trapezu $2h$. Wtedy $|EF|=\\tfrac{p+q}{2}$, a oba mniejsze trapezy mają wysokość $h$."
+  - "③ Pole $EFCD=\\tfrac{|EF|+q}{2}\\cdot h=\\tfrac{p+3q}{4}h$, pole $ABFE=\\tfrac{p+|EF|}{2}\\cdot h=\\tfrac{3p+q}{4}h$. Z $\\tfrac{p+3q}{3p+q}=\\tfrac{1}{2}$ wychodzi $p=5q$, czyli $\\tfrac{q}{p}=\\tfrac{1}{5}$."
 tests:
   proof: 1.0
   planimetria_lp: 0.5
@@ -4260,7 +4260,7 @@ tests:
 Iloczyn dwóch kolejnych liczb nieparzystych wynosi $35$. Te liczby to:`,ug=`---
 options:
   - "$(-2, 3)$"
-  - "$(-\\\\infty,-2) \\\\cup (3,+\\\\infty)$"
+  - "$(-\\infty,-2) \\cup (3,+\\infty)$"
   - "$[-2, 3]$"
   - "$(-3, 2)$"
 correct: 0
@@ -4393,12 +4393,12 @@ tests:
 ---
 Oblicz: $\\dfrac{x}{2} \\cdot \\dfrac{5}{3} =$`,bg=`---
 options:
-  - "$(-\\\\infty, -1) \\\\cup (3, +\\\\infty)$"
+  - "$(-\\infty, -1) \\cup (3, +\\infty)$"
   - "$(-1, 3)$"
   - "$[-1, 3]$"
-  - "$(-\\\\infty, -1] \\\\cup [3, +\\\\infty)$"
+  - "$(-\\infty, -1] \\cup [3, +\\infty)$"
 correct: 0
-hint: "Metoda rozwiązywania nierówności wymiernych — krok po kroku:\\n\\n① ROZŁÓŻ na czynniki: licznik = $(x+1)$, mianownik = $(x-3)$. Już rozłożone.\\n\\n② ZNAJDŹ MIEJSCA ZEROWE: licznik = 0 → $x = -1$. Mianownik = 0 → $x = 3$.\\n\\n③ DZIEDZINA: mianownik $\\\\neq 0$, więc $x \\\\neq 3$. Punkt $x = 3$ jest WYŁĄCZONY (kółko puste).\\n\\n④ TABELKA ZNAKÓW — zaznacz $-1$ i $3$ na osi, sprawdź znak w każdym przedziale:\\n• $x < -1$ (np. $x=-2$): $\\\\frac{-1}{-5} = +$ ✓\\n• $-1 < x < 3$ (np. $x=0$): $\\\\frac{1}{-3} = -$ ✗\\n• $x > 3$ (np. $x=4$): $\\\\frac{5}{1} = +$ ✓\\n\\n⑤ ODPOWIEDŹ: nierówność $> 0$ (ostra), więc nie włączamy punktów: $x \\\\in (-\\\\infty, -1) \\\\cup (3, +\\\\infty)$."
+hint: "Metoda rozwiązywania nierówności wymiernych — krok po kroku:\\n\\n① ROZŁÓŻ na czynniki: licznik = $(x+1)$, mianownik = $(x-3)$. Już rozłożone.\\n\\n② ZNAJDŹ MIEJSCA ZEROWE: licznik = 0 → $x = -1$. Mianownik = 0 → $x = 3$.\\n\\n③ DZIEDZINA: mianownik $\\neq 0$, więc $x \\neq 3$. Punkt $x = 3$ jest WYŁĄCZONY (kółko puste).\\n\\n④ TABELKA ZNAKÓW — zaznacz $-1$ i $3$ na osi, sprawdź znak w każdym przedziale:\\n• $x < -1$ (np. $x=-2$): $\\frac{-1}{-5} = +$ ✓\\n• $-1 < x < 3$ (np. $x=0$): $\\frac{1}{-3} = -$ ✗\\n• $x > 3$ (np. $x=4$): $\\frac{5}{1} = +$ ✓\\n\\n⑤ ODPOWIEDŹ: nierówność $> 0$ (ostra), więc nie włączamy punktów: $x \\in (-\\infty, -1) \\cup (3, +\\infty)$."
 tests:
   rational_expr: 1.0
   quadratic_ineq: 0.5
@@ -4407,12 +4407,12 @@ tests:
 Rozwiąż nierówność: $\\dfrac{x+1}{x-3} > 0$
 `,zg=`---
 options:
-  - "$[-2, 0) \\\\cup [4, +\\\\infty)$"
-  - "$(-2, 0) \\\\cup (4, +\\\\infty)$"
-  - "$(-\\\\infty, -2] \\\\cup (0, 4]$"
-  - "$(-\\\\infty, -2) \\\\cup (0, 4)$"
+  - "$[-2, 0) \\cup [4, +\\infty)$"
+  - "$(-2, 0) \\cup (4, +\\infty)$"
+  - "$(-\\infty, -2] \\cup (0, 4]$"
+  - "$(-\\infty, -2) \\cup (0, 4)$"
 correct: 0
-hint: "Krok po kroku:\\n\\n① PRZENIEŚ na jedną stronę: $\\\\frac{x^2-2x-8}{x} \\\\geq 0$.\\n\\n② ROZŁÓŻ LICZNIK: $x^2-2x-8 = (x-4)(x+2)$. Szukasz dwóch liczb: iloczyn $= -8$, suma $= -2$ → $\\\\Delta = 4+32 = 36$, $x = \\\\frac{2 \\\\pm 6}{2}$ → $x=4$ lub $x=-2$.\\n\\n③ MIANOWNIK: $x$. Miejsce zerowe: $x = 0$. Wyłączone z dziedziny ($x \\\\neq 0$).\\n\\n④ MIEJSCA ZEROWE LICZNIKA: $x = -2$, $x = 4$. Te WŁĄCZAMY (bo $\\\\geq 0$, ułamek = 0 gdy licznik = 0).\\n\\n⑤ TABELKA ZNAKÓW — punkty krytyczne: $-2$, $0$, $4$:\\n• $x < -2$ (np. $x=-3$): $\\\\frac{(-7)(-1)}{-3} = \\\\frac{7}{-3} < 0$ ✗\\n• $-2 < x < 0$ (np. $x=-1$): $\\\\frac{(-5)(1)}{-1} = 5 > 0$ ✓\\n• $0 < x < 4$ (np. $x=1$): $\\\\frac{(-3)(3)}{1} = -9 < 0$ ✗\\n• $x > 4$ (np. $x=5$): $\\\\frac{(1)(7)}{5} > 0$ ✓\\n\\n⑥ ODPOWIEDŹ: $\\\\geq 0$, więc włączamy $-2$ i $4$ (licznik=0), ale NIE $0$ (mianownik=0): $x \\\\in [-2, 0) \\\\cup [4, +\\\\infty)$."
+hint: "Krok po kroku:\\n\\n① PRZENIEŚ na jedną stronę: $\\frac{x^2-2x-8}{x} \\geq 0$.\\n\\n② ROZŁÓŻ LICZNIK: $x^2-2x-8 = (x-4)(x+2)$. Szukasz dwóch liczb: iloczyn $= -8$, suma $= -2$ → $\\Delta = 4+32 = 36$, $x = \\frac{2 \\pm 6}{2}$ → $x=4$ lub $x=-2$.\\n\\n③ MIANOWNIK: $x$. Miejsce zerowe: $x = 0$. Wyłączone z dziedziny ($x \\neq 0$).\\n\\n④ MIEJSCA ZEROWE LICZNIKA: $x = -2$, $x = 4$. Te WŁĄCZAMY (bo $\\geq 0$, ułamek = 0 gdy licznik = 0).\\n\\n⑤ TABELKA ZNAKÓW — punkty krytyczne: $-2$, $0$, $4$:\\n• $x < -2$ (np. $x=-3$): $\\frac{(-7)(-1)}{-3} = \\frac{7}{-3} < 0$ ✗\\n• $-2 < x < 0$ (np. $x=-1$): $\\frac{(-5)(1)}{-1} = 5 > 0$ ✓\\n• $0 < x < 4$ (np. $x=1$): $\\frac{(-3)(3)}{1} = -9 < 0$ ✗\\n• $x > 4$ (np. $x=5$): $\\frac{(1)(7)}{5} > 0$ ✓\\n\\n⑥ ODPOWIEDŹ: $\\geq 0$, więc włączamy $-2$ i $4$ (licznik=0), ale NIE $0$ (mianownik=0): $x \\in [-2, 0) \\cup [4, +\\infty)$."
 tests:
   rational_expr: 1.0
   quadratic_ineq: 0.5
@@ -4424,9 +4424,9 @@ options:
   - "$(2, 5]$"
   - "$[2, 5]$"
   - "$(2, 5)$"
-  - "$(-\\\\infty, 2) \\\\cup [5, +\\\\infty)$"
+  - "$(-\\infty, 2) \\cup [5, +\\infty)$"
 correct: 0
-hint: "Krok po kroku:\\n\\n① ROZŁÓŻ: licznik = $(x-5)$, mianownik = $(x-2)$. Już rozłożone.\\n\\n② MIEJSCA ZEROWE: licznik = 0 → $x = 5$. Mianownik = 0 → $x = 2$ (WYŁĄCZONY — dzielenie przez 0!).\\n\\n③ CZY WŁĄCZAMY PUNKTY?\\n• $x = 5$: ułamek = $0/3 = 0$, a $0 \\\\leq 0$ ✓ → WŁĄCZAMY (nawias kwadratowy]\\n• $x = 2$: mianownik = 0 → WYŁĄCZAMY zawsze (nawias okrągły)\\n\\n④ TABELKA ZNAKÓW — punkty krytyczne: $2$ i $5$:\\n• $x < 2$ (np. $x=0$): $\\\\frac{-5}{-2} = +2.5$ → dodatni ✗\\n• $2 < x < 5$ (np. $x=3$): $\\\\frac{-2}{1} = -2$ → ujemny ✓\\n• $x > 5$ (np. $x=6$): $\\\\frac{1}{4}$ → dodatni ✗\\n\\n⑤ ODPOWIEDŹ: ujemny lub zero w przedziale $(2, 5]$. Nawias okrągły przy $2$ (mianownik=0), kwadratowy przy $5$ (licznik=0, ułamek=0 ✓)."
+hint: "Krok po kroku:\\n\\n① ROZŁÓŻ: licznik = $(x-5)$, mianownik = $(x-2)$. Już rozłożone.\\n\\n② MIEJSCA ZEROWE: licznik = 0 → $x = 5$. Mianownik = 0 → $x = 2$ (WYŁĄCZONY — dzielenie przez 0!).\\n\\n③ CZY WŁĄCZAMY PUNKTY?\\n• $x = 5$: ułamek = $0/3 = 0$, a $0 \\leq 0$ ✓ → WŁĄCZAMY (nawias kwadratowy]\\n• $x = 2$: mianownik = 0 → WYŁĄCZAMY zawsze (nawias okrągły)\\n\\n④ TABELKA ZNAKÓW — punkty krytyczne: $2$ i $5$:\\n• $x < 2$ (np. $x=0$): $\\frac{-5}{-2} = +2.5$ → dodatni ✗\\n• $2 < x < 5$ (np. $x=3$): $\\frac{-2}{1} = -2$ → ujemny ✓\\n• $x > 5$ (np. $x=6$): $\\frac{1}{4}$ → dodatni ✗\\n\\n⑤ ODPOWIEDŹ: ujemny lub zero w przedziale $(2, 5]$. Nawias okrągły przy $2$ (mianownik=0), kwadratowy przy $5$ (licznik=0, ułamek=0 ✓)."
 tests:
   rational_expr: 1.0
   quadratic_ineq: 0.5
@@ -4434,12 +4434,12 @@ tests:
 Rozwiąż nierówność: $\\dfrac{x-5}{x-2} \\leq 0$
 `,kg=`---
 options:
-  - "$(-\\\\infty, -3] \\\\cup (-1, 2]$"
-  - "$[-3, -1) \\\\cup [2, +\\\\infty)$"
-  - "$(-3, -1) \\\\cup (2, +\\\\infty)$"
-  - "$(-\\\\infty, -3) \\\\cup (-1, 2)$"
+  - "$(-\\infty, -3] \\cup (-1, 2]$"
+  - "$[-3, -1) \\cup [2, +\\infty)$"
+  - "$(-3, -1) \\cup (2, +\\infty)$"
+  - "$(-\\infty, -3) \\cup (-1, 2)$"
 correct: 0
-hint: "Krok po kroku:\\n\\n① ROZŁÓŻ LICZNIK NA CZYNNIKI:\\n$x^2 + x - 6 = ?$ Szukamy dwóch liczb: iloczyn $= -6$, suma $= 1$ → to $3$ i $-2$: $x^2 + x - 6 = (x+3)(x-2)$. Sprawdź: $(x+3)(x-2) = x^2 - 2x + 3x - 6 = x^2 + x - 6$ ✓\\n\\n② MIANOWNIK: $(x+1)$. Miejsce zerowe: $x = -1$ (WYŁĄCZONY z dziedziny).\\n\\n③ WSZYSTKIE PUNKTY KRYTYCZNE: $x = -3$ (licznik), $x = -1$ (mianownik), $x = 2$ (licznik).\\n\\n④ CZY WŁĄCZAMY?\\n• $x = -3$: ułamek $= 0 \\leq 0$ ✓ → WŁĄCZAMY $[-3$\\n• $x = -1$: mianownik = 0 → WYŁĄCZAMY $)$\\n• $x = 2$: ułamek $= 0 \\leq 0$ ✓ → WŁĄCZAMY $2]$\\n\\n⑤ TABELKA ZNAKÓW — 4 przedziały:\\n• $x < -3$ (np. $x=-4$): $\\\\frac{(-1)(-6)}{-3} = -2$ → ujemny ✓\\n• $-3 < x < -1$ (np. $x=-2$): $\\\\frac{(1)(-4)}{-1} = 4$ → dodatni ✗\\n• $-1 < x < 2$ (np. $x=0$): $\\\\frac{(3)(-2)}{1} = -6$ → ujemny ✓\\n• $x > 2$ (np. $x=3$): $\\\\frac{(6)(1)}{4} = 1.5$ → dodatni ✗\\n\\n⑥ ODPOWIEDŹ: ujemny lub zero → $x \\\\in (-\\\\infty, -3] \\\\cup (-1, 2]$.\\n\\nWskazówka: przy nierównościach wymiernych ZAWSZE rób tabelkę znaków. Nigdy nie mnóż obu stron przez mianownik (bo nie wiesz, czy jest dodatni czy ujemny!)."
+hint: "Krok po kroku:\\n\\n① ROZŁÓŻ LICZNIK NA CZYNNIKI:\\n$x^2 + x - 6 = ?$ Szukamy dwóch liczb: iloczyn $= -6$, suma $= 1$ → to $3$ i $-2$: $x^2 + x - 6 = (x+3)(x-2)$. Sprawdź: $(x+3)(x-2) = x^2 - 2x + 3x - 6 = x^2 + x - 6$ ✓\\n\\n② MIANOWNIK: $(x+1)$. Miejsce zerowe: $x = -1$ (WYŁĄCZONY z dziedziny).\\n\\n③ WSZYSTKIE PUNKTY KRYTYCZNE: $x = -3$ (licznik), $x = -1$ (mianownik), $x = 2$ (licznik).\\n\\n④ CZY WŁĄCZAMY?\\n• $x = -3$: ułamek $= 0 \\leq 0$ ✓ → WŁĄCZAMY $[-3$\\n• $x = -1$: mianownik = 0 → WYŁĄCZAMY $)$\\n• $x = 2$: ułamek $= 0 \\leq 0$ ✓ → WŁĄCZAMY $2]$\\n\\n⑤ TABELKA ZNAKÓW — 4 przedziały:\\n• $x < -3$ (np. $x=-4$): $\\frac{(-1)(-6)}{-3} = -2$ → ujemny ✓\\n• $-3 < x < -1$ (np. $x=-2$): $\\frac{(1)(-4)}{-1} = 4$ → dodatni ✗\\n• $-1 < x < 2$ (np. $x=0$): $\\frac{(3)(-2)}{1} = -6$ → ujemny ✓\\n• $x > 2$ (np. $x=3$): $\\frac{(6)(1)}{4} = 1.5$ → dodatni ✗\\n\\n⑥ ODPOWIEDŹ: ujemny lub zero → $x \\in (-\\infty, -3] \\cup (-1, 2]$.\\n\\nWskazówka: przy nierównościach wymiernych ZAWSZE rób tabelkę znaków. Nigdy nie mnóż obu stron przez mianownik (bo nie wiesz, czy jest dodatni czy ujemny!)."
 tests:
   rational_expr: 1.0
   quadratic_ineq: 0.5
@@ -4453,7 +4453,7 @@ options:
   - "$+\\infty$"
   - "$0$"
 correct: 0
-hint: "Dzielisz licznik i mianownik przez $n^2$. Wyrazy $\\\\frac{1}{n^2}$ i $\\\\frac{2}{n^2}$ dążą do $0$."
+hint: "Dzielisz licznik i mianownik przez $n^2$. Wyrazy $\\frac{1}{n^2}$ i $\\frac{2}{n^2}$ dążą do $0$."
 tests:
   seq_limits: 1.0
   arith_geom: 0.5
@@ -4526,8 +4526,8 @@ options:
 correct: 3
 hints:
   - "① „Wyraz $a_4$” to po prostu wartość wzoru po wstawieniu $n = 4$ — nic więcej, bez żadnych zależności od wcześniejszych wyrazów."
-  - "② Wstaw $n = 4$ do wzoru $a_n = 2^n \\\\cdot (n+1)$ — pamiętaj, że najpierw liczymy potęgę, potem mnożymy."
-  - "③ $a_4 = 2^4 \\\\cdot (4+1) = 16 \\\\cdot 5 = 80$."
+  - "② Wstaw $n = 4$ do wzoru $a_n = 2^n \\cdot (n+1)$ — pamiętaj, że najpierw liczymy potęgę, potem mnożymy."
+  - "③ $a_4 = 2^4 \\cdot (4+1) = 16 \\cdot 5 = 80$."
 tests:
   sequences: 1.0
   powers: 0.3
@@ -4667,7 +4667,7 @@ options:
   - "$49$"
   - "$74$"
 correct: 0
-hint: "Tw. cosinusów: $c^2 = 25 + 49 - 2 \\\\cdot 5 \\\\cdot 7 \\\\cdot \\\\cos 60° = 74 - 35 = 39$."
+hint: "Tw. cosinusów: $c^2 = 25 + 49 - 2 \\cdot 5 \\cdot 7 \\cdot \\cos 60° = 74 - 35 = 39$."
 tests:
   sin_cos_law: 1.0
   trig_lp: 0.5
@@ -4700,15 +4700,15 @@ tests:
 Twierdzenie sinusów głosi, że w każdym trójkącie:`,Ug=`---
 source: cke_2025_rozszerzona_zad3
 options:
-  - "$|\\\\angle DAC|=15°$"
-  - "$|\\\\angle DAC|=30°$"
-  - "$|\\\\angle DAC|=45°$"
-  - "$|\\\\angle DAC|=60°$"
+  - "$|\\angle DAC|=15°$"
+  - "$|\\angle DAC|=30°$"
+  - "$|\\angle DAC|=45°$"
+  - "$|\\angle DAC|=60°$"
 correct: 0
 hints:
-  - "① W trójkącie równobocznym $ABC$ bok ma długość $a$, kąty $60°$. Oznacz $|BD|=x$, więc $|DC|=a-x$. Pola trójkątów $ABD$ i $ADC$ mają wspólną wysokość z $A$, więc ich stosunek to $\\\\tfrac{|BD|}{|DC|}=\\\\tfrac{x}{a-x}=\\\\tfrac{\\\\sqrt{3}-1}{2}$."
-  - "② Ze wzoru na pole: $[ADC]=\\\\tfrac{1}{2}\\\\cdot a\\\\cdot |AD|\\\\cdot\\\\sin(\\\\angle DAC)\\\\dots$ — alternatywnie policz $|AD|$ z tw. cosinusów w trójkącie $ABD$: $|AD|^2=a^2+x^2-2ax\\\\cos 60°=a^2+x^2-ax$."
-  - "③ Z $\\\\tfrac{x}{a-x}=\\\\tfrac{\\\\sqrt{3}-1}{2}$ wychodzi $x=a\\\\cdot\\\\tfrac{\\\\sqrt{3}-1}{\\\\sqrt{3}+1}=a(2-\\\\sqrt{3})$. Dalej tw. sinusów w $ADC$: $\\\\dfrac{|DC|}{\\\\sin\\\\angle DAC}=\\\\dfrac{|AD|}{\\\\sin 60°}$. Po rachunkach $\\\\sin\\\\angle DAC=\\\\tfrac{1}{2}\\\\dots$ — wychodzi kąt $15°$."
+  - "① W trójkącie równobocznym $ABC$ bok ma długość $a$, kąty $60°$. Oznacz $|BD|=x$, więc $|DC|=a-x$. Pola trójkątów $ABD$ i $ADC$ mają wspólną wysokość z $A$, więc ich stosunek to $\\tfrac{|BD|}{|DC|}=\\tfrac{x}{a-x}=\\tfrac{\\sqrt{3}-1}{2}$."
+  - "② Ze wzoru na pole: $[ADC]=\\tfrac{1}{2}\\cdot a\\cdot |AD|\\cdot\\sin(\\angle DAC)\\dots$ — alternatywnie policz $|AD|$ z tw. cosinusów w trójkącie $ABD$: $|AD|^2=a^2+x^2-2ax\\cos 60°=a^2+x^2-ax$."
+  - "③ Z $\\tfrac{x}{a-x}=\\tfrac{\\sqrt{3}-1}{2}$ wychodzi $x=a\\cdot\\tfrac{\\sqrt{3}-1}{\\sqrt{3}+1}=a(2-\\sqrt{3})$. Dalej tw. sinusów w $ADC$: $\\dfrac{|DC|}{\\sin\\angle DAC}=\\dfrac{|AD|}{\\sin 60°}$. Po rachunkach $\\sin\\angle DAC=\\tfrac{1}{2}\\dots$ — wychodzi kąt $15°$."
 tests:
   sin_cos_law: 1.0
   planimetria_lp: 0.4
@@ -4721,7 +4721,7 @@ options:
   - "$9\\pi$"
   - "$48\\pi$"
 correct: 0
-hint: "$V = \\\\frac{1}{3}\\\\pi r^2 h = \\\\frac{1}{3} \\\\cdot \\\\pi \\\\cdot 9 \\\\cdot 4 = 12\\\\pi$."
+hint: "$V = \\frac{1}{3}\\pi r^2 h = \\frac{1}{3} \\cdot \\pi \\cdot 9 \\cdot 4 = 12\\pi$."
 tests:
   solid_geom: 1.0
 ---
@@ -4751,11 +4751,11 @@ tests:
 Wzór na objętość kuli o promieniu $r$:`,Qg=`---
 options:
   - "$1$"
-  - "$\\\\sqrt{2}$"
-  - "$\\\\frac{\\\\sqrt{2}}{2}$"
+  - "$\\sqrt{2}$"
+  - "$\\frac{\\sqrt{2}}{2}$"
   - "$2$"
 correct: 0
-hint: "Rzut krawędzi bocznej na podstawę to połowa przekątnej podstawy. Przekątna kwadratu o boku $4$ ma długość $4\\\\sqrt{2}$, więc połowa to $2\\\\sqrt{2}$. Stąd $\\\\tan \\\\alpha = H / (2\\\\sqrt{2}) = 2\\\\sqrt{2} / 2\\\\sqrt{2} = 1$."
+hint: "Rzut krawędzi bocznej na podstawę to połowa przekątnej podstawy. Przekątna kwadratu o boku $4$ ma długość $4\\sqrt{2}$, więc połowa to $2\\sqrt{2}$. Stąd $\\tan \\alpha = H / (2\\sqrt{2}) = 2\\sqrt{2} / 2\\sqrt{2} = 1$."
 tests:
   solid_geom: 1.0
   trig_basic: 0.3
@@ -4768,7 +4768,7 @@ options:
   - "$24$"
   - "$9$"
 correct: 0
-hint: "Przekrój osiowy stożka to trójkąt równoramienny: podstawa $= 2r = 6$, wysokość $= h = 4$. Pole $= \\\\frac{1}{2} \\\\cdot 2r \\\\cdot h = \\\\frac{1}{2} \\\\cdot 6 \\\\cdot 4 = 12$."
+hint: "Przekrój osiowy stożka to trójkąt równoramienny: podstawa $= 2r = 6$, wysokość $= h = 4$. Pole $= \\frac{1}{2} \\cdot 2r \\cdot h = \\frac{1}{2} \\cdot 6 \\cdot 4 = 12$."
 tests:
   solid_geom: 1.0
   area_perimeter: 0.3
@@ -4781,7 +4781,7 @@ options:
   - "$120$"
   - "$96$"
 correct: 0
-hint: "Pole powierzchni bocznej $= 4 \\\\cdot$ pole trójkąta bocznego. Każdy trójkąt boczny ma podstawę $a = 6$ i wysokość $l = 5$, więc jego pole $= \\\\frac{a \\\\cdot l}{2} = 15$. Razy 4 ściany: $P_b = 60$."
+hint: "Pole powierzchni bocznej $= 4 \\cdot$ pole trójkąta bocznego. Każdy trójkąt boczny ma podstawę $a = 6$ i wysokość $l = 5$, więc jego pole $= \\frac{a \\cdot l}{2} = 15$. Razy 4 ściany: $P_b = 60$."
 tests:
   solid_geom: 1.0
 ---
@@ -4793,7 +4793,7 @@ options:
   - "$45°$"
   - "$75°$"
 correct: 0
-hint: "Przekrój osiowy walca to prostokąt o bokach $2r = 2$ i $h = 2\\\\sqrt{3}$. Przekątna tworzy z bokiem podstawy trójkąt prostokątny, w którym $\\\\tan \\\\alpha = h / 2r = 2\\\\sqrt{3} / 2 = \\\\sqrt{3}$. Stąd $\\\\alpha = 60°$."
+hint: "Przekrój osiowy walca to prostokąt o bokach $2r = 2$ i $h = 2\\sqrt{3}$. Przekątna tworzy z bokiem podstawy trójkąt prostokątny, w którym $\\tan \\alpha = h / 2r = 2\\sqrt{3} / 2 = \\sqrt{3}$. Stąd $\\alpha = 60°$."
 tests:
   solid_geom: 1.0
   trig_basic: 0.3
@@ -4802,14 +4802,14 @@ Walec ma promień podstawy $r = 1$ i wysokość $h = 2\\sqrt{3}$. Jaki jest kąt
 `,e5=`---
 source: cke_2025_rozszerzona_zad10
 options:
-  - "$P_b=\\\\tfrac{1}{2}\\\\cdot 3\\\\sqrt{34}\\\\cdot 4\\\\cdot h_s$, gdzie $h_s$ wyznacza się z warunku $\\\\cos\\\\beta=-\\\\tfrac{9}{25}$ — wartość liczbowa $P_b$ patrz rachunek"
-  - "$P_b=9\\\\sqrt{34}\\\\cdot 3\\\\sqrt{34}=918$"
+  - "$P_b=\\tfrac{1}{2}\\cdot 3\\sqrt{34}\\cdot 4\\cdot h_s$, gdzie $h_s$ wyznacza się z warunku $\\cos\\beta=-\\tfrac{9}{25}$ — wartość liczbowa $P_b$ patrz rachunek"
+  - "$P_b=9\\sqrt{34}\\cdot 3\\sqrt{34}=918$"
   - "$P_b=0$"
-  - "$P_b$ zależy od $\\\\beta$ w sposób liniowy"
+  - "$P_b$ zależy od $\\beta$ w sposób liniowy"
 correct: 0
 hints:
-  - "① Podstawa $ABCD$ — kwadrat o boku $a=3\\\\sqrt{34}$. $SA$ jest wysokością ostrosłupa. Ściany $SAB,SAD$ są trójkątami prostokątnymi; ściany $SBC,SCD$ — to trójkąty o wspólnej krawędzi $SC$."
-  - "② Kąt dwuścienny $\\\\beta$ między ścianami $CDS$ i $BCS$ liczymy z tw. cosinusów w trójkącie utworzonym przez rzuty na płaszczyznę prostopadłą do $SC$. Z $\\\\cos\\\\beta=-\\\\tfrac{9}{25}$ oblicz $\\\\sin\\\\beta=\\\\tfrac{\\\\sqrt{544}}{25}$."
+  - "① Podstawa $ABCD$ — kwadrat o boku $a=3\\sqrt{34}$. $SA$ jest wysokością ostrosłupa. Ściany $SAB,SAD$ są trójkątami prostokątnymi; ściany $SBC,SCD$ — to trójkąty o wspólnej krawędzi $SC$."
+  - "② Kąt dwuścienny $\\beta$ między ścianami $CDS$ i $BCS$ liczymy z tw. cosinusów w trójkącie utworzonym przez rzuty na płaszczyznę prostopadłą do $SC$. Z $\\cos\\beta=-\\tfrac{9}{25}$ oblicz $\\sin\\beta=\\tfrac{\\sqrt{544}}{25}$."
   - "③ Niech $H$ — wysokość ostrosłupa $=|SA|=h$. Z warunku kąta dwuściennego wyznacz $h$, a potem pola czterech trójkątnych ścian. Suma $P_b$ to pole powierzchni bocznej. (Pełna rachuba CKE daje konkretną liczbę — tu ważne, by rozumieć SCHEMAT; opcja $A$ opisuje poprawny plan.)"
 tests:
   solid_geom: 1.0
@@ -4862,8 +4862,8 @@ options:
 correct: 2
 hints:
   - "① Nie musisz znać osobno $x$ i $y$ — wystarczy suma. A suma wszystkich liczb wynika ze średniej."
-  - "② Skorzystaj z definicji średniej: $\\\\bar{a} = \\\\frac{\\\\text{suma}}{n}$, więc suma wszystkich siedmiu liczb to $n \\\\cdot \\\\bar{a}$. Potem odejmij sumę tych pięciu, które znasz."
-  - "③ Suma wszystkich: $7 \\\\cdot 3 = 21$. Suma znanych: $1+2+3+4+5 = 15$. Zatem $x + y = 21 - 15 = 6$."
+  - "② Skorzystaj z definicji średniej: $\\bar{a} = \\frac{\\text{suma}}{n}$, więc suma wszystkich siedmiu liczb to $n \\cdot \\bar{a}$. Potem odejmij sumę tych pięciu, które znasz."
+  - "③ Suma wszystkich: $7 \\cdot 3 = 21$. Suma znanych: $1+2+3+4+5 = 15$. Zatem $x + y = 21 - 15 = 6$."
 tests:
   stat_lp: 1.0
   data_basics: 0.5
@@ -4876,7 +4876,7 @@ options:
   - "$12$"
   - "$4$"
 correct: 0
-hint: "Tw. Talesa: $\\\\dfrac{AD}{DB} = \\\\dfrac{AE}{EC}$, więc $EC = \\\\dfrac{4 \\\\cdot 6}{3} = 8$."
+hint: "Tw. Talesa: $\\dfrac{AD}{DB} = \\dfrac{AE}{EC}$, więc $EC = \\dfrac{4 \\cdot 6}{3} = 8$."
 tests:
   thales: 1.0
 ---
@@ -4940,15 +4940,15 @@ tests:
 Wartość wyrażenia $\\sin^2\\alpha + \\cos^2\\alpha$ wynosi zawsze:`,d5=`---
 source: cke
 options:
-  - "$\\\\cos 20°$"
-  - "$\\\\sin 20°$"
-  - "$\\\\mathrm{tg}\\\\ 20°$"
-  - "$\\\\sin 20° \\\\cdot \\\\cos 20°$"
+  - "$\\cos 20°$"
+  - "$\\sin 20°$"
+  - "$\\mathrm{tg}\\ 20°$"
+  - "$\\sin 20° \\cdot \\cos 20°$"
 correct: 1
 hints:
-  - "① W obu składnikach powtarza się $\\\\sin 20°$ — to podpowiedź, by wyciągnąć go przed nawias. W tym co zostanie, powinna pojawić się dobrze znana jedynka trygonometryczna."
-  - "② Wyłącz $\\\\sin 20°$ przed nawias, a potem zastosuj tożsamość $\\\\sin^2 \\\\alpha + \\\\cos^2 \\\\alpha = 1$."
-  - "③ $\\\\sin^3 20° + \\\\cos^2 20° \\\\cdot \\\\sin 20° = \\\\sin 20°(\\\\sin^2 20° + \\\\cos^2 20°) = \\\\sin 20° \\\\cdot 1 = \\\\sin 20°$."
+  - "① W obu składnikach powtarza się $\\sin 20°$ — to podpowiedź, by wyciągnąć go przed nawias. W tym co zostanie, powinna pojawić się dobrze znana jedynka trygonometryczna."
+  - "② Wyłącz $\\sin 20°$ przed nawias, a potem zastosuj tożsamość $\\sin^2 \\alpha + \\cos^2 \\alpha = 1$."
+  - "③ $\\sin^3 20° + \\cos^2 20° \\cdot \\sin 20° = \\sin 20°(\\sin^2 20° + \\cos^2 20°) = \\sin 20° \\cdot 1 = \\sin 20°$."
 tests:
   trig_basic: 1.0
   trig_formulas: 0.5
@@ -4957,15 +4957,15 @@ Wartość wyrażenia $\\sin^3 20° + \\cos^2 20° \\cdot \\sin 20°$ jest równa
 `,p5=`---
 source: cke
 options:
-  - "$\\\\sin^2 \\\\alpha$"
-  - "$\\\\sin^6 \\\\alpha \\\\cdot \\\\cos^2 \\\\alpha$"
-  - "$\\\\sin^4 \\\\alpha + 1$"
-  - "$\\\\sin^2 \\\\alpha \\\\cdot (\\\\sin \\\\alpha + \\\\cos \\\\alpha)(\\\\sin \\\\alpha - \\\\cos \\\\alpha)$"
+  - "$\\sin^2 \\alpha$"
+  - "$\\sin^6 \\alpha \\cdot \\cos^2 \\alpha$"
+  - "$\\sin^4 \\alpha + 1$"
+  - "$\\sin^2 \\alpha \\cdot (\\sin \\alpha + \\cos \\alpha)(\\sin \\alpha - \\cos \\alpha)$"
 correct: 0
 hints:
-  - "① Oba składniki mają wspólny czynnik $\\\\sin^2 \\\\alpha$ — wyłączenie go przed nawias jest tu kluczowym krokiem."
-  - "② Po wyłączeniu $\\\\sin^2 \\\\alpha$ w nawiasie zostanie $\\\\sin^2 \\\\alpha + \\\\cos^2 \\\\alpha$ — zastosuj jedynkę trygonometryczną."
-  - "③ $\\\\sin^4 \\\\alpha + \\\\sin^2 \\\\alpha \\\\cos^2 \\\\alpha = \\\\sin^2 \\\\alpha(\\\\sin^2 \\\\alpha + \\\\cos^2 \\\\alpha) = \\\\sin^2 \\\\alpha \\\\cdot 1 = \\\\sin^2 \\\\alpha$."
+  - "① Oba składniki mają wspólny czynnik $\\sin^2 \\alpha$ — wyłączenie go przed nawias jest tu kluczowym krokiem."
+  - "② Po wyłączeniu $\\sin^2 \\alpha$ w nawiasie zostanie $\\sin^2 \\alpha + \\cos^2 \\alpha$ — zastosuj jedynkę trygonometryczną."
+  - "③ $\\sin^4 \\alpha + \\sin^2 \\alpha \\cos^2 \\alpha = \\sin^2 \\alpha(\\sin^2 \\alpha + \\cos^2 \\alpha) = \\sin^2 \\alpha \\cdot 1 = \\sin^2 \\alpha$."
 tests:
   trig_basic: 1.0
   trig_formulas: 0.5
@@ -4978,7 +4978,7 @@ options:
   - "$x = 60°$ i $x = 120°$"
   - "$x = 45°$"
 correct: 0
-hint: "$\\\\sin$ jest symetryczny względem $90°$: $\\\\sin(30°) = \\\\sin(150°) = \\\\frac{1}{2}$."
+hint: "$\\sin$ jest symetryczny względem $90°$: $\\sin(30°) = \\sin(150°) = \\frac{1}{2}$."
 tests:
   trig_eq: 1.0
   trig_formulas: 0.5
@@ -5011,15 +5011,15 @@ tests:
 Rozwiąż równanie: $\\tan x = 1$`,$5=`---
 source: cke_2023_rozszerzona_zad6
 options:
-  - "$x=\\\\dfrac{\\\\pi}{12}+\\\\dfrac{k\\\\pi}{3}$ lub $x=\\\\dfrac{\\\\pi}{4}+\\\\dfrac{k\\\\pi}{1}$ (z uwzględnieniem rozwiązań z $\\\\sin(10x)+\\\\sin(-2x)=1$)"
-  - "$x=\\\\dfrac{\\\\pi}{4}+k\\\\pi$"
-  - "$x=k\\\\pi$"
+  - "$x=\\dfrac{\\pi}{12}+\\dfrac{k\\pi}{3}$ lub $x=\\dfrac{\\pi}{4}+\\dfrac{k\\pi}{1}$ (z uwzględnieniem rozwiązań z $\\sin(10x)+\\sin(-2x)=1$)"
+  - "$x=\\dfrac{\\pi}{4}+k\\pi$"
+  - "$x=k\\pi$"
   - "równanie sprzeczne"
 correct: 0
 hints:
-  - "① Zastosuj wzór na iloczyn na sumę: $2\\\\sin A\\\\cos B=\\\\sin(A+B)+\\\\sin(A-B)$. Tutaj $A=4x$, $B=6x$."
-  - "② Lewa strona: $4\\\\sin(4x)\\\\cos(6x)=2[\\\\sin(10x)+\\\\sin(-2x)]=2\\\\sin(10x)-2\\\\sin(2x)$."
-  - "③ Równanie: $2\\\\sin(10x)-2\\\\sin(2x)=2\\\\sin(10x)+1$, czyli $-2\\\\sin(2x)=1$, $\\\\sin(2x)=-\\\\tfrac{1}{2}$. Stąd $2x=-\\\\tfrac{\\\\pi}{6}+2k\\\\pi$ lub $2x=\\\\pi+\\\\tfrac{\\\\pi}{6}+2k\\\\pi$, czyli $x=-\\\\tfrac{\\\\pi}{12}+k\\\\pi$ lub $x=\\\\tfrac{7\\\\pi}{12}+k\\\\pi$."
+  - "① Zastosuj wzór na iloczyn na sumę: $2\\sin A\\cos B=\\sin(A+B)+\\sin(A-B)$. Tutaj $A=4x$, $B=6x$."
+  - "② Lewa strona: $4\\sin(4x)\\cos(6x)=2[\\sin(10x)+\\sin(-2x)]=2\\sin(10x)-2\\sin(2x)$."
+  - "③ Równanie: $2\\sin(10x)-2\\sin(2x)=2\\sin(10x)+1$, czyli $-2\\sin(2x)=1$, $\\sin(2x)=-\\tfrac{1}{2}$. Stąd $2x=-\\tfrac{\\pi}{6}+2k\\pi$ lub $2x=\\pi+\\tfrac{\\pi}{6}+2k\\pi$, czyli $x=-\\tfrac{\\pi}{12}+k\\pi$ lub $x=\\tfrac{7\\pi}{12}+k\\pi$."
 tests:
   trig_eq: 1.0
   trig_formulas: 0.7
@@ -5028,15 +5028,15 @@ Rozwiąż równanie $4\\sin(4x)\\cos(6x)=2\\sin(10x)+1$.
 `,y5=`---
 source: cke_2025_rozszerzona_zad9
 options:
-  - "$x\\\\in\\\\{-\\\\tfrac{2\\\\pi}{3},-\\\\tfrac{\\\\pi}{6},\\\\tfrac{\\\\pi}{3},\\\\tfrac{5\\\\pi}{6}\\\\}$"
-  - "$x\\\\in\\\\{0,\\\\pi,-\\\\pi\\\\}$"
-  - "$x=\\\\tfrac{\\\\pi}{4}+k\\\\pi$"
+  - "$x\\in\\{-\\tfrac{2\\pi}{3},-\\tfrac{\\pi}{6},\\tfrac{\\pi}{3},\\tfrac{5\\pi}{6}\\}$"
+  - "$x\\in\\{0,\\pi,-\\pi\\}$"
+  - "$x=\\tfrac{\\pi}{4}+k\\pi$"
   - "brak rozwiązań"
 correct: 0
 hints:
-  - "① $3\\\\cos^2 x-3\\\\sin^2 x=3\\\\cos(2x)$, a $\\\\sqrt{3}\\\\sin(2x)$ zostaje. Zatem równanie: $3\\\\cos(2x)+\\\\sqrt{3}\\\\sin(2x)=0$."
-  - "② Podziel przez $\\\\cos(2x)$ (sprawdź osobno $\\\\cos(2x)=0$): $3+\\\\sqrt{3}\\\\tan(2x)=0$, czyli $\\\\tan(2x)=-\\\\sqrt{3}$."
-  - "③ $2x=-\\\\tfrac{\\\\pi}{3}+k\\\\pi$, $x=-\\\\tfrac{\\\\pi}{6}+\\\\tfrac{k\\\\pi}{2}$. Wybierz $k$ tak, by $x\\\\in[-\\\\pi,\\\\pi]$: $x\\\\in\\\\{-\\\\tfrac{2\\\\pi}{3},-\\\\tfrac{\\\\pi}{6},\\\\tfrac{\\\\pi}{3},\\\\tfrac{5\\\\pi}{6}\\\\}$."
+  - "① $3\\cos^2 x-3\\sin^2 x=3\\cos(2x)$, a $\\sqrt{3}\\sin(2x)$ zostaje. Zatem równanie: $3\\cos(2x)+\\sqrt{3}\\sin(2x)=0$."
+  - "② Podziel przez $\\cos(2x)$ (sprawdź osobno $\\cos(2x)=0$): $3+\\sqrt{3}\\tan(2x)=0$, czyli $\\tan(2x)=-\\sqrt{3}$."
+  - "③ $2x=-\\tfrac{\\pi}{3}+k\\pi$, $x=-\\tfrac{\\pi}{6}+\\tfrac{k\\pi}{2}$. Wybierz $k$ tak, by $x\\in[-\\pi,\\pi]$: $x\\in\\{-\\tfrac{2\\pi}{3},-\\tfrac{\\pi}{6},\\tfrac{\\pi}{3},\\tfrac{5\\pi}{6}\\}$."
 tests:
   trig_eq: 1.0
   trig_formulas: 0.7
@@ -5044,12 +5044,12 @@ tests:
 Rozwiąż równanie $3\\cos^2 x+\\sqrt{3}\\sin(2x)-3\\sin^2 x=0$ w przedziale $[-\\pi,\\pi]$.
 `,g5=`---
 options:
-  - "$2\\\\sin(\\\\alpha)\\\\cos(\\\\alpha)$"
-  - "$\\\\sin^2(\\\\alpha)-\\\\cos^2(\\\\alpha)$"
-  - "$\\\\cos^2(\\\\alpha)-\\\\sin^2(\\\\alpha)$"
-  - "$2\\\\cos^2(\\\\alpha)-1$"
+  - "$2\\sin(\\alpha)\\cos(\\alpha)$"
+  - "$\\sin^2(\\alpha)-\\cos^2(\\alpha)$"
+  - "$\\cos^2(\\alpha)-\\sin^2(\\alpha)$"
+  - "$2\\cos^2(\\alpha)-1$"
 correct: 0
-hint: "Wzór na sinus kąta podwojonego: $\\\\sin(2\\\\alpha) = 2\\\\sin(\\\\alpha)\\\\cos(\\\\alpha)$."
+hint: "Wzór na sinus kąta podwojonego: $\\sin(2\\alpha) = 2\\sin(\\alpha)\\cos(\\alpha)$."
 tests:
   trig_formulas: 1.0
 ---
@@ -5078,12 +5078,12 @@ tests:
 ---
 Wzór na $\\cos(\\alpha - \\beta)$:`,b5=`---
 options:
-  - "$\\\\dfrac{\\\\sqrt{3}}{2}$"
-  - "$\\\\dfrac{1}{2}$"
-  - "$-\\\\dfrac{\\\\sqrt{3}}{2}$"
-  - "$\\\\dfrac{\\\\sqrt{2}}{2}$"
+  - "$\\dfrac{\\sqrt{3}}{2}$"
+  - "$\\dfrac{1}{2}$"
+  - "$-\\dfrac{\\sqrt{3}}{2}$"
+  - "$\\dfrac{\\sqrt{2}}{2}$"
 correct: 0
-hint: "$120° = 180°-60°$, $\\\\sin(180°-\\\\alpha) = \\\\sin(\\\\alpha)$, $\\\\sin(60°) = \\\\dfrac{\\\\sqrt{3}}{2}$."
+hint: "$120° = 180°-60°$, $\\sin(180°-\\alpha) = \\sin(\\alpha)$, $\\sin(60°) = \\dfrac{\\sqrt{3}}{2}$."
 tests:
   trig_lp: 1.0
   trig_basic: 0.25
@@ -5120,7 +5120,7 @@ options:
   - "$\\sqrt{7}$"
   - "$12$"
 correct: 0
-hint: "$|\\\\vec{v}| = \\\\sqrt{3^2+4^2} = \\\\sqrt{25} = 5$."
+hint: "$|\\vec{v}| = \\sqrt{3^2+4^2} = \\sqrt{25} = 5$."
 tests:
   vectors: 1.0
 ---
@@ -5154,7 +5154,7 @@ options:
   - "$-12$"
   - "$-7$"
 correct: 0
-hint: "Wzór Viète'a: $x_1 \\\\cdot x_2 = \\\\frac{c}{a} = \\\\frac{12}{1} = 12$."
+hint: "Wzór Viète'a: $x_1 \\cdot x_2 = \\frac{c}{a} = \\frac{12}{1} = 12$."
 tests:
   vieta: 1.0
   quadratic_eq: 0.25
@@ -5247,15 +5247,15 @@ tests:
 Iloczyn pierwiastków równania $2x^2 - 7x + 3 = 0$ wynosi:`,R5=`---
 source: cke_2023_rozszerzona_zad11
 options:
-  - "$m\\\\in(2,3)\\\\cup(3,+\\\\infty)$ — wraz z warunkiem istnienia dwóch różnych pierwiastków rzeczywistych"
-  - "$m\\\\in(-\\\\infty,2)$"
+  - "$m\\in(2,3)\\cup(3,+\\infty)$ — wraz z warunkiem istnienia dwóch różnych pierwiastków rzeczywistych"
+  - "$m\\in(-\\infty,2)$"
   - "$m=3$"
-  - "$m\\\\in\\\\mathbb{R}\\\\setminus\\\\{2\\\\}$"
+  - "$m\\in\\mathbb{R}\\setminus\\{2\\}$"
 correct: 0
 hints:
-  - "① Z Viete'a: $x_1+x_2=-4$, $x_1 x_2=-\\\\dfrac{m-3}{m-2}$. Suma sześcianów: $x_1^3+x_2^3=(x_1+x_2)^3-3x_1x_2(x_1+x_2)$."
-  - "② Podstaw: $x_1^3+x_2^3=-64-3\\\\cdot\\\\bigl(-\\\\tfrac{m-3}{m-2}\\\\bigr)\\\\cdot(-4)=-64-\\\\dfrac{12(m-3)}{m-2}$. Warunek: $-64-\\\\dfrac{12(m-3)}{m-2}>-28$."
-  - "③ $\\\\dfrac{12(m-3)}{m-2}<-36$, czyli $\\\\dfrac{m-3}{m-2}<-3$. Rozwiąż nierówność wymierną + warunek $\\\\Delta>0$ (istnienie dwóch różnych pierwiastków): $16+\\\\tfrac{4(m-3)}{m-2}>0$. Po złożeniu dostajesz $m\\\\in(2,3)\\\\cup(3,\\\\infty)$ przecięte z warunkiem na $\\\\Delta$; ostatecznie (po uwzględnieniu $m\\\\ne 2$ z treści) odpowiedź $(2,3)\\\\cup(3,\\\\infty)$ bez wartości sprzecznych z $\\\\Delta>0$."
+  - "① Z Viete'a: $x_1+x_2=-4$, $x_1 x_2=-\\dfrac{m-3}{m-2}$. Suma sześcianów: $x_1^3+x_2^3=(x_1+x_2)^3-3x_1x_2(x_1+x_2)$."
+  - "② Podstaw: $x_1^3+x_2^3=-64-3\\cdot\\bigl(-\\tfrac{m-3}{m-2}\\bigr)\\cdot(-4)=-64-\\dfrac{12(m-3)}{m-2}$. Warunek: $-64-\\dfrac{12(m-3)}{m-2}>-28$."
+  - "③ $\\dfrac{12(m-3)}{m-2}<-36$, czyli $\\dfrac{m-3}{m-2}<-3$. Rozwiąż nierówność wymierną + warunek $\\Delta>0$ (istnienie dwóch różnych pierwiastków): $16+\\tfrac{4(m-3)}{m-2}>0$. Po złożeniu dostajesz $m\\in(2,3)\\cup(3,\\infty)$ przecięte z warunkiem na $\\Delta$; ostatecznie (po uwzględnieniu $m\\ne 2$ z treści) odpowiedź $(2,3)\\cup(3,\\infty)$ bez wartości sprzecznych z $\\Delta>0$."
 tests:
   vieta: 1.0
   quadratic_eq: 0.5
@@ -5264,15 +5264,15 @@ Dla jakich wartości parametru $m\\ne 2$ równanie $x^2+4x-\\dfrac{m-3}{m-2}=0$ 
 `,E5=`---
 source: cke_2024_rozszerzona_zad12
 options:
-  - "$m\\\\in(-1,\\\\,\\\\tfrac{2}{3})$ po uwzględnieniu $\\\\Delta>0$"
+  - "$m\\in(-1,\\,\\tfrac{2}{3})$ po uwzględnieniu $\\Delta>0$"
   - "$m>0$"
   - "$m=1$"
-  - "$m\\\\in\\\\mathbb{R}$"
+  - "$m\\in\\mathbb{R}$"
 correct: 0
 hints:
   - "① Z Viete'a: $s=x_1+x_2=3m+1$, $p=x_1x_2=2m^2+m+1$. Kluczowa tożsamość: $x_1^3+x_2^3+3x_1x_2(x_1+x_2-3)=(x_1+x_2)^3-9x_1x_2$."
-  - "② Warunek staje się $(3m+1)^3-9(2m^2+m+1)\\\\le 3m-7$. Rozwiń i uprość: $27m^3+27m^2+9m+1-18m^2-9m-9\\\\le 3m-7$, czyli $27m^3+9m^2-3m-1\\\\le 0$."
-  - "③ Lewa strona to $(3m+1)^2(3m-1)$. Nierówność $(3m+1)^2(3m-1)\\\\le 0$ daje $m\\\\le\\\\tfrac{1}{3}$ lub $m=-\\\\tfrac{1}{3}$. Nałóż warunek $\\\\Delta>0$: $(3m+1)^2-4(2m^2+m+1)>0\\\\Rightarrow m^2+2m-3>0\\\\Rightarrow m<-3$ lub $m>1$. Po przecięciu: $m<-3$ (z odrzuceniem przypadku brzegowego)."
+  - "② Warunek staje się $(3m+1)^3-9(2m^2+m+1)\\le 3m-7$. Rozwiń i uprość: $27m^3+27m^2+9m+1-18m^2-9m-9\\le 3m-7$, czyli $27m^3+9m^2-3m-1\\le 0$."
+  - "③ Lewa strona to $(3m+1)^2(3m-1)$. Nierówność $(3m+1)^2(3m-1)\\le 0$ daje $m\\le\\tfrac{1}{3}$ lub $m=-\\tfrac{1}{3}$. Nałóż warunek $\\Delta>0$: $(3m+1)^2-4(2m^2+m+1)>0\\Rightarrow m^2+2m-3>0\\Rightarrow m<-3$ lub $m>1$. Po przecięciu: $m<-3$ (z odrzuceniem przypadku brzegowego)."
 tests:
   vieta: 1.0
   quadratic_eq: 0.5
@@ -5281,15 +5281,15 @@ Wyznacz wszystkie wartości parametru $m$, dla których równanie $x^2-(3m+1)x+2
 `,B5=`---
 source: cke_2025_rozszerzona_zad11
 options:
-  - "$m\\\\in(-8,-1)\\\\cup(\\\\tfrac{2}{3},\\\\,2)$ po uwzględnieniu wszystkich warunków"
-  - "$m\\\\in(-8,-1)$"
-  - "$m\\\\in(\\\\tfrac{2}{3},\\\\,2)$"
+  - "$m\\in(-8,-1)\\cup(\\tfrac{2}{3},\\,2)$ po uwzględnieniu wszystkich warunków"
+  - "$m\\in(-8,-1)$"
+  - "$m\\in(\\tfrac{2}{3},\\,2)$"
   - "$m=-8$"
 correct: 0
 hints:
-  - "① Trzy warunki razem: (a) $\\\\Delta>0$ dla dwóch różnych pierwiastków; (b) $x_1x_2>0$ — \\"ten sam znak\\"; (c) $(x_1-x_2)^2\\\\le 180$."
-  - "② Z Viete'a: $s=\\\\dfrac{2(2m+1)}{2-m}$, $p=\\\\dfrac{m+8}{2-m}$. Tożsamość: $(x_1-x_2)^2=s^2-4p$. Warunek (c): $s^2-4p\\\\le 180$."
-  - "③ Po podstawieniu otrzymasz nierówność wymierną z $m$; (b) daje $\\\\dfrac{m+8}{2-m}>0\\\\Rightarrow m\\\\in(-8,2)$. (a) daje $\\\\Delta>0\\\\Rightarrow m<-1$ lub $m>\\\\tfrac{2}{3}$ (z dokładnością do znaku mianownika). Po przecięciu: $m\\\\in(-8,-1)\\\\cup(\\\\tfrac{2}{3},2)$; warunek (c) dodatkowo zawęża — pełne rozwiązanie CKE."
+  - "① Trzy warunki razem: (a) $\\Delta>0$ dla dwóch różnych pierwiastków; (b) $x_1x_2>0$ — \\"ten sam znak\\"; (c) $(x_1-x_2)^2\\le 180$."
+  - "② Z Viete'a: $s=\\dfrac{2(2m+1)}{2-m}$, $p=\\dfrac{m+8}{2-m}$. Tożsamość: $(x_1-x_2)^2=s^2-4p$. Warunek (c): $s^2-4p\\le 180$."
+  - "③ Po podstawieniu otrzymasz nierówność wymierną z $m$; (b) daje $\\dfrac{m+8}{2-m}>0\\Rightarrow m\\in(-8,2)$. (a) daje $\\Delta>0\\Rightarrow m<-1$ lub $m>\\tfrac{2}{3}$ (z dokładnością do znaku mianownika). Po przecięciu: $m\\in(-8,-1)\\cup(\\tfrac{2}{3},2)$; warunek (c) dodatkowo zawęża — pełne rozwiązanie CKE."
 tests:
   vieta: 1.0
   quadratic_eq: 0.5
