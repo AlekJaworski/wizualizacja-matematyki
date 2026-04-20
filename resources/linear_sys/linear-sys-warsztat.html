@@ -141,9 +141,9 @@ import { initWarsztat } from '../lib/warsztat-core.js';
       predict: {
         question: 'Po wycięciu $5\\%$ jabłoni zostaje:',
         options: [
-          { label: '$0{,}05x$',  correct: false, why: 'To jest liczba jabłoni, które **wycięto** ($5\\%$ z $x$). A pytamy o to, co **zostało**.' },
-          { label: '$0{,}95x$',  correct: true,  why: 'Tak. Skoro wycięto $5\\%$, to zostało $95\\%$, czyli $0{,}95x$. Zawsze pracujemy z tym, co zostało.' },
-          { label: '$x - 5$',    correct: false, why: 'Procent to **ułamek**, nie liczba bezwzględna. $5\\%$ jabłoni to $0{,}05x$, nie $5$ sztuk.' },
+          { label: '$0{,}05x$',  correct: false, why: 'To liczba jabłoni, które wycięto ($5\\%$ z $x$), a szukamy liczby drzew, które **zostały**.' },
+          { label: '$0{,}95x$',  correct: true,  why: 'Skoro wycięto $5\\%$, zostało $95\\%$, czyli $0{,}95x$ — w zadaniach procentowych operujemy tym, co pozostało.' },
+          { label: '$x - 5$',    correct: false, why: 'Procent jest ułamkiem, a nie liczbą bezwzględną — $5\\%$ jabłoni to $0{,}05x$, a nie $5$ sztuk.' },
         ],
       },
       choices: {
@@ -164,7 +164,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         "② '$60\\%$ tego, co zostało w sadzie grusz' — grusz zostało $0{,}9y$, więc $60\\%$ z tego: $0{,}6 \\cdot 0{,}9y$.",
         "③ Układ: $0{,}95x + 0{,}9y = 880$ oraz $0{,}54y = 132$. [Zadanie z CKE 2023 — rozwiązanie: $x = 600, y = 200$, sprawdź arytmetykę samodzielnie.]",
       ],
-      solvedMsg: "W procentach: 'wycięto $p\\%$' = 'zostało $(100-p)\\%$'. Zawsze zapisuj równanie na tym, **co zostało**, bo o to pyta zadanie.",
+      solvedMsg: "Zasada z procentów: 'wycięto $p\\%$' to to samo co 'zostało $(100-p)\\%$'. Równanie zapisujemy na tym, co zostało, bo właśnie o to pyta zadanie.",
       draw() {
         textCenter('Sad — rozłożenie zadania', W/2, 26, COL_PAR, 14);
         let y = 60;
@@ -203,9 +203,9 @@ import { initWarsztat } from '../lib/warsztat-core.js';
       predict: {
         question: 'Masa soli w $x$ kg $20\\%$ roztworu to:',
         options: [
-          { label: '$x$',                correct: false, why: 'Nie — $x$ to masa całego roztworu (woda + sól). Sól to tylko część, mianowicie procent masy.' },
-          { label: '$20\\%$ to $0{,}2$ kg', correct: false, why: 'Procent to **ułamek masy**, nie liczba bezwzględna. Gdy $x$ = $10$ kg, soli jest $0{,}2 \\cdot 10 = 2$ kg, nie $0{,}2$ kg.' },
-          { label: '$0{,}2 \\cdot x$ kg', correct: true,  why: 'Tak. Procent ⋅ masa roztworu = masa składnika (tu: soli). To reguła wszystkich zadań o mieszaninach.' },
+          { label: '$x$',                correct: false, why: 'Oznaczenie $x$ to masa całego roztworu (wody i soli razem), a sól stanowi tylko część tej masy.' },
+          { label: '$20\\%$ to $0{,}2$ kg', correct: false, why: 'Procent jest ułamkiem masy, a nie liczbą bezwzględną. Dla $x = 10$ kg soli mamy $0{,}2 \\cdot 10 = 2$ kg, a nie $0{,}2$ kg.' },
+          { label: '$0{,}2 \\cdot x$ kg', correct: true,  why: 'Procent razy masa roztworu daje masę składnika (tutaj soli) — to uniwersalna reguła w zadaniach o mieszaninach.' },
         ],
       },
       choices: {
@@ -226,7 +226,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② $x + y = 60$ (masa). $0{,}2x + 0{,}5y = 24$ (sól).',
         '③ Rozwiązanie: $y = 40, x = 20$.',
       ],
-      solvedMsg: 'W mieszaninach: bilans **masy** + bilans **składnika**. Procenty nie dodają się bezpośrednio — waży je masa roztworu.',
+      solvedMsg: 'W zadaniach o mieszaninach zapisujemy dwa bilanse — masy i masy składnika. Procenty nie sumują się bezpośrednio, bo waży je masa całego roztworu.',
       draw() {
         textCenter('Bilans soli i masy', W/2, 26, COL_PAR, 14);
         // Two beakers
@@ -267,9 +267,9 @@ import { initWarsztat } from '../lib/warsztat-core.js';
       predict: {
         question: "'$3$ razy starszy' oznacza:",
         options: [
-          { label: '$J = K + 3$',   correct: false, why: "To znaczy '$3$ **lata** starszy' — dodawanie. '$3$ razy' to mnożenie." },
-          { label: '$J = 3K$',      correct: true,  why: "Tak. '$n$ razy starszy' = mnożenie wieku przez $n$. Jan ma trzy razy tyle lat, co Kasia." },
-          { label: '$J/K = 3\\%$',  correct: false, why: 'Procenty do tego nie należą. To zwyczajny stosunek: $J = 3K$.' },
+          { label: '$J = K + 3$',   correct: false, why: "Takie równanie odpowiada sformułowaniu '$3$ lata starszy' — to dodawanie, a '$3$ razy starszy' oznacza mnożenie." },
+          { label: '$J = 3K$',      correct: true,  why: "Zapis '$n$ razy starszy' przekłada się na mnożenie wieku przez $n$, więc Jan ma trzy razy tyle lat co Kasia." },
+          { label: '$J/K = 3\\%$',  correct: false, why: 'Procenty nie mają tu zastosowania — to zwykły stosunek i zapisujemy go jako $J = 3K$.' },
         ],
       },
       choices: {
@@ -290,7 +290,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         "② 'Za $10$ lat': dodaj $10$ do KAŻDEGO wieku. Jan za $10$ lat: $J+10$. Kasia: $K+10$.",
         "③ Układ: $J = 3K$ oraz $J + 10 = 2(K+10)$. Podstaw: $3K + 10 = 2K + 20 \\Rightarrow K = 10, J = 30$.",
       ],
-      solvedMsg: "'Razy' ≠ 'o tyle i tyle'. Gdy mija czas — dodaj go do OBU wieków, zanim zapiszesz warunek.",
+      solvedMsg: "Sformułowania 'razy' i 'o tyle a tyle' to zupełnie różne operacje. Gdy w zadaniu mija czas, dodajemy go do wieku obu osób, zanim zapiszemy warunek.",
       draw() {
         textCenter('Oś czasu', W/2, 26, COL_PAR, 14);
         // Timeline
@@ -353,9 +353,9 @@ import { initWarsztat } from '../lib/warsztat-core.js';
       predict: {
         question: 'W ruchu przeciwległym prędkość zbliżania to:',
         options: [
-          { label: '$15 - 5 = 10$ km/h',        correct: false, why: 'Odejmowanie dotyczy ruchu w **tę samą** stronę (pościg). Tu idą naprzeciw siebie.' },
-          { label: '$15 + 5 = 20$ km/h',        correct: true,  why: 'Tak. Idąc naprzeciw siebie, zbliżają się z sumą prędkości — każdy zjada kawałek $60$ km.' },
-          { label: '$\\sqrt{15^2 + 5^2}$ km/h', correct: false, why: 'Pitagoras nie ma tu nic do rzeczy — to nie jest ruch prostopadły, tylko wzdłuż jednej prostej.' },
+          { label: '$15 - 5 = 10$ km/h',        correct: false, why: 'Odejmowanie dotyczy ruchu w tę samą stronę (pościg), a tu osoby poruszają się naprzeciw siebie.' },
+          { label: '$15 + 5 = 20$ km/h',        correct: true,  why: 'W ruchu naprzeciw prędkości zbliżania sumują się — każdy uczestnik pokonuje część tych $60$ km.' },
+          { label: '$\\sqrt{15^2 + 5^2}$ km/h', correct: false, why: 'Twierdzenie Pitagorasa dotyczy ruchów prostopadłych, a tutaj obie prędkości są zgrane wzdłuż jednej prostej.' },
         ],
       },
       choices: {
@@ -376,7 +376,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② $v_{\\text{zbl}} = 15 + 5 = 20$ km/h. Odległość do pokonania: $60$ km.',
         '③ $t = \\frac{\\text{odległość}}{\\text{prędkość}} = \\frac{60}{20} = 3$ godziny.',
       ],
-      solvedMsg: 'Przeciwległy: **dodaj** prędkości. W tę samą stronę: **odejmij**. Proste jak okiem mrugnąć, ale na maturze wielu się myli.',
+      solvedMsg: 'W ruchu przeciwnym prędkości dodajemy, w ruchu w tę samą stronę — odejmujemy. Warto pamiętać o kierunku, zanim zapiszemy równanie czasu.',
       draw() {
         textCenter('Trasa A ─── B (60 km)', W/2, 26, COL_PAR, 14);
         // Road
@@ -436,7 +436,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     canvasId: 'cv',
     challenges,
     lsKey: 'warsztat:linear-sys:completed',
-    wrapup: 'Dwa kroki słownych zadań linearnych: (1) **wyłap warunki** (\'$p\\%$ wycięto\', \'dwa razy starszy\') — każdy staje się równaniem; (2) **zapisz w zmiennych**, nie w słowach — gramatykę polską tłumacz na matematyczną.',
+    wrapup: 'Dwa kroki w zadaniach z treścią: (1) wychwytujemy wszystkie warunki ("wycięto $p\\%$", "dwa razy starszy") — każdy z nich przekłada się na osobne równanie; (2) zapisujemy je w zmiennych, tłumacząc język potoczny na matematyczny.',
     onFrame() {
       ctx.clearRect(0, 0, W, H);
       // subtle backdrop

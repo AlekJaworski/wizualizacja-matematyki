@@ -342,7 +342,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     {
       id: 'ch2',
       title: 'DOWÓD: $\\sin^2\\alpha + \\cos^2\\alpha = 1$',
-      desc: 'Przesuwaj $\\alpha$. Punkt $P$ zawsze leży na okręgu jednostkowym — a to znaczy, że jego odległość od środka zawsze jest $1$. Pitagoras robi resztę.',
+      desc: 'Przesuwaj $\\alpha$. Punkt $P$ zawsze leży na okręgu jednostkowym, więc jego odległość od środka wynosi $1$ — a resztę rozumowania załatwia twierdzenie Pitagorasa.',
       drawBackground: 'blank',
       init() {
         C.alpha = 1.0;
@@ -366,9 +366,9 @@ import { initWarsztat } from '../lib/warsztat-core.js';
       hints: [
         'Twierdzenie Pitagorasa mówi, że w trójkącie prostokątnym suma kwadratów przyprostokątnych równa kwadratowi przeciwprostokątnej.',
         'Przyprostokątne tego trójkąta mają długości $|\\cos\\alpha|$ i $|\\sin\\alpha|$. Przeciwprostokątna (promień) ma długość $1$.',
-        'Czyli $\\cos^2\\alpha + \\sin^2\\alpha = 1^2 = 1$. To i cały dowód — żadnych skomplikowanych wzorów.',
+        'Czyli $\\cos^2\\alpha + \\sin^2\\alpha = 1^2 = 1$ — i to jest cały dowód.',
       ],
-      solvedMsg: 'Jedynka trygonometryczna to **Pitagoras na kole jednostkowym**. Nic więcej. Zapamiętaj tę intuicję — wzór nigdy Cię nie zawiedzie, bo nie zależy od kąta.',
+      solvedMsg: 'Jedynka trygonometryczna to po prostu **Pitagoras na kole jednostkowym** — warto zapamiętać tę intuicję, bo wzór nie zależy od kąta i zawsze działa.',
       predictAfter: {
         question: 'Jeżeli $\\sin\\alpha = \\frac{3}{5}$ i $\\alpha$ jest kątem ostrym, ile wynosi $\\cos\\alpha$?',
         options: [

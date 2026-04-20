@@ -220,7 +220,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         'Stała nie zmienia się wcale — więc tempo zmian (pochodna) wynosi 0.',
         '$(c)\' = 0$ dla dowolnej liczby $c$. Szukaj kroku, w którym Adam napisał coś innego.',
       ],
-      solvedMsg: 'Pochodna stałej = 0. Zawsze. Niezależnie od tego, jak "duża" jest stała.',
+      solvedMsg: 'Pochodna dowolnej stałej wynosi zero — niezależnie od tego, jak duża jest ta stała.',
       draw: clearCanvas,
     },
 
@@ -259,7 +259,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         'Prawidłowy wzór: $(f \\cdot g)\' = f\'g + fg\'$ — suma dwóch składników, każdy różniczkuje tylko jeden czynnik.',
         'Szukaj kroku, w którym pojawia się $f\' \\cdot g\'$ zamiast $f\'g + fg\'$.',
       ],
-      solvedMsg: 'Tak. Iloczyn ma DWA składniki, nie jeden. Mnożenie pochodnych to jeden z najczęściej karanych błędów na maturze.',
+      solvedMsg: 'Pochodna iloczynu ma dwa składniki: $f\'g + fg\'$. Samo pomnożenie pochodnych czynników daje zupełnie inną funkcję.',
       draw: clearCanvas,
     },
 
@@ -297,7 +297,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② Dla $\\sin(2x)$: zewnętrzna to $\\sin$, wewnętrzna to $2x$. $\\sin\' = \\cos$, $(2x)\' = 2$.',
         '③ Wynik: $\\cos(2x) \\cdot 2 = 2\\cos(2x)$.',
       ],
-      solvedMsg: 'Reguła łańcuchowa: **zewnętrzna razy wewnętrzna**. Pomijanie mnożenia przez pochodną wewnętrznej to najczęstszy błąd na maturze rozszerzonej.',
+      solvedMsg: 'Reguła łańcuchowa: pochodna zewnętrznej pomnożona przez pochodną wewnętrznej. Pominięcie drugiego czynnika zmienia wynik, dlatego warto go pisać jako pierwszy odruch.',
       draw: drawChainDiagram,
     },
 
@@ -330,7 +330,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         'Wzór: $\\left(\\frac{u}{v}\\right)\' = \\frac{u\'v - uv\'}{v^2}$. Porównaj go z tym, co napisał Kuba.',
         'Kuba "uprościł" wzór do $\\frac{u\'}{v\'}$ — ale to nie działa. Znajdź ten krok.',
       ],
-      solvedMsg: 'Tak. W ilorazie jest MINUS w liczniku ($u\'v - uv\'$) i kwadrat w mianowniku ($v^2$). Trzy detale, każdy łatwo zgubić.',
+      solvedMsg: 'W pochodnej ilorazu w liczniku jest minus ($u\'v - uv\'$), a w mianowniku kwadrat ($v^2$). Warto zapamiętać oba te elementy razem.',
       draw: clearCanvas,
     },
   ];
@@ -339,7 +339,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     canvasId: 'cv',
     challenges,
     lsKey: 'warsztat:derivative:completed',
-    wrapup: 'Trzy reguły, trzy pułapki: (1) pochodna stałej = 0; (2) pochodna iloczynu ≠ iloczyn pochodnych; (3) łańcuch = zewnętrzna razy wewnętrzna. Znak minus w ilorazie zawsze wraca.',
+    wrapup: 'Trzy reguły warte zapamiętania: (1) pochodna stałej jest równa zero; (2) pochodna iloczynu to $f\'g + fg\'$, a nie iloczyn pochodnych; (3) reguła łańcuchowa to pochodna zewnętrznej razy pochodna wewnętrznej. W pochodnej ilorazu zawsze pojawia się minus w liczniku.',
   });
 }
 </script>

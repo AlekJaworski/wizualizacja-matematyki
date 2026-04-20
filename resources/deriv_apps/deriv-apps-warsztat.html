@@ -178,7 +178,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② Wysokość pudełka to $x$. $V = \\text{długość} \\cdot \\text{szerokość} \\cdot \\text{wysokość} = (30-2x)(20-2x) \\cdot x$.',
         '③ $V\'(x) = 0$ dla $x \\approx 3{,}92$ (z równania kwadratowego). Sprawdź dziedzinę: $0 < x < 10$.',
       ],
-      solvedMsg: 'Schemat: **tekst → zmienna → funkcja → pochodna → zero → sprawdź dziedzinę**. Najczęstszy błąd: pomylenie $-x$ z $-2x$ przy wycinaniu.',
+      solvedMsg: 'Schemat pracy: tekst → zmienna → funkcja → pochodna → miejsce zerowe → sprawdzenie dziedziny. Przy wycinaniu kwadratów z rogów każdy bok skraca się o $2x$, a nie o $x$.',
       view: { xRange: [-1.5, 11], yRange: [-100, 700] },
       draw() {
         // plot V(x) for x ∈ [0, 10]
@@ -230,7 +230,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② $y = 100 - 2x$. Pole: $P = x \\cdot y = x(100 - 2x)$.',
         '③ $P\'(x) = 100 - 4x = 0 \\Rightarrow x = 25$. $y = 50$. Pole maks $= 1250$ m².',
       ],
-      solvedMsg: 'W zadaniach "jaki bok jest wolny" — narysuj rysunek, zanim zaczniesz pisać wzory. Rzeka = brak ogrodzenia = oszczędność na liczbie boków.',
+      solvedMsg: 'W zadaniach, w których jeden z boków nie wymaga ogrodzenia, warto zacząć od szkicu sytuacji — pozwala on od razu zobaczyć, które boki składają się na długość ogrodzenia.',
       view: { xRange: [-8, 58], yRange: [-200, 1500] },
       draw() {
         view.plotFn(P2, { color: COL_FN, domain: [0, 50], lineWidth: 2.5 });
@@ -280,7 +280,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② $S(a) = a + \\frac{100}{a}$. Policz $S\'(a) = 1 - \\frac{100}{a^2}$.',
         '③ $S\'(a) = 0 \\Rightarrow a^2 = 100 \\Rightarrow a = 10$. Wtedy $b = 10$, $S = 20$.',
       ],
-      solvedMsg: 'Gdy iloczyn ustalony i szukasz minimum sumy — wartości są **równe**. To szczególny przypadek nierówności AM-GM.',
+      solvedMsg: 'Gdy iloczyn dwóch liczb dodatnich jest ustalony, minimum sumy uzyskujemy, gdy obie wartości są równe. To szczególny przypadek nierówności między średnią arytmetyczną a geometryczną.',
       view: { xRange: [-3, 32], yRange: [-5, 55] },
       draw() {
         view.plotFn(S3, { color: COL_FN, domain: [0.5, 30], lineWidth: 2.5 });

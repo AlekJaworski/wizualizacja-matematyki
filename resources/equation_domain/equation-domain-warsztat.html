@@ -162,13 +162,13 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     {
       id: 'ch1_divide_by_x',
       title: 'Dzielenie przez $x$ gubi pierwiastek',
-      desc: 'Równanie $x^2 = 5x$. Uczeń dzieli obie strony przez $x$ i dostaje $x = 5$. Ale wykresy pokazują DWA punkty przecięcia. Gdzie znika drugie rozwiązanie?',
+      desc: 'Równanie $x^2 = 5x$ — po podzieleniu obu stron przez $x$ wychodzi $x = 5$, ale wykresy pokazują dwa punkty przecięcia. Zobacz, gdzie gubi się drugie rozwiązanie.',
       drawBackground: 'none',
       init() {},
       predict: {
         question: 'Jeśli w $x^2 = 5x$ podzielimy obie strony przez $x$, to dostaniemy...',
         options: [
-          { label: 'tylko $x = 5$ (OK, koniec)', correct: false, why: 'Pozornie OK, ale zgubiliśmy $x = 0$. Dzielenie przez $x$ zakłada $x \\neq 0$ — więc przypadek $x=0$ wypada z gry w cichu.' },
+          { label: 'tylko $x = 5$', correct: false, why: 'Pozornie poprawne, ale zgubiliśmy $x = 0$. Dzielenie przez $x$ zakłada $x \\neq 0$, więc przypadek $x = 0$ wypada po cichu z zakresu rozważań.' },
           { label: '$x = 0$ i $x = 5$ (oba)', correct: true,  why: 'Tak — to pełne rozwiązanie, ale dzielenie przez $x$ samo $x=0$ NIE daje. Trzeba napisać $x^2 - 5x = 0$, czyli $x(x-5) = 0$, i dopiero stąd oba pierwiastki.' },
           { label: 'nic nie da się rozwiązać', correct: false, why: 'Da się — tylko nie przez dzielenie. Metoda "przenieś na jedną stronę i wyłącz wspólny czynnik" zawsze działa.' },
         ],
@@ -193,7 +193,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② Wyłącz wspólny czynnik: $x(x - 5) = 0$. Iloczyn jest zerem $\\iff$ któryś czynnik to zero.',
         '③ Stąd $x = 0$ LUB $x = 5$. Dzieląc przez $x$ zakładaliśmy po cichu $x \\neq 0$ — i dlatego $x = 0$ zniknęło.',
       ],
-      solvedMsg: 'Dzielenie przez wyrażenie zawierające zmienną ZAWSZE może zgubić pierwiastek — dokładnie te $x$, dla których to wyrażenie zeruje się. Bezpieczniej: faktoryzacja.',
+      solvedMsg: 'Dzielenie przez wyrażenie zawierające zmienną zawsze może zgubić pierwiastek — dokładnie te $x$, dla których dzielnik się zeruje. Bezpieczniejszą alternatywą jest przeniesienie wszystkiego na jedną stronę i faktoryzacja.',
       predictAfter: {
         question: 'Ile rozwiązań ma równanie $x^3 = 4x$?',
         options: [
@@ -354,7 +354,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         question: 'Dla $\\sqrt{x+5} = x - 1$: jaki warunek eliminuje fałszywe rozwiązania od razu?',
         options: [
           { label: '$x + 5 \\geq 0$, czyli $x \\geq -5$', correct: false, why: 'To warunek istnienia pierwiastka — prawda, ale za słaby. Nie wyklucza $x - 1 < 0$.' },
-          { label: '$x - 1 \\geq 0$, czyli $x \\geq 1$', correct: true,  why: 'Tak — LHS $\\geq 0$, więc i RHS musi być $\\geq 0$. Ten warunek wyklucza "fałszywe" rozwiązania DZIE że patrzymy na znak prawej strony.' },
+          { label: '$x - 1 \\geq 0$, czyli $x \\geq 1$', correct: true,  why: 'Tak — lewa strona jest nieujemna, więc prawa też musi być nieujemna. Ten warunek wyklucza fałszywe rozwiązania, bo kontroluje znak prawej strony.' },
           { label: '$x \\neq 1$', correct: false, why: 'Nierówność $\\neq$ to dziedzina ułamka, nie pierwiastka. Tutaj potrzebujesz znaku.' },
         ],
       },
@@ -563,7 +563,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     canvasId: 'cv',
     challenges,
     lsKey: 'warsztat:equation_domain:completed',
-    wrapup: 'Zasada żelazna: $(1)$ przed rozwiązywaniem napisz DZIEDZINĘ, $(2)$ po rozwiązaniu SPRAWDŹ kandydatów w oryginale. Operacje bezpieczne: $+c, \\cdot c$ dla stałej $c \\neq 0$. Operacje niebezpieczne (wymagają ostrożności): dzielenie przez wyrażenie z $x$, mnożenie przez wyrażenie z $x$, podnoszenie do kwadratu, pierwiastek, logarytm. Dzielenie GUBI, kwadrat DODAJE, mnożenie przez $(x-a)$ DODAJE fałszywe $x=a$.',
+    wrapup: 'Zasada żelazna: $(1)$ przed rozwiązywaniem napisz DZIEDZINĘ, $(2)$ po rozwiązaniu sprawdź kandydatów w równaniu oryginalnym. Operacje bezpieczne to dodawanie oraz mnożenie przez stałą $c \\neq 0$. Operacje niebezpieczne wymagają ostrożności: dzielenie przez wyrażenie z $x$ może zgubić pierwiastek (te $x$, dla których dzielnik się zeruje), mnożenie przez $(x-a)$ może wprowadzić fałszywy pierwiastek $x = a$, a podnoszenie do kwadratu — fałszywe rozwiązania różniące się znakiem.',
     onFrame({ ch }) {
       ctx.save();
       ctx.fillStyle = '#0e0e12';
