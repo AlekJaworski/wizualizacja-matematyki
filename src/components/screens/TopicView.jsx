@@ -167,7 +167,7 @@ export function TopicView({
 
         {/* ── Quiz me buttons ────────────────────────────────────── */}
         {onQuizMe && QUESTION_BANK?.[nodeId]?.length > 0 && (() => {
-          const ckeCount = QUESTION_BANK[nodeId].filter(q => q.source === "cke").length;
+          const ckeCount = QUESTION_BANK[nodeId].filter(q => q.source?.startsWith("cke")).length;
           return (
             <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
               <button

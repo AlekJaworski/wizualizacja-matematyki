@@ -160,7 +160,7 @@ export function getQuestion(questionBank, nodeId, excludeIndices = [], sourceFil
 
   const available = qs
     .map((q, i) => ({ q, i }))
-    .filter(({ q, i }) => !excludeIndices.includes(i) && (sourceFilter ? q.source === sourceFilter : true));
+    .filter(({ q, i }) => !excludeIndices.includes(i) && (sourceFilter ? q.source?.startsWith(sourceFilter) : true));
 
   if (available.length === 0) return null;
 

@@ -12,25 +12,32 @@ export function VizGallery({ RAW_NODES, SCOPE_COLORS, SCOPE_LABELS, lang, onClos
   const [openResource, setOpenResource] = useState(null);
   const [filterScope, setFilterScope] = useState(null);
 
-  // Collect all interactive resources across all nodes
+  // Collect all interactive resources across all nodes, deduped by URL.
+  // The same viz can legitimately be referenced from multiple nodes
+  // (e.g. resources/sequences/sequences-explorer.html is shared between
+  // sequences and arith_geom). Keep the entry whose nodeId matches the
+  // URL's folder segment — that's the viz's "home" node.
   const allVizzes = useMemo(() => {
-    const vizzes = [];
+    const byUrl = new Map();
     for (const node of RAW_NODES) {
       if (!node.resources) continue;
       for (const res of node.resources) {
         if (res.type !== "interactive") continue;
-        vizzes.push({
+        const entry = {
           nodeId: node.id,
           nodeLabel: lang === "pl" ? node.labelPl : node.label,
           scope: node.scope,
           section: node.section,
           title: lang === "pl" ? res.titlePl : res.titleEn,
           resource: res,
+          isHome: res.url?.includes(`/${node.id}/`) ?? false,
           isDlaCiekawych: (res.titlePl || "").includes("Dla ciekawych") || (res.titleEn || "").includes("curious"),
-        });
+        };
+        const prev = byUrl.get(res.url);
+        if (!prev || (entry.isHome && !prev.isHome)) byUrl.set(res.url, entry);
       }
     }
-    return vizzes;
+    return [...byUrl.values()];
   }, [RAW_NODES, lang]);
 
   // Filter
