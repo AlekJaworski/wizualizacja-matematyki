@@ -306,7 +306,6 @@ export function LearningPath({
             belief={belief}
             lang={lang}
             getLabel={getLabel}
-            onOpen={onSelectTopic}
           />
         )}
       </div>
@@ -314,7 +313,7 @@ export function LearningPath({
   );
 }
 
-function MaturaTipsBlock({ tips, nodeById, belief, lang, getLabel, onOpen }) {
+function MaturaTipsBlock({ tips, nodeById, belief, lang, getLabel }) {
   const [open, setOpen] = useState(false);
   return (
     <div style={{ marginTop: 24 }}>
@@ -346,42 +345,75 @@ function MaturaTipsBlock({ tips, nodeById, belief, lang, getLabel, onOpen }) {
           }}>
             {t("profileMaturaTipsSub", lang)}
           </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {tips.map(id => {
               const status = belief?.[id];
               let dot = COLORS.textFaint;
               if (status === "known") dot = COLORS.known;
               else if (status === "unknown") dot = "#e74c3c";
               return (
-                <div
+                <MaturaTipItem
                   key={id}
-                  onClick={() => onOpen(id)}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 10,
-                    padding: "10px 14px", borderRadius: 8,
-                    background: "#FFD16608",
-                    border: "1px solid #FFD16620",
-                    cursor: "pointer", minWidth: 0,
-                  }}
-                >
-                  <span style={{
-                    width: 8, height: 8, borderRadius: "50%",
-                    background: status ? dot : "transparent",
-                    border: `1.5px solid ${status ? dot : COLORS.textFaint}`,
-                    flexShrink: 0,
-                  }} />
-                  <span
-                    style={{
-                      fontSize: 13, color: COLORS.textBody, flex: 1, minWidth: 0,
-                      overflowWrap: "break-word", wordBreak: "break-word",
-                    }}
-                    dangerouslySetInnerHTML={{ __html: renderLatex(getLabel(id) ?? "") }}
-                  />
-                </div>
+                  node={nodeById[id]}
+                  label={getLabel(id) ?? ""}
+                  status={status}
+                  dotColor={dot}
+                />
               );
             })}
           </div>
         </>
+      )}
+    </div>
+  );
+}
+
+function MaturaTipItem({ node, label, status, dotColor }) {
+  const [expanded, setExpanded] = useState(false);
+  const bodyDescription = (node?.body ?? "").split("<!-- example -->")[0]?.trim() ?? "";
+  return (
+    <div style={{
+      borderRadius: 8,
+      background: "#FFD16608",
+      border: "1px solid #FFD16620",
+      overflow: "hidden",
+    }}>
+      <button
+        onClick={() => setExpanded(v => !v)}
+        style={{
+          width: "100%", padding: "10px 14px",
+          display: "flex", alignItems: "center", gap: 10,
+          background: "transparent", border: "none",
+          color: COLORS.textBody, fontFamily: FONT, fontSize: 13,
+          cursor: "pointer", textAlign: "left", minWidth: 0,
+        }}
+      >
+        <span style={{
+          width: 8, height: 8, borderRadius: "50%",
+          background: status ? dotColor : "transparent",
+          border: `1.5px solid ${status ? dotColor : COLORS.textFaint}`,
+          flexShrink: 0,
+        }} />
+        <span
+          style={{
+            flex: 1, minWidth: 0,
+            overflowWrap: "break-word", wordBreak: "break-word",
+          }}
+          dangerouslySetInnerHTML={{ __html: renderLatex(label) }}
+        />
+        <span style={{ color: COLORS.textFaint, fontSize: 11, flexShrink: 0 }}>
+          {expanded ? "▾" : "▸"}
+        </span>
+      </button>
+      {expanded && bodyDescription && (
+        <div
+          style={{
+            padding: "12px 14px 14px", fontSize: 13,
+            color: COLORS.textBody, lineHeight: 1.7,
+            borderTop: "1px solid #FFD16620",
+          }}
+          dangerouslySetInnerHTML={{ __html: renderLatex(bodyDescription) }}
+        />
       )}
     </div>
   );

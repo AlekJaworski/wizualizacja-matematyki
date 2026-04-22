@@ -348,7 +348,6 @@ export function ProfileScreen({
             evidence={evidence}
             lang={lang}
             getLabel={getLabel}
-            onOpen={onResumePath}
           />
         )}
 
@@ -477,7 +476,7 @@ function MiniStat({ count, label, color }) {
 }
 
 /** Optional matura-tips collapsible section shown under the main path. */
-function MaturaTipsSection({ tips, nodeById, belief, evidence, lang, getLabel, onOpen }) {
+function MaturaTipsSection({ tips, nodeById, belief, evidence, lang, getLabel }) {
   const [open, setOpen] = useState(false);
   return (
     <div style={{ marginBottom: 32, marginTop: -12 }}>
@@ -510,7 +509,7 @@ function MaturaTipsSection({ tips, nodeById, belief, evidence, lang, getLabel, o
           }}>
             {t("profileMaturaTipsSub", lang)}
           </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {tips.map(id => {
               const status = belief?.[id];
               const ev = evidence?.[id];
@@ -519,46 +518,82 @@ function MaturaTipsSection({ tips, nodeById, belief, evidence, lang, getLabel, o
               if (status === "known") dotColor = COLORS.known;
               else if (status === "unknown") dotColor = "#e74c3c";
               return (
-                <div
+                <MaturaTipItem
                   key={id}
-                  onClick={() => onOpen(id)}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 10,
-                    padding: "10px 14px", borderRadius: 8,
-                    background: "#FFD16608",
-                    border: "1px solid #FFD16620",
-                    cursor: "pointer", minWidth: 0,
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = "#FFD16614"; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = "#FFD16608"; }}
-                >
-                  <span style={{
-                    width: 8, height: 8, borderRadius: "50%",
-                    background: status ? dotColor : "transparent",
-                    border: `1.5px solid ${status ? dotColor : COLORS.textFaint}`,
-                    flexShrink: 0,
-                  }} />
-                  <span
-                    style={{
-                      fontSize: 13, color: COLORS.textBody, flex: 1, minWidth: 0,
-                      overflowWrap: "break-word", wordBreak: "break-word",
-                    }}
-                    dangerouslySetInnerHTML={{ __html: renderLatex(getLabel(id) ?? "") }}
-                  />
-                  {directlyTested && (
-                    <span style={{
-                      fontSize: 9, padding: "2px 6px", borderRadius: 3,
-                      background: ev.correct ? "#27ae6015" : "#e74c3c15",
-                      color: ev.correct ? "#2ecc71" : "#ff6b6b",
-                      border: `1px solid ${ev.correct ? "#27ae6030" : "#e74c3c30"}`,
-                      flexShrink: 0,
-                    }}>{ev.correct ? "✓" : "✗"}</span>
-                  )}
-                </div>
+                  node={nodeById[id]}
+                  label={getLabel(id) ?? ""}
+                  status={status}
+                  dotColor={dotColor}
+                  directlyTested={directlyTested}
+                  ev={ev}
+                  lang={lang}
+                />
               );
             })}
           </div>
         </>
+      )}
+    </div>
+  );
+}
+
+/** Single collapsible matura tip — expands inline to show the node body. */
+function MaturaTipItem({ node, label, status, dotColor, directlyTested, ev, lang }) {
+  const [expanded, setExpanded] = useState(false);
+  const bodyDescription = (node?.body ?? "").split("<!-- example -->")[0]?.trim() ?? "";
+  return (
+    <div style={{
+      borderRadius: 8,
+      background: "#FFD16608",
+      border: "1px solid #FFD16620",
+      overflow: "hidden",
+    }}>
+      <button
+        onClick={() => setExpanded(v => !v)}
+        style={{
+          width: "100%", padding: "10px 14px",
+          display: "flex", alignItems: "center", gap: 10,
+          background: "transparent", border: "none",
+          color: COLORS.textBody, fontFamily: FONT, fontSize: 13,
+          cursor: "pointer", textAlign: "left", minWidth: 0,
+        }}
+      >
+        <span style={{
+          width: 8, height: 8, borderRadius: "50%",
+          background: status ? dotColor : "transparent",
+          border: `1.5px solid ${status ? dotColor : COLORS.textFaint}`,
+          flexShrink: 0,
+        }} />
+        <span
+          style={{
+            flex: 1, minWidth: 0,
+            overflowWrap: "break-word", wordBreak: "break-word",
+          }}
+          dangerouslySetInnerHTML={{ __html: renderLatex(label) }}
+        />
+        {directlyTested && (
+          <span style={{
+            fontSize: 9, padding: "2px 6px", borderRadius: 3,
+            background: ev.correct ? "#27ae6015" : "#e74c3c15",
+            color: ev.correct ? "#2ecc71" : "#ff6b6b",
+            border: `1px solid ${ev.correct ? "#27ae6030" : "#e74c3c30"}`,
+            flexShrink: 0,
+          }}>{ev.correct ? "✓" : "✗"}</span>
+        )}
+        <span style={{ color: COLORS.textFaint, fontSize: 11, flexShrink: 0 }}>
+          {expanded ? "▾" : "▸"}
+        </span>
+      </button>
+      {expanded && bodyDescription && (
+        <div
+          style={{
+            padding: "2px 14px 14px", fontSize: 13,
+            color: COLORS.textBody, lineHeight: 1.7,
+            borderTop: "1px solid #FFD16620",
+            paddingTop: 12, marginTop: 2,
+          }}
+          dangerouslySetInnerHTML={{ __html: renderLatex(bodyDescription) }}
+        />
       )}
     </div>
   );
