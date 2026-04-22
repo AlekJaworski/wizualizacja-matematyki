@@ -145,7 +145,25 @@ export function TopicView({
         )}
 
         {/* ── Description + "nie kumam" example ─────────────────── */}
-        {node.body && <NodeDescription body={node.body} lang={lang} />}
+        {node.body && (
+          <NodeDescription
+            body={node.body}
+            lang={lang}
+            renderRelated={id => {
+              const n = byId[id];
+              if (!n) return null;
+              return (
+                <NodeChip
+                  key={id}
+                  label={getLabel(id)}
+                  color={SCOPE_COLORS?.[n.scope] ?? "#4a9eff"}
+                  status={belief?.[id]}
+                  onClick={() => onNavigate(id)}
+                />
+              );
+            }}
+          />
+        )}
 
         {/* ── Quiz me buttons ────────────────────────────────────── */}
         {onQuizMe && QUESTION_BANK?.[nodeId]?.length > 0 && (() => {
@@ -417,20 +435,28 @@ function EvidenceBlock({ nodeId, status, evidence, adjacency, belief, nodes, lan
 }
 
 /** Description block with optional collapsible "nie kumam?" example + "najczęstsze błędy". */
-function NodeDescription({ body, lang }) {
+function NodeDescription({ body, lang, renderRelated }) {
   const [showExample, setShowExample] = useState(false);
   const [showMistakes, setShowMistakes] = useState(false);
-  // Split body into up to three sections by HTML comments.
-  // Authors: put `<!-- example -->` before the worked example, and
-  // `<!-- mistakes -->` before a bulleted "najczęstsze błędy" section.
-  const afterExample   = body.split("<!-- example -->");
+  // Split body into up to four sections by HTML comments.
+  // Authors: put `<!-- example -->` before the worked example,
+  // `<!-- mistakes -->` before a bulleted "najczęstsze błędy" section,
+  // and `<!-- see-also -->` last with whitespace/comma-separated node IDs.
+  const splitSeeAlso   = body.split("<!-- see-also -->");
+  const bodyCore       = splitSeeAlso[0];
+  const seeAlsoIds     = (splitSeeAlso[1] ?? "")
+    .split(/[\s,]+/).map(s => s.trim()).filter(Boolean);
+  const afterExample   = bodyCore.split("<!-- example -->");
   const description    = afterExample[0]?.trim();
   const afterMistakes  = (afterExample[1] ?? "").split("<!-- mistakes -->");
   const example        = afterMistakes[0]?.trim();
   // mistakes can appear with or without an example section preceding it
   const mistakesBlock  = afterMistakes[1]?.trim()
-    ?? (body.split("<!-- mistakes -->")[1]?.trim() ?? "");
+    ?? (bodyCore.split("<!-- mistakes -->")[1]?.trim() ?? "");
   const mistakes       = mistakesBlock || null;
+  const relatedChips   = renderRelated
+    ? seeAlsoIds.map(renderRelated).filter(Boolean)
+    : [];
 
   if (!description) return null;
 
@@ -468,8 +494,26 @@ function NodeDescription({ body, lang }) {
                 border: "1px solid #FFD16620",
                 color: "#e8d5a0", lineHeight: 1.7,
               }}
-              dangerouslySetInnerHTML={{ __html: renderLatex(example) }}
-            />
+            >
+              <span dangerouslySetInnerHTML={{ __html: renderLatex(example) }} />
+              {relatedChips.length > 0 && (
+                <div style={{
+                  marginTop: 14, paddingTop: 12,
+                  borderTop: "1px solid #FFD16620",
+                }}>
+                  <div style={{
+                    fontSize: 10, letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                    color: "#FFD16699", marginBottom: 8, fontWeight: 600,
+                  }}>
+                    {lang === "pl" ? "Zobacz też" : "See also"}
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {relatedChips}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </>
       )}
