@@ -14,3 +14,12 @@ Wzory Viete'a to elegancki most między współczynnikami równania kwadratowego
 
 <!-- example -->
 Na przykład: $x^2 - 7x + 12 = 0$ ma pierwiastki 3 i 4.<br><br>Sprawdź: $3 + 4 = 7 = \frac{-(-7)}{1}$ ✓, $3 \cdot 4 = 12 = \frac{12}{1}$ ✓. Bez rozwiązywania wiesz, że suma $= 7$, iloczyn $= 12$.
+
+<!-- mistakes -->
+- **Znak przy sumie**: dla $ax^2 + bx + c = 0$ mamy $x_1 + x_2 = -\frac{b}{a}$ z minusem. Dla $x^2 - 7x + 12 = 0$ jest $b = -7$, więc suma $= -\frac{-7}{1} = 7$, a nie $-7$. Pomylenie minusa to najczęstszy błąd przy Viète'u.
+- **Dzielenie przez $a$**: wzory wymagają podzielenia przez $a$, gdy $a \neq 1$. Dla $2x^2 - 6x + 4 = 0$ suma $= -\frac{-6}{2} = 3$, a iloczyn $= \frac{4}{2} = 2$ — nie $6$ ani $4$.
+- **Viète wymaga istnienia pierwiastków**: jeśli $\Delta < 0$, równanie nie ma rozwiązań rzeczywistych i mówienie o „sumie pierwiastków" w zakresie $\mathbb{R}$ traci sens. Przed użyciem wzorów sprawdź znak wyróżnika.
+
+<!-- see-also -->
+quadratic_eq
+factoring
