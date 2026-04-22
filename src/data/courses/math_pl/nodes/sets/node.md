@@ -13,3 +13,7 @@ Zbiór to podstawowe pojęcie matematyki — kolekcja elementów, w której każ
 
 <!-- example -->
 Na przykład: $A = \{1,2,3,4\}$, $B = \{3,4,5,6\}$.<br><br>$A \cap B = \{3,4\}$ (wspólne). $A \cup B = \{1,2,3,4,5,6\}$ (wszystkie). $A \setminus B = \{1,2\}$ (z A, których nie ma w B).
+
+<!-- see-also -->
+counting
+probability

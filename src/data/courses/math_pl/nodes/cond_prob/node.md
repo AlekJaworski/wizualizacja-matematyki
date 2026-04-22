@@ -14,3 +14,6 @@ Prawdopodobieństwo warunkowe odpowiada na pytanie: jak zmienia się szansa zdar
 
 <!-- example -->
 Na przykład: w klasie 30 osób, 12 gra w piłkę nożną, 8 gra w piłkę i koszykówkę.<br><br>$P(\text{koszykówka} | \text{piłka}) = \frac{8}{12} = \frac{2}{3}$. Wiemy, że ktoś gra w piłkę — jakie szanse, że gra też w kosza?
+
+<!-- see-also -->
+probability

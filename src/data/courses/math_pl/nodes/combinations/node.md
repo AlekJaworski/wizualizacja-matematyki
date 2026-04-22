@@ -18,3 +18,8 @@ Na przykład: ile 2-osobowych par z grupy $\{A, B, C\}$?<br><br>To AB, AC, BC �
 - **Kolejność**: kombinacja NIE uwzględnia kolejności, permutacja uwzględnia. "Delegacja 3-osobowa" = kombinacja; "kolejność na podium" = permutacja.
 - **$\binom{n}{k}$ vs $k!$**: $\binom{5}{3} = 10$ (wybieram 3 z 5), ale $5! = 120$ (ustawiam wszystkie 5). Zupełnie różne liczby.
 - **Powtórzenia**: w kombinacji domyślnie zakładamy brak powtórzeń. Gdy powtórzenia są dozwolone, stosuje się odrębny wzór $\binom{n+k-1}{k}$ (poziom rozszerzony).
+
+<!-- see-also -->
+permutations
+binom_theorem
+bernoulli

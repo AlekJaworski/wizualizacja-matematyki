@@ -13,3 +13,7 @@ Wielomiany to wyrażenia algebraiczne zbudowane z potęg zmiennej i współczynn
 
 <!-- example -->
 Na przykład: $2x^3 + 5x^2 - 3x + 1$.<br><br>Tu $a_3 = 2$, $a_2 = 5$, $a_1 = -3$, $a_0 = 1$. Stopień $= 3$, bo najwyższa potęga $x$ to $x^3$.
+
+<!-- see-also -->
+factoring
+fn_poly

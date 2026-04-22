@@ -19,3 +19,8 @@ Na przykład: $2^3 = 8$, więc $\log_2 8 = 3$.<br><br>Reguła iloczynu: $\log_2(
 - **Dziedzina logarytmu**: argument musi być dodatni ($\log_a b$ wymaga $b > 0$, $a > 0$, $a \neq 1$). Rozwiązanie równania trzeba wrócić i sprawdzić w dziedzinie oryginalnego równania.
 - **$\log(a+b) \neq \log a + \log b$**: to najczęstszy błąd. Zachodzi TYLKO $\log(a \cdot b) = \log a + \log b$.
 - **Mylenie podstawy**: $\log_2 8 = 3$, a $\log 8 \approx 0{,}9$ (log dziesiętny). Zawsze sprawdź, jaka jest podstawa.
+
+<!-- see-also -->
+fn_log
+fn_exp
+powers

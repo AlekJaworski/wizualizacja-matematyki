@@ -13,3 +13,7 @@ Permutacja to uporządkowanie elementów — tu liczy się kolejność, bo każd
 
 <!-- example -->
 Na przykład: na ile sposobów ustawić litery A, B, C?<br><br>To ABC, ACB, BAC, BCA, CAB, CBA — 6 sposobów $= 3! = 3 \cdot 2 \cdot 1 = 6$.
+
+<!-- see-also -->
+combinations
+counting

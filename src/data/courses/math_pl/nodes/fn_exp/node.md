@@ -9,3 +9,8 @@ y: 540
 resources:
   - "interactive|fn-exp-explorer.html|Exponential Function Explorer|Funkcja wykładnicza"
 ---
+
+<!-- see-also -->
+log_exp
+fn_log
+powers

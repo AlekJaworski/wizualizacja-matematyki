@@ -13,3 +13,7 @@ Ciągi arytmetyczne i geometryczne to dwa fundamentalne typy ciągów — jeden 
 
 <!-- example -->
 Na przykład: arytmetyczny $1, 4, 7, 10$ ($d = 3$) vs geometryczny $1, 2, 4, 8$ ($q = 2$).<br><br>Przy $n = 10$: arytmetyczny daje $a_{10} = 28$, a geometryczny $a_{10} = 512$ — różnica między wzrostem liniowym a wykładniczym widać od razu.<br><br>Ale gdy $q = 0{,}5$: $1;\ 0{,}5;\ 0{,}25;\ 0{,}125;\ \ldots$ zbiega do $S_\infty = \frac{1}{1-0{,}5} = 2$.
+
+<!-- see-also -->
+sequences
+geo_series

@@ -13,3 +13,7 @@ Optymalizacja to sztuka znajdowania najlepszego rozwiązania — a funkcja kwadr
 
 <!-- example -->
 Na przykład: prostokąt o obwodzie 20. Boki: $x$ i $(10 - x)$.<br><br>Pole: $P = x(10 - x) = -x^2 + 10x$. Wierzchołek paraboli: $x = 5$, $P = 25$.<br><br>Największe pole ma kwadrat $5 \times 5$.
+
+<!-- see-also -->
+fn_quadratic
+deriv_apps
