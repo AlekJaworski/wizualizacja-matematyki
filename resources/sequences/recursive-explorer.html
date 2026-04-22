@@ -231,40 +231,61 @@
     return positions;
   }
 
-  /** Draw an arrow from (x1,y1) to (x2,y2). */
+  /**
+   * Draw an arc arrow from (x1,y1) to (x2,y2).
+   * Clean semicircle whose diameter is the AB segment — size scales with
+   * distance (predictable: distance 1 = small arc, distance 2 = big arc).
+   * Bulges to the left of the A→B direction (above the line when going right).
+   */
   function arrow(x1, y1, x2, y2, col, alpha) {
     cx.save();
-    cx.globalAlpha = alpha === undefined ? 0.7 : alpha;
+    cx.globalAlpha = alpha === undefined ? 0.85 : alpha;
     cx.strokeStyle = col;
     cx.fillStyle = col;
-    cx.lineWidth = 1.3;
+    cx.lineWidth = 1.4;
 
+    const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
     const dx = x2 - x1, dy = y2 - y1;
     const L = Math.sqrt(dx*dx + dy*dy);
     if (L < 4) { cx.restore(); return; }
-    const ux = dx / L, uy = dy / L;
-    // Shorten so arrowhead lands near the target without overlapping
-    const endX = x2 - ux * 8;
-    const endY = y2 - uy * 8;
+    const r = L / 2;
+    // Unit perpendicular pointing "left of direction" (visually above when going right)
+    const perpX = dy / L;
+    const perpY = -dx / L;
 
-    // Curved path — slight bow upward for readability
-    const midX = (x1 + endX) / 2 - uy * 14;
-    const midY = (y1 + endY) / 2 + ux * 14;
+    // Stop arc slightly before the endpoint so the head doesn't overlap the target
+    const gap = Math.min(8, r * 0.25);
+    const endT = Math.PI - gap / r;
+
+    const steps = 28;
     cx.beginPath();
-    cx.moveTo(x1, y1);
-    cx.quadraticCurveTo(midX, midY, endX, endY);
+    for (let i = 0; i <= steps; i++) {
+      const t = (i / steps) * endT;
+      const cT = Math.cos(t), sT = Math.sin(t);
+      const px = mx + cT * (x1 - mx) + sT * r * perpX;
+      const py = my + cT * (y1 - my) + sT * r * perpY;
+      if (i === 0) cx.moveTo(px, py); else cx.lineTo(px, py);
+    }
     cx.stroke();
 
-    // Arrowhead
-    const ax = endX, ay = endY;
+    // Arrowhead at (x2, y2). Tangent at t=π is −perp (direction of motion into B).
+    const ux = -perpX, uy = -perpY;
     const ah = 6;
+    const baseX = x2 - ux * ah;
+    const baseY = y2 - uy * ah;
     cx.beginPath();
-    cx.moveTo(ax + ux * ah, ay + uy * ah);
-    cx.lineTo(ax - uy * (ah * 0.5) - ux * 2, ay + ux * (ah * 0.5) - uy * 2);
-    cx.lineTo(ax + uy * (ah * 0.5) - ux * 2, ay - ux * (ah * 0.5) - uy * 2);
+    cx.moveTo(x2, y2);
+    cx.lineTo(baseX + uy * (ah * 0.5), baseY - ux * (ah * 0.5));
+    cx.lineTo(baseX - uy * (ah * 0.5), baseY + ux * (ah * 0.5));
     cx.closePath();
     cx.fill();
     cx.restore();
+  }
+
+  /** Render a number as Unicode subscript, e.g. 12 → "₁₂". */
+  function sub(n) {
+    const S = '₀₁₂₃₄₅₆₇₈₉';
+    return String(n).replace(/\d/g, d => S[+d]);
   }
 
   // ── Stages ─────────────────────────────────────────────────────
@@ -400,105 +421,103 @@
     },
 
     // ───────────────────────────────────────────────────────────
-    // Stage 4: Reindexing
+    // Stage 4: Reindexing — same machinery, new labels
     {
-      title: () => T('Przeindeksowanie — te same liczby, inne etykiety',
-                     'Reindexing — same numbers, different labels'),
+      title: () => T('Przeindeksowanie — ta sama maszyna, inne etykiety',
+                     'Reindexing — same machinery, different labels'),
       desc: () => T(
-        'Podstawmy k = n − 1, czyli n = k + 1. Wtedy aₙ staje się bₖ. Ciąg to te same liczby — tylko oś indeksów startuje od zera zamiast od jedynki. Reguła przepisuje się mechanicznie: w miejsce każdego n wstawiamy k+1. aₙ₊₂ = aₙ₊₁ + aₙ  →  bₖ₊₁ = bₖ + bₖ₋₁.',
-        'Let k = n − 1, so n = k + 1. Then aₙ becomes bₖ. The sequence is the same numbers — only the index axis starts at 0 instead of 1. The rule rewrites mechanically: substitute k+1 for every n. aₙ₊₂ = aₙ₊₁ + aₙ  →  bₖ₊₁ = bₖ + bₖ₋₁.'
+        'Każda kropka ma dwie nazwy: aₙ (numeracja od 1) i bₖ (numeracja od 0, przy k = n − 1). Reguła przepisuje się mechanicznie — wstawiając k+1 w każde n, aₙ₊₂ = aₙ₊₁ + aₙ przechodzi w bₖ₊₁ = bₖ + bₖ₋₁. Kliknij „Policz kolejny bₖ" — ta sama maszyna podstawień co w etapie 1, tylko na innych etykietach. Geometrycznie to przesunięcie wykresu ciągu w lewo o 1 — ta sama operacja, co y = f(x+1) w węźle fn_transforms.',
+        'Each dot has two names: aₙ (indexed from 1) and bₖ (indexed from 0, with k = n − 1). The rule rewrites mechanically — substitute k+1 for every n, and aₙ₊₂ = aₙ₊₁ + aₙ becomes bₖ₊₁ = bₖ + bₖ₋₁. Press "Compute next bₖ" — same substitution machinery as stage 1, just on different labels. Geometrically this is a left shift of the sequence graph by 1 — the same operation as y = f(x+1) in the fn_transforms node.'
       ),
-      onEnter: () => { a1 = 1; a2 = 1; },
+      ctrls: [
+        { id: 'next', labelPl: '▶ Policz kolejny bₖ', labelEn: '▶ Compute next bₖ',
+          onClick: () => { if (revealed < 8) { revealed++; animT = 0; } } },
+        { id: 'reset', labelPl: '↺ Reset', labelEn: '↺ Reset',
+          onClick: () => { revealed = 2; animT = 0; } },
+      ],
+      onEnter: () => { a1 = 1; a2 = 1; revealed = 2; animT = 0; },
       draw() {
-        const rule = RULES[0].fn;
-        const terms = computeTerms(a1, a2, 10, rule);
-        const maxN = 8;
+        const N = 8;
+        const xPad = 56;
+        const scX = (W - xPad - 30) / (N + 1);
+        const yDot  = 230;
+        const yALbl = 210;
+        const yBLbl = 256;
 
-        // Top strip: a_n, indexed from n=1
-        cx.save();
-        cx.font = '11px monospace';
-        cx.fillStyle = COL_CYAN;
-        cx.textAlign = 'left';
-        cx.fillText(T('Oryginał — aₙ, n = 1, 2, 3, …', 'Original — aₙ, n = 1, 2, 3, …'), 18, 50);
-        cx.restore();
+        // Top pill: both rule forms, showing the mechanical substitution
+        infoBox('aₙ₊₂ = aₙ₊₁ + aₙ   ≡   bₖ₊₁ = bₖ + bₖ₋₁', W / 2, 24, COL_YELLOW);
 
-        drawLine(terms, maxN, {
-          color: COL_CYAN, yTop: 62, yBase: 160, xPad: 56, maxN,
-          indexStart: 1, highlightLast: false,
-        });
-
-        // Bottom strip: b_k = a_{k+1}, indexed from k=0
-        cx.save();
-        cx.font = '11px monospace';
-        cx.fillStyle = COL_ORANGE;
-        cx.textAlign = 'left';
-        cx.fillText(T('Przeindeksowane — bₖ = aₖ₊₁, k = 0, 1, 2, …',
-                      'Reindexed — bₖ = aₖ₊₁, k = 0, 1, 2, …'), 18, 192);
-        cx.restore();
-
-        // b_k uses same numeric values but labels x-axis with k starting at 0.
-        // We overload drawLine: pass a shifted array so terms[1]=b_0=a_1.
-        const bTerms = [0, ...terms.slice(1, 1 + maxN)]; // index 1 -> b_0 = a_1
-        // But we want the axis label to read k=0,1,2,...  Render manually.
-        const yTop = 204, yBase = H - 48, xPad = 56;
-        const valsClamped = bTerms.slice(1, 1 + maxN).map(v => Math.max(-200, Math.min(200, v || 0)));
-        let yMin = Math.min(...valsClamped, 0);
-        let yMax = Math.max(...valsClamped, 1);
-        if (yMax - yMin < 1) yMax = yMin + 1;
-        const yRange = yMax - yMin;
-        yMin -= yRange * 0.15; yMax += yRange * 0.25;
-        const scY = (yBase - yTop) / (yMax - yMin);
-        const scX = (W - xPad - 30) / (maxN + 1);
-        const zeroY = yBase - (0 - yMin) * scY;
-
-        cx.save();
-        cx.strokeStyle = 'rgba(255,255,255,0.08)';
-        cx.lineWidth = 0.7;
-        cx.beginPath();
-        cx.moveTo(xPad, zeroY);
-        cx.lineTo(W - 15, zeroY);
-        cx.stroke();
-        cx.restore();
-
-        for (let i = 0; i < maxN; i++) {
-          const val = bTerms[i + 1];
+        // Row of flat dots; aₙ above (dim, "already named from stage 1"),
+        // bₖ below (bold, revealed one at a time as the b-rule computes them).
+        const positions = [];
+        for (let i = 0; i < N; i++) {
+          const n = i + 1;
+          const k = i;
           const xp = xPad + (i + 1) * scX;
-          const clamped = Math.max(-200, Math.min(200, val || 0));
-          const yp = yBase - (clamped - yMin) * scY;
+          positions.push({ xp, yp: yDot });
 
-          const barW = Math.min(scX * 0.5, 28);
           cx.save();
-          cx.fillStyle = COL_ORANGE + '20';
-          cx.strokeStyle = COL_ORANGE + '50';
-          cx.lineWidth = 1;
-          const barTop = Math.min(yp, zeroY);
-          const barH = Math.abs(yp - zeroY);
-          if (barH > 1) {
-            roundRect(cx, xp - barW/2, barTop, barW, barH, 3);
-            cx.fill(); cx.stroke();
+          cx.globalAlpha = 0.55;
+          cx.font = '11px monospace';
+          cx.fillStyle = COL_CYAN;
+          cx.textAlign = 'center';
+          cx.fillText('a' + sub(n), xp, yALbl);
+          cx.restore();
+
+          dot(xp, yDot, 4.5, COL_YELLOW, 0.85);
+
+          const isRevealedB = i < revealed;
+          const isNewestB   = i === revealed - 1 && revealed >= 3;
+          if (isRevealedB) {
+            const appearB = isNewestB ? Math.min(1, animT / 22) : 1;
+            cx.save();
+            cx.globalAlpha = appearB;
+            cx.font = isNewestB ? 'bold 13px monospace' : 'bold 12px monospace';
+            cx.fillStyle = COL_ORANGE;
+            cx.textAlign = 'center';
+            cx.fillText('b' + sub(k), xp, yBLbl);
+            cx.restore();
           }
-          cx.restore();
+        }
 
-          dot(xp, yp, 4.5, COL_ORANGE, 1);
+        // Arcs into the newest bₖ — same yellow/green as stage 1 so the
+        // machinery is instantly recognisable; the *labels* are what changed.
+        if (revealed >= 3) {
+          const idx = revealed - 1;
+          const newest = positions[idx];
+          const near   = positions[idx - 1]; // bₖ   (distance 1, small arc)
+          const far    = positions[idx - 2]; // bₖ₋₁ (distance 2, big arc)
+          const alpha  = Math.min(1, animT / 22);
+          arrow(far.xp,  far.yp,  newest.xp, newest.yp, COL_YELLOW, alpha * 0.85);
+          arrow(near.xp, near.yp, newest.xp, newest.yp, COL_GREEN,  alpha);
 
+          // Symbolic substitution pill — shows the rule specialised to this k,
+          // with no numerical values (growth isn't the point here).
+          const txt = 'b' + sub(idx) + ' = b' + sub(idx - 1) + ' + b' + sub(idx - 2);
           cx.save();
-          cx.font = '10px monospace';
-          cx.fillStyle = COL_ORANGE;
-          cx.textAlign = 'center';
-          cx.fillText(fmt(val), xp, val >= 0 ? yp - 9 : yp + 16);
+          cx.globalAlpha = alpha;
+          infoBox(txt, W / 2, 62, COL_ORANGE);
           cx.restore();
-
+        } else {
           cx.save();
-          cx.font = '10px monospace';
-          cx.fillStyle = 'rgba(255,255,255,0.4)';
+          cx.font = '11px monospace';
+          cx.fillStyle = 'rgba(255,255,255,0.45)';
           cx.textAlign = 'center';
-          cx.fillText('k=' + i, xp, yBase + 16);
+          cx.fillText(T('bazowe: b₀ i b₁ dane. Kliknij „Policz kolejny bₖ".',
+                        'base: b₀ and b₁ given. Press "Compute next bₖ".'),
+                      W / 2, 66);
           cx.restore();
         }
 
-        // Substitution pill
-        const pillTxt = 'n = k+1  →  aₙ₊₂ = aₙ₊₁ + aₙ  ≡  bₖ₊₁ = bₖ + bₖ₋₁';
-        infoBox(pillTxt, W / 2, 26, COL_YELLOW);
+        // Footer — invariance reminder
+        cx.save();
+        cx.font = '10px monospace';
+        cx.fillStyle = 'rgba(255,255,255,0.4)';
+        cx.textAlign = 'center';
+        cx.fillText(T('każda kropka = jeden wyraz; aₙ nad nią, bₖ pod nią',
+                      'each dot = one term; aₙ above, bₖ below'),
+                    W / 2, H - 14);
+        cx.restore();
       }
     },
   ];
