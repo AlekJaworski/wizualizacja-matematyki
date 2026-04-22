@@ -28,10 +28,10 @@ const SECTIONS = [
     subtitleEn: "Core topics with the cleanest Warsztats",
     accent: "#58C4DD",
     items: [
-      { nodeId: "vieta",       match: "Warsztat",  hookPl: "Wzory Viete'a bez wzoru kwadratowego — szybkie rozbijanie równań." },
-      { nodeId: "derivative",  match: "Warsztat",  hookPl: "Reguły pochodnych na żywych przykładach, z wizualizacją stycznej." },
+      { nodeId: "vieta",       match: "Warsztat",  hookPl: "Wzory Viete'a bez delty — pierwiastki wprost ze współczynników." },
+      { nodeId: "derivative",  match: "Warsztat",  hookPl: "Reguły pochodnych na przykładach, z wizualizacją stycznej." },
       { nodeId: "trig_basic",  match: "Warsztat",  hookPl: "Trygonometria od okręgu jednostkowego, krok po kroku." },
-      { nodeId: "probability", match: "Warsztat",  hookPl: "Drzewo zdarzeń, reguły dodawania i mnożenia — na palcach." },
+      { nodeId: "probability", match: "Warsztat",  hookPl: "Drzewo zdarzeń oraz reguły dodawania i mnożenia na konkretnych przykładach." },
     ],
   },
   {
@@ -44,7 +44,7 @@ const SECTIONS = [
     items: [
       { nodeId: "linearity_fallacy", match: "Warsztat", hookPl: "$(a+b)^2 \\neq a^2 + b^2$ i pięć podobnych pułapek w jednym miejscu." },
       { nodeId: "equation_domain",   match: "Warsztat", hookPl: "Dlaczego dzielenie przez $x$ gubi rozwiązania — i jak tego uniknąć." },
-      { nodeId: "trig_basic",        match: "kwadrant",  hookPl: "Znaki sinusa i kosinusa w każdej ćwiartce — bez zgadywania." },
+      { nodeId: "trig_basic",        match: "kwadrant",  hookPl: "Znaki sinusa i kosinusa w każdej ćwiartce — reguła z okręgu jednostkowego." },
       { nodeId: "abs_value",         match: "odleg",     hookPl: "$|x-a|$ jako odległość na osi liczbowej — geometria pokonuje rachunek." },
     ],
   },
@@ -52,13 +52,13 @@ const SECTIONS = [
     id: "widac",
     titlePl: "Zobacz, jak to działa",
     titleEn: "See it move",
-    subtitlePl: "Matematyka, której nie da się zrozumieć z kartki",
+    subtitlePl: "Zjawiska, które łatwiej zrozumieć w ruchu niż z samego wzoru",
     subtitleEn: "Interactive explorers — slide, rotate, watch it move",
     accent: "#83C167",
     items: [
       { nodeId: "solid_geom",    match: "Warsztat", hookPl: "Ostrosłupy i przekątne w 3D — przekroje pokazane na rzucie izometrycznym." },
       { nodeId: "fn_transforms", match: "Warsztat", hookPl: "Przesunięcia, odbicia i skalowanie — cztery rodziny na paraboli i sinusoidzie." },
-      { nodeId: "derivative",    match: "Why",       hookPl: "Dlaczego pochodna $x^2$ to $2x$ — z obrazka, nie ze wzoru." },
+      { nodeId: "derivative",    match: "Why",       hookPl: "Dlaczego pochodna $x^2$ równa się $2x$ — wyprowadzenie geometryczne." },
       { nodeId: "integral",      match: "Explor",    hookPl: "Całka jako pole pod wykresem — sumy Riemanna na żywo." },
     ],
   },
@@ -66,7 +66,7 @@ const SECTIONS = [
     id: "meta",
     titlePl: "Meta-umiejętności",
     titleEn: "Meta-skills",
-    subtitlePl: "Myślenie, które działa w każdym zadaniu maturalnym",
+    subtitlePl: "Techniki rozumowania przydatne w zadaniach otwartych",
     subtitleEn: "Reasoning techniques that transfer across topics",
     accent: "#C78DFF",
     items: [
@@ -82,7 +82,7 @@ const SECTIONS = [
 const HERO_VIZ = {
   nodeId: "linearity_fallacy",
   match: "Warsztat",
-  captionPl: "Dotknij, przesuń, zobacz — matematyka, w którą można ręką ruszyć.",
+  captionPl: "Interaktywny model — przesuwaj suwaki i obserwuj, jak zmienia się wynik.",
   captionEn: "Touch it, slide it, see it — math you can grab.",
 };
 
@@ -165,11 +165,11 @@ export function ShowcaseGallery({ RAW_NODES, SCOPE_COLORS, SCOPE_LABELS, lang, o
           >←</button>
           <div>
             <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: COLORS.textPrimary }}>
-              {lang === "pl" ? "Zobacz, co tu mamy" : "Browse what we've built"}
+              {lang === "pl" ? "Wybrane wizualizacje" : "Browse what we've built"}
             </h1>
             <p style={{ margin: 0, fontSize: 12, color: COLORS.textDim }}>
               {lang === "pl"
-                ? "Ręcznie wybrane Warsztaty i wizualizacje — punkt wejścia bez diagnostyki"
+                ? "Ręcznie wybrane Warsztaty i wizualizacje — zacznij bez testu"
                 : "Hand-picked Warsztats and explorers — entry without the quiz"}
             </p>
           </div>

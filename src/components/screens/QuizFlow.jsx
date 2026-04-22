@@ -443,7 +443,7 @@ export function QuizFlow({ RAW_NODES, RAW_EDGES, QUESTION_BANK, lang, quizPreset
                     fontSize: 13,
                     fontWeight: 500,
                   }}
-                  title={lang === "pl" ? "Liczymy jako niewiadomą — bez zgadywania" : "Counts as unknown — no guessing"}
+                  title={lang === "pl" ? "Zaznaczamy temat jako do sprawdzenia" : "Marks this topic as one to review"}
                 >
                   {t("quizDontKnow", lang)}
                 </button>
