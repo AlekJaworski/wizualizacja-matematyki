@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ciągi rekurencyjne — Eksplorator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
+  .wrap { width: 100%; max-width: 640px; }
+  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
+  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
+  #qf { margin: 0 0 5px; font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
+  #qd { margin: 0 0 10px; font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); min-height: 48px; }
+  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
+  .slider-row span.lbl { font-family: monospace; min-width: 52px; }
+  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
+  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
+  .ctrls { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+  .ctrls button { background: rgba(88,196,221,.08); border: 1px solid rgba(88,196,221,.28); color: #58C4DD; padding: 5px 10px; font-size: 12px; border-radius: 5px; cursor: pointer; font-family: monospace; }
+  .ctrls button:hover { background: rgba(88,196,221,.18); }
+  .ctrls button.active { background: rgba(88,196,221,.22); border-color: rgba(88,196,221,.6); }
+  .nav { display: flex; align-items: center; justify-content: space-between; }
+  .nav button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
+  .nav button:hover { background: rgba(255,255,255,.08); }
+  .nav button:disabled { opacity: .3; cursor: default; }
+  #qdots { display: flex; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.18); transition: background .2s; }
+  .dot.active { background: #58C4DD; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="cv" width="600" height="340"></canvas>
+  <div class="panel">
+    <p id="qf"></p>
+    <p id="qd"></p>
+    <div id="ctrls-wrap"></div>
+    <div id="sliders-wrap"></div>
+    <div class="nav">
+      <button id="qprev">&larr;</button>
+      <div id="qdots"></div>
+      <button id="qnext">&rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+(function(){
+  const cv = document.getElementById('cv');
+  const cx = cv.getContext('2d');
+  const W = 600, H = 340;
+
+  const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
+  const T = (pl, en) => LANG === 'pl' ? pl : en;
+
+  const COL_CYAN  = '#58C4DD';
+  const COL_BLUE  = '#4a9eff';
+  const COL_ORANGE= '#FF6B35';
+  const COL_GREEN = '#83C167';
+  const COL_YELLOW= '#FFD166';
+  const COL_PINK  = '#E07090';
+  const COL_PURP  = '#C080FF';
+
+  // ── State shared across stages ─────────────────────────────────
+  let stage = 0;
+  let animT = 0;
+
+  // stages 1–3: indexed from 1. a[1], a[2], then a[n+2] = rule(a[n+1], a[n]).
+  // "revealed" = how many terms are shown (base + computed steps).
+  // Each stage manages its own revealed counter via the stepBtn.
+  let a1 = 1, a2 = 1;                 // base cases for stage 1 & 2
+  let revealed = 2;                    // number of terms currently shown
+
+  // Stage 3: rule choice
+  const RULES = [
+    { id: 'fib',  labelPl: 'aₙ₊₂ = aₙ₊₁ + aₙ',     labelEn: 'aₙ₊₂ = aₙ₊₁ + aₙ',     fn: (p, pp) => p + pp,        tag: '+' },
+    { id: 'lin',  labelPl: 'aₙ₊₂ = 2aₙ₊₁ − aₙ',    labelEn: 'aₙ₊₂ = 2aₙ₊₁ − aₙ',    fn: (p, pp) => 2 * p - pp,    tag: '−' },
+    { id: 'prod', labelPl: 'aₙ₊₂ = aₙ₊₁ · aₙ',     labelEn: 'aₙ₊₂ = aₙ₊₁ · aₙ',     fn: (p, pp) => p * pp,        tag: '·' },
+    { id: 'sub',  labelPl: 'aₙ₊₂ = aₙ₊₁ − aₙ',     labelEn: 'aₙ₊₂ = aₙ₊₁ − aₙ',     fn: (p, pp) => p - pp,        tag: '−' },
+  ];
+  let ruleIdx = 0;
+
+  // ── Helpers ────────────────────────────────────────────────────
+  function clear() {
+    cx.fillStyle = '#0e0e12';
+    cx.fillRect(0, 0, W, H);
+  }
+
+  function dot(sx, sy, r, col, alpha) {
+    cx.save();
+    if (alpha !== undefined) cx.globalAlpha = alpha;
+    cx.fillStyle = col;
+    cx.beginPath();
+    cx.arc(sx, sy, r, 0, Math.PI * 2);
+    cx.fill();
+    cx.restore();
+  }
+
+  function fmt(v) {
+    if (!isFinite(v)) return '∞';
+    if (Math.abs(v) >= 1e6) return v.toExponential(1);
+    if (Math.abs(v - Math.round(v)) < 0.01) return Math.round(v).toString();
+    return v.toFixed(1);
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+    ctx.closePath();
+  }
+
+  function infoBox(text, sx, sy, col, alpha) {
+    cx.save();
+    cx.font = '12px monospace';
+    if (alpha !== undefined) cx.globalAlpha = alpha;
+    const w = cx.measureText(text).width + 16;
+    cx.fillStyle = 'rgba(14,14,18,0.88)';
+    cx.strokeStyle = col + '50';
+    cx.lineWidth = 1;
+    roundRect(cx, sx - w/2, sy - 12, w, 24, 5);
+    cx.fill(); cx.stroke();
+    cx.fillStyle = col;
+    cx.textAlign = 'center';
+    cx.fillText(text, sx, sy + 4);
+    cx.restore();
+  }
+
+  /**
+   * Compute terms a[1..N] from base cases and rule. Clamped to a safe range
+   * so explosive geometric/product sequences don't crash the draw loop.
+   */
+  function computeTerms(base1, base2, N, rule) {
+    const a = [0, base1, base2];
+    for (let n = 3; n <= N; n++) {
+      const next = rule(a[n-1], a[n-2]);
+      a.push(Math.max(-1e9, Math.min(1e9, next)));
+    }
+    return a;
+  }
+
+  /**
+   * Draw a horizontal number line with index labels, plus vertical bars
+   * for each revealed term. Returns screen coordinates so stages can
+   * draw arrows on top.
+   */
+  function drawLine(terms, revealedCount, opts) {
+    const {
+      color = COL_CYAN,
+      yTop = 80, yBase = H - 46,
+      xPad = 56, indexStart = 1, maxN = 10,
+      highlightLast = true,
+    } = opts || {};
+
+    const shown = terms.slice(indexStart, indexStart + maxN);
+    const valsClamped = shown.map(v => Math.max(-200, Math.min(200, v || 0)));
+    let yMin = Math.min(...valsClamped, 0);
+    let yMax = Math.max(...valsClamped, 1);
+    if (yMax - yMin < 1) yMax = yMin + 1;
+    const yRange = yMax - yMin;
+    yMin -= yRange * 0.15; yMax += yRange * 0.25;
+    const scY = (yBase - yTop) / (yMax - yMin);
+    const scX = (W - xPad - 30) / (maxN + 1);
+    const zeroY = yBase - (0 - yMin) * scY;
+
+    // Zero line
+    cx.save();
+    cx.strokeStyle = 'rgba(255,255,255,0.08)';
+    cx.lineWidth = 0.7;
+    cx.beginPath();
+    cx.moveTo(xPad, zeroY);
+    cx.lineTo(W - 15, zeroY);
+    cx.stroke();
+    cx.restore();
+
+    const positions = [];
+    for (let i = 0; i < maxN; i++) {
+      const n = indexStart + i;
+      const val = terms[n];
+      const xp = xPad + (i + 1) * scX;
+      const clamped = Math.max(-200, Math.min(200, val || 0));
+      const yp = yBase - (clamped - yMin) * scY;
+      positions.push({ n, xp, yp, val, zeroY });
+
+      // n label on axis
+      cx.save();
+      cx.font = '10px monospace';
+      cx.fillStyle = 'rgba(255,255,255,0.4)';
+      cx.textAlign = 'center';
+      cx.fillText('n=' + n, xp, yBase + 16);
+      cx.restore();
+
+      const isRevealed = i < revealedCount;
+      if (!isRevealed || val === undefined) continue;
+
+      const isNewest = highlightLast && (i === revealedCount - 1);
+      const appear = isNewest ? Math.min(1, animT / 22) : 1;
+
+      // Bar from zero to value
+      const barW = Math.min(scX * 0.5, 28);
+      cx.save();
+      cx.globalAlpha = appear;
+      cx.fillStyle = color + '20';
+      cx.strokeStyle = color + '50';
+      cx.lineWidth = 1;
+      const barTop = Math.min(yp, zeroY);
+      const barH = Math.abs(yp - zeroY);
+      if (barH > 1) {
+        roundRect(cx, xp - barW/2, barTop, barW, barH, 3);
+        cx.fill(); cx.stroke();
+      }
+      cx.restore();
+
+      dot(xp, yp, isNewest ? 5.5 : 4.5, color, appear);
+
+      // Value label
+      cx.save();
+      cx.globalAlpha = appear;
+      cx.font = isNewest ? 'bold 11px monospace' : '10px monospace';
+      cx.fillStyle = color;
+      cx.textAlign = 'center';
+      const labelY = val >= 0 ? yp - 9 : yp + 16;
+      cx.fillText(fmt(val), xp, labelY);
+      cx.restore();
+    }
+
+    return positions;
+  }
+
+  /** Draw an arrow from (x1,y1) to (x2,y2). */
+  function arrow(x1, y1, x2, y2, col, alpha) {
+    cx.save();
+    cx.globalAlpha = alpha === undefined ? 0.7 : alpha;
+    cx.strokeStyle = col;
+    cx.fillStyle = col;
+    cx.lineWidth = 1.3;
+
+    const dx = x2 - x1, dy = y2 - y1;
+    const L = Math.sqrt(dx*dx + dy*dy);
+    if (L < 4) { cx.restore(); return; }
+    const ux = dx / L, uy = dy / L;
+    // Shorten so arrowhead lands near the target without overlapping
+    const endX = x2 - ux * 8;
+    const endY = y2 - uy * 8;
+
+    // Curved path — slight bow upward for readability
+    const midX = (x1 + endX) / 2 - uy * 14;
+    const midY = (y1 + endY) / 2 + ux * 14;
+    cx.beginPath();
+    cx.moveTo(x1, y1);
+    cx.quadraticCurveTo(midX, midY, endX, endY);
+    cx.stroke();
+
+    // Arrowhead
+    const ax = endX, ay = endY;
+    const ah = 6;
+    cx.beginPath();
+    cx.moveTo(ax + ux * ah, ay + uy * ah);
+    cx.lineTo(ax - uy * (ah * 0.5) - ux * 2, ay + ux * (ah * 0.5) - uy * 2);
+    cx.lineTo(ax + uy * (ah * 0.5) - ux * 2, ay - ux * (ah * 0.5) - uy * 2);
+    cx.closePath();
+    cx.fill();
+    cx.restore();
+  }
+
+  // ── Stages ─────────────────────────────────────────────────────
+  const stages = [
+    // ───────────────────────────────────────────────────────────
+    // Stage 1: What is a recursive sequence?
+    {
+      title: () => T('Ciąg rekurencyjny — definiowany przez poprzedniki',
+                     'Recursive sequence — defined by predecessors'),
+      desc: () => T(
+        'Reguła aₙ₊₂ = aₙ₊₁ + aₙ mówi, jak policzyć kolejny wyraz, mając dwa poprzednie. Dwa pierwsze wyrazy (a₁ = 1, a₂ = 1) podajemy jawnie — bez nich nie da się ruszyć. Kliknij „Policz kolejny", żeby zobaczyć, jak podstawienie tworzy następny wyraz: strzałki pokazują, które dwa wyrazy wchodzą do reguły.',
+        'The rule aₙ₊₂ = aₙ₊₁ + aₙ tells you how to compute the next term from the two previous ones. The first two (a₁ = 1, a₂ = 1) are given — without them nothing is defined. Press "Compute next" to see how substitution builds each term: the arrows show which two values feed into the rule.'
+      ),
+      ctrls: [
+        { id: 'next', labelPl: '▶ Policz kolejny', labelEn: '▶ Compute next',
+          onClick: () => { if (revealed < 10) { revealed++; animT = 0; } } },
+        { id: 'reset', labelPl: '↺ Reset', labelEn: '↺ Reset',
+          onClick: () => { revealed = 2; animT = 0; } },
+      ],
+      onEnter: () => { a1 = 1; a2 = 1; ruleIdx = 0; revealed = 2; animT = 0; },
+      draw() {
+        const rule = RULES[0].fn;
+        const terms = computeTerms(a1, a2, 10, rule);
+        const positions = drawLine(terms, revealed, { color: COL_CYAN });
+
+        // Arrows for the last revealed term (n >= 3)
+        if (revealed >= 3) {
+          const lastIdx = revealed - 1; // 0-based into positions
+          const newest = positions[lastIdx];
+          const p1 = positions[lastIdx - 1];
+          const p2 = positions[lastIdx - 2];
+          const alpha = Math.min(1, animT / 22) * 0.85;
+          arrow(p2.xp, p2.yp, newest.xp, newest.yp, COL_YELLOW, alpha * 0.9);
+          arrow(p1.xp, p1.yp, newest.xp, newest.yp, COL_GREEN, alpha);
+
+          // Substitution pill: a_{n+2} = a_{n+1} + a_n with actual numbers
+          cx.save();
+          cx.globalAlpha = alpha;
+          const txt = fmt(newest.val) + ' = ' + fmt(p1.val) + ' + ' + fmt(p2.val);
+          infoBox(txt, W / 2, 26, COL_CYAN);
+          cx.restore();
+        } else {
+          infoBox(T('a₁ = 1, a₂ = 1 — reguła: aₙ₊₂ = aₙ₊₁ + aₙ',
+                    'a₁ = 1, a₂ = 1 — rule: aₙ₊₂ = aₙ₊₁ + aₙ'),
+                  W / 2, 26, COL_CYAN);
+        }
+
+        // Status line
+        cx.save();
+        cx.font = '11px monospace';
+        cx.fillStyle = 'rgba(255,255,255,0.4)';
+        cx.textAlign = 'center';
+        cx.fillText(T('policzone wyrazy: ', 'terms computed: ') + revealed + ' / 10', W / 2, H - 16);
+        cx.restore();
+      }
+    },
+
+    // ───────────────────────────────────────────────────────────
+    // Stage 2: Change base cases
+    {
+      title: () => T('Zmień punkt startu — ten sam wzór, inny ciąg',
+                     'Change the base — same rule, different sequence'),
+      desc: () => T(
+        'Reguła aₙ₊₂ = aₙ₊₁ + aₙ pozostaje ta sama. Zmieniaj a₁ i a₂ suwakami i patrz, jak cały ciąg się przesuwa. Wniosek: sama reguła nie wystarczy — reguła razem z warunkami początkowymi jednoznacznie definiują ciąg. Spróbuj a₁ = 2, a₂ = 1 — to ciąg Lucasa.',
+        'The rule aₙ₊₂ = aₙ₊₁ + aₙ is fixed. Drag a₁ and a₂ and watch the whole sequence shift. Takeaway: the rule alone is not enough — rule together with base cases defines the sequence. Try a₁ = 2, a₂ = 1 — that is the Lucas numbers.'
+      ),
+      sliders: [
+        { id: 'a1', lbl: 'a₁', color: COL_BLUE,  min: -3, max: 5, step: 1, get: () => a1, set: v => { a1 = v; } },
+        { id: 'a2', lbl: 'a₂', color: COL_GREEN, min: -3, max: 5, step: 1, get: () => a2, set: v => { a2 = v; } },
+      ],
+      onEnter: () => { a1 = 1; a2 = 1; ruleIdx = 0; },
+      draw() {
+        const rule = RULES[0].fn;
+        const terms = computeTerms(a1, a2, 10, rule);
+        drawLine(terms, 10, { color: COL_CYAN, highlightLast: false });
+
+        // Formula pill with current base
+        const eqTxt = 'a₁=' + fmt(a1) + ', a₂=' + fmt(a2) + '  →  aₙ₊₂ = aₙ₊₁ + aₙ';
+        infoBox(eqTxt, W / 2, 26, COL_CYAN);
+
+        // Side-by-side classic sequences hint
+        cx.save();
+        cx.font = '10px monospace';
+        cx.fillStyle = 'rgba(255,255,255,0.45)';
+        cx.textAlign = 'center';
+        let tag = '';
+        if (a1 === 1 && a2 === 1)      tag = T('Fibonacci', 'Fibonacci');
+        else if (a1 === 2 && a2 === 1) tag = T('Lucas', 'Lucas');
+        else if (a1 === 0 && a2 === 0) tag = T('ciąg zerowy', 'zero sequence');
+        if (tag) cx.fillText('— ' + tag + ' —', W / 2, H - 16);
+        cx.restore();
+      }
+    },
+
+    // ───────────────────────────────────────────────────────────
+    // Stage 3: Change the rule
+    {
+      title: () => T('Zmień regułę — rekurencja to nie tylko suma',
+                     'Change the rule — recursion is more than addition'),
+      desc: () => T(
+        'Ciągi rekurencyjne różnią się regułą kombinowania poprzednich wyrazów. Dla a₁ = a₂ = 1 spróbuj kolejno: sumy (Fibonacci), 2aₙ₊₁ − aₙ (ciąg liniowy — wyjdzie stała), iloczynu, różnicy. Zauważ, jak różnie rosną — od liniowego przez wykładniczy po oscylujący.',
+        'Recursive sequences differ by how they combine previous terms. For a₁ = a₂ = 1, cycle through: sum (Fibonacci), 2aₙ₊₁ − aₙ (linear — constant), product, difference. Notice how differently they grow — linear, exponential, oscillating.'
+      ),
+      ctrls: RULES.map((r, i) => ({
+        id: 'r_' + i,
+        labelPl: r.labelPl,
+        labelEn: r.labelEn,
+        isActive: () => ruleIdx === i,
+        onClick: () => { ruleIdx = i; animT = 0; },
+      })),
+      onEnter: () => { a1 = 1; a2 = 1; },
+      draw() {
+        const rule = RULES[ruleIdx].fn;
+        const terms = computeTerms(a1, a2, 10, rule);
+        const col = [COL_CYAN, COL_BLUE, COL_ORANGE, COL_PINK][ruleIdx];
+        drawLine(terms, 10, { color: col, highlightLast: false });
+
+        infoBox(RULES[ruleIdx][LANG === 'pl' ? 'labelPl' : 'labelEn'], W / 2, 26, col);
+
+        // Growth note
+        cx.save();
+        cx.font = '10px monospace';
+        cx.fillStyle = 'rgba(255,255,255,0.5)';
+        cx.textAlign = 'center';
+        let note = '';
+        if (ruleIdx === 0) note = T('rosnąco, ~złoty podział', 'grows, ~golden ratio');
+        else if (ruleIdx === 1) note = T('stała: wszystkie wyrazy = 1', 'constant: all terms = 1');
+        else if (ruleIdx === 2) note = T('wykładniczo — eksploduje', 'exponential — explodes');
+        else if (ruleIdx === 3) note = T('oscyluje, okres 6', 'oscillates, period 6');
+        if (note) cx.fillText(note, W / 2, H - 16);
+        cx.restore();
+      }
+    },
+
+    // ───────────────────────────────────────────────────────────
+    // Stage 4: Reindexing
+    {
+      title: () => T('Przeindeksowanie — te same liczby, inne etykiety',
+                     'Reindexing — same numbers, different labels'),
+      desc: () => T(
+        'Podstawmy k = n − 1, czyli n = k + 1. Wtedy aₙ staje się bₖ. Ciąg to te same liczby — tylko oś indeksów startuje od zera zamiast od jedynki. Reguła przepisuje się mechanicznie: w miejsce każdego n wstawiamy k+1. aₙ₊₂ = aₙ₊₁ + aₙ  →  bₖ₊₁ = bₖ + bₖ₋₁.',
+        'Let k = n − 1, so n = k + 1. Then aₙ becomes bₖ. The sequence is the same numbers — only the index axis starts at 0 instead of 1. The rule rewrites mechanically: substitute k+1 for every n. aₙ₊₂ = aₙ₊₁ + aₙ  →  bₖ₊₁ = bₖ + bₖ₋₁.'
+      ),
+      onEnter: () => { a1 = 1; a2 = 1; },
+      draw() {
+        const rule = RULES[0].fn;
+        const terms = computeTerms(a1, a2, 10, rule);
+        const maxN = 8;
+
+        // Top strip: a_n, indexed from n=1
+        cx.save();
+        cx.font = '11px monospace';
+        cx.fillStyle = COL_CYAN;
+        cx.textAlign = 'left';
+        cx.fillText(T('Oryginał — aₙ, n = 1, 2, 3, …', 'Original — aₙ, n = 1, 2, 3, …'), 18, 50);
+        cx.restore();
+
+        drawLine(terms, maxN, {
+          color: COL_CYAN, yTop: 62, yBase: 160, xPad: 56, maxN,
+          indexStart: 1, highlightLast: false,
+        });
+
+        // Bottom strip: b_k = a_{k+1}, indexed from k=0
+        cx.save();
+        cx.font = '11px monospace';
+        cx.fillStyle = COL_ORANGE;
+        cx.textAlign = 'left';
+        cx.fillText(T('Przeindeksowane — bₖ = aₖ₊₁, k = 0, 1, 2, …',
+                      'Reindexed — bₖ = aₖ₊₁, k = 0, 1, 2, …'), 18, 192);
+        cx.restore();
+
+        // b_k uses same numeric values but labels x-axis with k starting at 0.
+        // We overload drawLine: pass a shifted array so terms[1]=b_0=a_1.
+        const bTerms = [0, ...terms.slice(1, 1 + maxN)]; // index 1 -> b_0 = a_1
+        // But we want the axis label to read k=0,1,2,...  Render manually.
+        const yTop = 204, yBase = H - 48, xPad = 56;
+        const valsClamped = bTerms.slice(1, 1 + maxN).map(v => Math.max(-200, Math.min(200, v || 0)));
+        let yMin = Math.min(...valsClamped, 0);
+        let yMax = Math.max(...valsClamped, 1);
+        if (yMax - yMin < 1) yMax = yMin + 1;
+        const yRange = yMax - yMin;
+        yMin -= yRange * 0.15; yMax += yRange * 0.25;
+        const scY = (yBase - yTop) / (yMax - yMin);
+        const scX = (W - xPad - 30) / (maxN + 1);
+        const zeroY = yBase - (0 - yMin) * scY;
+
+        cx.save();
+        cx.strokeStyle = 'rgba(255,255,255,0.08)';
+        cx.lineWidth = 0.7;
+        cx.beginPath();
+        cx.moveTo(xPad, zeroY);
+        cx.lineTo(W - 15, zeroY);
+        cx.stroke();
+        cx.restore();
+
+        for (let i = 0; i < maxN; i++) {
+          const val = bTerms[i + 1];
+          const xp = xPad + (i + 1) * scX;
+          const clamped = Math.max(-200, Math.min(200, val || 0));
+          const yp = yBase - (clamped - yMin) * scY;
+
+          const barW = Math.min(scX * 0.5, 28);
+          cx.save();
+          cx.fillStyle = COL_ORANGE + '20';
+          cx.strokeStyle = COL_ORANGE + '50';
+          cx.lineWidth = 1;
+          const barTop = Math.min(yp, zeroY);
+          const barH = Math.abs(yp - zeroY);
+          if (barH > 1) {
+            roundRect(cx, xp - barW/2, barTop, barW, barH, 3);
+            cx.fill(); cx.stroke();
+          }
+          cx.restore();
+
+          dot(xp, yp, 4.5, COL_ORANGE, 1);
+
+          cx.save();
+          cx.font = '10px monospace';
+          cx.fillStyle = COL_ORANGE;
+          cx.textAlign = 'center';
+          cx.fillText(fmt(val), xp, val >= 0 ? yp - 9 : yp + 16);
+          cx.restore();
+
+          cx.save();
+          cx.font = '10px monospace';
+          cx.fillStyle = 'rgba(255,255,255,0.4)';
+          cx.textAlign = 'center';
+          cx.fillText('k=' + i, xp, yBase + 16);
+          cx.restore();
+        }
+
+        // Substitution pill
+        const pillTxt = 'n = k+1  →  aₙ₊₂ = aₙ₊₁ + aₙ  ≡  bₖ₊₁ = bₖ + bₖ₋₁';
+        infoBox(pillTxt, W / 2, 26, COL_YELLOW);
+      }
+    },
+  ];
+
+  // ── Controls (action buttons per stage) ─────────────────────────
+  const ctrlWrap = document.getElementById('ctrls-wrap');
+  function buildCtrls(defs) {
+    if (!defs || !defs.length) { ctrlWrap.innerHTML = ''; return; }
+    let html = '<div class="ctrls">';
+    defs.forEach(c => {
+      const label = LANG === 'pl' ? c.labelPl : c.labelEn;
+      const active = c.isActive && c.isActive() ? ' active' : '';
+      html += '<button class="ctrl-btn' + active + '" data-id="' + c.id + '">' + label + '</button>';
+    });
+    html += '</div>';
+    ctrlWrap.innerHTML = html;
+    ctrlWrap.querySelectorAll('.ctrl-btn').forEach(b => {
+      b.addEventListener('click', () => {
+        const def = defs.find(x => x.id === b.dataset.id);
+        if (def && def.onClick) def.onClick();
+        buildCtrls(defs); // refresh active state
+      });
+    });
+  }
+
+  // ── Sliders ─────────────────────────────────────────────────────
+  const slWrap = document.getElementById('sliders-wrap');
+  function fmtSlider(v, step) {
+    if (step < 0.1) return v.toFixed(2);
+    if (step < 1) return v.toFixed(1);
+    return v.toFixed(0);
+  }
+  function buildSliders(defs) {
+    if (!defs || !defs.length) { slWrap.innerHTML = ''; return; }
+    let html = '<div class="sliders">';
+    defs.forEach(s => {
+      const v = s.get();
+      html += '<div class="slider-row">' +
+        '<span class="lbl" style="color:' + s.color + '">' + s.lbl + ' =</span>' +
+        '<input type="range" id="s_' + s.id + '" min="' + s.min + '" max="' + s.max + '" step="' + s.step + '" value="' + v + '">' +
+        '<span class="val" id="v_' + s.id + '">' + fmtSlider(v, s.step) + '</span>' +
+      '</div>';
+    });
+    html += '</div>';
+    slWrap.innerHTML = html;
+    defs.forEach(s => {
+      const el = document.getElementById('s_' + s.id);
+      const valEl = document.getElementById('v_' + s.id);
+      el.addEventListener('input', function() {
+        const v = +this.value;
+        valEl.textContent = fmtSlider(v, s.step);
+        s.set(v);
+      });
+    });
+  }
+
+  // ── Navigation ──────────────────────────────────────────────────
+  const prevBtn = document.getElementById('qprev');
+  const nextBtn = document.getElementById('qnext');
+  const dotsEl  = document.getElementById('qdots');
+  const titleEl = document.getElementById('qf');
+  const descEl  = document.getElementById('qd');
+
+  function goTo(idx) {
+    stage = Math.max(0, Math.min(stages.length - 1, idx));
+    animT = 0;
+    const s = stages[stage];
+    if (s.onEnter) s.onEnter();
+    titleEl.textContent = s.title();
+    descEl.textContent = s.desc();
+    buildCtrls(s.ctrls);
+    buildSliders(s.sliders);
+    prevBtn.disabled = stage === 0;
+    nextBtn.disabled = stage === stages.length - 1;
+    renderDots();
+  }
+
+  function renderDots() {
+    dotsEl.innerHTML = stages.map((_, i) =>
+      '<span class="dot' + (i === stage ? ' active' : '') + '" data-i="' + i + '"></span>'
+    ).join('');
+    dotsEl.querySelectorAll('.dot').forEach(d =>
+      d.addEventListener('click', () => goTo(+d.dataset.i))
+    );
+  }
+
+  prevBtn.addEventListener('click', () => goTo(stage - 1));
+  nextBtn.addEventListener('click', () => goTo(stage + 1));
+
+  // ── Render loop ─────────────────────────────────────────────────
+  function tick() {
+    animT++;
+    clear();
+    stages[stage].draw();
+    requestAnimationFrame(tick);
+  }
+
+  goTo(0);
+  tick();
+})();
+</script>
+</body>
+</html>
