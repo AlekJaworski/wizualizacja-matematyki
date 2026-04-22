@@ -125,10 +125,12 @@ export function usePanZoom(svgRef) {
 
       setViewTransform(prev => {
         const newScale = Math.max(0.15, Math.min(5, prev.scale * factor));
-        const midX = lastTouchMid.current.x;
-        const midY = lastTouchMid.current.y;
-        const newX = midX - ((midX - prev.x) / prev.scale) * newScale;
-        const newY = midY - ((midY - prev.y) / prev.scale) * newScale;
+        // Pin the canvas point under the old midpoint to the new midpoint
+        // so zoom AND two-finger pan both follow the fingers.
+        const oldMidX = lastTouchMid.current.x;
+        const oldMidY = lastTouchMid.current.y;
+        const newX = newMid.x - ((oldMidX - prev.x) / prev.scale) * newScale;
+        const newY = newMid.y - ((oldMidY - prev.y) / prev.scale) * newScale;
         return { x: newX, y: newY, scale: newScale };
       });
 
