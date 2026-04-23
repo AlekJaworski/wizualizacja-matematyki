@@ -67,11 +67,11 @@ function animState(t) {
   // Vertex h: smooth sweep using sin. h = 2*sin(2πt) gives 0→2→0→-2→0 over a full cycle.
   const h = 2 * Math.sin(2 * Math.PI * t);
   // Vertex k: up at extremes, dips below zero at the center crossings so we get real
-  // roots to highlight. k = 3*sin²(2πt) - 1 gives range [-1, 3]:
+  // roots to highlight. k = 3*sin²(2πt) - 1 gives range [-1, 2]:
   //   t=0:     k = -1 (vertex below → two real roots, x-axis crossings)
-  //   t=.25:   k =  3 (vertex high)
+  //   t=.25:   k =  2 (vertex high)
   //   t=.5:    k = -1 (vertex below again)
-  //   t=.75:   k =  3
+  //   t=.75:   k =  2
   const s = Math.sin(2 * Math.PI * t);
   const k = 3 * s * s - 1;
   // `a` breathes between 0.5 and 1.5 with a different phase so it feels organic.
@@ -236,7 +236,7 @@ export function HeroParabola({ compact = false }) {
             Opacity ramps up smoothly as we move deeper below the axis, so dots fade
             in at each crossing and fade out as the vertex lifts back up. */}
         {rs.map((r, i) => {
-          // k ranges in [-1, 3]. Dots live when k < 0. Brighter as k goes more negative.
+          // k ranges in [-1, 2]. Dots live when k < 0. Brighter as k goes more negative.
           const depth = Math.max(0, -k); // 0..1 for our animation range
           const op = 0.35 + 0.6 * depth;
           const radius = 2.5 + 1.5 * depth;
