@@ -112,10 +112,19 @@ export function HeroScreen({ lang, setLang, themeId, onThemeChange, onStartQuiz,
 
         {/* Subtitle */}
         <p style={{
-          margin: "0 0 36px", fontSize: 14, lineHeight: 1.7,
+          margin: "0 0 20px", fontSize: 14, lineHeight: 1.7,
           color: COLORS.textDim, maxWidth: 360,
         }}>
           {t("heroSub", lang)}
+        </p>
+
+        {/* Systemic cause note — names the problem as structural, not personal */}
+        <p style={{
+          margin: "0 0 32px", fontSize: 12, lineHeight: 1.7,
+          color: COLORS.textFaint, maxWidth: 360,
+          fontStyle: "italic",
+        }}>
+          {t("heroSystemicNote", lang)}
         </p>
 
         {/* Continue learning — shown when saved course exists */}
