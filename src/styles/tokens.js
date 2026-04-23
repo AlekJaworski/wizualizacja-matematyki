@@ -77,8 +77,8 @@ export const COLORS = {
   knownHi:  "#2ecc71",
   unknown:  "#3b82f6",
   unknownHi:"#60a5fa",
-  frontier: "#94a3b8",
-  frontierHi:"#cbd5e1",
+  frontier: "#64748b",
+  frontierHi:"#94a3b8",
 };
 
 /**

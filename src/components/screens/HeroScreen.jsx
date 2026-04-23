@@ -128,20 +128,20 @@ export function HeroScreen({ lang, setLang, themeId, onThemeChange, onStartQuiz,
               fontSize: 15, fontWeight: 600,
               fontFamily: FONT,
               borderRadius: 10,
-              border: `1px solid ${COLORS.unknown}50`,
-              background: `${COLORS.unknown}18`,
-              color: COLORS.unknownHi,
+              border: `1px solid ${COLORS.frontier}50`,
+              background: `${COLORS.frontier}18`,
+              color: COLORS.frontierHi,
               cursor: "pointer",
               marginBottom: 10,
               transition: "background 0.15s, border-color 0.15s",
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.background = `${COLORS.unknown}28`;
-              e.currentTarget.style.borderColor = `${COLORS.unknown}80`;
+              e.currentTarget.style.background = `${COLORS.frontier}28`;
+              e.currentTarget.style.borderColor = `${COLORS.frontier}80`;
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.background = `${COLORS.unknown}18`;
-              e.currentTarget.style.borderColor = `${COLORS.unknown}50`;
+              e.currentTarget.style.background = `${COLORS.frontier}18`;
+              e.currentTarget.style.borderColor = `${COLORS.frontier}50`;
             }}
           >
             {t("heroContinue", lang)}
