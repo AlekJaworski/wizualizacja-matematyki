@@ -177,24 +177,45 @@ export default function CurriculumGraph({
   const hashPrefix = beliefCode ? `map/${beliefCode}` : null;
   const { setRoute } = useHashRouter(handleRoute, { prefix: hashPrefix });
 
-  // Sync state → hash (when state changes via UI, not via hash)
+  // Sync state → hash (when state changes via UI, not via hash).
+  //
+  // The first call after mount uses `replace: true` — iff the current hash
+  // is already a prefix of the target hash. In that case the mount-time
+  // write is just extending an existing seeded hash (e.g. CourseApp seeded
+  // `#/map/<code>` and we're extending it to `#/map/<code>/pl`), so pushing
+  // a new history entry would waste a back press. If the current hash is
+  // unrelated (e.g. arriving from hero with no hash at all), we push so
+  // the browser back button still returns to the previous screen.
+  // Subsequent state changes always push so in-graph navigation (selecting
+  // a node, opening a resource) remains backable.
+  const initialSyncedRef = useRef(false);
   useEffect(() => {
+    let replace = false;
+    if (!initialSyncedRef.current) {
+      initialSyncedRef.current = true;
+      const curr = window.location.hash;
+      // Only replace if we're extending an existing hash we share with the
+      // parent (i.e. current hash is a prefix of the target structure).
+      // Cheap heuristic: if the prefix is set and the current hash already
+      // starts with `#/<prefix>`, we're extending.
+      if (hashPrefix && curr.startsWith(`#/${hashPrefix}`)) replace = true;
+    }
     if (diagMode && quizNode && forceQIndex != null) {
-      setRoute({ view: "question", nodeId: quizNode, questionIndex: forceQIndex, lang });
+      setRoute({ view: "question", nodeId: quizNode, questionIndex: forceQIndex, lang }, { replace });
     } else if (diagMode) {
       if (mode === "deepdive" && targetNode) {
-        setRoute({ view: "diagnostic", mode: "deepdive", goalNode: targetNode, lang });
+        setRoute({ view: "diagnostic", mode: "deepdive", goalNode: targetNode, lang }, { replace });
       } else {
-        setRoute({ view: "diagnostic", mode: "quick", lang });
+        setRoute({ view: "diagnostic", mode: "quick", lang }, { replace });
       }
     } else if (selected) {
       if (openResourceIdx != null) {
-        setRoute({ view: "resource", nodeId: selected, resourceIndex: openResourceIdx, lang });
+        setRoute({ view: "resource", nodeId: selected, resourceIndex: openResourceIdx, lang }, { replace });
       } else {
-        setRoute({ view: "node", nodeId: selected, lang });
+        setRoute({ view: "node", nodeId: selected, lang }, { replace });
       }
     } else {
-      setRoute({ view: "graph", lang });
+      setRoute({ view: "graph", lang }, { replace });
     }
   }, [selected, openResourceIdx, diagMode, mode, targetNode, quizNode, forceQIndex, lang, setRoute, hashPrefix]);
 

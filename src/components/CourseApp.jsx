@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { COURSES, DEFAULT_COURSE_ID } from "../data/courses/index.js";
 import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import { applyTheme } from "../styles/tokens.js";
@@ -76,15 +76,32 @@ export default function CourseApp() {
   applyTheme(themeId);
 
   // Sync phase → URL hash.
+  //
+  // History semantics: entering a new hash-bearing phase (results or map)
+  // from a different phase pushes a new history entry, so the browser back
+  // button can step back through phases (quiz → results → map → back →
+  // results → back → hero). Within-phase hash churn (e.g. belief updates
+  // while already on results) uses replaceState.
+  //
   // Note: in `map` phase, CurriculumGraph's own useHashRouter owns the hash
-  // (prefixed with `map/<code>` when a belief code is supplied). We only seed
-  // the initial `#/map/<code>` hash on entering the phase; after that, we let
-  // the graph router extend it with its sub-routes (lang, node, diagnostic).
+  // beyond the `map/<code>` prefix. We only seed the prefix on entering the
+  // phase; after that, we let the graph router extend it with its sub-routes
+  // (lang, node, diagnostic).
+  const prevPhaseRef = useRef(phase);
   useEffect(() => {
+    const prevPhase = prevPhaseRef.current;
+    prevPhaseRef.current = phase;
+    // "Entering" = phase changed into a hash-bearing state. Initial mount
+    // (prevPhase === phase) is not an entry — it's hydration, which should
+    // never push (user's first history entry must remain navigable to exit
+    // the site).
+    const entering = prevPhase !== phase && (phase === "results" || phase === "map");
+
     if (phase === "results" && quizBelief) {
       const hash = `#/results/${encodeBelief(quizBelief)}`;
       if (window.location.hash !== hash) {
-        window.history.replaceState(null, "", hash);
+        if (entering) window.history.pushState(null, "", hash);
+        else          window.history.replaceState(null, "", hash);
       }
     } else if (phase === "map" && quizBelief) {
       const code = encodeBelief(quizBelief);
@@ -92,12 +109,62 @@ export default function CourseApp() {
       // Only seed the hash if it doesn't already start with our map/<code>
       // prefix. This preserves sub-routes written by CurriculumGraph.
       if (!window.location.hash.startsWith(wanted)) {
-        window.history.replaceState(null, "", wanted);
+        if (entering) window.history.pushState(null, "", wanted);
+        else          window.history.replaceState(null, "", wanted);
       }
     } else if (phase !== "map" && phase !== "results" && window.location.hash) {
       window.history.replaceState(null, "", window.location.pathname);
     }
   }, [phase, quizBelief]);
+
+  // Listen for browser back/forward navigation (hashchange).
+  //
+  // When the user presses back from map → the hash reverts from
+  // `#/map/<code>/...` to `#/results/<code>` (pushed earlier); we must
+  // re-read the hash and move phase state back to "results", decoding the
+  // belief from the code so the Results screen renders with the same data.
+  // Symmetrically for back from results → hero (hash becomes empty).
+  //
+  // We only react to top-level prefix changes (results vs map vs neither).
+  // Sub-routes inside the graph (`#/map/<code>/pl/node/<id>`) are owned by
+  // CurriculumGraph's own hashchange listener — we leave them alone.
+  useEffect(() => {
+    const onHashChange = () => {
+      const parsed = parseHash();
+      const currentPhase = prevPhaseRef.current;
+      if (!parsed) {
+        // Empty or unrecognized hash → only move to hero if we were in a
+        // hash-bearing phase (results or map). Otherwise leave phase alone
+        // so in-flight flows (quiz, goal quiz, lesson) aren't disrupted.
+        if (currentPhase === "results" || currentPhase === "map") {
+          setPhase("hero");
+        }
+        return;
+      }
+      if (parsed.phase === "results") {
+        if (currentPhase === "results") return; // within-results hash change
+        if (parsed.code) {
+          const belief = decodeBelief(parsed.code);
+          setQuizBelief(belief);
+          setQuizStats(prev => prev ?? { correct: 0, incorrect: 0, questionsAnswered: 0 });
+        }
+        setPhase("results");
+        return;
+      }
+      if (parsed.phase === "map") {
+        if (currentPhase === "map") return; // within-map sub-route change
+        if (parsed.code) {
+          const belief = decodeBelief(parsed.code);
+          setQuizBelief(belief);
+        }
+        setInitialSelectedNode(parsed.node ?? null);
+        setPhase("map");
+        return;
+      }
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
 
   const handleStartQuiz = useCallback((preset = "standard") => {
     setQuizPreset(preset);
