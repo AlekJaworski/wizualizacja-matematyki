@@ -3,380 +3,759 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pojęcie funkcji — Maszyna, która przetwarza liczby</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #0e0e12; font-family: monospace; display: flex; justify-content: center; padding: 2rem 1rem; min-height: 100vh; }
-  .wrap { width: 100%; max-width: 640px; }
-  canvas { width: 100%; display: block; border-radius: 10px 10px 0 0; }
-  .panel { background: #16161a; border: 0.5px solid rgba(255,255,255,.1); border-top: 0.5px solid rgba(255,255,255,.07); border-radius: 0 0 10px 10px; padding: .875rem 1.25rem; }
-  #qf { margin: 0 0 5px; font-size: 16px; font-weight: 500; color: #58C4DD; letter-spacing: .02em; }
-  #qd { margin: 0 0 10px; font-size: 13px; line-height: 1.65; color: rgba(255,255,255,.62); min-height: 48px; }
-  .sliders { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
-  .slider-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,.45); }
-  .slider-row span.lbl { font-family: monospace; min-width: 36px; }
-  .slider-row input[type=range] { flex: 1; accent-color: #58C4DD; }
-  .slider-row span.val { font-family: monospace; min-width: 46px; text-align: right; }
-  .nav { display: flex; align-items: center; justify-content: space-between; }
-  button { background: transparent; border: 0.5px solid rgba(255,255,255,.25); color: rgba(255,255,255,.7); padding: 5px 14px; font-size: 13px; border-radius: 6px; cursor: pointer; font-family: monospace; transition: background .15s; }
-  button:hover { background: rgba(255,255,255,.08); }
-  button:disabled { opacity: .3; cursor: default; }
-  #qdots { display: flex; gap: 8px; }
-  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; cursor: pointer; background: rgba(255,255,255,.18); transition: background .2s; }
-  .dot.active { background: #58C4DD; }
-  #sliders-wrap { min-height: 0; }
-</style>
+<title>Maszynka, która przetwarza liczby — pojęcie funkcji</title>
 </head>
 <body>
-<div class="wrap">
-  <canvas id="cv" width="600" height="310"></canvas>
-  <div class="panel">
-    <p id="qf"></p>
-    <p id="qd"></p>
-    <div id="sliders-wrap"></div>
-    <div class="nav">
-      <button id="qprev">&larr;</button>
-      <div id="qdots"></div>
-      <button id="qnext">&rarr;</button>
-    </div>
-  </div>
-</div>
-
 <script type="module">
+import { VizCore, T, COLORS, drawTextC } from '../lib/viz-core.js';
 import { GraphView } from '../lib/graph-core.js';
 
-(function(){
-  const cv = document.getElementById('cv');
-  const cx = cv.getContext('2d');
-  const W = 600, H = 310;
+const H = 360;
 
-  const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
-  const T = (pl, en) => LANG === 'pl' ? pl : en;
+// ── Kolory narracyjne ─────────────────────────────────────────────
+const COL_IN     = COLORS.BLUE;    // "wrzucam"
+const COL_OUT    = COLORS.GREEN;   // "dostaję"
+const COL_BOX    = COLORS.YELLOW;  // maszynka / reguła
+const COL_GATE   = COLORS.ORANGE;  // dziedzina — bramka "co wolno"
+const COL_HILITE = COLORS.CYAN;    // akcent, nazwy formalne
 
-  const COL_IN  = '#4a9eff';  // input
-  const COL_OUT = '#83C167';  // output
-  const COL_BOX = '#FFD166';  // machine
-  const COL_BAD = '#E07090';  // not a function
-  const COL_DOM = '#FF6B35';  // domain
-  const COL_RNG = '#58C4DD';  // range
+// ── Kolekcja "przepisów maszynki" (bez słowa funkcja) ─────────────
+// label: krótki podpis na maszynce
+// recipe: opis słowny przepisu po polsku / po angielsku
+// fn: implementacja
+// formal: zapis w notacji f(x), używany DOPIERO od stage 5
+// dom: funkcja zwracająca opis dziedziny (stage 6+)
+const RECIPES = [
+  {
+    key: 'lin',
+    label: '· 2  +1',
+    recipe: () => T('weź liczbę, pomnóż razy 2, dodaj 1',
+                    'take the number, multiply by 2, add 1'),
+    fn: x => 2 * x + 1,
+    formal: 'f(x) = 2x + 1',
+    dom: () => T('każda liczba jest w porządku', 'any number is fine'),
+    domTest: () => true,
+  },
+  {
+    key: 'sq',
+    label: '( )²',
+    recipe: () => T('weź liczbę, podnieś do kwadratu',
+                    'take the number, square it'),
+    fn: x => x * x,
+    formal: 'f(x) = x²',
+    dom: () => T('każda liczba jest w porządku', 'any number is fine'),
+    domTest: () => true,
+  },
+  {
+    key: 'const',
+    label: '= 5',
+    recipe: () => T('zapomnij liczbę, zwróć zawsze 5',
+                    'forget the number, always return 5'),
+    fn: _ => 5,
+    formal: 'f(x) = 5',
+    dom: () => T('każda liczba jest w porządku', 'any number is fine'),
+    domTest: () => true,
+  },
+  {
+    key: 'inv',
+    label: '1 / ( )',
+    recipe: () => T('weź liczbę, podziel 1 przez nią',
+                    'take the number, divide 1 by it'),
+    fn: x => 1 / x,
+    formal: 'f(x) = 1 / x',
+    dom: () => T('wszystko oprócz 0', 'anything except 0'),
+    domTest: x => Math.abs(x) > 1e-9,
+  },
+  {
+    key: 'sqrt',
+    label: '√( )',
+    recipe: () => T('weź liczbę, wyciągnij pierwiastek',
+                    'take the number, extract the square root'),
+    fn: x => Math.sqrt(x),
+    formal: 'f(x) = √x',
+    dom: () => T('tylko liczby nieujemne (x ≥ 0)',
+                 'only non-negative numbers (x ≥ 0)'),
+    domTest: x => x >= -1e-9,
+  },
+  {
+    key: 'abs',
+    label: '| ( ) |',
+    recipe: () => T('weź liczbę, zapomnij o znaku',
+                    'take the number, drop the sign'),
+    fn: x => Math.abs(x),
+    formal: 'f(x) = |x|',
+    dom: () => T('każda liczba jest w porządku', 'any number is fine'),
+    domTest: () => true,
+  },
+  {
+    key: 'add3',
+    label: '+ 3',
+    recipe: () => T('weź liczbę, dodaj 3',
+                    'take the number, add 3'),
+    fn: x => x + 3,
+    formal: 'f(x) = x + 3',
+    dom: () => T('każda liczba jest w porządku', 'any number is fine'),
+    domTest: () => true,
+  },
+];
 
-  let x0 = 3;
-  let fnType = 0; // 0: 2x+1, 1: x², 2: |x|
-  let stage = 0;
+function recipeByKey(k) { return RECIPES.find(r => r.key === k); }
 
-  const FNS = [
-    { label: '2x + 1',  fn: x => 2*x + 1,   labelShort: 'f(x) = 2x+1' },
-    { label: 'x²',      fn: x => x*x,        labelShort: 'f(x) = x²' },
-    { label: '|x|',     fn: x => Math.abs(x), labelShort: 'f(x) = |x|' },
-  ];
+// ── Helpery rysowania maszynki ────────────────────────────────────
 
-  function f(x) { return FNS[fnType].fn(x); }
+// Rysuje pudelko maszynki (prostokat z etykieta przepisu w srodku)
+function drawMachine(cx, mx, my, mw, mh, labelText) {
+  // korpus
+  cx.save();
+  cx.fillStyle = 'rgba(255,209,102,0.10)';
+  cx.strokeStyle = 'rgba(255,209,102,0.55)';
+  cx.lineWidth = 1.5;
+  roundRect(cx, mx - mw / 2, my - mh / 2, mw, mh, 10);
+  cx.fill();
+  cx.stroke();
 
-  function clear() { cx.fillStyle = '#0e0e12'; cx.fillRect(0, 0, W, H); }
+  // lejek wlotowy (trojkat po lewej)
+  cx.beginPath();
+  cx.moveTo(mx - mw / 2, my - mh / 2 + 8);
+  cx.lineTo(mx - mw / 2 - 10, my);
+  cx.lineTo(mx - mw / 2, my + mh / 2 - 8);
+  cx.closePath();
+  cx.fillStyle = 'rgba(255,209,102,0.18)';
+  cx.fill();
+  cx.stroke();
 
-  // Glowing dot — small convenience used across stages
-  function gdot(sx, sy, r, col, glow) {
-    cx.save();
+  // rynna wylotowa (trojkat po prawej)
+  cx.beginPath();
+  cx.moveTo(mx + mw / 2, my - mh / 2 + 8);
+  cx.lineTo(mx + mw / 2 + 10, my);
+  cx.lineTo(mx + mw / 2, my + mh / 2 - 8);
+  cx.closePath();
+  cx.fill();
+  cx.stroke();
+
+  // srubki w rogach dla rysu maszynowego
+  [[mx - mw / 2 + 8, my - mh / 2 + 8],
+   [mx + mw / 2 - 8, my - mh / 2 + 8],
+   [mx - mw / 2 + 8, my + mh / 2 - 8],
+   [mx + mw / 2 - 8, my + mh / 2 - 8]].forEach(([sx, sy]) => {
     cx.beginPath();
-    cx.arc(sx, sy, r, 0, Math.PI * 2);
-    cx.fillStyle = col;
-    cx.shadowColor = col;
-    cx.shadowBlur = glow != null ? glow : 10;
+    cx.arc(sx, sy, 2, 0, Math.PI * 2);
+    cx.fillStyle = 'rgba(255,209,102,0.35)';
     cx.fill();
-    cx.shadowBlur = 0;
-    cx.restore();
-  }
+  });
 
-  function roundRect(x, y, w, h, r) {
-    cx.beginPath();
-    cx.moveTo(x+r,y); cx.lineTo(x+w-r,y); cx.quadraticCurveTo(x+w,y,x+w,y+r);
-    cx.lineTo(x+w,y+h-r); cx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
-    cx.lineTo(x+r,y+h); cx.quadraticCurveTo(x,y+h,x,y+h-r);
-    cx.lineTo(x,y+r); cx.quadraticCurveTo(x,y,x+r,y);
-    cx.closePath();
-  }
+  // etykieta przepisu (srodek)
+  drawTextC(cx, labelText, mx, my, 'bold 16px monospace', COL_BOX);
+  cx.restore();
+}
 
-  function makeGV() {
-    return new GraphView(cx, { xRange: [-10, 10], yRange: [-5, 10], rect: [0, 0, W, H] });
-  }
+// Rysuje karteczke z liczba (kwadratowa kartka z zaokraglonymi rogami)
+function drawCard(cx, x, y, w, h, text, color) {
+  cx.save();
+  cx.fillStyle = 'rgba(14,14,18,0.9)';
+  cx.strokeStyle = color;
+  cx.lineWidth = 1.5;
+  roundRect(cx, x - w / 2, y - h / 2, w, h, 6);
+  cx.fill();
+  cx.stroke();
+  // zagiety rog
+  cx.beginPath();
+  cx.moveTo(x + w / 2 - 8, y - h / 2);
+  cx.lineTo(x + w / 2, y - h / 2 + 8);
+  cx.strokeStyle = color;
+  cx.lineWidth = 1;
+  cx.stroke();
+  drawTextC(cx, text, x, y, 'bold 14px monospace', color);
+  cx.restore();
+}
 
-  // ── Stages ───────────────────────────────────────────────────
-  const stages = [
-    {
-      title: () => T('Funkcja to maszyna', 'A function is a machine'),
-      desc: () => T(
-        'Wrzucasz liczbę (wejście x), maszyna coś z nią robi, wypluwa wynik (wyjście y). Dla każdego x dostajesz dokładnie jedno y. Przesuń x i patrz, co wychodzi.',
-        'You feed in a number (input x), the machine processes it, spits out a result (output y). For each x you get exactly one y. Move x and watch the output.'
-      ),
-      sliders: [
-        { id: 'x0', lbl: 'x', color: COL_IN, min: -5, max: 5, step: 0.5, val: 3 },
-      ],
-      draw() {
-        const y = f(x0);
-        const mX = W/2, mY = H/2;
-        const mW = 120, mH = 70;
+function roundRect(cx, x, y, w, h, r) {
+  cx.beginPath();
+  cx.moveTo(x + r, y);
+  cx.lineTo(x + w - r, y);
+  cx.quadraticCurveTo(x + w, y, x + w, y + r);
+  cx.lineTo(x + w, y + h - r);
+  cx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  cx.lineTo(x + r, y + h);
+  cx.quadraticCurveTo(x, y + h, x, y + h - r);
+  cx.lineTo(x, y + r);
+  cx.quadraticCurveTo(x, y, x + r, y);
+  cx.closePath();
+}
 
-        // Machine box
-        roundRect(mX-mW/2, mY-mH/2, mW, mH, 10);
-        cx.fillStyle = COL_BOX + '18'; cx.fill();
-        cx.strokeStyle = COL_BOX + '60'; cx.lineWidth = 2; cx.stroke();
-        cx.font = '14px monospace'; cx.textAlign = 'center'; cx.fillStyle = COL_BOX;
-        cx.fillText(FNS[fnType].labelShort, mX, mY + 5);
+// Strzalka pozioma od (x1,y) do (x2,y)
+function drawArrow(cx, x1, y, x2, color, width) {
+  cx.save();
+  cx.strokeStyle = color;
+  cx.fillStyle = color;
+  cx.lineWidth = width || 1.5;
+  cx.beginPath();
+  cx.moveTo(x1, y);
+  cx.lineTo(x2 - 8, y);
+  cx.stroke();
+  cx.beginPath();
+  cx.moveTo(x2, y);
+  cx.lineTo(x2 - 8, y - 5);
+  cx.lineTo(x2 - 8, y + 5);
+  cx.closePath();
+  cx.fill();
+  cx.restore();
+}
 
-        // Input arrow
-        cx.strokeStyle = COL_IN + '80'; cx.lineWidth = 2;
-        cx.beginPath(); cx.moveTo(mX - mW/2 - 100, mY); cx.lineTo(mX - mW/2 - 10, mY); cx.stroke();
-        cx.beginPath(); cx.moveTo(mX-mW/2-10,mY-6); cx.lineTo(mX-mW/2,mY); cx.lineTo(mX-mW/2-10,mY+6); cx.fill();
+// Formatuje wynik: calkowita bez kropki, ulamkowa z jedna cyfra po przecinku
+function fmt(v) {
+  if (!isFinite(v)) return '—';
+  if (Math.abs(v - Math.round(v)) < 1e-9) return String(Math.round(v));
+  return v.toFixed(1);
+}
 
-        // Input value
-        gdot(mX - mW/2 - 100, mY, 18, COL_IN + '30');
-        cx.font = '16px monospace'; cx.fillStyle = COL_IN; cx.textAlign = 'center';
-        cx.fillText(x0.toFixed(1), mX - mW/2 - 100, mY + 6);
-        cx.font = '10px monospace'; cx.fillStyle = 'rgba(255,255,255,0.4)';
-        cx.fillText(T('wejście', 'input'), mX - mW/2 - 100, mY + 24);
+// ══════════════════════════════════════════════════════════════════
+// STAGE 1 — maszynka: wrzucam cos, wypada cos
+// ══════════════════════════════════════════════════════════════════
+const stage1 = {
+  title: () => T('Wyobraź sobie maszynkę', 'Imagine a little machine'),
+  desc: () => T(
+    'Wrzucasz liczbę z jednej strony. Maszynka coś z nią robi. Po drugiej stronie wypada wynik. Wrzuć 3 — dostajesz 7. Wrzuć 4 — dostajesz 9. Wrzuć 5 — dostajesz 11. Widzisz regułę?',
+    'You drop a number in on one side. The little machine does something to it. A result comes out the other side. Drop in 3 — you get 7. Drop in 4 — you get 9. Drop in 5 — you get 11. Do you see the rule?'
+  ),
+  sliders: [
+    { id: 'x', lbl: T('wrzucam', 'input'), color: COL_IN,
+      min: -5, max: 5, step: 1, val: 3 },
+  ],
+  draw(cx, W, H, v) {
+    const r = recipeByKey('lin');
+    const x = v.x;
+    const y = r.fn(x);
 
-        // Output arrow
-        cx.strokeStyle = COL_OUT + '80'; cx.lineWidth = 2;
-        cx.beginPath(); cx.moveTo(mX + mW/2, mY); cx.lineTo(mX + mW/2 + 90, mY); cx.stroke();
-        cx.beginPath(); cx.moveTo(mX+mW/2+80,mY-6); cx.lineTo(mX+mW/2+90,mY); cx.lineTo(mX+mW/2+80,mY+6); cx.fillStyle=COL_OUT; cx.fill();
+    const my = H / 2 - 20;
+    const mw = 150, mh = 80;
+    const mx = W / 2;
 
-        // Output value
-        gdot(mX + mW/2 + 100, mY, 18, COL_OUT + '30');
-        cx.font = '16px monospace'; cx.fillStyle = COL_OUT; cx.textAlign = 'center';
-        cx.fillText(y.toFixed(1), mX + mW/2 + 100, mY + 6);
-        cx.font = '10px monospace'; cx.fillStyle = 'rgba(255,255,255,0.4)';
-        cx.fillText(T('wyjście', 'output'), mX + mW/2 + 100, mY + 24);
+    // Maszynka bez etykiety przepisu — chcemy, zeby uczen zgadl regule
+    drawMachine(cx, mx, my, mw, mh, '?');
 
-        // Top label
-        cx.font = '11px monospace'; cx.fillStyle = 'rgba(255,255,255,0.5)'; cx.textAlign = 'center';
-        cx.fillText('x = ' + x0.toFixed(1) + '  →  f(x) = ' + y.toFixed(1), W/2, 28);
-      }
-    },
-    {
-      title: () => T('Wykres — wszystkie wejścia i wyjścia naraz', 'Graph — all inputs and outputs at once'),
-      desc: () => T(
-        'Zamiast sprawdzać po jednym x, narysuj WSZYSTKIE pary (x, f(x)). To jest wykres funkcji — krzywa, która pokazuje wyjście dla każdego wejścia. Przesuń x i zobacz, jak punkt wędruje po wykresie.',
-        'Instead of checking one x at a time, draw ALL pairs (x, f(x)). This is the function\'s graph — a curve showing output for every input. Move x and see the point travel along.'
-      ),
-      sliders: [
-        { id: 'x0', lbl: 'x', color: COL_IN, min: -5, max: 5, step: 0.2, val: x0 },
-        { id: 'fn', lbl: 'f', color: COL_BOX, min: 0, max: 2, step: 1, val: fnType },
-      ],
-      draw() {
-        const g = makeGV();
-        g.drawGrid(); g.drawAxes();
-        g.plotFn(FNS[fnType].fn, { color: COL_OUT, alpha: 0.7 });
+    // Pozycje kart
+    const inCardX = mx - mw / 2 - 80;
+    const outCardX = mx + mw / 2 + 80;
 
-        const y = f(x0);
+    // strzalka wejsciowa
+    drawArrow(cx, inCardX + 30, my, mx - mw / 2 - 10, COL_IN, 2);
+    // strzalka wyjsciowa
+    drawArrow(cx, mx + mw / 2 + 10, my, outCardX - 30, COL_OUT, 2);
 
-        // Dashed lines to axes
-        g.segment(x0, 0, x0, y, { color: 'rgba(255,255,255,0.15)', lineWidth: 1, dash: [4,4] });
-        g.segment(0, y, x0, y, { color: 'rgba(255,255,255,0.15)', lineWidth: 1, dash: [4,4] });
+    // karta wejsciowa
+    drawCard(cx, inCardX, my, 50, 38, fmt(x), COL_IN);
+    drawTextC(cx, T('wrzucam', 'drop in'),
+      inCardX, my - 36, '10px monospace', 'rgba(255,255,255,0.5)');
 
-        // Point
-        g.dot(x0, y, { radius: 6, color: COL_OUT });
+    // karta wyjsciowa
+    drawCard(cx, outCardX, my, 50, 38, fmt(y), COL_OUT);
+    drawTextC(cx, T('dostaję', 'comes out'),
+      outCardX, my - 36, '10px monospace', 'rgba(255,255,255,0.5)');
 
-        // Labels
-        g.label('x = ' + x0.toFixed(1), x0, 0, { color: COL_IN, font: '11px monospace', offsetX: 10, offsetY: 14 });
-        g.label('f(x) = ' + y.toFixed(1), 0, y, { color: COL_OUT, font: '11px monospace', offsetX: 8, offsetY: -6 });
+    // Historia ostatnich par nad maszynka
+    drawTextC(cx, T('Pary, które już widzieliśmy:',
+                    'Pairs you have seen:'),
+      W / 2, 28, '11px monospace', 'rgba(255,255,255,0.5)');
 
-        cx.font = '12px monospace'; cx.textAlign = 'center'; cx.fillStyle = COL_BOX;
-        cx.fillText(FNS[fnType].labelShort, W/2, 20);
-      }
-    },
-    {
-      title: () => T('Dziedzina i zbiór wartości', 'Domain and range'),
-      desc: () => T(
-        'Dziedzina = jakie x-y możesz wrzucić. Zbiór wartości = jakie y-ki mogą wyjść. Dla f(x) = x²: dziedzina to wszystkie liczby, ale zbiór wartości to tylko y ≥ 0 (kwadrat nigdy nie jest ujemny!).',
-        'Domain = which x values you can input. Range = which y values can come out. For f(x) = x²: domain is all numbers, but range is only y ≥ 0 (a square is never negative!).'
-      ),
-      sliders: [
-        { id: 'x0', lbl: 'x', color: COL_IN, min: -5, max: 5, step: 0.2, val: x0 },
-      ],
-      draw() {
-        fnType = 1; // x²
-        const g = makeGV();
-        g.drawGrid(); g.drawAxes();
-        g.plotFn(x => x*x, { color: COL_OUT, alpha: 0.6 });
-
-        // Highlight domain (x-axis)
-        g.horizontalLine(0, { color: COL_DOM, lineWidth: 3, alpha: 0.4, dash: [] });
-
-        // Highlight range (y-axis, y>=0 only)
-        g.segment(0, 0, 0, 10, { color: COL_RNG, lineWidth: 3, alpha: 0.4 });
-
-        const y = x0 * x0;
-        g.dot(x0, y, { radius: 5, color: COL_OUT });
-
-        // Labels
-        cx.font = '11px monospace'; cx.textAlign = 'left';
-        cx.fillStyle = COL_DOM; cx.fillText(T('dziedzina: wszystkie x', 'domain: all x'), 10, H - 20);
-        cx.fillStyle = COL_RNG; cx.fillText(T('zbiór wartości: y ≥ 0', 'range: y ≥ 0'), 10, H - 6);
-
-        cx.font = '12px monospace'; cx.textAlign = 'center'; cx.fillStyle = COL_BOX;
-        cx.fillText('f(x) = x²', W/2, 20);
-      }
-    },
-    {
-      title: () => T('Co NIE jest funkcją?', 'What is NOT a function?'),
-      desc: () => T(
-        'Kluczowa zasada: dla każdego x dokładnie JEDNO y. Jeśli dla jednego x maszyna daje dwa wyniki — to NIE jest funkcja. Okrąg x² + y² = 9 nie jest funkcją, bo np. dla x=0 mamy y=3 ALBO y=−3.',
-        'Key rule: for each x exactly ONE y. If one x gives two results — it\'s NOT a function. The circle x²+y²=9 is not a function because for x=0 we get y=3 OR y=−3.'
-      ),
-      sliders: [
-        { id: 'x0', lbl: 'x', color: COL_IN, min: -2.9, max: 2.9, step: 0.1, val: 0 },
-      ],
-      draw() {
-        const g = makeGV();
-        g.drawGrid(); g.drawAxes();
-
-        // Draw circle x²+y²=9
-        cx.strokeStyle = COL_BAD; cx.lineWidth = 2; cx.globalAlpha = 0.7;
-        cx.beginPath(); cx.arc(g.px(0), g.py(0), 3*g.scale, 0, Math.PI*2); cx.stroke();
-        cx.globalAlpha = 1;
-
-        // Vertical line test
-        g.verticalLine(x0, { color: COL_IN + '40', lineWidth: 1, dash: [4,4] });
-
-        // Two intersection points (if |x0| < 3)
-        const r2 = 9 - x0*x0;
-        if (r2 > 0) {
-          const y1 = Math.sqrt(r2);
-          const y2 = -Math.sqrt(r2);
-          g.dot(x0, y1, { radius: 6, color: COL_BAD });
-          g.dot(x0, y2, { radius: 6, color: COL_BAD });
-
-          g.label('y = ' + y1.toFixed(1), x0, y1, { color: COL_BAD, font: '11px monospace', offsetX: 10 });
-          g.label('y = ' + y2.toFixed(1), x0, y2, { color: COL_BAD, font: '11px monospace', offsetX: 10 });
-
-          // "TWO outputs!" label
-          cx.font = '13px monospace'; cx.textAlign = 'center'; cx.fillStyle = COL_BAD;
-          cx.fillText(T('DWA wyjścia! → to NIE jest funkcja', 'TWO outputs! → NOT a function'), W/2, 22);
-        }
-
-        cx.font = '11px monospace'; cx.textAlign = 'center'; cx.fillStyle = 'rgba(255,255,255,0.4)';
-        cx.fillText('x² + y² = 9', W/2, H - 8);
-      }
-    },
-    {
-      title: () => T('Test pionowej prostej', 'Vertical line test'),
-      desc: () => T(
-        'Szybki sposób: przesuń pionową prostą po wykresie. Jeśli gdziekolwiek przecina krzywą w WIĘCEJ niż jednym punkcie — to nie jest funkcja. Jeśli zawsze w dokładnie jednym — jest. Porównaj parabolę z okręgiem.',
-        'Quick check: slide a vertical line across the graph. If it ever crosses the curve at MORE than one point — not a function. Always one point — it\'s a function. Compare parabola vs circle.'
-      ),
-      sliders: [
-        { id: 'x0', lbl: 'x', color: COL_IN, min: -4, max: 4, step: 0.1, val: 1 },
-      ],
-      draw() {
-        const g = makeGV();
-        g.drawGrid(); g.drawAxes();
-
-        // Parabola (left half)
-        cx.save(); cx.rect(0, 0, W/2 - 10, H); cx.clip();
-        g.plotFn(x => x*x, { color: COL_OUT, alpha: 0.6 });
-        cx.restore();
-
-        // Circle (right half)
-        cx.save(); cx.rect(W/2 + 10, 0, W/2, H); cx.clip();
-        cx.strokeStyle = COL_BAD; cx.lineWidth = 2; cx.globalAlpha = 0.6;
-        cx.beginPath(); cx.arc(g.px(0), g.py(0), 3*g.scale, 0, Math.PI*2); cx.stroke();
-        cx.globalAlpha = 1;
-        cx.restore();
-
-        // Divider
-        cx.strokeStyle = 'rgba(255,255,255,0.1)'; cx.lineWidth = 1;
-        cx.beginPath(); cx.moveTo(W/2, 0); cx.lineTo(W/2, H); cx.stroke();
-
-        // Labels
-        cx.font = '13px monospace'; cx.textAlign = 'center';
-        cx.fillStyle = COL_OUT; cx.fillText(T('✓ funkcja', '✓ function'), W*0.25, 22);
-        cx.fillStyle = COL_BAD; cx.fillText(T('✗ nie funkcja', '✗ not function'), W*0.75, 22);
-
-        // Vertical test line on both
-        g.verticalLine(x0, { color: COL_IN + '50', lineWidth: 1.5, dash: [4,4] });
-
-        // Parabola intersection (1 point)
-        const parY = x0*x0;
-        if (g.px(x0) < W/2) {
-          g.dot(x0, parY, { radius: 5, color: COL_OUT });
-          g.label(T('1 punkt ✓','1 point ✓'), x0, parY, { color: COL_OUT, font: '10px monospace', offsetX: 8, offsetY: -8 });
-        }
-
-        // Circle intersections (0 or 2)
-        const r2 = 9 - x0*x0;
-        if (r2 > 0 && g.px(x0) > W/2) {
-          const y1 = Math.sqrt(r2), y2 = -Math.sqrt(r2);
-          g.dot(x0, y1, { radius: 5, color: COL_BAD });
-          g.dot(x0, y2, { radius: 5, color: COL_BAD });
-          g.label(T('2 punkty ✗','2 points ✗'), x0, y1, { color: COL_BAD, font: '10px monospace', offsetX: 8, offsetY: -8 });
-        }
-      }
-    },
-  ];
-
-  // ── Slider management ────────────────────────────────────────
-  const slWrap = document.getElementById('sliders-wrap');
-  function buildSliders(defs) {
-    let html = '<div class="sliders">';
-    defs.forEach(s => {
-      const display = s.id === 'fn' ? FNS[+s.val].label : (+s.val).toFixed(s.step < 1 ? 1 : 0);
-      html += `<div class="slider-row">
-        <span class="lbl" style="color:${s.color}">${s.lbl} =</span>
-        <input type="range" id="s_${s.id}" min="${s.min}" max="${s.max}" step="${s.step}" value="${s.val}">
-        <span class="val" id="v_${s.id}" style="color:${s.color}">${display}</span>
-      </div>`;
+    const examples = [[3, 7], [4, 9], [5, 11]];
+    examples.forEach((p, i) => {
+      const ex = W / 2 - 120 + i * 120;
+      drawTextC(cx, `${p[0]} → ${p[1]}`,
+        ex, 52, '12px monospace',
+        (p[0] === x) ? COL_HILITE : 'rgba(255,255,255,0.45)');
     });
-    html += '</div>';
-    slWrap.innerHTML = html;
-    defs.forEach(s => {
-      const el = document.getElementById('s_' + s.id);
-      el.addEventListener('input', function() {
-        const v = +this.value;
-        if (s.id === 'x0') x0 = v;
-        if (s.id === 'fn') fnType = Math.round(v);
-        document.getElementById('v_' + s.id).textContent =
-          s.id === 'fn' ? FNS[Math.round(v)].label : v.toFixed(s.step < 1 ? 1 : 0);
+
+    // Podpowiedz pod maszynka
+    drawTextC(cx,
+      T('Przesuń suwak, aby wrzucić inną liczbę.',
+        'Slide to drop in a different number.'),
+      W / 2, H - 42, '11px monospace', 'rgba(255,255,255,0.45)');
+  },
+};
+
+// ══════════════════════════════════════════════════════════════════
+// STAGE 2 — przepis. Kazda maszynka ma przepis.
+// ══════════════════════════════════════════════════════════════════
+const stage2 = {
+  title: () => T('Każda maszynka ma przepis',
+                 'Every machine has a recipe'),
+  desc: () => T(
+    'Przepis mówi, co maszynka robi z tym, co wrzucisz. Przepisy są różne. Wybierz maszynkę i wrzuć liczbę — zobacz, jak przepis działa.',
+    'The recipe says what the machine does with what you drop in. Recipes differ. Pick a machine and drop in a number — watch the recipe work.'
+  ),
+  sliders: [
+    { id: 'rec', lbl: T('maszynka', 'machine'), color: COL_BOX,
+      min: 0, max: 2, step: 1, val: 0, stepper: true },
+    { id: 'x', lbl: T('wrzucam', 'input'), color: COL_IN,
+      min: -4, max: 4, step: 1, val: 2 },
+  ],
+  draw(cx, W, H, v) {
+    const bank = [recipeByKey('lin'), recipeByKey('sq'), recipeByKey('const')];
+    const r = bank[Math.round(v.rec)];
+    const x = v.x;
+    const y = r.fn(x);
+
+    const my = 120;
+    const mw = 150, mh = 70;
+    const mx = W / 2;
+
+    drawMachine(cx, mx, my, mw, mh, r.label);
+
+    const inCardX = mx - mw / 2 - 70;
+    const outCardX = mx + mw / 2 + 70;
+
+    drawArrow(cx, inCardX + 25, my, mx - mw / 2 - 10, COL_IN, 2);
+    drawArrow(cx, mx + mw / 2 + 10, my, outCardX - 25, COL_OUT, 2);
+
+    drawCard(cx, inCardX, my, 46, 36, fmt(x), COL_IN);
+    drawCard(cx, outCardX, my, 46, 36, fmt(y), COL_OUT);
+
+    // Pasek z przepisem slownym
+    const pY = my + mh / 2 + 30;
+    cx.fillStyle = 'rgba(88,196,221,0.08)';
+    cx.strokeStyle = 'rgba(88,196,221,0.3)';
+    cx.lineWidth = 1;
+    roundRect(cx, 30, pY, W - 60, 40, 6);
+    cx.fill();
+    cx.stroke();
+    drawTextC(cx, T('Przepis tej maszynki:', 'This machine\'s recipe:'),
+      W / 2, pY + 13, '10px monospace', 'rgba(255,255,255,0.5)');
+    drawTextC(cx, r.recipe(),
+      W / 2, pY + 28, 'bold 12px monospace', COL_HILITE);
+
+    // Podpis nad maszynka — numer i nazwa "maszynka nr k"
+    drawTextC(cx,
+      T(`Maszynka nr ${Math.round(v.rec) + 1} z 3`,
+        `Machine ${Math.round(v.rec) + 1} of 3`),
+      W / 2, 36, '11px monospace', 'rgba(255,255,255,0.5)');
+
+    // Stopka z zachecie do klikania
+    drawTextC(cx,
+      T('Zmień maszynkę — zmieni się przepis. Zmień liczbę — sprawdź, co wypada.',
+        'Change machine — recipe changes. Change number — see what comes out.'),
+      W / 2, H - 22, '10px monospace', 'rgba(255,255,255,0.4)');
+  },
+};
+
+// ══════════════════════════════════════════════════════════════════
+// STAGE 3 — tabelka wejscie -> wyjscie
+// ══════════════════════════════════════════════════════════════════
+const stage3 = {
+  title: () => T('Tabelka: wrzucam — dostaję',
+                 'Table: input — output'),
+  desc: () => T(
+    'Ten sam przepis można pokazać inaczej: jako listę par. W lewej kolumnie — to co wrzucasz. W prawej — to co wypada. Każda para to jedno uruchomienie maszynki. Przesuń suwak — podświetli się wiersz dla tej liczby.',
+    'The same recipe can be shown differently: as a list of pairs. Left column — what you drop in. Right — what comes out. Each pair is one run of the machine. Slide the control — the row for that number highlights.'
+  ),
+  sliders: [
+    { id: 'rec', lbl: T('maszynka', 'machine'), color: COL_BOX,
+      min: 0, max: 2, step: 1, val: 0, stepper: true },
+    { id: 'x', lbl: T('wrzucam', 'input'), color: COL_IN,
+      min: -3, max: 4, step: 1, val: 2 },
+  ],
+  draw(cx, W, H, v) {
+    const bank = [recipeByKey('lin'), recipeByKey('sq'), recipeByKey('add3')];
+    const r = bank[Math.round(v.rec)];
+    const focusX = Math.round(v.x);
+
+    // Mala maszynka u gory
+    const my = 50;
+    drawMachine(cx, W / 2, my, 110, 48, r.label);
+
+    // Tabelka
+    const tx = W / 2 - 140;
+    const ty = 90;
+    const tw = 280;
+    const rowH = 24;
+    const xs = [-3, -2, -1, 0, 1, 2, 3, 4];
+    const th = rowH * (xs.length + 1) + 8;
+
+    // ramka
+    cx.save();
+    cx.strokeStyle = 'rgba(255,255,255,0.12)';
+    cx.lineWidth = 1;
+    roundRect(cx, tx, ty, tw, th, 6);
+    cx.stroke();
+    cx.restore();
+
+    // naglowek
+    cx.fillStyle = 'rgba(255,255,255,0.04)';
+    cx.fillRect(tx + 1, ty + 1, tw - 2, rowH);
+    drawTextC(cx, T('wrzucam', 'input'),
+      tx + tw / 4, ty + 12, 'bold 11px monospace', COL_IN);
+    drawTextC(cx, '→',
+      tx + tw / 2, ty + 12, 'bold 11px monospace', 'rgba(255,255,255,0.35)');
+    drawTextC(cx, T('dostaję', 'output'),
+      tx + 3 * tw / 4, ty + 12, 'bold 11px monospace', COL_OUT);
+
+    // wiersze
+    xs.forEach((xv, i) => {
+      const ry = ty + rowH + i * rowH + 4;
+      const yv = r.fn(xv);
+      const isFocus = xv === focusX;
+      if (isFocus) {
+        cx.fillStyle = 'rgba(88,196,221,0.12)';
+        cx.fillRect(tx + 1, ry - 12, tw - 2, rowH);
+      }
+      drawTextC(cx, fmt(xv),
+        tx + tw / 4, ry,
+        isFocus ? 'bold 12px monospace' : '12px monospace',
+        isFocus ? COL_HILITE : 'rgba(255,255,255,0.7)');
+      drawTextC(cx, '→',
+        tx + tw / 2, ry, '11px monospace', 'rgba(255,255,255,0.3)');
+      drawTextC(cx, fmt(yv),
+        tx + 3 * tw / 4, ry,
+        isFocus ? 'bold 12px monospace' : '12px monospace',
+        isFocus ? COL_HILITE : 'rgba(255,255,255,0.7)');
+    });
+
+    // Podpis pod tabelka
+    drawTextC(cx,
+      T('Ta tabelka to ten sam przepis co maszynka — tylko zapisany inaczej.',
+        'This table is the same recipe as the machine — just written differently.'),
+      W / 2, ty + th + 18, '10px monospace', 'rgba(255,255,255,0.5)');
+  },
+};
+
+
+
+// ══════════════════════════════════════════════════════════════════
+// STAGE 4 — wykres
+// ══════════════════════════════════════════════════════════════════
+const stage4 = {
+  title: () => T('Każda para z tabelki to kropka na siatce',
+                 'Each pair in the table is a dot on the grid'),
+  desc: () => T(
+    'Weź wiersz z tabelki: „wrzucam 2, dostaję 5". To punkt (2, 5). Zrób tak dla każdego wiersza — dostaniesz kropki. Połącz je i masz wykres. Wykres to TEN SAM przepis, pokazany trzeci raz.',
+    'Take a row from the table: "input 2, output 5". That is the point (2, 5). Do it for every row — you get dots. Connect them and you have a graph. The graph is the SAME recipe, shown a third time.'
+  ),
+  sliders: [
+    { id: 'rec', lbl: T('maszynka', 'machine'), color: COL_BOX,
+      min: 0, max: 2, step: 1, val: 0, stepper: true },
+    { id: 'x', lbl: T('wrzucam', 'input'), color: COL_IN,
+      min: -3, max: 3, step: 0.2, val: 2 },
+  ],
+  draw(cx, W, H, v) {
+    const bank = [recipeByKey('lin'), recipeByKey('sq'), recipeByKey('add3')];
+    const r = bank[Math.round(v.rec)];
+    const x = v.x;
+    const y = r.fn(x);
+
+    // Lewa strona — mini tabelka z 5 par
+    const tx = 20, ty = 30;
+    const xs = [-2, -1, 0, 1, 2];
+    const focusX = Math.round(x);
+    drawTextC(cx, T('tabelka', 'table'),
+      tx + 60, ty, 'bold 11px monospace', 'rgba(255,255,255,0.5)');
+    xs.forEach((xv, i) => {
+      const ry = ty + 24 + i * 22;
+      const yv = r.fn(xv);
+      const isFocus = xv === focusX;
+      drawTextC(cx, `${fmt(xv)} → ${fmt(yv)}`,
+        tx + 60, ry,
+        isFocus ? 'bold 12px monospace' : '12px monospace',
+        isFocus ? COL_HILITE : 'rgba(255,255,255,0.6)');
+    });
+
+    // Srodek — strzalka "przeniesc na siatke"
+    drawArrow(cx, tx + 125, ty + 70, tx + 160, 'rgba(255,255,255,0.3)', 1.5);
+    drawTextC(cx, T('to samo',
+                    'same thing'),
+      tx + 142, ty + 90, '10px monospace', 'rgba(255,255,255,0.4)');
+    drawTextC(cx, T('na siatce',
+                    'on a grid'),
+      tx + 142, ty + 104, '10px monospace', 'rgba(255,255,255,0.4)');
+
+    // Prawa strona — wykres
+    const gx = 180, gy = 20, gw = W - gx - 20, gh = H - 70;
+    const gv = new GraphView(cx, {
+      rect: [gx, gy, gw, gh],
+      xRange: [-3.5, 3.5],
+      yRange: r.key === 'sq' ? [-1, 10] : [-4, 10],
+    });
+    gv.drawGrid({ color: 'rgba(255,255,255,0.05)' });
+    gv.drawAxes({ color: 'rgba(255,255,255,0.25)' });
+
+    // krzywa jako ciagly slad
+    gv.plotFn(r.fn, { color: COL_OUT, alpha: 0.55, lineWidth: 2 });
+
+    // kropki z wiersza tabelki
+    xs.forEach(xv => {
+      const yv = r.fn(xv);
+      const isFocus = xv === focusX;
+      gv.dot(xv, yv, {
+        radius: isFocus ? 6 : 4,
+        color: isFocus ? COL_HILITE : COL_OUT,
+        glow: isFocus ? 14 : 6,
       });
     });
-  }
 
-  // ── Navigation ───────────────────────────────────────────────
-  const prevBtn = document.getElementById('qprev');
-  const nextBtn = document.getElementById('qnext');
-  const dotsEl = document.getElementById('qdots');
-  const titleEl = document.getElementById('qf');
-  const descEl = document.getElementById('qd');
+    // punkt aktywny (moze byc poza tabelka) — pionowa i pozioma linia pomocnicza
+    cx.save();
+    cx.strokeStyle = 'rgba(255,255,255,0.15)';
+    cx.setLineDash([3, 3]);
+    cx.beginPath();
+    cx.moveTo(gv.px(x), gv.py(0));
+    cx.lineTo(gv.px(x), gv.py(y));
+    cx.lineTo(gv.px(0), gv.py(y));
+    cx.stroke();
+    cx.setLineDash([]);
+    cx.restore();
 
-  function goTo(idx) {
-    stage = Math.max(0, Math.min(stages.length - 1, idx));
-    const s = stages[stage];
-    titleEl.textContent = s.title();
-    descEl.textContent = s.desc();
-    if (s.sliders) {
-      s.sliders.forEach(sl => { if (sl.id === 'x0') sl.val = x0; if (sl.id === 'fn') sl.val = fnType; });
-      buildSliders(s.sliders);
-    } else { slWrap.innerHTML = ''; }
-    prevBtn.disabled = stage === 0;
-    nextBtn.disabled = stage === stages.length - 1;
-    renderDots();
-  }
+    gv.dot(x, y, { radius: 6, color: COL_IN, glow: 14 });
+    gv.label(`(${fmt(x)}, ${fmt(y)})`, x, y,
+      { color: COL_IN, font: 'bold 11px monospace', offsetX: 10, offsetY: -8 });
+  },
+};
 
-  function renderDots() {
-    dotsEl.innerHTML = stages.map((_, i) =>
-      `<span class="dot${i === stage ? ' active' : ''}" data-i="${i}"></span>`
-    ).join('');
-    dotsEl.querySelectorAll('.dot').forEach(d =>
-      d.addEventListener('click', () => goTo(+d.dataset.i))
-    );
-  }
+// ══════════════════════════════════════════════════════════════════
+// STAGE 5 — nazwa: funkcja
+// ══════════════════════════════════════════════════════════════════
+const stage5 = {
+  title: () => T('Taka maszynka ma swoją nazwę — funkcja',
+                 'This machine has its name — a function'),
+  desc: () => T(
+    'Cała maszynka, razem z przepisem, wejściem i wyjściem, w matematyce nazywa się funkcją. Zapis f(x) = 2x + 1 to dokładnie ten sam przepis co „weź liczbę, razy 2, dodaj 1". Litera f to nazwa maszynki. x to wejście. f(x) to wyjście dla tego wejścia.',
+    'The whole machine, with its recipe, input, and output, is called a function in mathematics. Writing f(x) = 2x + 1 is exactly the same recipe as "take the number, times 2, add 1". The letter f names the machine. x is the input. f(x) is the output for that input.'
+  ),
+  sliders: [
+    { id: 'x', lbl: 'x', color: COL_IN,
+      min: -4, max: 4, step: 1, val: 3 },
+  ],
+  draw(cx, W, H, v) {
+    const r = recipeByKey('lin');
+    const x = v.x;
+    const y = r.fn(x);
 
-  prevBtn.addEventListener('click', () => goTo(stage - 1));
-  nextBtn.addEventListener('click', () => goTo(stage + 1));
+    // Maszynka, tym razem z formalna etykieta
+    const my = H / 2 - 30;
+    const mw = 160, mh = 70;
+    const mx = W / 2;
+    drawMachine(cx, mx, my, mw, mh, r.formal);
 
-  function tick() { clear(); stages[stage].draw(); requestAnimationFrame(tick); }
-  goTo(0);
-  tick();
-})();
+    // pod spodem ukryty "alias" — ten sam przepis slownie
+    drawTextC(cx, '=  ' + r.recipe(),
+      mx, my + mh / 2 + 18, '11px monospace', 'rgba(255,255,255,0.45)');
+
+    // strzalki
+    const inCardX = mx - mw / 2 - 80;
+    const outCardX = mx + mw / 2 + 80;
+    drawArrow(cx, inCardX + 30, my, mx - mw / 2 - 10, COL_IN, 2);
+    drawArrow(cx, mx + mw / 2 + 10, my, outCardX - 30, COL_OUT, 2);
+
+    // karty z podpisami x, f(x)
+    drawCard(cx, inCardX, my, 50, 38, fmt(x), COL_IN);
+    drawTextC(cx, 'x',
+      inCardX, my - 38, 'bold 14px monospace', COL_IN);
+
+    drawCard(cx, outCardX, my, 50, 38, fmt(y), COL_OUT);
+    drawTextC(cx, 'f(x)',
+      outCardX, my - 38, 'bold 14px monospace', COL_OUT);
+
+    // zapis ewaluacji na gorze
+    drawTextC(cx,
+      `f(${fmt(x)}) = 2·${fmt(x)} + 1 = ${fmt(y)}`,
+      W / 2, 30, 'bold 14px monospace', COL_HILITE);
+    drawTextC(cx, T('czyli: wrzucam ' + fmt(x) + ', dostaję ' + fmt(y),
+                    'that is: drop in ' + fmt(x) + ', get ' + fmt(y)),
+      W / 2, 50, '11px monospace', 'rgba(255,255,255,0.5)');
+
+    // slowniczek na dole
+    const dY = H - 46;
+    const terms = [
+      { tag: T('maszynka', 'machine'),  name: 'f',     color: COL_BOX },
+      { tag: T('wrzucam',  'input'),    name: 'x',     color: COL_IN },
+      { tag: T('dostaję',  'output'),   name: 'f(x)',  color: COL_OUT },
+    ];
+    terms.forEach((t, i) => {
+      const cxx = 60 + i * ((W - 120) / (terms.length - 1));
+      drawTextC(cx, t.tag, cxx, dY,
+        '10px monospace', 'rgba(255,255,255,0.4)');
+      drawTextC(cx, '→ ' + t.name, cxx, dY + 14,
+        'bold 12px monospace', t.color);
+    });
+  },
+};
+
+// ══════════════════════════════════════════════════════════════════
+// STAGE 6 — dziedzina: co wolno wrzucic
+// ══════════════════════════════════════════════════════════════════
+const stage6 = {
+  title: () => T('Co wolno wrzucić? — dziedzina',
+                 'What may you drop in? — the domain'),
+  desc: () => T(
+    'Nie każda maszynka przyjmuje każdą liczbę. Maszynka „1 przez liczbę" nie przyjmie 0 — przez zero nie wolno dzielić. Maszynka „pierwiastek" nie przyjmie liczby ujemnej. Zbiór tego, co wolno wrzucić, matematycy nazywają dziedziną. Zbiór tego, co może wypaść — zbiorem wartości.',
+    'Not every machine accepts every number. The "1 over the number" machine rejects 0 — you cannot divide by zero. The "square root" machine rejects negatives. The set of what you ARE ALLOWED to drop in is called the domain. The set of what can come out — the range.'
+  ),
+  sliders: [
+    { id: 'rec', lbl: T('maszynka', 'machine'), color: COL_BOX,
+      min: 0, max: 2, step: 1, val: 0, stepper: true },
+    { id: 'x', lbl: T('wrzucam', 'input'), color: COL_IN,
+      min: -4, max: 4, step: 0.5, val: 2 },
+  ],
+  draw(cx, W, H, v) {
+    const bank = [recipeByKey('inv'), recipeByKey('sqrt'), recipeByKey('lin')];
+    const r = bank[Math.round(v.rec)];
+    const x = v.x;
+    const allowed = r.domTest(x);
+    const y = allowed ? r.fn(x) : NaN;
+
+    // Maszynka
+    const my = 110;
+    const mw = 150, mh = 60;
+    const mx = W / 2;
+    drawMachine(cx, mx, my, mw, mh, r.formal);
+
+    // Bramka dziedziny przed maszynka — to gdzie odrzucamy niedozwolone liczby
+    const gateX = mx - mw / 2 - 50;
+    cx.save();
+    cx.strokeStyle = allowed ? 'rgba(131,193,103,0.55)' : 'rgba(255,107,53,0.7)';
+    cx.lineWidth = 2;
+    cx.setLineDash([4, 3]);
+    cx.beginPath();
+    cx.moveTo(gateX, my - 28);
+    cx.lineTo(gateX, my + 28);
+    cx.stroke();
+    cx.setLineDash([]);
+    cx.restore();
+    drawTextC(cx, T('bramka dziedziny', 'domain gate'),
+      gateX, my + 42, '10px monospace',
+      allowed ? 'rgba(131,193,103,0.7)' : COL_GATE);
+
+    // Karta wejsciowa
+    const inCardX = gateX - 60;
+    drawCard(cx, inCardX, my, 50, 38, fmt(x), COL_IN);
+
+    if (allowed) {
+      drawArrow(cx, inCardX + 30, my, mx - mw / 2 - 10, COL_IN, 2);
+      drawArrow(cx, mx + mw / 2 + 10, my, mx + mw / 2 + 70, COL_OUT, 2);
+      drawCard(cx, mx + mw / 2 + 90, my, 50, 38, fmt(y), COL_OUT);
+    } else {
+      // Odrzucenie na bramce
+      drawArrow(cx, inCardX + 30, my, gateX - 8, COL_IN, 2);
+      // znak X tuz za bramka
+      cx.save();
+      cx.strokeStyle = COL_GATE;
+      cx.lineWidth = 3;
+      cx.lineCap = 'round';
+      const sx = gateX + 20, sy = my;
+      cx.beginPath();
+      cx.moveTo(sx - 8, sy - 8); cx.lineTo(sx + 8, sy + 8);
+      cx.moveTo(sx + 8, sy - 8); cx.lineTo(sx - 8, sy + 8);
+      cx.stroke();
+      cx.restore();
+      drawTextC(cx, T('nie wolno', 'not allowed'),
+        gateX + 20, my + 26, 'bold 10px monospace', COL_GATE);
+      // wyjsciowa karta pokazuje "—"
+      drawCard(cx, mx + mw / 2 + 90, my, 50, 38, '—', 'rgba(255,255,255,0.3)');
+    }
+
+    // Pasek "co wolno"
+    const pY = my + mh / 2 + 56;
+    cx.fillStyle = allowed
+      ? 'rgba(131,193,103,0.10)'
+      : 'rgba(255,107,53,0.12)';
+    cx.strokeStyle = allowed
+      ? 'rgba(131,193,103,0.4)'
+      : 'rgba(255,107,53,0.5)';
+    cx.lineWidth = 1;
+    roundRect(cx, 30, pY, W - 60, 52, 6);
+    cx.fill();
+    cx.stroke();
+
+    drawTextC(cx, T('Dziedzina tej maszynki:',
+                    'This machine\'s domain:'),
+      W / 2, pY + 14, '10px monospace', 'rgba(255,255,255,0.5)');
+    drawTextC(cx, r.dom(),
+      W / 2, pY + 32, 'bold 13px monospace',
+      allowed ? COL_OUT : COL_GATE);
+
+    // Nazwa formalna na gorze
+    drawTextC(cx,
+      T('Dziedzina = zbiór dozwolonych wejść.   Zbiór wartości = zbiór możliwych wyjść.',
+        'Domain = set of allowed inputs.   Range = set of possible outputs.'),
+      W / 2, 24, '10px monospace', 'rgba(255,255,255,0.45)');
+  },
+};
+
+// ══════════════════════════════════════════════════════════════════
+// STAGE 7 — rozne funkcje jako rozne maszynki
+// ══════════════════════════════════════════════════════════════════
+const stage7 = {
+  title: () => T('Różne funkcje — różne maszynki',
+                 'Different functions — different machines'),
+  desc: () => T(
+    'Dla tej samej liczby wejściowej różne maszynki zwracają różne wyniki, bo mają różne przepisy. Wrzuć tę samą liczbę do każdej z sześciu maszynek i porównaj. Zapis f(x), g(x), h(x) tylko nazywa różne maszynki różnymi literami.',
+    'For the same input number, different machines return different results — they have different recipes. Drop the same x into each of the six machines and compare. Writing f(x), g(x), h(x) just names different machines with different letters.'
+  ),
+  sliders: [
+    { id: 'x', lbl: 'x', color: COL_IN,
+      min: -3, max: 4, step: 1, val: 2 },
+  ],
+  draw(cx, W, H, v) {
+    const x = v.x;
+    const gallery = [
+      recipeByKey('add3'),
+      recipeByKey('sq'),
+      recipeByKey('abs'),
+      recipeByKey('const'),
+      recipeByKey('lin'),
+      recipeByKey('inv'),
+    ];
+
+    // 3 kolumny x 2 rzedy = 6 mini-maszynek
+    const cols = 3, rows = 2;
+    const cellW = (W - 40) / cols;
+    const cellH = (H - 80) / rows;
+    const startX = 20, startY = 40;
+
+    // Podpis gorny
+    drawTextC(cx,
+      T('Dla x = ' + fmt(x) + ' każda maszynka zwraca coś innego:',
+        'For x = ' + fmt(x) + ' each machine returns something different:'),
+      W / 2, 22, 'bold 12px monospace', COL_HILITE);
+
+    gallery.forEach((r, i) => {
+      const col = i % cols, row = Math.floor(i / cols);
+      const cxPos = startX + col * cellW + cellW / 2;
+      const cyPos = startY + row * cellH + cellH / 2 - 6;
+
+      // Mini-maszynka
+      drawMachine(cx, cxPos, cyPos, 110, 40, r.formal);
+
+      // x i y po bokach
+      const allowed = r.domTest(x);
+      const yv = allowed ? r.fn(x) : NaN;
+
+      drawTextC(cx, fmt(x),
+        cxPos - 70, cyPos, 'bold 12px monospace', COL_IN);
+      drawArrow(cx, cxPos - 60, cyPos, cxPos - 55, COL_IN, 1.2);
+      drawArrow(cx, cxPos + 55, cyPos, cxPos + 60, COL_OUT, 1.2);
+      drawTextC(cx, allowed ? fmt(yv) : '—',
+        cxPos + 70, cyPos, 'bold 12px monospace',
+        allowed ? COL_OUT : COL_GATE);
+
+      // Slowny przepis pod spodem
+      drawTextC(cx, r.recipe(),
+        cxPos, cyPos + 34, '9px monospace', 'rgba(255,255,255,0.42)');
+    });
+
+    // Stopka
+    drawTextC(cx,
+      T('Przesuń x i patrz: każda maszynka reaguje po swojemu.',
+        'Slide x and watch: each machine reacts its own way.'),
+      W / 2, H - 14, '10px monospace', 'rgba(255,255,255,0.45)');
+  },
+};
+
+// ══════════════════════════════════════════════════════════════════
+VizCore.init({
+  title: T('Maszynka, która przetwarza liczby — pojęcie funkcji',
+           'A machine that processes numbers — the function concept'),
+  H,
+  stages: [stage1, stage2, stage3, stage4, stage5, stage6, stage7],
+});
 </script>
 </body>
 </html>
