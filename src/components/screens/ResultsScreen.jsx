@@ -166,7 +166,7 @@ export function ResultsScreen({
           </div>
         )}
 
-        {/* No gaps — all good! */}
+        {/* Foundations everywhere — nothing flagged as a starting point */}
         {!hasGaps && unknownNodes.length === 0 && (
           <div style={{
             padding: "20px 16px", borderRadius: 10,
@@ -209,6 +209,12 @@ export function ResultsScreen({
                   }}
                   dangerouslySetInnerHTML={{ __html: renderLatex(topicLabel) }}
                 />
+                <div style={{
+                  fontSize: 12, color: COLORS.textDim,
+                  marginBottom: 8, lineHeight: 1.6,
+                }}>
+                  {t("resultsWhyHere", lang)}
+                </div>
                 <div style={{
                   fontSize: 12, color: COLORS.textDim,
                   marginBottom: 14, lineHeight: 1.55,
