@@ -117,14 +117,94 @@
 
   // ── Stages ───────────────────────────────────────────────────
   const stages = [
-    // Stage 1: What is a fraction?
+    // Stage 0: Pizza intro — build intuition before vocabulary
     {
-      title: () => T('Czym jest ułamek?', 'What is a fraction?'),
+      title: () => T('Kawałek pizzy', 'A slice of pizza'),
+      desc: () => {
+        const b = sB;
+        const a = Math.min(sA, b);
+        const piece = (b === 4 && a === 1) ? T(' Tyle samo znaczy kwadrans godziny.', ' That is also one quarter of an hour.') : '';
+        const shop = (a === 1 && b === 3) ? T(' W Biedronce „1/3 taniej" znaczy, że bierzesz właśnie taki kawałek rabatu.', ' "1/3 off" at a shop means this much is cut from the price.') : '';
+        return T(
+          'Tniesz pizzę na ' + b + ' równe kawałki i bierzesz ' + a + '. Tyle znaczy ' + fracStr(a, b) + ' pizzy.' + piece + shop,
+          'Cut a pizza into ' + b + ' equal slices and take ' + a + '. That is what ' + fracStr(a, b) + ' of a pizza means.' + piece + shop
+        );
+      },
+      sliders: [
+        { id: 'sA', lbl: 'a', color: COL_A, min: 1, max: 8, step: 1, val: 1 },
+        { id: 'sB', lbl: 'b', color: COL_B, min: 2, max: 8, step: 1, val: 4 },
+      ],
+      draw() {
+        const b = sB;
+        const a = Math.min(sA, b);
+        const filled = a;
+
+        // Big pizza pie chart
+        const pieR = 78;
+        const pieCX = W / 2 - 40;
+        const pieY = 125;
+        const sliceAngle = (2 * Math.PI) / b;
+
+        for (let i = 0; i < b; i++) {
+          cx.save();
+          cx.beginPath();
+          cx.moveTo(pieCX, pieY);
+          cx.arc(pieCX, pieY, pieR, -Math.PI / 2 + i * sliceAngle, -Math.PI / 2 + (i + 1) * sliceAngle);
+          cx.closePath();
+          cx.fillStyle = i < filled ? COL_A : COL_DIM;
+          if (i < filled) { cx.shadowColor = COL_A; cx.shadowBlur = 8; }
+          cx.fill();
+          cx.shadowBlur = 0;
+          cx.strokeStyle = '#0e0e12';
+          cx.lineWidth = 2;
+          cx.stroke();
+          cx.restore();
+        }
+
+        // Label above pizza
+        textLine(T('pizza pokrojona na ' + b, 'pizza cut into ' + b), 30, 'rgba(255,255,255,.4)', 12);
+
+        // Big fraction label next to pizza
+        cx.save();
+        cx.font = 'bold 34px monospace';
+        cx.fillStyle = COL_A;
+        cx.textAlign = 'left';
+        cx.fillText(fracStr(a, b), pieCX + pieR + 34, pieY + 6);
+        cx.font = '12px monospace';
+        cx.fillStyle = 'rgba(255,255,255,.5)';
+        cx.fillText(T('pizzy', 'of pizza'), pieCX + pieR + 34, pieY + 26);
+        cx.restore();
+
+        // Bottom legend: vocabulary as reward for what you already see
+        const lY = 240;
+        cx.save();
+        cx.font = '12px monospace';
+        cx.textAlign = 'center';
+        cx.fillStyle = 'rgba(255,255,255,.55)';
+        cx.fillText(T('To, co już widzisz, ma swoje nazwy:', 'What you already see has names:'), W/2, lY);
+        cx.font = '13px monospace';
+        cx.fillStyle = COL_A;
+        cx.fillText(T(a + ' — licznik (ile bierzesz)', a + ' — numerator (how many you take)'), W/2, lY + 22);
+        cx.fillStyle = COL_B;
+        cx.fillText(T(b + ' — mianownik (na ile tniesz)', b + ' — denominator (how many cuts)'), W/2, lY + 42);
+        cx.restore();
+      }
+    },
+
+    // Stage 1: Fraction on a bar — pasek czekolady
+    {
+      title: () => T('Pasek czekolady', 'Chocolate bar'),
       desc: () => {
         const a = sA, b = sB;
+        if (a > b) {
+          return T(
+            fracStr(a,b) + ' to więcej niż cała tabliczka — trzeba sięgnąć po drugą i wziąć jeszcze ' + (a - b) + ' z ' + b + '.',
+            fracStr(a,b) + ' is more than one bar — you need a second one and take ' + (a - b) + ' more out of ' + b + '.'
+          );
+        }
         return T(
-          fracStr(a,b) + ' znaczy: podziel na ' + b + ' równych części, weź ' + a + '. Ułamek to po prostu dzielenie!',
-          fracStr(a,b) + ' means: split into ' + b + ' equal parts, take ' + a + '. A fraction is just division!'
+          'Tabliczkę dzielisz na ' + b + ' kostek i bierzesz ' + a + '. Ułamek ' + fracStr(a,b) + ' to zarazem dzielenie: ' + a + ' ÷ ' + b + '.',
+          'Break the bar into ' + b + ' squares and take ' + a + '. The fraction ' + fracStr(a,b) + ' is also the division ' + a + ' ÷ ' + b + '.'
         );
       },
       sliders: [
@@ -160,7 +240,7 @@
         if (overflow > 0) {
           const bar2Y = barY + barH + 35;
           drawBar(barX, bar2Y, barW, barH, b, overflow, COL_A, COL_DIM);
-          textLine(T('Ułamek > 1 — więcej niż całość!', 'Fraction > 1 — more than the whole!'), bar2Y + barH + 20, COL_EQ, 12);
+          textLine(T('Ułamek > 1 — trzeba sięgnąć po drugą tabliczkę', 'Fraction > 1 — reach for a second bar'), bar2Y + barH + 20, COL_EQ, 12);
         }
 
         // Fraction value
@@ -192,12 +272,12 @@
       }
     },
 
-    // Stage 2: Equivalent fractions
+    // Stage 2: Equivalent fractions — the same pizza, cut differently
     {
-      title: () => T('Ułamki równoważne', 'Equivalent fractions'),
+      title: () => T('Ta sama porcja, inaczej pokrojona', 'Same portion, cut differently'),
       desc: () => T(
-        'Pomnóż licznik i mianownik przez tę samą liczbę — dostajesz tyle samo! 1/2 = 2/4 = 3/6. Więcej kawałków, ale ta sama ilość.',
-        'Multiply numerator and denominator by the same number — you get the same amount! 1/2 = 2/4 = 3/6. More pieces, same amount.'
+        'Pół pizzy to tyle samo co 2 z 4 kawałków, albo 3 z 6. Ta sama ilość, tylko drobniej pokrojona. Gdy mnożysz licznik i mianownik przez tę samą liczbę, nic nie przybywa i nic nie ubywa — pizza zostaje ta sama.',
+        'Half a pizza is the same as 2 out of 4 slices, or 3 out of 6. Same amount, cut into smaller pieces. Multiplying top and bottom by the same number does not add or remove anything — the pizza stays the same.'
       ),
       sliders: [
         { id: 'sA', lbl: 'a', color: COL_A, min: 1, max: 4, step: 1, val: 1 },
@@ -209,7 +289,7 @@
         const barW = 440, barH = 28;
         const barX = (W - barW) / 2;
 
-        textLine(T('Pomnóż licznik i mianownik przez ', 'Multiply top and bottom by ') + m, 28, 'rgba(255,255,255,.45)', 12);
+        textLine(T('Tniemy drobniej — mnożymy przez ', 'Cut finer — multiply by ') + m, 28, 'rgba(255,255,255,.45)', 12);
 
         // Draw bars for each multiplier from 1 to m
         for (let k = 1; k <= Math.max(m, 3); k++) {
@@ -245,25 +325,25 @@
         const ey = H - 30;
         if (m > 1) {
           const [sa, sb] = simplify(a * m, b * m);
-          textLine(fracStr(a, b) + ' = ' + fracStr(a * m, b * m) + T('  (ta sama wartość!)', '  (same value!)'), ey, COL_P, 14);
+          textLine(fracStr(a, b) + ' = ' + fracStr(a * m, b * m) + T('  (ta sama porcja pizzy)', '  (same portion of pizza)'), ey, COL_P, 14);
         } else {
-          textLine(T('Przesuń suwak \u00D7 w prawo!', 'Move the \u00D7 slider to the right!'), ey, 'rgba(255,255,255,.35)', 13);
+          textLine(T('Przesuń suwak \u00D7 w prawo, żeby pokroić drobniej', 'Move the \u00D7 slider to cut finer'), ey, 'rgba(255,255,255,.35)', 13);
         }
       }
     },
 
     // Stage 3: Addition — common denominator
     {
-      title: () => T('Dodawanie — wspólny mianownik', 'Addition — common denominator'),
+      title: () => T('Dodawanie — pokrój obie pizze tak samo', 'Addition — cut both pizzas the same way'),
       desc: () => T(
-        'Żeby dodać ułamki, potrzebujesz takich samych kawałków. Sprowadź do wspólnego mianownika, potem policz kawałki.',
-        'To add fractions you need same-sized pieces. Convert to a common denominator, then count pieces.'
+        'Masz 1/3 pizzy i chcesz dołożyć 1/4 drugiej. Kawałki różnej wielkości się nie dodają. Pokrój każdą pizzę na 12 równych części — teraz pierwsza to 4/12, druga 3/12, razem 7/12. Wspólny mianownik to wspólna wielkość kawałka.',
+        'You have 1/3 of a pizza and want to add 1/4 of another. Different-sized slices do not add up. Cut each pizza into 12 equal pieces — now the first is 4/12, the second 3/12, together 7/12. A common denominator means a common slice size.'
       ),
       sliders: [
         { id: 'sA1', lbl: 'a', color: COL_A, min: 1, max: 5, step: 1, val: 1 },
-        { id: 'sB1', lbl: 'b', color: COL_A, min: 2, max: 6, step: 1, val: 2 },
+        { id: 'sB1', lbl: 'b', color: COL_A, min: 2, max: 6, step: 1, val: 3 },
         { id: 'sA2', lbl: 'c', color: COL_B, min: 1, max: 5, step: 1, val: 1 },
-        { id: 'sB2', lbl: 'd', color: COL_B, min: 2, max: 6, step: 1, val: 3 },
+        { id: 'sB2', lbl: 'd', color: COL_B, min: 2, max: 6, step: 1, val: 4 },
       ],
       draw() {
         const a1 = sA1, b1 = sB1, a2 = sA2, b2 = sB2;
@@ -276,7 +356,7 @@
         const barX = (W - barW) / 2;
 
         // Original fractions
-        textLine(T('Różne kawałki:', 'Different pieces:'), 22, 'rgba(255,255,255,.4)', 11);
+        textLine(T('Różne kawałki — tak nie dodasz:', 'Different slice sizes — you cannot add like this:'), 22, 'rgba(255,255,255,.4)', 11);
 
         // Bar 1 (original)
         const b1Y = 38;
@@ -298,7 +378,7 @@
         cx.beginPath(); cx.moveTo(W / 2 - 4, arrowY + 14); cx.lineTo(W / 2, arrowY + 18); cx.lineTo(W / 2 + 4, arrowY + 14); cx.stroke();
         cx.restore();
 
-        textLine(T('Wspólny mianownik: ', 'Common denominator: ') + L, arrowY + 8, 'rgba(255,255,255,.35)', 11);
+        textLine(T('Pokrój obie na ' + L + ' równych części:', 'Cut both into ' + L + ' equal pieces:'), arrowY + 8, 'rgba(255,255,255,.35)', 11);
 
         // Converted fractions
         const c1Y = arrowY + 28;
@@ -338,17 +418,17 @@
       }
     },
 
-    // Stage 4: Multiplication — grid
+    // Stage 4: Multiplication — ułamek z ułamka
     {
-      title: () => T('Mnożenie ułamków', 'Multiplying fractions'),
+      title: () => T('Mnożenie — ułamek z ułamka', 'Multiplication — fraction of a fraction'),
       desc: () => T(
-        'a/b \u00D7 c/d = (a\u00D7c)/(b\u00D7d). Wizualnie: zamaluj a/b wierszy i c/d kolumn siatki. Przecięcie = wynik.',
-        'a/b \u00D7 c/d = (a\u00D7c)/(b\u00D7d). Visually: shade a/b of rows and c/d of columns of a grid. The overlap = result.'
+        'a/b \u00D7 c/d = (a\u00D7c)/(b\u00D7d). Pół pizzy dzielisz jeszcze na trzy i bierzesz jedną — to właśnie 1/2 × 1/3 = 1/6 pizzy. Mnożenie ułamków to branie części z części: a/b wierszy razem z c/d kolumn siatki daje (a×c)/(b×d) kawałków całości.',
+        'a/b \u00D7 c/d = (a\u00D7c)/(b\u00D7d). Half a pizza cut into three with one piece taken — that is 1/2 × 1/3 = 1/6 of the whole. Multiplying fractions means taking a part of a part: a/b of rows overlapping c/d of columns gives (a×c)/(b×d) pieces of the whole.'
       ),
       sliders: [
-        { id: 'sA1', lbl: 'a', color: COL_A, min: 1, max: 5, step: 1, val: 3 },
-        { id: 'sB1', lbl: 'b', color: COL_A, min: 2, max: 6, step: 1, val: 4 },
-        { id: 'sA2', lbl: 'c', color: COL_B, min: 1, max: 5, step: 1, val: 2 },
+        { id: 'sA1', lbl: 'a', color: COL_A, min: 1, max: 5, step: 1, val: 1 },
+        { id: 'sB1', lbl: 'b', color: COL_A, min: 2, max: 6, step: 1, val: 2 },
+        { id: 'sA2', lbl: 'c', color: COL_B, min: 1, max: 5, step: 1, val: 1 },
         { id: 'sB2', lbl: 'd', color: COL_B, min: 2, max: 6, step: 1, val: 3 },
       ],
       draw() {
@@ -433,16 +513,16 @@
       }
     },
 
-    // Stage 5: Division — flip and multiply
+    // Stage 5: Division — how many fit
     {
-      title: () => T('Dzielenie — odwracamy i mnożymy', 'Division — flip and multiply'),
+      title: () => T('Dzielenie — ile razy się mieści', 'Division — how many times it fits'),
       desc: () => T(
-        'a/b \u00F7 c/d = a/b \u00D7 d/c. Pytamy: ile razy c/d mieści się w a/b? Odwróć drugi ułamek i pomnóż!',
-        'a/b \u00F7 c/d = a/b \u00D7 d/c. We ask: how many times does c/d fit into a/b? Flip the second and multiply!'
+        'a/b \u00F7 c/d = a/b \u00D7 d/c. Pół pizzy dzielisz na ćwiartki — mieszczą się dokładnie dwie, czyli 1/2 ÷ 1/4 = 2. Pytamy więc: ile razy drugi ułamek mieści się w pierwszym? Prosty sposób na rachunek: odwróć drugi ułamek i pomnóż.',
+        'a/b \u00F7 c/d = a/b \u00D7 d/c. Half a pizza split into quarter slices fits exactly twice, so 1/2 ÷ 1/4 = 2. The question is: how many times does the second fraction fit into the first? The shortcut: flip the second fraction and multiply.'
       ),
       sliders: [
-        { id: 'sA1', lbl: 'a', color: COL_A, min: 1, max: 6, step: 1, val: 3 },
-        { id: 'sB1', lbl: 'b', color: COL_A, min: 2, max: 6, step: 1, val: 4 },
+        { id: 'sA1', lbl: 'a', color: COL_A, min: 1, max: 6, step: 1, val: 1 },
+        { id: 'sB1', lbl: 'b', color: COL_A, min: 2, max: 6, step: 1, val: 2 },
         { id: 'sA2', lbl: 'c', color: COL_B, min: 1, max: 5, step: 1, val: 1 },
         { id: 'sB2', lbl: 'd', color: COL_B, min: 2, max: 6, step: 1, val: 4 },
       ],
@@ -529,6 +609,83 @@
         textLine(fracStr(a2, b2) + T(' mieści się ', ' fits ') + valStr + T(' razy w ', ' times in ') + fracStr(a1, b1), fY + 96, 'rgba(255,255,255,.35)', 11);
       }
     },
+
+    // Stage 6: Uzupełnianie do całości — rabat / promocja
+    {
+      title: () => T('Rabat — uzupełnianie do całości', 'Discount — filling to the whole'),
+      desc: () => {
+        const a = sA, b = sB;
+        const rest = b - a;
+        return T(
+          '„' + fracStr(a, b) + ' taniej" znaczy, że odejmujesz ' + fracStr(a, b) + ' ceny. Zostaje ' + fracStr(rest, b) + ' — i tyle płacisz. Cena po rabacie to zawsze 1 minus ułamek rabatu, czyli cała pizza minus zjedzony kawałek.',
+          '"' + fracStr(a, b) + ' off" means you subtract ' + fracStr(a, b) + ' of the price. What is left is ' + fracStr(rest, b) + ' — that is what you pay. The after-discount share is always 1 minus the discount, the whole pizza minus the eaten slice.'
+        );
+      },
+      sliders: [
+        { id: 'sA', lbl: 'a', color: COL_B, min: 1, max: 5, step: 1, val: 1 },
+        { id: 'sB', lbl: 'b', color: COL_A, min: 2, max: 6, step: 1, val: 3 },
+      ],
+      draw() {
+        const a = Math.min(sA, sB - 1); // discount slice count, keep < whole
+        const b = sB;
+        const rest = b - a;
+        const barW = 440, barH = 36;
+        const barX = (W - barW) / 2;
+
+        textLine(T('Cena przed rabatem: 1 (cała)', 'Price before discount: 1 (whole)'), 28, 'rgba(255,255,255,.45)', 12);
+
+        // Full bar showing discount part (orange) and paid part (green)
+        const barY = 54;
+        const pw = barW / b;
+        for (let i = 0; i < b; i++) {
+          cx.save();
+          const isDiscount = i < a;
+          cx.fillStyle = isDiscount ? COL_B : COL_P;
+          cx.shadowColor = isDiscount ? COL_B : COL_P;
+          cx.shadowBlur = 5;
+          roundRect(cx, barX + i * pw + 1, barY, pw - 2, barH, 3);
+          cx.fill();
+          cx.shadowBlur = 0;
+          cx.restore();
+        }
+
+        // Labels over the bar segments
+        cx.save();
+        cx.font = '12px monospace';
+        cx.textAlign = 'center';
+        cx.fillStyle = COL_B;
+        cx.fillText(T('rabat', 'discount') + ' ' + fracStr(a, b), barX + (a * pw) / 2, barY - 8);
+        cx.fillStyle = COL_P;
+        cx.fillText(T('płacisz', 'you pay') + ' ' + fracStr(rest, b), barX + a * pw + (rest * pw) / 2, barY - 8);
+        cx.restore();
+
+        // Equation breakdown
+        const fY = barY + barH + 40;
+        textLine('1 - ' + fracStr(a, b) + ' = ' + fracStr(b, b) + ' - ' + fracStr(a, b) + ' = ' + fracStr(rest, b), fY, COL_EQ, 15);
+
+        // Concrete example
+        const price = 120;
+        const paid = price * rest / b;
+        const discount = price * a / b;
+        const exY = fY + 28;
+        textLine(T('Przykład: cena ' + price + ' zł, rabat ' + fracStr(a, b),
+                    'Example: price ' + price + ' zł, discount ' + fracStr(a, b)), exY, 'rgba(255,255,255,.5)', 12);
+        textLine(T('zniżka ' + discount.toFixed(0) + ' zł, płacisz ' + paid.toFixed(0) + ' zł',
+                    'discount ' + discount.toFixed(0) + ' zł, you pay ' + paid.toFixed(0) + ' zł'), exY + 20, COL_P, 13);
+
+        // Warning about the common mistake
+        const wY = exY + 52;
+        cx.save();
+        cx.font = '11px monospace';
+        cx.fillStyle = 'rgba(255,255,255,.4)';
+        cx.textAlign = 'center';
+        cx.fillText(T('Częsty błąd: mylenie „' + fracStr(a, b) + ' taniej" z „cena to ' + fracStr(a, b) + '".',
+                       'Common slip: confusing "' + fracStr(a, b) + ' off" with "the price is ' + fracStr(a, b) + '".'), W/2, wY);
+        cx.fillText(T('Rabat odejmujesz od 1, nie zastępujesz nim 1.',
+                       'You subtract the discount from 1, not replace 1 with it.'), W/2, wY + 16);
+        cx.restore();
+      }
+    },
   ];
 
   // ── Slider management ────────────────────────────────────────
@@ -571,10 +728,28 @@
   const descEl  = document.getElementById('qd');
 
   function goTo(idx) {
+    const prevStage = stage;
     stage = Math.max(0, Math.min(stages.length - 1, idx));
     const s = stages[stage];
     titleEl.textContent = s.title();
     descEl.textContent = s.desc();
+
+    // On stage ENTRY (not just re-render), seed globals from the stage's own
+    // default vals so the narrative example in desc() matches the canvas on
+    // first frame. If user is simply re-rendering the same stage, respect
+    // their current slider positions.
+    if (s.sliders && prevStage !== stage) {
+      s.sliders.forEach(sl => {
+        if (sl.val == null) return;
+        if (sl.id === 'sA')  sA  = sl.val;
+        if (sl.id === 'sB')  sB  = sl.val;
+        if (sl.id === 'sMul') sMul = sl.val;
+        if (sl.id === 'sA1') sA1 = sl.val;
+        if (sl.id === 'sB1') sB1 = sl.val;
+        if (sl.id === 'sA2') sA2 = sl.val;
+        if (sl.id === 'sB2') sB2 = sl.val;
+      });
+    }
 
     if (s.sliders) {
       s.sliders.forEach(sl => {
