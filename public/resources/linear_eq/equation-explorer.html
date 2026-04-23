@@ -231,8 +231,8 @@
     {
       title: () => T('Równanie to waga', 'An equation is a balance'),
       desc: () => T(
-        'Równanie mówi: lewa strona waży tyle samo co prawa. 2x + 3 = 7 znaczy: dwa x-y plus trzy jednostki ważą dokładnie siedem.',
-        'An equation says: the left side weighs the same as the right. 2x + 3 = 7 means: two x-blocks plus three units weigh exactly seven.'
+        'Wyobraź sobie wagę szalkową. Równanie mówi tyle: to, co leży na lewej szalce, waży dokładnie tyle samo co to, co leży na prawej. Zapis 2x + 3 = 7 to po prostu opis tej wagi — na lewej szalce dwa nieznane ciężarki x i trzy jednostkowe, na prawej siedem jednostkowych, i szalki się równoważą.',
+        'Picture a balance scale with two pans. An equation says this: whatever sits on the left pan weighs exactly as much as whatever sits on the right. The notation 2x + 3 = 7 just describes that scale — two unknown x-weights and three unit-weights on the left, seven unit-weights on the right, and the pans balance.'
       ),
       sliders: [],
       draw() {
@@ -261,10 +261,10 @@
 
     // Stage 2: Subtract from both sides
     {
-      title: () => T('Odejmij z obu stron', 'Subtract from both sides'),
+      title: () => T('Zdejmij z obu szalek to samo', 'Take the same off both pans'),
       desc: () => T(
-        'Odejmij 3 z obu stron. Waga zostaje w równowadze! 2x + 3 - 3 = 7 - 3, czyli 2x = 4.',
-        'Subtract 3 from both sides. The balance stays level! 2x + 3 - 3 = 7 - 3, so 2x = 4.'
+        'Chcemy zostawić na lewej szalce tylko x-y. Zdejmujemy więc trzy jednostkowe ciężarki z lewej szalki — i dokładnie trzy takie same z prawej. Jeśli robimy to samo po obu stronach, waga nie ma powodu, żeby się przechylić. Zostaje 2x = 4. Tę regułę matematycy nazywają operacją równoważną: równość zachowuje się dokładnie dlatego, że obie szalki potraktowaliśmy identycznie.',
+        'We want only x-blocks left on the left pan. So we take three unit-weights off the left — and exactly three matching ones off the right. When we do the same thing on both sides, the scale has no reason to tilt. What remains is 2x = 4. Mathematicians call this an equivalent operation: the equality holds precisely because we treated both pans identically.'
       ),
       sliders: [],
       draw() {
@@ -301,10 +301,10 @@
 
     // Stage 3: Divide both sides
     {
-      title: () => T('Podziel obie strony', 'Divide both sides'),
+      title: () => T('Podziel obie szalki na pół', 'Halve both pans'),
       desc: () => T(
-        'Podziel obie strony przez 2. 2x/2 = 4/2, czyli x = 2. Sprawdzenie: 2*2 + 3 = 7. Zgadza się!',
-        'Divide both sides by 2. 2x/2 = 4/2, so x = 2. Check: 2*2 + 3 = 7. Correct!'
+        'Na lewej szalce mamy dwa identyczne ciężarki x, na prawej cztery jednostkowe. Skoro każda strona waży tyle samo, to połowa lewej szalki waży tyle samo co połowa prawej — wystarczy zdjąć z lewej jeden x, a z prawej dwa jednostkowe, i szalki wciąż się równoważą. Dzielimy obie szalki przez 2 i zostaje x = 2. Na koniec warto podstawić tę wartość do pierwotnego równania i sprawdzić, czy waga faktycznie stoi prosto.',
+        'The left pan holds two identical x-weights, the right holds four unit-weights. Since each side weighs the same, half of the left weighs as much as half of the right — lift one x off the left and two units off the right, and the pans still balance. We halve both pans and x = 2 remains. Finally it is worth plugging that value back into the original equation to check that the scale really does stand level.'
       ),
       sliders: [],
       draw() {
@@ -327,7 +327,7 @@
 
         // Check box
         cx.save();
-        roundRect(cx, W/2 - 110, H - 50, 220, 32, 6);
+        roundRect(cx, W/2 - 120, H - 50, 240, 32, 6);
         cx.fillStyle = COL_OK + '15';
         cx.fill();
         cx.strokeStyle = COL_OK + '40';
@@ -336,7 +336,7 @@
         cx.font = '13px monospace';
         cx.fillStyle = COL_OK;
         cx.textAlign = 'center';
-        cx.fillText(T('Sprawdzenie: 2*2 + 3 = 7', 'Check: 2*2 + 3 = 7') + ' \u2713', W/2, H - 29);
+        cx.fillText(T('Szalki się równoważą: 2·2 + 3 = 7', 'Pans balance: 2·2 + 3 = 7') + ' ✓', W/2, H - 29);
         cx.restore();
       }
     },
@@ -345,8 +345,8 @@
     {
       title: () => T('Twoja kolej: ax + b = c', 'Your turn: ax + b = c'),
       desc: () => T(
-        'R\u00F3wnanie m\u00F3wi, \u017Ce obie szale wagi s\u0105 w r\u00F3wnowadze. Ka\u017Cda operacja musi zachowa\u0107 t\u0119 r\u00F3wnowag\u0119 \u2014 co robisz z jednej strony, robisz te\u017C z drugiej. Ustaw a, b, c i obserwuj, jak krok po kroku upraszczamy r\u00F3wnanie, nie psuj\u0105c r\u00F3wno\u015Bci.',
-        'An equation says both sides of the scale are balanced. Every operation must preserve that balance \u2014 what you do to one side, do to the other. Set a, b, c and watch how we simplify step by step without breaking the equality.'
+        'Ustaw a, b oraz c i zobacz, jak ta sama waga radzi sobie z dowolnym równaniem liniowym. Najpierw zdejmujemy b z obu szalek, żeby po lewej zostały tylko x-y. Potem dzielimy obie szalki przez a, żeby sprawdzić, ile waży pojedynczy x. Cała reguła sprowadza się do jednego: cokolwiek robisz z lewą szalką, zrób dokładnie to samo z prawą, a waga sama doprowadzi Cię do rozwiązania.',
+        'Set a, b and c, and watch the same scale handle any linear equation. First we lift b off both pans so only x-blocks remain on the left. Then we divide both pans by a to see how much a single x weighs. The whole rule comes down to this: whatever You do to the left pan, do exactly the same to the right, and the scale itself will lead You to the answer.'
       ),
       sliders: [
         { id: 'paramA', lbl: 'a', color: COL_X, min: 1, max: 8, step: 1, val: 2 },
@@ -379,13 +379,13 @@
 
         // Step 1
         cx.fillStyle = 'rgba(255,255,255,.5)';
-        cx.fillText(T('Krok 1: odejmij ', 'Step 1: subtract ') + b + T(' z obu stron', ' from both sides'), x1, stepY);
+        cx.fillText(T('Krok 1: zdejmij ', 'Step 1: take ') + b + T(' z obu szalek', ' off both pans'), x1, stepY);
         cx.fillStyle = COL_SEQ;
         cx.fillText(a + 'x  =  ' + c + ' - ' + (b >= 0 ? b : '(' + b + ')') + '  =  ' + cb, x1 + 20, stepY + 20);
 
         // Step 2
         cx.fillStyle = 'rgba(255,255,255,.5)';
-        cx.fillText(T('Krok 2: podziel przez ', 'Step 2: divide by ') + a, x1, stepY + stepGap + 10);
+        cx.fillText(T('Krok 2: podziel obie szalki przez ', 'Step 2: divide both pans by ') + a, x1, stepY + stepGap + 10);
         cx.fillStyle = COL_SEQ;
         const xStr = Number.isInteger(xVal) ? xVal.toString() : (cb + '/' + a);
         cx.fillText('x  =  ' + cb + ' / ' + a + '  =  ' + xStr, x1 + 20, stepY + stepGap + 30);
@@ -433,7 +433,7 @@
         const checkOk = Math.abs(checkVal - c) < 0.001;
         if (checkOk) {
           cx.save();
-          roundRect(cx, W/2 - 130, H - 42, 260, 28, 6);
+          roundRect(cx, W/2 - 140, H - 42, 280, 28, 6);
           cx.fillStyle = COL_OK + '12';
           cx.fill();
           cx.strokeStyle = COL_OK + '40';
@@ -442,19 +442,19 @@
           cx.font = '12px monospace';
           cx.fillStyle = COL_OK;
           cx.textAlign = 'center';
-          const chkStr = a + '*' + xStr + bSign + ' = ' + (Number.isInteger(checkVal) ? checkVal : checkVal.toFixed(2));
-          cx.fillText(chkStr + ' \u2713', W/2, H - 23);
+          const chkStr = a + '·' + xStr + bSign + ' = ' + (Number.isInteger(checkVal) ? checkVal : checkVal.toFixed(2));
+          cx.fillText(T('Szalki w równowadze: ', 'Pans balance: ') + chkStr + ' ✓', W/2, H - 23);
           cx.restore();
         }
       }
     },
 
-    // Stage 5: Special cases / traps
+    // Stage 5: Special cases — a = 0
     {
-      title: () => T('Pułapki: a = 0', 'Traps: a = 0'),
+      title: () => T('Gdy a = 0: waga bez x-ów', 'When a = 0: a scale without x'),
       desc: () => T(
-        'Co jeśli a = 0? Wtedy 0*x + b = c, czyli b = c. Jeśli b = c, każdy x jest rozwiązaniem (waga zawsze w równowadze). Jeśli b != c, nie ma rozwiązania (waga się nigdy nie zrównoważy).',
-        'What if a = 0? Then 0*x + b = c, i.e. b = c. If b = c, every x is a solution (scale always balanced). If b != c, no solution (scale can never balance).'
+        'A co, jeśli a = 0? Wtedy x znika z lewej szalki — zostają po obu stronach tylko zwykłe liczby: b po lewej, c po prawej. Jeśli b = c, waga stoi prosto niezależnie od tego, ile wynosi x: każda liczba jest rozwiązaniem. Jeśli zaś b różni się od c, szalki już się nie zrównoważą — żaden x tego nie naprawi, bo x-a w równaniu w ogóle nie ma. Matematycy nazywają pierwszy przypadek równaniem tożsamościowym, a drugi — sprzecznym.',
+        'What if a = 0? Then x vanishes from the left pan and both sides hold only plain numbers: b on the left, c on the right. If b = c, the scale stands level no matter what x is — every number is a solution. If b differs from c, the pans will not balance — no value of x can fix that, because x is not in the equation at all. Mathematicians call the first case an identity and the second a contradictory equation.'
       ),
       sliders: [
         { id: 'paramB', lbl: 'b', color: COL_NUM, min: -5, max: 5, step: 1, val: 3 },
@@ -465,7 +465,7 @@
         const bSign = b >= 0 ? ' + ' + b : ' - ' + Math.abs(b);
 
         // Equation
-        textLine('0 * x' + bSign + '  =  ' + c, 28, COL_BEAM, 16);
+        textLine('0 · x' + bSign + '  =  ' + c, 28, COL_BEAM, 16);
         textLine(b + '  =  ' + c, 52, 'rgba(255,255,255,.6)', 14);
 
         if (b === c) {
@@ -477,7 +477,7 @@
 
           // Green highlight
           cx.save();
-          roundRect(cx, W/2 - 140, H - 55, 280, 40, 6);
+          roundRect(cx, W/2 - 150, H - 55, 300, 40, 6);
           cx.fillStyle = COL_OK + '12';
           cx.fill();
           cx.strokeStyle = COL_OK + '50';
@@ -486,7 +486,7 @@
           cx.font = '14px monospace';
           cx.fillStyle = COL_OK;
           cx.textAlign = 'center';
-          cx.fillText(b + ' = ' + c + '  \u2713  ' + T('Każdy x jest rozwiązaniem!', 'Every x is a solution!'), W/2, H - 30);
+          cx.fillText(T('Waga zawsze w równowadze — każde x pasuje', 'Scale always balanced — any x works'), W/2, H - 30);
           cx.restore();
         } else {
           // Contradiction: no solution
@@ -498,7 +498,7 @@
 
           // Red highlight
           cx.save();
-          roundRect(cx, W/2 - 140, H - 55, 280, 40, 6);
+          roundRect(cx, W/2 - 150, H - 55, 300, 40, 6);
           cx.fillStyle = COL_CANCEL + '12';
           cx.fill();
           cx.strokeStyle = COL_CANCEL + '50';
@@ -507,7 +507,7 @@
           cx.font = '14px monospace';
           cx.fillStyle = COL_CANCEL;
           cx.textAlign = 'center';
-          cx.fillText(b + ' \u2260 ' + c + '  \u2717  ' + T('Brak rozwiązania!', 'No solution!'), W/2, H - 30);
+          cx.fillText(T('Waga się nie zrównoważy — żadne x nie pomoże', 'Scale cannot balance — no x helps'), W/2, H - 30);
           cx.restore();
         }
       }
