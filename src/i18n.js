@@ -231,6 +231,7 @@ const STRINGS = {
                        en: "Start learning — path from your first step" },
   resultsSeeMap:     { pl: "Zobacz swoją mapę",           en: "See your map" },
   resultsShare:      { pl: "Udostępnij wynik",             en: "Share results" },
+  mapShare:          { pl: "Udostępnij",                   en: "Share" },
   resultsRetake:     { pl: "Spróbuj ponownie",            en: "Try again" },
 
   // ── Coffee ───────────────────────────────────────────────────────

@@ -31,9 +31,15 @@ import { LessonView } from "./screens/LessonView.jsx";
 
 function parseHash() {
   const hash = window.location.hash.replace(/^#\/?/, "");
-  const parts = hash.split("/");
+  const parts = hash.split("/").filter(Boolean);
   if (parts[0] === "results" && parts[1]) return { phase: "results", code: parts[1] };
-  if (parts[0] === "map" && parts[1]) return { phase: "map", code: parts[1], node: parts[2] || null };
+  if (parts[0] === "map" && parts[1]) {
+    // #/map/<code>/<…graph sub-route…> — the CurriculumGraph owns everything
+    // after the code via its own router. We just need the code and an optional
+    // direct node target (when the third segment is "node/<id>").
+    const node = parts[2] === "node" && parts[3] ? parts[3] : null;
+    return { phase: "map", code: parts[1], node };
+  }
   if (parts[0] === "map") return { phase: "map" };
   return null;
 }
@@ -69,17 +75,26 @@ export default function CourseApp() {
   }, [setThemeId]);
   applyTheme(themeId);
 
-  // Sync phase → URL hash
+  // Sync phase → URL hash.
+  // Note: in `map` phase, CurriculumGraph's own useHashRouter owns the hash
+  // (prefixed with `map/<code>` when a belief code is supplied). We only seed
+  // the initial `#/map/<code>` hash on entering the phase; after that, we let
+  // the graph router extend it with its sub-routes (lang, node, diagnostic).
   useEffect(() => {
-    let hash = "";
     if (phase === "results" && quizBelief) {
-      hash = `#/results/${encodeBelief(quizBelief)}`;
+      const hash = `#/results/${encodeBelief(quizBelief)}`;
+      if (window.location.hash !== hash) {
+        window.history.replaceState(null, "", hash);
+      }
     } else if (phase === "map" && quizBelief) {
-      hash = `#/map/${encodeBelief(quizBelief)}`;
-    }
-    if (hash && window.location.hash !== hash) {
-      window.history.replaceState(null, "", hash);
-    } else if (!hash && window.location.hash) {
+      const code = encodeBelief(quizBelief);
+      const wanted = `#/map/${code}`;
+      // Only seed the hash if it doesn't already start with our map/<code>
+      // prefix. This preserves sub-routes written by CurriculumGraph.
+      if (!window.location.hash.startsWith(wanted)) {
+        window.history.replaceState(null, "", wanted);
+      }
+    } else if (phase !== "map" && phase !== "results" && window.location.hash) {
       window.history.replaceState(null, "", window.location.pathname);
     }
   }, [phase, quizBelief]);
@@ -376,6 +391,7 @@ export default function CourseApp() {
           initialEvidence={quizEvidence}
           initialSelectedNode={initialSelectedNode}
           initialLang={lang}
+          beliefCode={quizBelief && Object.keys(quizBelief).length > 0 ? encodeBelief(quizBelief) : null}
           onBackToHome={handleBackToHero}
         />
       );
