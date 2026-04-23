@@ -341,9 +341,9 @@
       ),
       sliders: [
         { id: 'sA1', lbl: 'a', color: COL_A, min: 1, max: 5, step: 1, val: 1 },
-        { id: 'sB1', lbl: 'b', color: COL_A, min: 2, max: 6, step: 1, val: 2 },
+        { id: 'sB1', lbl: 'b', color: COL_A, min: 2, max: 6, step: 1, val: 3 },
         { id: 'sA2', lbl: 'c', color: COL_B, min: 1, max: 5, step: 1, val: 1 },
-        { id: 'sB2', lbl: 'd', color: COL_B, min: 2, max: 6, step: 1, val: 3 },
+        { id: 'sB2', lbl: 'd', color: COL_B, min: 2, max: 6, step: 1, val: 4 },
       ],
       draw() {
         const a1 = sA1, b1 = sB1, a2 = sA2, b2 = sB2;
@@ -426,9 +426,9 @@
         'a/b \u00D7 c/d = (a\u00D7c)/(b\u00D7d). Half a pizza cut into three with one piece taken — that is 1/2 × 1/3 = 1/6 of the whole. Multiplying fractions means taking a part of a part: a/b of rows overlapping c/d of columns gives (a×c)/(b×d) pieces of the whole.'
       ),
       sliders: [
-        { id: 'sA1', lbl: 'a', color: COL_A, min: 1, max: 5, step: 1, val: 3 },
-        { id: 'sB1', lbl: 'b', color: COL_A, min: 2, max: 6, step: 1, val: 4 },
-        { id: 'sA2', lbl: 'c', color: COL_B, min: 1, max: 5, step: 1, val: 2 },
+        { id: 'sA1', lbl: 'a', color: COL_A, min: 1, max: 5, step: 1, val: 1 },
+        { id: 'sB1', lbl: 'b', color: COL_A, min: 2, max: 6, step: 1, val: 2 },
+        { id: 'sA2', lbl: 'c', color: COL_B, min: 1, max: 5, step: 1, val: 1 },
         { id: 'sB2', lbl: 'd', color: COL_B, min: 2, max: 6, step: 1, val: 3 },
       ],
       draw() {
@@ -521,8 +521,8 @@
         'a/b \u00F7 c/d = a/b \u00D7 d/c. Half a pizza split into quarter slices fits exactly twice, so 1/2 ÷ 1/4 = 2. The question is: how many times does the second fraction fit into the first? The shortcut: flip the second fraction and multiply.'
       ),
       sliders: [
-        { id: 'sA1', lbl: 'a', color: COL_A, min: 1, max: 6, step: 1, val: 3 },
-        { id: 'sB1', lbl: 'b', color: COL_A, min: 2, max: 6, step: 1, val: 4 },
+        { id: 'sA1', lbl: 'a', color: COL_A, min: 1, max: 6, step: 1, val: 1 },
+        { id: 'sB1', lbl: 'b', color: COL_A, min: 2, max: 6, step: 1, val: 2 },
         { id: 'sA2', lbl: 'c', color: COL_B, min: 1, max: 5, step: 1, val: 1 },
         { id: 'sB2', lbl: 'd', color: COL_B, min: 2, max: 6, step: 1, val: 4 },
       ],
@@ -728,10 +728,28 @@
   const descEl  = document.getElementById('qd');
 
   function goTo(idx) {
+    const prevStage = stage;
     stage = Math.max(0, Math.min(stages.length - 1, idx));
     const s = stages[stage];
     titleEl.textContent = s.title();
     descEl.textContent = s.desc();
+
+    // On stage ENTRY (not just re-render), seed globals from the stage's own
+    // default vals so the narrative example in desc() matches the canvas on
+    // first frame. If user is simply re-rendering the same stage, respect
+    // their current slider positions.
+    if (s.sliders && prevStage !== stage) {
+      s.sliders.forEach(sl => {
+        if (sl.val == null) return;
+        if (sl.id === 'sA')  sA  = sl.val;
+        if (sl.id === 'sB')  sB  = sl.val;
+        if (sl.id === 'sMul') sMul = sl.val;
+        if (sl.id === 'sA1') sA1 = sl.val;
+        if (sl.id === 'sB1') sB1 = sl.val;
+        if (sl.id === 'sA2') sA2 = sl.val;
+        if (sl.id === 'sB2') sB2 = sl.val;
+      });
+    }
 
     if (s.sliders) {
       s.sliders.forEach(sl => {
