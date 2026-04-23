@@ -1,23 +1,284 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FONT, COLORS, THEMES } from "../../styles/tokens.js";
 import { t } from "../../i18n.js";
 import { QUIZ_PRESETS } from "../../engine/belief.js";
+import { HeroParabola } from "../ui/HeroParabola.jsx";
 
 /**
  * Landing screen — the first thing users see.
  * One clear purpose: start the diagnostic quiz.
  * Secondary: browse the map directly.
+ *
+ * Layout:
+ * - Desktop (≥600px): 50/50 split — parabola viz on the left, tagline + CTAs on the right.
+ * - Mobile (<600px): stacked — viz on top (shorter aspect), then tagline, then CTAs.
  */
 export function HeroScreen({ lang, setLang, themeId, onThemeChange, onStartQuiz, onStartGoalQuiz, onBrowseViz, onBrowseMap, onProfile, onFromScratch, hasSavedCourse }) {
   const [preset, setPreset] = useState("standard");
   const [showMore, setShowMore] = useState(false);
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" ? window.innerWidth < 600 : false
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onResize = () => setIsMobile(window.innerWidth < 600);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  // Gallery link — on desktop sits directly under the SVG; on mobile it drops to
+  // the bottom of the hero (below CTAs) per spec.
+  const galleryLink = (
+    <button
+      onClick={onBrowseViz}
+      style={{
+        background: "transparent", border: "none",
+        padding: "4px 8px",
+        fontSize: 12, fontFamily: FONT,
+        color: COLORS.textDim,
+        cursor: "pointer",
+        letterSpacing: 0.2,
+        transition: "color 0.15s",
+      }}
+      onMouseEnter={e => { e.currentTarget.style.color = COLORS.textBody; }}
+      onMouseLeave={e => { e.currentTarget.style.color = COLORS.textDim; }}
+    >
+      {t("heroVizGalleryLink", lang)}
+    </button>
+  );
+
+  // Viz column — parabola; on desktop the gallery link sits right under the SVG.
+  const vizColumn = (
+    <div style={{
+      display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center",
+      gap: 14,
+      width: "100%",
+      maxWidth: isMobile ? 360 : 460,
+    }}>
+      <HeroParabola compact={isMobile} />
+      {!isMobile && galleryLink}
+    </div>
+  );
+
+  // Tagline + CTAs column — the original content, minus the mini-graph illustration
+  // (the parabola is now the hero visual).
+  const contentColumn = (
+    <div style={{
+      maxWidth: 440, width: "100%",
+      display: "flex", flexDirection: "column",
+      alignItems: "center", textAlign: "center",
+      gap: 0,
+    }}>
+      {/* Brand */}
+      <div style={{
+        fontSize: 13, fontWeight: 600, color: COLORS.textDim,
+        letterSpacing: 2, textTransform: "uppercase",
+        marginBottom: 16,
+      }}>
+        oczochodzi.pl
+      </div>
+
+      {/* Headline */}
+      <h1 style={{
+        margin: "0 0 12px", fontSize: 26, fontWeight: 700,
+        color: COLORS.textPrimary, lineHeight: 1.3,
+        letterSpacing: -0.3,
+      }}>
+        {t("heroTitle", lang)}
+      </h1>
+
+      {/* Subtitle */}
+      <p style={{
+        margin: "0 0 36px", fontSize: 14, lineHeight: 1.7,
+        color: COLORS.textDim, maxWidth: 360,
+      }}>
+        {t("heroSub", lang)}
+      </p>
+
+      {/* Continue learning — shown when saved course exists */}
+      {hasSavedCourse && onProfile && (
+        <button
+          onClick={onProfile}
+          style={{
+            width: "100%", maxWidth: 320,
+            padding: "16px 24px",
+            fontSize: 15, fontWeight: 600,
+            fontFamily: FONT,
+            borderRadius: 10,
+            border: "1px solid #f39c1250",
+            background: "#f39c1218",
+            color: "#f39c12",
+            cursor: "pointer",
+            marginBottom: 10,
+            transition: "background 0.15s, border-color 0.15s",
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = "#f39c1228";
+            e.currentTarget.style.borderColor = "#f39c1280";
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = "#f39c1218";
+            e.currentTarget.style.borderColor = "#f39c1250";
+          }}
+        >
+          {t("heroContinue", lang)}
+        </button>
+      )}
+
+      {/* Primary CTA */}
+      <button
+        onClick={() => onStartQuiz(preset)}
+        style={{
+          width: "100%", maxWidth: 320,
+          padding: "16px 24px",
+          fontSize: 15, fontWeight: 600,
+          fontFamily: FONT,
+          borderRadius: 10,
+          border: "1px solid #4a9eff50",
+          background: "#4a9eff18",
+          color: "#4a9eff",
+          cursor: "pointer",
+          marginBottom: 12,
+          transition: "background 0.15s, border-color 0.15s",
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.background = "#4a9eff28";
+          e.currentTarget.style.borderColor = "#4a9eff80";
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.background = "#4a9eff18";
+          e.currentTarget.style.borderColor = "#4a9eff50";
+        }}
+      >
+        {t("heroStart", lang)}
+      </button>
+
+      {/* More options — collapsed by default */}
+      <button
+        onClick={() => setShowMore(v => !v)}
+        style={{
+          padding: "8px 16px", fontSize: 12, fontFamily: FONT,
+          border: "none", background: "transparent",
+          color: COLORS.textFaint, cursor: "pointer",
+          transition: "color 0.15s",
+        }}
+        onMouseEnter={e => { e.currentTarget.style.color = COLORS.textDim; }}
+        onMouseLeave={e => { e.currentTarget.style.color = COLORS.textFaint; }}
+      >
+        {showMore ? "▲" : "▼"} {t("heroMore", lang)}
+      </button>
+
+      {showMore && (
+        <div style={{
+          display: "flex", flexDirection: "column", alignItems: "center",
+          gap: 8, marginTop: 4, width: "100%", maxWidth: 320,
+        }}>
+          {/* Quiz length */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
+            <span style={{ color: COLORS.textFaint }}>{t("heroLength", lang)}</span>
+            <select
+              value={preset}
+              onChange={e => setPreset(e.target.value)}
+              style={{
+                background: COLORS.surface, border: `1px solid ${COLORS.border}`,
+                borderRadius: 6, padding: "5px 10px", fontSize: 12,
+                fontFamily: FONT, color: COLORS.textBody, cursor: "pointer", outline: "none",
+              }}
+            >
+              {Object.entries(QUIZ_PRESETS).map(([key, cfg]) => (
+                <option key={key} value={key}>
+                  {t(cfg.labelKey, lang)} (~{cfg.maxQuestions} {t("heroQuestions", lang)})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* From scratch — full course path */}
+          {onFromScratch && (
+            <button onClick={onFromScratch} style={{
+              width: "100%", padding: "10px 16px", fontSize: 12, fontFamily: FONT,
+              borderRadius: 6, border: `1px solid #27ae6040`,
+              background: "#27ae6010", color: "#27ae60", cursor: "pointer",
+            }}>
+              {t("profileFromScratch", lang)}
+              <span style={{ display: "block", fontSize: 10, color: COLORS.textFaint, marginTop: 2 }}>
+                {t("profileFromScratchSub", lang)}
+              </span>
+            </button>
+          )}
+
+          {/* Goal quiz */}
+          <button onClick={onStartGoalQuiz} style={{
+            width: "100%", padding: "10px 16px", fontSize: 12, fontFamily: FONT,
+            borderRadius: 6, border: `1px solid ${COLORS.border}`,
+            background: "transparent", color: COLORS.textBody, cursor: "pointer",
+          }}>{t("heroGoal", lang)}</button>
+
+          {/* My profile */}
+          {hasSavedCourse && onProfile && (
+            <button onClick={onProfile} style={{
+              width: "100%", padding: "10px 16px", fontSize: 12, fontFamily: FONT,
+              borderRadius: 6, border: `1px solid ${COLORS.border}`,
+              background: "transparent", color: COLORS.textDim, cursor: "pointer",
+            }}>{t("heroProfile", lang)}</button>
+          )}
+
+          {/* Browse vizzes */}
+          <button onClick={onBrowseViz} style={{
+            width: "100%", padding: "10px 16px", fontSize: 12, fontFamily: FONT,
+            borderRadius: 6, border: `1px solid ${COLORS.border}`,
+            background: "transparent", color: COLORS.textDim, cursor: "pointer",
+          }}>⬡ {t("heroBrowseViz", lang)}</button>
+
+          {/* Explore map */}
+          <button onClick={onBrowseMap} style={{
+            width: "100%", padding: "10px 16px", fontSize: 12, fontFamily: FONT,
+            borderRadius: 6, border: `1px solid ${COLORS.border}`,
+            background: "transparent", color: COLORS.textFaint, cursor: "pointer",
+          }}>{t("heroExplore", lang)}</button>
+        </div>
+      )}
+
+      {/* How it works */}
+      <div style={{
+        marginTop: 48,
+        display: "flex", gap: 24,
+        fontSize: 11, color: COLORS.textFaint,
+        lineHeight: 1.6,
+        flexWrap: "wrap",
+        justifyContent: "center",
+      }}>
+        {[
+          { num: "1", text: t("heroStep1", lang) },
+          { num: "2", text: t("heroStep2", lang) },
+          { num: "3", text: t("heroStep3", lang) },
+        ].map(({ num, text }) => (
+          <div key={num} style={{
+            display: "flex", alignItems: "flex-start", gap: 8,
+            maxWidth: 140,
+          }}>
+            <span style={{
+              width: 20, height: 20, borderRadius: "50%",
+              border: `1px solid ${COLORS.border}`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 10, color: COLORS.textDim, flexShrink: 0,
+            }}>{num}</span>
+            <span>{text}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <div style={{
       width: "100%", minHeight: "100dvh",
       background: COLORS.bg, fontFamily: FONT,
       display: "flex", flexDirection: "column",
       alignItems: "center", justifyContent: "center",
-      padding: "32px 20px",
+      padding: isMobile ? "64px 16px 96px" : "32px 20px 80px",
       position: "relative",
     }}>
       {/* Top right controls */}
@@ -70,227 +331,44 @@ export function HeroScreen({ lang, setLang, themeId, onThemeChange, onStartQuiz,
         </div>
       </div>
 
-      {/* Content */}
+      {/* Main layout — split on desktop, stacked on mobile */}
       <div style={{
-        maxWidth: 440, width: "100%",
-        display: "flex", flexDirection: "column",
-        alignItems: "center", textAlign: "center",
-        gap: 0,
+        width: "100%",
+        maxWidth: 1100,
+        display: "flex",
+        flexDirection: isMobile ? "column" : "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: isMobile ? 24 : 56,
       }}>
-        {/* Mini graph illustration */}
-        <svg width="80" height="56" viewBox="0 0 80 56" style={{ marginBottom: 28, opacity: 0.7 }}>
-          {/* Edges */}
-          <line x1="14" y1="44" x2="40" y2="12" stroke={COLORS.edgeDefault} strokeWidth="1.5" />
-          <line x1="66" y1="44" x2="40" y2="12" stroke={COLORS.edgeDefault} strokeWidth="1.5" />
-          <line x1="14" y1="44" x2="40" y2="44" stroke={COLORS.edgeDefault} strokeWidth="1.5" />
-          <line x1="40" y1="44" x2="66" y2="44" stroke={COLORS.edgeDefault} strokeWidth="1.5" />
-          <line x1="40" y1="44" x2="40" y2="12" stroke={COLORS.edgeDefault} strokeWidth="1.5" />
-          {/* Nodes */}
-          <circle cx="40" cy="12" r="5" fill="#4a9eff" opacity="0.8" />
-          <circle cx="14" cy="44" r="5" fill={COLORS.known} opacity="0.8" />
-          <circle cx="40" cy="44" r="5" fill={COLORS.frontier} opacity="0.8" />
-          <circle cx="66" cy="44" r="5" fill={COLORS.unknown} opacity="0.6" />
-        </svg>
-
-        {/* Brand */}
+        {/* Viz column */}
         <div style={{
-          fontSize: 13, fontWeight: 600, color: COLORS.textDim,
-          letterSpacing: 2, textTransform: "uppercase",
-          marginBottom: 16,
+          flex: isMobile ? "0 0 auto" : "1 1 0",
+          display: "flex", justifyContent: "center",
+          width: "100%",
         }}>
-          oczochodzi.pl
+          {vizColumn}
         </div>
 
-        {/* Headline */}
-        <h1 style={{
-          margin: "0 0 12px", fontSize: 26, fontWeight: 700,
-          color: COLORS.textPrimary, lineHeight: 1.3,
-          letterSpacing: -0.3,
-        }}>
-          {t("heroTitle", lang)}
-        </h1>
-
-        {/* Subtitle */}
-        <p style={{
-          margin: "0 0 36px", fontSize: 14, lineHeight: 1.7,
-          color: COLORS.textDim, maxWidth: 360,
-        }}>
-          {t("heroSub", lang)}
-        </p>
-
-        {/* Continue learning — shown when saved course exists */}
-        {hasSavedCourse && onProfile && (
-          <button
-            onClick={onProfile}
-            style={{
-              width: "100%", maxWidth: 320,
-              padding: "16px 24px",
-              fontSize: 15, fontWeight: 600,
-              fontFamily: FONT,
-              borderRadius: 10,
-              border: "1px solid #f39c1250",
-              background: "#f39c1218",
-              color: "#f39c12",
-              cursor: "pointer",
-              marginBottom: 10,
-              transition: "background 0.15s, border-color 0.15s",
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = "#f39c1228";
-              e.currentTarget.style.borderColor = "#f39c1280";
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = "#f39c1218";
-              e.currentTarget.style.borderColor = "#f39c1250";
-            }}
-          >
-            {t("heroContinue", lang)}
-          </button>
-        )}
-
-        {/* Primary CTA */}
-        <button
-          onClick={() => onStartQuiz(preset)}
-          style={{
-            width: "100%", maxWidth: 320,
-            padding: "16px 24px",
-            fontSize: 15, fontWeight: 600,
-            fontFamily: FONT,
-            borderRadius: 10,
-            border: "1px solid #4a9eff50",
-            background: "#4a9eff18",
-            color: "#4a9eff",
-            cursor: "pointer",
-            marginBottom: 12,
-            transition: "background 0.15s, border-color 0.15s",
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.background = "#4a9eff28";
-            e.currentTarget.style.borderColor = "#4a9eff80";
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.background = "#4a9eff18";
-            e.currentTarget.style.borderColor = "#4a9eff50";
-          }}
-        >
-          {t("heroStart", lang)}
-        </button>
-
-        {/* More options — collapsed by default */}
-        <button
-          onClick={() => setShowMore(v => !v)}
-          style={{
-            padding: "8px 16px", fontSize: 12, fontFamily: FONT,
-            border: "none", background: "transparent",
-            color: COLORS.textFaint, cursor: "pointer",
-            transition: "color 0.15s",
-          }}
-          onMouseEnter={e => { e.currentTarget.style.color = COLORS.textDim; }}
-          onMouseLeave={e => { e.currentTarget.style.color = COLORS.textFaint; }}
-        >
-          {showMore ? "▲" : "▼"} {t("heroMore", lang)}
-        </button>
-
-        {showMore && (
-          <div style={{
-            display: "flex", flexDirection: "column", alignItems: "center",
-            gap: 8, marginTop: 4, width: "100%", maxWidth: 320,
-          }}>
-            {/* Quiz length */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
-              <span style={{ color: COLORS.textFaint }}>{t("heroLength", lang)}</span>
-              <select
-                value={preset}
-                onChange={e => setPreset(e.target.value)}
-                style={{
-                  background: COLORS.surface, border: `1px solid ${COLORS.border}`,
-                  borderRadius: 6, padding: "5px 10px", fontSize: 12,
-                  fontFamily: FONT, color: COLORS.textBody, cursor: "pointer", outline: "none",
-                }}
-              >
-                {Object.entries(QUIZ_PRESETS).map(([key, cfg]) => (
-                  <option key={key} value={key}>
-                    {t(cfg.labelKey, lang)} (~{cfg.maxQuestions} {t("heroQuestions", lang)})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* From scratch — full course path */}
-            {onFromScratch && (
-              <button onClick={onFromScratch} style={{
-                width: "100%", padding: "10px 16px", fontSize: 12, fontFamily: FONT,
-                borderRadius: 6, border: `1px solid #27ae6040`,
-                background: "#27ae6010", color: "#27ae60", cursor: "pointer",
-              }}>
-                {t("profileFromScratch", lang)}
-                <span style={{ display: "block", fontSize: 10, color: COLORS.textFaint, marginTop: 2 }}>
-                  {t("profileFromScratchSub", lang)}
-                </span>
-              </button>
-            )}
-
-            {/* Goal quiz */}
-            <button onClick={onStartGoalQuiz} style={{
-              width: "100%", padding: "10px 16px", fontSize: 12, fontFamily: FONT,
-              borderRadius: 6, border: `1px solid ${COLORS.border}`,
-              background: "transparent", color: COLORS.textBody, cursor: "pointer",
-            }}>{t("heroGoal", lang)}</button>
-
-            {/* My profile */}
-            {hasSavedCourse && onProfile && (
-              <button onClick={onProfile} style={{
-                width: "100%", padding: "10px 16px", fontSize: 12, fontFamily: FONT,
-                borderRadius: 6, border: `1px solid ${COLORS.border}`,
-                background: "transparent", color: COLORS.textDim, cursor: "pointer",
-              }}>{t("heroProfile", lang)}</button>
-            )}
-
-            {/* Browse vizzes */}
-            <button onClick={onBrowseViz} style={{
-              width: "100%", padding: "10px 16px", fontSize: 12, fontFamily: FONT,
-              borderRadius: 6, border: `1px solid ${COLORS.border}`,
-              background: "transparent", color: COLORS.textDim, cursor: "pointer",
-            }}>⬡ {t("heroBrowseViz", lang)}</button>
-
-            {/* Explore map */}
-            <button onClick={onBrowseMap} style={{
-              width: "100%", padding: "10px 16px", fontSize: 12, fontFamily: FONT,
-              borderRadius: 6, border: `1px solid ${COLORS.border}`,
-              background: "transparent", color: COLORS.textFaint, cursor: "pointer",
-            }}>{t("heroExplore", lang)}</button>
-          </div>
-        )}
-
-        {/* How it works */}
+        {/* Content column */}
         <div style={{
-          marginTop: 48,
-          display: "flex", gap: 24,
-          fontSize: 11, color: COLORS.textFaint,
-          lineHeight: 1.6,
-          flexWrap: "wrap",
-          justifyContent: "center",
+          flex: isMobile ? "0 0 auto" : "1 1 0",
+          display: "flex", justifyContent: "center",
+          width: "100%",
         }}>
-          {[
-            { num: "1", text: t("heroStep1", lang) },
-            { num: "2", text: t("heroStep2", lang) },
-            { num: "3", text: t("heroStep3", lang) },
-          ].map(({ num, text }) => (
-            <div key={num} style={{
-              display: "flex", alignItems: "flex-start", gap: 8,
-              maxWidth: 140,
-            }}>
-              <span style={{
-                width: 20, height: 20, borderRadius: "50%",
-                border: `1px solid ${COLORS.border}`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 10, color: COLORS.textDim, flexShrink: 0,
-              }}>{num}</span>
-              <span>{text}</span>
-            </div>
-          ))}
+          {contentColumn}
         </div>
       </div>
+
+      {/* Gallery link — on mobile, at bottom of hero section (below CTAs) */}
+      {isMobile && (
+        <div style={{
+          marginTop: 24,
+          display: "flex", justifyContent: "center", width: "100%",
+        }}>
+          {galleryLink}
+        </div>
+      )}
 
       {/* Footer */}
       <div style={{
