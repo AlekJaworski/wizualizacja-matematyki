@@ -72,6 +72,19 @@
   let lcmA = 12, lcmB = 8;
   let stage = 0;
 
+  // Saldo (bank-balance) narrative stages — concrete frame before formalism.
+  // saldoStart: opening saldo in zł. saldoOp: signed amount applied (wpłata/wypłata).
+  let saldoStart = 100;
+  let saldoOp = -30;
+  // Subtracting a negative: "cofnij wypłatę". saldoSub2 is the amount to undo (> 0 = wypłata to cofnąć, < 0 = wpłata do cofnięcia).
+  let saldoSubStart = 100;
+  let saldoSub2 = 30;
+  // Signed multiplication: k × kwota (kwota w zł, dodatnia = wpłata, ujemna = wypłata).
+  let mulK = -3;
+  let mulAmt = -20;
+  // Liczba przeciwna / wartość bezwzględna
+  let oppN = 5;
+
   // Click-to-expand proof state
   let cellRects = [];       // rebuilt every frame on divisibility stages
   let activeProof = null;   // the rule currently shown in full-proof overlay
@@ -308,6 +321,535 @@
     cx.restore();
     if (pass) drawCheck(x, y, size * 1.2, '#0e0e12');
     else      drawCross(x, y, size * 1.1, 'rgba(255,255,255,0.55)');
+  }
+
+  // ── Saldo konta — frame before formalism ─────────────────────
+  //
+  // Pedagogiczny cel: zanim pojawi się słownictwo "liczba ujemna",
+  // "przeciwna", "wartość bezwzględna", uczniowie widzą ten sam świat
+  // na koncie bankowym. Znak = kierunek, kwota = |liczba|.
+
+  // Shared helper — rysuje pasek salda: gruby prostokąt z kwotą w środku
+  // i etykietą DEBET/STAN na koncie, zielony dla dodatniego, różowy dla ujemnego.
+  function drawBalanceBar(label, value, x, y, w, h) {
+    const positive = value >= 0;
+    const color = positive ? GREEN : PINK;
+    cx.save();
+    cx.fillStyle = positive ? 'rgba(131,193,103,0.12)' : 'rgba(224,112,144,0.14)';
+    cx.strokeStyle = positive ? 'rgba(131,193,103,0.5)' : 'rgba(224,112,144,0.55)';
+    cx.lineWidth = 1;
+    cx.beginPath();
+    cx.roundRect(x, y, w, h, 8);
+    cx.fill();
+    cx.stroke();
+    cx.restore();
+    drawTextC(label, x + w / 2, y + 16, '10px monospace', 'rgba(255,255,255,0.55)');
+    const sign = positive ? '+' : '−';
+    const amt = Math.abs(value);
+    drawTextC(sign + amt + ' zł', x + w / 2, y + h - 22, 'bold 20px monospace', color);
+    drawTextC(positive
+        ? T('stan na koncie', 'balance on account')
+        : T('debet — jesteś winien', 'overdraft — you owe'),
+      x + w / 2, y + h - 6, '9px monospace', 'rgba(255,255,255,0.45)');
+  }
+
+  // Ikona operacji: strzałka w dół (wypłata, różowa) lub w górę (wpłata, zielona)
+  function drawOpArrow(amount, x, y, size) {
+    const isDeposit = amount >= 0;
+    const color = isDeposit ? GREEN : PINK;
+    cx.save();
+    cx.strokeStyle = color;
+    cx.fillStyle = color;
+    cx.lineWidth = 2.5;
+    cx.lineCap = 'round';
+    cx.lineJoin = 'round';
+    const dir = isDeposit ? -1 : 1; // up = deposit, down = withdrawal
+    cx.beginPath();
+    cx.moveTo(x, y - dir * size * 0.55);
+    cx.lineTo(x, y + dir * size * 0.55);
+    cx.stroke();
+    cx.beginPath();
+    cx.moveTo(x, y + dir * size * 0.6);
+    cx.lineTo(x - size * 0.32, y + dir * size * 0.2);
+    cx.lineTo(x + size * 0.32, y + dir * size * 0.2);
+    cx.closePath();
+    cx.fill();
+    cx.restore();
+  }
+
+  // ── Saldo 0: czym jest saldo, wpłata, wypłata ────────────────
+  function drawSaldoIntro() {
+    drawTextC(T('Saldo konta', 'Bank balance'), W / 2, 24, 'bold 15px monospace', CYAN);
+    drawTextC(
+      T('Saldo to liczba opisująca, ile jest na koncie.',
+        'Balance is a single number describing what is on the account.'),
+      W / 2, 44, '11px monospace', 'rgba(255,255,255,0.7)');
+
+    // Dwa prostokąty: stan dodatni po lewej, debet po prawej
+    const barW = 220, barH = 110, gap = 24;
+    const x1 = W / 2 - barW - gap / 2;
+    const x2 = W / 2 + gap / 2;
+    const barY = 70;
+    drawBalanceBar(T('konto z pieniędzmi', 'account with money'),  200, x1, barY, barW, barH);
+    drawBalanceBar(T('konto na debecie',       'account overdrawn'),   -150, x2, barY, barW, barH);
+
+    // Objaśnienia pod paskami
+    const tY = barY + barH + 18;
+    drawTextC(
+      T('Liczba dodatnia: masz tyle złotych.',
+        'Positive: you have that many złoty.'),
+      x1 + barW / 2, tY, '11px monospace', GREEN);
+    drawTextC(
+      T('Liczba ujemna: jesteś winien tyle złotych.',
+        'Negative: you owe that many złoty.'),
+      x2 + barW / 2, tY, '11px monospace', PINK);
+
+    // Dolny pasek — operacje: wpłata i wypłata
+    const opY = tY + 36;
+    drawTextC(
+      T('Saldo zmienia się po operacjach:',
+        'The balance changes after operations:'),
+      W / 2, opY, '11px monospace', 'rgba(255,255,255,0.7)');
+
+    const opBoxY = opY + 18;
+    const opBoxH = 72;
+    const opBoxW = (W - 60) / 2;
+    // Wpłata
+    cx.save();
+    cx.fillStyle = 'rgba(131,193,103,0.08)';
+    cx.strokeStyle = 'rgba(131,193,103,0.35)';
+    cx.lineWidth = 1;
+    cx.beginPath();
+    cx.roundRect(20, opBoxY, opBoxW, opBoxH, 8);
+    cx.fill();
+    cx.stroke();
+    cx.restore();
+    drawOpArrow(+1, 50, opBoxY + opBoxH / 2, 26);
+    drawTextC(T('wpłata', 'deposit'), 90, opBoxY + 22, 'bold 12px monospace', GREEN, 'left');
+    drawTextC(T('zapis: + kwota', 'written as: + amount'),     90, opBoxY + 40, '11px monospace', 'rgba(255,255,255,0.7)', 'left');
+    drawTextC(T('saldo rośnie', 'balance grows'),          90, opBoxY + 56, '10px monospace', 'rgba(255,255,255,0.5)', 'left');
+
+    // Wypłata
+    const wX = 20 + opBoxW + 20;
+    cx.save();
+    cx.fillStyle = 'rgba(224,112,144,0.08)';
+    cx.strokeStyle = 'rgba(224,112,144,0.4)';
+    cx.lineWidth = 1;
+    cx.beginPath();
+    cx.roundRect(wX, opBoxY, opBoxW, opBoxH, 8);
+    cx.fill();
+    cx.stroke();
+    cx.restore();
+    drawOpArrow(-1, wX + 30, opBoxY + opBoxH / 2, 26);
+    drawTextC(T('wypłata', 'withdrawal'), wX + 70, opBoxY + 22, 'bold 12px monospace', PINK, 'left');
+    drawTextC(T('zapis: − kwota', 'written as: − amount'), wX + 70, opBoxY + 40, '11px monospace', 'rgba(255,255,255,0.7)', 'left');
+    drawTextC(T('saldo maleje', 'balance shrinks'),              wX + 70, opBoxY + 56, '10px monospace', 'rgba(255,255,255,0.5)', 'left');
+  }
+
+  // ── Saldo 1: saldo + (+/−) kwota ─────────────────────────────
+  function drawSaldoAdd() {
+    const start = saldoStart;
+    const op = saldoOp;
+    const end = start + op;
+    const isDeposit = op >= 0;
+
+    drawTextC(T('Dodawanie: wpłata i wypłata na koncie',
+      'Addition: deposit and withdrawal on an account'),
+      W / 2, 24, 'bold 13px monospace', CYAN);
+
+    // Trzy paski: saldo początkowe, operacja, saldo końcowe
+    const barY = 60;
+    const barH = 92;
+    const barW = 150;
+    const gap = 30;
+    const totalW = 3 * barW + 2 * gap;
+    const x0 = (W - totalW) / 2;
+
+    drawBalanceBar(T('saldo początkowe', 'starting balance'),
+      start, x0, barY, barW, barH);
+
+    // Środkowy panel: operacja
+    const xOp = x0 + barW + gap;
+    cx.save();
+    cx.fillStyle = isDeposit ? 'rgba(131,193,103,0.10)' : 'rgba(224,112,144,0.12)';
+    cx.strokeStyle = isDeposit ? 'rgba(131,193,103,0.4)' : 'rgba(224,112,144,0.45)';
+    cx.lineWidth = 1;
+    cx.beginPath();
+    cx.roundRect(xOp, barY, barW, barH, 8);
+    cx.fill();
+    cx.stroke();
+    cx.restore();
+    drawTextC(T('operacja', 'operation'), xOp + barW / 2, barY + 14, '10px monospace', 'rgba(255,255,255,0.55)');
+    drawOpArrow(op, xOp + barW / 2, barY + 44, 22);
+    const opText = (isDeposit ? '+' : '−') + Math.abs(op) + ' zł';
+    drawTextC(opText, xOp + barW / 2, barY + barH - 20, 'bold 14px monospace',
+      isDeposit ? GREEN : PINK);
+    drawTextC(isDeposit ? T('wpłata', 'deposit') : T('wypłata', 'withdrawal'),
+      xOp + barW / 2, barY + barH - 6, '10px monospace', 'rgba(255,255,255,0.5)');
+
+    drawBalanceBar(T('saldo końcowe', 'ending balance'),
+      end, x0 + 2 * (barW + gap), barY, barW, barH);
+
+    // Strzałki między paskami
+    cx.save();
+    cx.strokeStyle = 'rgba(255,255,255,0.35)';
+    cx.lineWidth = 1.2;
+    cx.lineCap = 'round';
+    const aY = barY + barH / 2;
+    const drawRight = (xa, xb) => {
+      cx.beginPath();
+      cx.moveTo(xa, aY);
+      cx.lineTo(xb - 6, aY);
+      cx.stroke();
+      cx.beginPath();
+      cx.moveTo(xb - 6, aY);
+      cx.lineTo(xb - 12, aY - 4);
+      cx.lineTo(xb - 12, aY + 4);
+      cx.closePath();
+      cx.fillStyle = 'rgba(255,255,255,0.4)';
+      cx.fill();
+    };
+    drawRight(x0 + barW,                xOp);
+    drawRight(xOp + barW,               x0 + 2 * (barW + gap));
+    cx.restore();
+
+    // Równanie pod spodem
+    const eqY = barY + barH + 32;
+    const sgn = op < 0 ? '(−' + Math.abs(op) + ')' : '(+' + op + ')';
+    drawTextC(start + '  +  ' + sgn + '  =  ' + end,
+      W / 2, eqY, 'bold 18px monospace', YELLOW);
+
+    // Narracja — co to znaczy "dodać liczbę ujemną"
+    const nY = eqY + 30;
+    if (isDeposit) {
+      drawTextC(
+        T('Na koncie było ' + start + ' zł. Wpłata ' + op + ' zł podnosi saldo do ' + end + ' zł.',
+          'Account had ' + start + ' zł. A deposit of ' + op + ' zł raises the balance to ' + end + ' zł.'),
+        W / 2, nY, '11px monospace', 'rgba(255,255,255,0.8)');
+    } else {
+      drawTextC(
+        T('Na koncie było ' + start + ' zł. Wypłata ' + Math.abs(op) + ' zł obniża saldo do ' + end + ' zł.',
+          'Account had ' + start + ' zł. A withdrawal of ' + Math.abs(op) + ' zł lowers the balance to ' + end + ' zł.'),
+        W / 2, nY, '11px monospace', 'rgba(255,255,255,0.8)');
+    }
+
+    // Pudełko z obserwacją
+    const boxY = nY + 16;
+    cx.save();
+    cx.fillStyle = 'rgba(192,128,255,0.08)';
+    cx.strokeStyle = 'rgba(192,128,255,0.3)';
+    cx.lineWidth = 1;
+    cx.beginPath();
+    cx.roundRect(30, boxY, W - 60, 48, 6);
+    cx.fill();
+    cx.stroke();
+    cx.restore();
+    drawTextC(
+      T('Dodawanie liczby ujemnej to to samo, co wypłata.',
+        'Adding a negative number is the same as a withdrawal.'),
+      W / 2, boxY + 16, 'bold 11px monospace', PURPLE);
+    drawTextC(
+      T('100 + (−30) = 100 − 30 = 70.    Znak steruje kierunkiem operacji.',
+        '100 + (−30) = 100 − 30 = 70.    The sign controls the direction of the operation.'),
+      W / 2, boxY + 34, '11px monospace', 'rgba(255,255,255,0.75)');
+  }
+
+  // ── Saldo 2: odejmowanie ujemnej = cofnięcie wypłaty ─────────
+  function drawSaldoSubtract() {
+    const start = saldoSubStart;
+    // saldoSub2 to amount being subtracted; w narracji jest to wypłata do cofnięcia
+    const subAmt = saldoSub2; // > 0 = wypłata do cofnięcia, < 0 = wpłata do cofnięcia
+    // start − subAmt:
+    const end = start - subAmt;
+
+    drawTextC(T('Odejmowanie: co oznacza „cofnąć operację”',
+      'Subtraction: what does "undo an operation" mean'),
+      W / 2, 22, 'bold 13px monospace', CYAN);
+
+    // Scenariusz "wczoraj" ↔ "dzisiaj"
+    const subText = subAmt < 0
+      ? T('Wczoraj ktoś wpłacił ' + Math.abs(subAmt) + ' zł przez pomyłkę.',
+          'Yesterday someone deposited ' + Math.abs(subAmt) + ' zł by mistake.')
+      : T('Wczoraj była wypłata ' + subAmt + ' zł (np. rachunek).',
+          'Yesterday there was a withdrawal of ' + subAmt + ' zł (e.g., a bill).');
+    drawTextC(subText, W / 2, 44, '11px monospace', 'rgba(255,255,255,0.7)');
+    drawTextC(
+      T('Dziś bank ją cofa — obliczmy nowe saldo.',
+        'Today the bank undoes it — let’s compute the new balance.'),
+      W / 2, 60, '11px monospace', 'rgba(255,255,255,0.55)');
+
+    // Dwa wiersze: zapis formalny + zapis po przekształceniu
+    const eq1Y = 98;
+    const signStr = (v) => v < 0 ? '(−' + Math.abs(v) + ')' : '(+' + v + ')';
+    drawTextC(
+      T('zapis: ', 'as written: ') + start + '  −  ' + signStr(subAmt) + '  =  ?',
+      W / 2, eq1Y, 'bold 15px monospace', 'rgba(255,255,255,0.8)');
+
+    // Przekształcenie — cofanie
+    const eq2Y = eq1Y + 30;
+    const flipped = -subAmt;
+    const flippedStr = flipped < 0 ? '− ' + Math.abs(flipped) : '+ ' + flipped;
+    drawTextC(
+      T('cofnięcie: ', 'undoing: ') + start + '  ' + flippedStr + '  =  ' + end + ' zł',
+      W / 2, eq2Y, 'bold 17px monospace', YELLOW);
+
+    // Wizualizacja: saldo początkowe → operacja odwrotna → saldo końcowe
+    const barY = eq2Y + 22;
+    const barH = 82;
+    const barW = 150;
+    const gap = 30;
+    const totalW = 3 * barW + 2 * gap;
+    const x0 = (W - totalW) / 2;
+
+    drawBalanceBar(T('saldo przed', 'balance before'),
+      start, x0, barY, barW, barH);
+
+    // Środkowy: cofanie — strzałka w przeciwnym kierunku niż pierwotna operacja
+    const xOp = x0 + barW + gap;
+    const undoIsDeposit = flipped > 0; // cofanie wypłaty = wpłata
+    cx.save();
+    cx.fillStyle = undoIsDeposit ? 'rgba(131,193,103,0.10)' : 'rgba(224,112,144,0.12)';
+    cx.strokeStyle = undoIsDeposit ? 'rgba(131,193,103,0.4)' : 'rgba(224,112,144,0.45)';
+    cx.lineWidth = 1;
+    cx.beginPath();
+    cx.roundRect(xOp, barY, barW, barH, 8);
+    cx.fill();
+    cx.stroke();
+    cx.restore();
+    drawTextC(T('bank cofa operację', 'bank reverses the op'),
+      xOp + barW / 2, barY + 14, '10px monospace', 'rgba(255,255,255,0.55)');
+    drawOpArrow(flipped, xOp + barW / 2, barY + 40, 20);
+    drawTextC(
+      undoIsDeposit
+        ? T('zwrot +' + flipped + ' zł', 'refund +' + flipped + ' zł')
+        : T('pobranie −' + Math.abs(flipped) + ' zł', 'charge −' + Math.abs(flipped) + ' zł'),
+      xOp + barW / 2, barY + barH - 14, 'bold 12px monospace',
+      undoIsDeposit ? GREEN : PINK);
+
+    drawBalanceBar(T('saldo po', 'balance after'),
+      end, x0 + 2 * (barW + gap), barY, barW, barH);
+
+    // Pudełko z zasadą
+    const boxY = barY + barH + 22;
+    cx.save();
+    cx.fillStyle = 'rgba(192,128,255,0.08)';
+    cx.strokeStyle = 'rgba(192,128,255,0.3)';
+    cx.lineWidth = 1;
+    cx.beginPath();
+    cx.roundRect(30, boxY, W - 60, 50, 6);
+    cx.fill();
+    cx.stroke();
+    cx.restore();
+    drawTextC(
+      T('Odjąć liczbę to cofnąć odpowiadającą operację.',
+        'To subtract a number is to undo the matching operation.'),
+      W / 2, boxY + 16, 'bold 11px monospace', PURPLE);
+    drawTextC(
+      T('100 − (−30) = 100 + 30 = 130.    Minus przed minusem daje plus.',
+        '100 − (−30) = 100 + 30 = 130.    Minus in front of minus becomes plus.'),
+      W / 2, boxY + 34, '11px monospace', 'rgba(255,255,255,0.8)');
+  }
+
+  // ── Saldo 3: mnożenie ze znakami ─────────────────────────────
+  function drawSaldoMultiply() {
+    const k = mulK;
+    const amt = mulAmt;
+    const result = k * amt;
+
+    drawTextC(T('Mnożenie: powtórzona operacja',
+      'Multiplication: a repeated operation'),
+      W / 2, 22, 'bold 13px monospace', CYAN);
+
+    // Narracja — interpretacja k × kwota
+    const nY = 46;
+    const absK = Math.abs(k);
+    const absAmt = Math.abs(amt);
+    let narration;
+    if (k > 0 && amt > 0) {
+      narration = T(absK + ' razy wpłata ' + absAmt + ' zł',
+                    absK + ' times a deposit of ' + absAmt + ' zł');
+    } else if (k > 0 && amt < 0) {
+      narration = T(absK + ' razy wypłata ' + absAmt + ' zł',
+                    absK + ' times a withdrawal of ' + absAmt + ' zł');
+    } else if (k < 0 && amt > 0) {
+      narration = T(absK + ' razy COFNĄĆ wpłatę ' + absAmt + ' zł',
+                    absK + ' times UNDO a deposit of ' + absAmt + ' zł');
+    } else if (k < 0 && amt < 0) {
+      narration = T(absK + ' razy COFNĄĆ wypłatę ' + absAmt + ' zł',
+                    absK + ' times UNDO a withdrawal of ' + absAmt + ' zł');
+    } else {
+      narration = T('Jedna ze stron jest zerem — nic się nie dzieje.',
+                    'One factor is zero — nothing happens.');
+    }
+    drawTextC(narration, W / 2, nY, '12px monospace', PURPLE);
+
+    // Wizualizacja: sekwencja |k| strzałek, kierunek zależy od znaku k×amt
+    const vizY = 85;
+    const stepResultSign = (k * amt) >= 0 ? +1 : -1;
+    const arrowCount = absK || 1;
+    const arrowGap = Math.min(56, (W - 100) / Math.max(arrowCount, 1));
+    const arrowsTotalW = (arrowCount - 1) * arrowGap;
+    const arrowStartX = W / 2 - arrowsTotalW / 2;
+    if (k !== 0 && amt !== 0) {
+      for (let i = 0; i < arrowCount; i++) {
+        const ax = arrowStartX + i * arrowGap;
+        // Kierunek każdej strzałki = znak rezultatu (wynik sumaryczny)
+        drawOpArrow(stepResultSign, ax, vizY, 22);
+        drawTextC((stepResultSign > 0 ? '+' : '−') + absAmt,
+          ax, vizY + 28, 'bold 11px monospace',
+          stepResultSign > 0 ? GREEN : PINK);
+      }
+    }
+
+    // Równanie — forma zapisowa
+    const eqY = vizY + 60;
+    const kStr   = k   < 0 ? '(−' + absK   + ')' : String(absK);
+    const amtStr = amt < 0 ? '(−' + absAmt + ')' : String(absAmt);
+    drawTextC(kStr + ' × ' + amtStr + ' = ' + (result < 0 ? '−' : '+') + Math.abs(result),
+      W / 2, eqY, 'bold 18px monospace', YELLOW);
+
+    // Wytłumaczenie "dlaczego" — cztery przypadki
+    const tY = eqY + 28;
+    let explain;
+    if (k > 0 && amt > 0) {
+      explain = T('Powtarzamy wpłatę ' + absK + ' razy. Razem + ' + Math.abs(result) + ' zł.',
+                  'Repeat the deposit ' + absK + ' times. Together + ' + Math.abs(result) + ' zł.');
+    } else if (k > 0 && amt < 0) {
+      explain = T('Powtarzamy wypłatę ' + absK + ' razy. Razem − ' + Math.abs(result) + ' zł.',
+                  'Repeat the withdrawal ' + absK + ' times. Together − ' + Math.abs(result) + ' zł.');
+    } else if (k < 0 && amt > 0) {
+      explain = T('Cofamy wpłatę ' + absK + ' razy. Cofnięta wpłata działa jak wypłata: − ' + Math.abs(result) + ' zł.',
+                  'Undo the deposit ' + absK + ' times. An undone deposit behaves like a withdrawal: − ' + Math.abs(result) + ' zł.');
+    } else if (k < 0 && amt < 0) {
+      explain = T('Cofamy wypłatę ' + absK + ' razy. Cofnięta wypłata to zwrot: + ' + Math.abs(result) + ' zł.',
+                  'Undo the withdrawal ' + absK + ' times. An undone withdrawal is a refund: + ' + Math.abs(result) + ' zł.');
+    } else {
+      explain = T('Zerowa liczba powtórzeń lub zerowa kwota — saldo się nie zmienia.',
+                  'Zero repetitions or zero amount — balance does not change.');
+    }
+    drawTextC(explain, W / 2, tY, '11px monospace', 'rgba(255,255,255,0.82)');
+
+    // Tabela znaków na dole
+    const tableY = tY + 28;
+    cx.save();
+    cx.fillStyle = 'rgba(192,128,255,0.08)';
+    cx.strokeStyle = 'rgba(192,128,255,0.3)';
+    cx.lineWidth = 1;
+    cx.beginPath();
+    cx.roundRect(60, tableY, W - 120, 90, 6);
+    cx.fill();
+    cx.stroke();
+    cx.restore();
+
+    drawTextC(T('Zasada znaków przy mnożeniu',
+      'Sign rule for multiplication'),
+      W / 2, tableY + 16, 'bold 11px monospace', PURPLE);
+
+    // cztery wiersze
+    const rows = [
+      { sym: '(+) × (+)  =  +', note: T('wpłata powtórzona → więcej na koncie',
+                                             'deposit repeated → more on account'),
+        col: GREEN },
+      { sym: '(+) × (−)  =  −', note: T('wypłata powtórzona → mniej',
+                                                      'withdrawal repeated → less'),
+        col: PINK },
+      { sym: '(−) × (+)  =  −', note: T('cofnięta wpłata → działa jak wypłata',
+                                                      'undone deposit → acts like withdrawal'),
+        col: PINK },
+      { sym: '(−) × (−)  =  +', note: T('cofnięta wypłata → zwrot na konto',
+                                                      'undone withdrawal → refund'),
+        col: GREEN },
+    ];
+    const rowY0 = tableY + 32;
+    rows.forEach((r, i) => {
+      const yy = rowY0 + i * 14;
+      drawTextC(r.sym, 120, yy, 'bold 11px monospace', r.col, 'left');
+      drawTextC(r.note, 220, yy, '10px monospace', 'rgba(255,255,255,0.7)', 'left');
+    });
+  }
+
+  // ── Saldo 4: liczba przeciwna i wartość bezwzględna ──────────
+  function drawSaldoOppositeAbs() {
+    const n = oppN;
+    const opp = -n;
+
+    drawTextC(T('Przeciwna i wartość bezwzględna — w języku salda',
+      'Opposite and absolute value — in balance terms'),
+      W / 2, 22, 'bold 13px monospace', CYAN);
+
+    // Dwa paski obok siebie: n i −n
+    const barW = 200, barH = 100, gap = 28;
+    const x1 = W / 2 - barW - gap / 2;
+    const x2 = W / 2 + gap / 2;
+    const barY = 60;
+    drawBalanceBar(T('operacja', 'operation'), n,   x1, barY, barW, barH);
+    drawBalanceBar(T('operacja przeciwna', 'opposite operation'), opp, x2, barY, barW, barH);
+
+    // Łuk/strzałka między paskami — oznacza "obrót" operacji
+    cx.save();
+    cx.strokeStyle = 'rgba(192,128,255,0.6)';
+    cx.lineWidth = 1.2;
+    cx.setLineDash([4, 3]);
+    cx.beginPath();
+    const arcY = barY - 8;
+    cx.moveTo(x1 + barW / 2, arcY);
+    cx.bezierCurveTo(x1 + barW / 2, arcY - 22,
+                     x2 + barW / 2, arcY - 22,
+                     x2 + barW / 2, arcY);
+    cx.stroke();
+    cx.setLineDash([]);
+    cx.restore();
+    drawTextC(T('obrót kierunku', 'direction flip'),
+      W / 2, arcY - 20, '10px monospace', PURPLE);
+
+    // Opis — przeciwna
+    const textY = barY + barH + 20;
+    cx.save();
+    cx.fillStyle = 'rgba(192,128,255,0.08)';
+    cx.strokeStyle = 'rgba(192,128,255,0.3)';
+    cx.lineWidth = 1;
+    cx.beginPath();
+    cx.roundRect(30, textY, W - 60, 64, 6);
+    cx.fill();
+    cx.stroke();
+    cx.restore();
+    drawTextC(T('Liczba przeciwna', 'Opposite number'),
+      W / 2, textY + 14, 'bold 12px monospace', PURPLE);
+    drawTextC(
+      T('Ta sama kwota, przeciwny kierunek. ' + n + ' i ' + (opp < 0 ? '−' + Math.abs(opp) : '+' + opp) + ' ruszają saldo o tyle samo.',
+        'Same amount, opposite direction. ' + n + ' and ' + (opp < 0 ? '−' + Math.abs(opp) : '+' + opp) + ' move the balance by the same thing.'),
+      W / 2, textY + 32, '11px monospace', 'rgba(255,255,255,0.85)');
+    drawTextC(
+      T('Zapis: liczba przeciwna do a to −a.  Suma a + (−a) = 0 (operacje się znoszą).',
+        'Notation: the opposite of a is −a.  The sum a + (−a) = 0 (the operations cancel).'),
+      W / 2, textY + 50, '11px monospace', 'rgba(255,255,255,0.7)');
+
+    // Wartość bezwzględna
+    const abY = textY + 76;
+    cx.save();
+    cx.fillStyle = 'rgba(255,209,102,0.08)';
+    cx.strokeStyle = 'rgba(255,209,102,0.35)';
+    cx.lineWidth = 1;
+    cx.beginPath();
+    cx.roundRect(30, abY, W - 60, 72, 6);
+    cx.fill();
+    cx.stroke();
+    cx.restore();
+    drawTextC(T('Wartość bezwzględna', 'Absolute value'),
+      W / 2, abY + 14, 'bold 12px monospace', YELLOW);
+    const absN = Math.abs(n);
+    drawTextC(
+      T('|' + n + '| = ' + absN + ' zł.   |' + (opp < 0 ? '−' + Math.abs(opp) : '+' + opp) + '| = ' + absN + ' zł.',
+        '|' + n + '| = ' + absN + ' zł.   |' + (opp < 0 ? '−' + Math.abs(opp) : '+' + opp) + '| = ' + absN + ' zł.'),
+      W / 2, abY + 32, 'bold 14px monospace', YELLOW);
+    drawTextC(
+      T('Ta sama kwota operacji — bez kierunku. Ile złotych się ruszyło, niezależnie od tego,',
+        'Just the amount of the operation — no direction. How many złoty moved, regardless'),
+      W / 2, abY + 50, '11px monospace', 'rgba(255,255,255,0.75)');
+    drawTextC(
+      T('czy była to wpłata, czy wypłata.',
+        'of whether it was a deposit or a withdrawal.'),
+      W / 2, abY + 64, '11px monospace', 'rgba(255,255,255,0.75)');
   }
 
   // ── Stage 0: Number Line ─────────────────────────────────────
@@ -1438,10 +1980,68 @@
 
   const stages_def = [
     {
-      title: () => T('Os liczbowa', 'Number Line'),
+      title: () => T('Saldo konta', 'Bank balance'),
       desc: () => T(
-        'Liczby calkowite to zbior {..., -3, -2, -1, 0, 1, 2, 3, ...}. Rozszerzaja liczby naturalne o zero i liczby ujemne. Przesun suwak, zeby zobaczyc, jak gesto rozmieszczone sa liczby na osi.',
-        'Integers are the set {..., -3, -2, -1, 0, 1, 2, 3, ...}. They extend the naturals by adding zero and negatives. Slide to see how densely numbers are spaced on the line.'
+        'Zanim pojawi się formalne słownictwo: saldo konta jest zwykłą liczbą. Dodatnie — masz pieniądze, ujemne — jesteś winien. Wpłata to „+ kwota”, wypłata to „− kwota”. Cały rachunek na liczbach całkowitych można prowadzić w tej narracji.',
+        'Before the formal vocabulary: an account balance is just a number. Positive — you have money; negative — you owe. A deposit is "+ amount", a withdrawal is "− amount". The whole arithmetic of integers fits this narrative.'
+      ),
+      draw: drawSaldoIntro
+    },
+    {
+      title: () => T('Dodawanie na koncie', 'Adding on the account'),
+      desc: () => T(
+        'Saldo początkowe + operacja = saldo końcowe. Operacja dodatnia to wpłata, ujemna — wypłata. Przesuń suwaki i zobacz, że dodawanie liczby ujemnej działa tak samo jak wypłata.',
+        'Starting balance + operation = ending balance. A positive operation is a deposit, a negative one — a withdrawal. Slide and see why adding a negative number is simply a withdrawal.'
+      ),
+      sliders: [
+        { id: 'saldoStart', lbl: T('saldo', 'balance'), color: CYAN, min: -200, max: 300, step: 10, val: () => saldoStart },
+        { id: 'saldoOp',    lbl: T('operacja', 'op'),   color: ORANGE, min: -100, max: 100, step: 10, val: () => saldoOp },
+      ],
+      draw: drawSaldoAdd
+    },
+    {
+      title: () => T('Odejmowanie — cofanie operacji',
+                     'Subtraction — undoing an operation'),
+      desc: () => T(
+        'Odjąć liczbę to cofnąć odpowiadającą operację. Jeśli wczoraj była wypłata 30 zł, a bank ją dziś cofa, saldo rośnie o 30 zł. Stąd 100 − (−30) = 100 + 30 = 130.',
+        'Subtracting a number means undoing the matching operation. If yesterday there was a withdrawal of 30 zł and the bank undoes it today, the balance grows by 30 zł. Hence 100 − (−30) = 100 + 30 = 130.'
+      ),
+      sliders: [
+        { id: 'saldoSubStart', lbl: T('saldo', 'balance'), color: CYAN, min: -200, max: 300, step: 10, val: () => saldoSubStart },
+        { id: 'saldoSub2',     lbl: T('operacja', 'op'),   color: ORANGE, min: -100, max: 100, step: 10, val: () => saldoSub2 },
+      ],
+      draw: drawSaldoSubtract
+    },
+    {
+      title: () => T('Mnożenie ze znakami',
+                     'Signed multiplication'),
+      desc: () => T(
+        'k × kwota to powtórzona operacja. Gdy k jest ujemne, operację cofamy. Cofnięta wypłata to zwrot na konto — stąd (−) × (−) daje (+).',
+        'k × amount is a repeated operation. When k is negative, the operation is undone. An undone withdrawal is a refund — hence (−) × (−) gives (+).'
+      ),
+      sliders: [
+        { id: 'mulK',   lbl: 'k',   color: CYAN,   min: -4, max: 4,  step: 1, val: () => mulK },
+        { id: 'mulAmt', lbl: T('kwota', 'amount'), color: ORANGE, min: -50, max: 50, step: 10, val: () => mulAmt },
+      ],
+      draw: drawSaldoMultiply
+    },
+    {
+      title: () => T('Liczba przeciwna i wartość bezwzględna',
+                     'Opposite and absolute value'),
+      desc: () => T(
+        'Liczba przeciwna do a to −a: ta sama kwota, przeciwny kierunek. Wartość bezwzględna |a| to sama kwota — bez kierunku. Oba pojęcia mają sens w jednej narracji salda.',
+        'The opposite of a is −a: same amount, opposite direction. The absolute value |a| is just the amount — no direction. Both concepts fit the single balance narrative.'
+      ),
+      sliders: [
+        { id: 'oppN', lbl: 'a', color: CYAN, min: -20, max: 20, step: 1, val: () => oppN },
+      ],
+      draw: drawSaldoOppositeAbs
+    },
+    {
+      title: () => T('Oś liczbowa', 'Number Line'),
+      desc: () => T(
+        'Te same liczby, które przed chwilą były saldami, leżą na jednej osi. Zero w środku, po prawej — to, co masz na koncie, po lewej — to, co jesteś winien. Zbiór wszystkich liczb całkowitych oznaczamy ℤ. Przesuń suwak, by zmienić skalę.',
+        'The same numbers that were balances a moment ago lie on one line. Zero in the middle, to the right — what you have; to the left — what you owe. The set of all integers is ℤ. Slide to change the scale.'
       ),
       sliders: [
         { id: 'zoom', lbl: 'zoom', color: CYAN, min: 1, max: 10, step: 1, val: () => zoom },
@@ -1557,6 +2157,13 @@
         if (s.id === 'gcdB') { gcdB = v; animStartTime = Date.now(); }
         if (s.id === 'lcmA') lcmA = v;
         if (s.id === 'lcmB') lcmB = v;
+        if (s.id === 'saldoStart') saldoStart = v;
+        if (s.id === 'saldoOp') saldoOp = v;
+        if (s.id === 'saldoSubStart') saldoSubStart = v;
+        if (s.id === 'saldoSub2') saldoSub2 = v;
+        if (s.id === 'mulK') mulK = v;
+        if (s.id === 'mulAmt') mulAmt = v;
+        if (s.id === 'oppN') oppN = v;
         document.getElementById('v_' + s.id).textContent = v;
       });
     });
