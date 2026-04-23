@@ -101,11 +101,30 @@ export function useHashRouter(onRoute, options = {}) {
   // Suppress the next popstate handler when we're the ones changing the hash
   const suppressRef = useRef(false);
 
-  const setRoute = useCallback((route) => {
+  /**
+   * Update the URL hash to match `route`.
+   *
+   * @param {object} route
+   * @param {{ replace?: boolean }} [opts] — when `replace` is true, use
+   *   history.replaceState (no new history entry). Default: push. Callers
+   *   should pass `replace: true` for non-navigational writes such as the
+   *   initial mount-time sync, where a new history entry would create a
+   *   spurious "back" step (e.g. hash `#/map/<code>` → `#/map/<code>/pl`
+   *   on mount should not consume a back press).
+   */
+  const setRoute = useCallback((route, opts = {}) => {
     const hash = buildHash(route, prefixRef.current);
     if (window.location.hash === hash) return;
     suppressRef.current = true;
-    window.location.hash = hash;
+    if (opts.replace) {
+      // Assigning location.hash always pushes; use replaceState instead.
+      window.history.replaceState(null, "", hash);
+      // replaceState does NOT fire hashchange, so we don't need the
+      // suppressRef guard to trigger — but we've armed it in case a
+      // stacked change occurs before the next tick.
+    } else {
+      window.location.hash = hash;
+    }
   }, []);
 
   useEffect(() => {
