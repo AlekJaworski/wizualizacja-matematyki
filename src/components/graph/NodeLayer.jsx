@@ -74,18 +74,18 @@ export function NodeLayer({
           const isFrontier = frontier?.includes(n.id);
 
           if (state === "known") {
-            fillColor = "#27ae60";
-            ringColor = "#2ecc71";
+            fillColor = COLORS.known;
+            ringColor = COLORS.knownHi;
             fillOpacity = filtered ? 0.1 : 0.85;
             labelOpacity = filtered ? 0.15 : 0.9;
           } else if (state === "unknown") {
-            fillColor   = "#c0392b";
+            fillColor   = COLORS.unknown;
             fillOpacity = filtered ? 0.1 : 0.45;
-            ringColor   = "#e74c3c";
+            ringColor   = COLORS.unknownHi;
             labelOpacity = filtered ? 0.15 : 0.7;
           } else if (isFrontier) {
-            fillColor = "#f39c12";
-            ringColor = "#f1c40f";
+            fillColor = COLORS.frontier;
+            ringColor = COLORS.frontierHi;
             ringWidth = 3;
             fillOpacity = filtered ? 0.1 : 0.9;
             labelOpacity = filtered ? 0.15 : 0.9;

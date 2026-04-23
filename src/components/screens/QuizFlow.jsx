@@ -348,9 +348,9 @@ export function QuizFlow({ RAW_NODES, RAW_EDGES, QUESTION_BANK, lang, quizPreset
                     border = "#27ae6060";
                     textColor = "#2ecc71";
                   } else if (idx === picked) {
-                    bg = "#e74c3c15";
-                    border = "#e74c3c60";
-                    textColor = "#ff6b6b";
+                    bg = `${COLORS.unknown}15`;
+                    border = `${COLORS.unknown}60`;
+                    textColor = COLORS.unknownHi;
                   } else {
                     textColor = COLORS.textFaint;
                   }

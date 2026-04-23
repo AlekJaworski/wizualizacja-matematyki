@@ -189,7 +189,7 @@ export function ProfileScreen({
           {/* Stat row */}
           <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
             <MiniStat count={knownCount} label={t("resultsKnown", lang)} color={COLORS.known} />
-            <MiniStat count={unknownCount} label={t("resultsToStudy", lang)} color="#e74c3c" />
+            <MiniStat count={unknownCount} label={t("resultsToStudy", lang)} color={COLORS.unknownHi} />
             <MiniStat count={unclassifiedCount} label={t("unclassified", lang)} color={COLORS.textFaint} />
           </div>
 
@@ -245,7 +245,7 @@ export function ProfileScreen({
             let dotColor = COLORS.textFaint;
             let dotBorder = COLORS.border;
             if (status === "known") { dotColor = COLORS.known; dotBorder = COLORS.known; }
-            else if (status === "unknown") { dotColor = "#e74c3c"; dotBorder = "#e74c3c"; }
+            else if (status === "unknown") { dotColor = COLORS.unknownHi; dotBorder = COLORS.unknownHi; }
 
             return (
               <div
@@ -305,9 +305,9 @@ export function ProfileScreen({
                       {directlyTested && (
                         <span style={{
                           fontSize: 9, padding: "2px 6px", borderRadius: 3,
-                          background: ev.correct ? "#27ae6015" : "#e74c3c15",
-                          color: ev.correct ? "#2ecc71" : "#ff6b6b",
-                          border: `1px solid ${ev.correct ? "#27ae6030" : "#e74c3c30"}`,
+                          background: ev.correct ? "#27ae6015" : `${COLORS.unknown}15`,
+                          color: ev.correct ? "#2ecc71" : COLORS.unknownHi,
+                          border: `1px solid ${ev.correct ? "#27ae6030" : `${COLORS.unknown}30`}`,
                         }}>
                           {ev.correct ? "✓" : "✗"}
                         </span>
@@ -322,8 +322,8 @@ export function ProfileScreen({
                       {status === "unknown" && !directlyTested && (
                         <span style={{
                           fontSize: 9, padding: "2px 6px", borderRadius: 3,
-                          background: "#e74c3c15", color: "#ff6b6b",
-                          border: "1px solid #e74c3c30",
+                          background: `${COLORS.unknown}15`, color: COLORS.unknownHi,
+                          border: `1px solid ${COLORS.unknown}30`,
                         }}>✗</span>
                       )}
                     </div>
@@ -367,9 +367,9 @@ export function ProfileScreen({
                 width: "100%", padding: "14px 24px",
                 fontSize: 14, fontWeight: 600, fontFamily: FONT,
                 borderRadius: 8,
-                border: "1px solid #f39c1250",
-                background: "#f39c1218",
-                color: "#f39c12",
+                border: `1px solid ${COLORS.unknown}50`,
+                background: `${COLORS.unknown}18`,
+                color: COLORS.unknownHi,
                 cursor: "pointer",
               }}
             >
@@ -516,7 +516,7 @@ function MaturaTipsSection({ tips, nodeById, belief, evidence, lang, getLabel })
               const directlyTested = !!ev;
               let dotColor = COLORS.textFaint;
               if (status === "known") dotColor = COLORS.known;
-              else if (status === "unknown") dotColor = "#e74c3c";
+              else if (status === "unknown") dotColor = COLORS.unknownHi;
               return (
                 <MaturaTipItem
                   key={id}
@@ -574,9 +574,9 @@ function MaturaTipItem({ node, label, status, dotColor, directlyTested, ev, lang
         {directlyTested && (
           <span style={{
             fontSize: 9, padding: "2px 6px", borderRadius: 3,
-            background: ev.correct ? "#27ae6015" : "#e74c3c15",
-            color: ev.correct ? "#2ecc71" : "#ff6b6b",
-            border: `1px solid ${ev.correct ? "#27ae6030" : "#e74c3c30"}`,
+            background: ev.correct ? "#27ae6015" : `${COLORS.unknown}15`,
+            color: ev.correct ? "#2ecc71" : COLORS.unknownHi,
+            border: `1px solid ${ev.correct ? "#27ae6030" : `${COLORS.unknown}30`}`,
             flexShrink: 0,
           }}>{ev.correct ? "✓" : "✗"}</span>
         )}

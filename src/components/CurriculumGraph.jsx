@@ -400,8 +400,8 @@ export default function CurriculumGraph({
             style={{
               padding: isMobile ? "7px 12px" : "7px 16px", fontSize: 12, cursor: "pointer",
               border: "none", borderLeft: `1px solid ${COLORS.border}`, fontWeight: diagMode ? 700 : 400,
-              background: diagMode ? "#f39c1222" : "transparent",
-              color: diagMode ? "#f39c12" : COLORS.textDim,
+              background: diagMode ? `${COLORS.frontier}22` : "transparent",
+              color: diagMode ? COLORS.frontier : COLORS.textDim,
               minHeight: 36,
             }}
           >
@@ -627,7 +627,7 @@ export default function CurriculumGraph({
               style={{
                 flex: 1, padding: "12px 8px", fontSize: 12,
                 background: "transparent", border: "none",
-                color: "#f39c12", cursor: "pointer", fontWeight: 600,
+                color: COLORS.frontier, cursor: "pointer", fontWeight: 600,
               }}
             >
               {t("reset", lang)}

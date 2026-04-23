@@ -95,26 +95,26 @@ export function DeepDivePanel({
       {ddComplete && (
         <div>
           <div style={{
-            background: known.length > unknown.length ? "#27ae6018" : "#e74c3c18",
-            border: `1px solid ${known.length > unknown.length ? "#27ae6050" : "#e74c3c50"}`,
+            background: known.length > unknown.length ? "#27ae6018" : `${COLORS.unknown}18`,
+            border: `1px solid ${known.length > unknown.length ? "#27ae6050" : `${COLORS.unknown}50`}`,
             borderRadius: 6, padding: "10px 12px", marginBottom: 10,
           }}>
             <div style={{
-              color: known.length > unknown.length ? "#2ecc71" : "#ff6b6b",
+              color: known.length > unknown.length ? "#2ecc71" : COLORS.unknownHi,
               fontWeight: 700, fontSize: 12, marginBottom: 4,
             }}>
               {t("diagReady", lang)}
             </div>
             <div style={{ color: "#6b7d9a", fontSize: 9, lineHeight: 1.6 }}>
               {t("diagKnown", lang)}: <span style={{ color: "#2ecc71" }}>{known.length}</span>{" / "}
-              {t("diagStudy", lang)}: <span style={{ color: "#ff6b6b" }}>{unknown.length}</span>{" / "}
+              {t("diagStudy", lang)}: <span style={{ color: COLORS.unknownHi }}>{unknown.length}</span>{" / "}
               {t("diagTotal", lang)}: {total}
             </div>
           </div>
 
           {unknown.length > 0 && (
             <>
-              <div style={{ color: "#e74c3c", fontSize: 10, fontWeight: 600, marginBottom: 5 }}>
+              <div style={{ color: COLORS.unknownHi, fontSize: 10, fontWeight: 600, marginBottom: 5 }}>
                 {t("studyThese", lang)}
               </div>
               {subgraphIds
@@ -173,7 +173,7 @@ export function DeepDivePanel({
 
           {uncertain.length > 0 && (
             <>
-              <div style={{ color: "#f39c12", fontSize: 10, fontWeight: 600, marginBottom: 4 }}>
+              <div style={{ color: COLORS.frontier, fontSize: 10, fontWeight: 600, marginBottom: 4 }}>
                 {t("unclassified", lang)} ({uncertain.length})
               </div>
               {uncertain.map(id => (
@@ -182,9 +182,9 @@ export function DeepDivePanel({
                   onClick={() => onNodeClick?.(id)}
                   style={{
                     padding: "5px 8px", marginBottom: 3, borderRadius: 4, cursor: "pointer",
-                    background: id === ddNextNodeId ? "#4a9eff18" : "#f39c1212",
-                    border: `1px solid ${id === ddNextNodeId ? "#4a9eff55" : "#f39c1230"}`,
-                    fontSize: 9, color: id === ddNextNodeId ? "#a8d4ff" : "#f5d78e",
+                    background: id === ddNextNodeId ? "#4a9eff18" : `${COLORS.frontier}15`,
+                    border: `1px solid ${id === ddNextNodeId ? "#4a9eff55" : `${COLORS.frontier}30`}`,
+                    fontSize: 9, color: id === ddNextNodeId ? "#a8d4ff" : COLORS.frontierHi,
                     display: "flex", justifyContent: "space-between", alignItems: "center",
                   }}
                 >
@@ -210,7 +210,7 @@ function ConfidenceBar({ beta }) {
   const mean = beta ? beta.alpha / (beta.alpha + beta.beta) : 0.5;
   const strength = beta ? beta.alpha + beta.beta : 2;
   const opacity = Math.min(1, (strength - 2) / 4);
-  const color = mean > 0.6 ? "#27ae60" : mean < 0.4 ? "#e74c3c" : "#f39c12";
+  const color = mean > 0.6 ? COLORS.known : mean < 0.4 ? COLORS.unknownHi : COLORS.frontier;
 
   return (
     <div style={{ width: 30, height: 4, borderRadius: 2, background: COLORS.bg, overflow: "hidden", flexShrink: 0 }}>
@@ -226,12 +226,12 @@ function ConfidenceBar({ beta }) {
 }
 
 function NodeCard({ id, label, scope, classification, beta }) {
-  const color = classification === "known" ? "#27ae60" : "#e74c3c";
+  const color = classification === "known" ? COLORS.known : COLORS.unknown;
   return (
     <div style={{
       padding: "4px 7px", marginBottom: 3, borderRadius: 4,
       background: `${color}10`, border: `1px solid ${color}30`,
-      fontSize: 9, color: classification === "known" ? "#6dbb87" : "#ff8a8a",
+      fontSize: 9, color: classification === "known" ? "#6dbb87" : COLORS.unknownHi,
       display: "flex", justifyContent: "space-between", alignItems: "center",
     }}>
       <span>{label}</span>

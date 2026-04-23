@@ -87,7 +87,7 @@ export function ResultsScreen({
           <StatCard
             count={unknownNodes.length}
             label={t("resultsToStudy", lang)}
-            color="#e74c3c"
+            color={COLORS.unknownHi}
             total={total}
           />
         </div>
@@ -120,14 +120,14 @@ export function ResultsScreen({
                     style={{
                       padding: "12px 14px",
                       borderRadius: 8,
-                      background: "#e74c3c08",
-                      border: `1px solid #e74c3c20`,
+                      background: `${COLORS.unknown}08`,
+                      border: `1px solid ${COLORS.unknown}20`,
                       display: "flex", alignItems: "center", gap: 12,
                       cursor: onSelectTopic ? "pointer" : "default",
                       transition: "background 0.15s, border-color 0.15s",
                     }}
-                    onMouseEnter={e => { if (onSelectTopic) { e.currentTarget.style.background = "#e74c3c14"; e.currentTarget.style.borderColor = "#e74c3c40"; }}}
-                    onMouseLeave={e => { if (onSelectTopic) { e.currentTarget.style.background = "#e74c3c08"; e.currentTarget.style.borderColor = "#e74c3c20"; }}}
+                    onMouseEnter={e => { if (onSelectTopic) { e.currentTarget.style.background = `${COLORS.unknown}14`; e.currentTarget.style.borderColor = `${COLORS.unknown}40`; }}}
+                    onMouseLeave={e => { if (onSelectTopic) { e.currentTarget.style.background = `${COLORS.unknown}08`; e.currentTarget.style.borderColor = `${COLORS.unknown}20`; }}}
                   >
                     <span style={{
                       width: 24, height: 24, borderRadius: "50%",
@@ -191,12 +191,12 @@ export function ResultsScreen({
             return (
               <div style={{
                 padding: "18px 18px 16px", borderRadius: 12,
-                background: "#f39c1212",
-                border: "1px solid #f39c1240",
+                background: `${COLORS.unknown}12`,
+                border: `1px solid ${COLORS.unknown}40`,
                 marginBottom: 8,
               }}>
                 <div style={{
-                  fontSize: 11, color: "#f39c12", fontWeight: 700,
+                  fontSize: 11, color: COLORS.unknownHi, fontWeight: 700,
                   letterSpacing: "0.08em", textTransform: "uppercase",
                   marginBottom: 6,
                 }}>
@@ -236,10 +236,10 @@ export function ResultsScreen({
                     }}>
                       <span style={{
                         width: 20, height: 20, borderRadius: "50%",
-                        background: "#f39c1220",
-                        border: "1px solid #f39c1260",
+                        background: `${COLORS.unknown}20`,
+                        border: `1px solid ${COLORS.unknown}60`,
                         display: "inline-flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 10, color: "#f39c12", fontWeight: 700, flexShrink: 0,
+                        fontSize: 10, color: COLORS.unknownHi, fontWeight: 700, flexShrink: 0,
                       }}>{step.n}</span>
                       <span>{step.t}</span>
                     </li>
@@ -251,9 +251,9 @@ export function ResultsScreen({
                     width: "100%", padding: "12px 18px",
                     fontSize: 14, fontWeight: 600, fontFamily: FONT,
                     borderRadius: 8,
-                    border: "1px solid #f39c1260",
-                    background: "#f39c12",
-                    color: "#0e0e12",
+                    border: `1px solid ${COLORS.unknown}`,
+                    background: COLORS.unknown,
+                    color: "#ffffff",
                     cursor: "pointer",
                   }}
                 >

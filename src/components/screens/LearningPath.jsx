@@ -148,7 +148,7 @@ export function LearningPath({
         }}>
           {totalCount} {t("pathTopics", lang)}
           {belief && Object.keys(belief).length > 0 && (
-            <> · <span style={{ color: COLORS.known }}>{knownCount}</span> {t("pathKnown", lang)} · <span style={{ color: "#e74c3c" }}>{unknownCount}</span> {t("pathToStudy", lang)}</>
+            <> · <span style={{ color: COLORS.known }}>{knownCount}</span> {t("pathKnown", lang)} · <span style={{ color: COLORS.unknownHi }}>{unknownCount}</span> {t("pathToStudy", lang)}</>
           )}
         </p>
 
@@ -175,9 +175,9 @@ export function LearningPath({
               width: "100%", padding: "14px 24px", marginBottom: 28,
               fontSize: 14, fontWeight: 600, fontFamily: FONT,
               borderRadius: 8,
-              border: "1px solid #f39c1250",
-              background: "#f39c1218",
-              color: "#f39c12",
+              border: `1px solid ${COLORS.unknown}50`,
+              background: `${COLORS.unknown}18`,
+              color: COLORS.unknownHi,
               cursor: "pointer",
             }}
           >
@@ -209,7 +209,7 @@ export function LearningPath({
             let dotColor = COLORS.textFaint;
             let dotBorder = COLORS.border;
             if (status === "known") { dotColor = COLORS.known; dotBorder = COLORS.known; }
-            else if (status === "unknown") { dotColor = "#e74c3c"; dotBorder = "#e74c3c"; }
+            else if (status === "unknown") { dotColor = COLORS.unknownHi; dotBorder = COLORS.unknownHi; }
 
             return (
               <div
@@ -277,9 +277,9 @@ export function LearningPath({
                       {directlyTested && (
                         <span style={{
                           fontSize: 9, padding: "2px 6px", borderRadius: 3,
-                          background: ev.correct ? "#27ae6015" : "#e74c3c15",
-                          color: ev.correct ? "#2ecc71" : "#ff6b6b",
-                          border: `1px solid ${ev.correct ? "#27ae6030" : "#e74c3c30"}`,
+                          background: ev.correct ? "#27ae6015" : `${COLORS.unknown}15`,
+                          color: ev.correct ? "#2ecc71" : COLORS.unknownHi,
+                          border: `1px solid ${ev.correct ? "#27ae6030" : `${COLORS.unknown}30`}`,
                         }}>
                           {ev.correct ? "✓" : "✗"}
                         </span>
@@ -350,7 +350,7 @@ function MaturaTipsBlock({ tips, nodeById, belief, lang, getLabel }) {
               const status = belief?.[id];
               let dot = COLORS.textFaint;
               if (status === "known") dot = COLORS.known;
-              else if (status === "unknown") dot = "#e74c3c";
+              else if (status === "unknown") dot = COLORS.unknownHi;
               return (
                 <MaturaTipItem
                   key={id}

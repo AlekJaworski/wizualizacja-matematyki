@@ -210,8 +210,8 @@ export function LocalMap({
           const isDep     = currentDeps.has(n.id);
           const color = SCOPE_COLORS?.[n.scope] ?? "#4a9eff";
           const status = belief?.[n.id];
-          const border = status === "known"   ? "#27ae60"
-                       : status === "unknown" ? "#e74c3c"
+          const border = status === "known"   ? COLORS.known
+                       : status === "unknown" ? COLORS.unknownHi
                        : color;
           const r = isCurrent ? 7 : (isPrereq || isDep) ? 5 : 3.5;
           const fillAlpha = isCurrent ? "" : (isPrereq || isDep) ? "cc" : "66";

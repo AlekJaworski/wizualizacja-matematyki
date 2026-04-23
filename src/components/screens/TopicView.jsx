@@ -338,8 +338,8 @@ export function TopicView({
 function EvidenceBlock({ nodeId, status, evidence, adjacency, belief, nodes, lang, onNavigate }) {
   const ev = evidence?.[nodeId];
   const directlyTested = !!ev;
-  const statusColor = status === "known" ? "#27ae60" : "#e74c3c";
-  const statusColorLight = status === "known" ? "#2ecc71" : "#ff6b6b";
+  const statusColor = status === "known" ? "#27ae60" : COLORS.unknown;
+  const statusColorLight = status === "known" ? "#2ecc71" : COLORS.unknownHi;
   const byId = Object.fromEntries(nodes.map(n => [n.id, n]));
   const getLabel = id => lang === "pl" ? byId[id]?.labelPl : byId[id]?.label;
 
@@ -526,9 +526,9 @@ function NodeDescription({ body, lang, renderRelated }) {
               padding: "10px 14px",
               fontSize: 12, fontFamily: FONT,
               borderRadius: 6,
-              border: `1px solid ${showMistakes ? "#e74c3c40" : COLORS.border}`,
-              background: showMistakes ? "#e74c3c10" : "transparent",
-              color: showMistakes ? "#ff6b6b" : COLORS.textDim,
+              border: `1px solid ${showMistakes ? `${COLORS.unknown}40` : COLORS.border}`,
+              background: showMistakes ? `${COLORS.unknown}10` : "transparent",
+              color: showMistakes ? COLORS.unknownHi : COLORS.textDim,
               cursor: "pointer",
               transition: "all 0.15s",
             }}
@@ -540,9 +540,9 @@ function NodeDescription({ body, lang, renderRelated }) {
               style={{
                 marginTop: 10, padding: "12px 14px",
                 borderRadius: 8, fontSize: 13,
-                background: "#e74c3c08",
-                border: "1px solid #e74c3c20",
-                color: "#f3b4b0", lineHeight: 1.7,
+                background: `${COLORS.unknown}08`,
+                border: `1px solid ${COLORS.unknown}20`,
+                color: COLORS.textBody, lineHeight: 1.7,
               }}
               dangerouslySetInnerHTML={{ __html: renderLatex(mistakes) }}
             />
@@ -578,8 +578,8 @@ function Section({ title, color, empty, emptyText, children }) {
 
 /** Clickable chip for a prerequisite / dependent node */
 function NodeChip({ label, color, status, onClick }) {
-  const statusDot = status === "known" ? "#27ae60"
-    : status === "unknown" ? "#e74c3c"
+  const statusDot = status === "known" ? COLORS.known
+    : status === "unknown" ? COLORS.unknownHi
     : null;
 
   return (

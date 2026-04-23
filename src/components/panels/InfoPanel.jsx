@@ -60,9 +60,9 @@ export function InfoPanel({ nodeId, nodes, adjacency, lang, SCOPE_COLORS, SCOPE_
         <div style={{
           fontSize: fsSmall, fontWeight: 600, marginBottom: 10,
           padding: "5px 10px", borderRadius: 5, display: "inline-block",
-          background: belief[nodeId] === "known" ? "#27ae6015" : "#e74c3c15",
-          border: `1px solid ${belief[nodeId] === "known" ? "#27ae6040" : "#e74c3c40"}`,
-          color: belief[nodeId] === "known" ? "#2ecc71" : "#ff6b6b",
+          background: belief[nodeId] === "known" ? "#27ae6015" : `${COLORS.unknown}15`,
+          border: `1px solid ${belief[nodeId] === "known" ? "#27ae6040" : `${COLORS.unknown}40`}`,
+          color: belief[nodeId] === "known" ? "#2ecc71" : COLORS.unknownHi,
         }}>
           {belief[nodeId] === "known" ? t("beliefKnown", lang) : t("beliefUnknown", lang)}
         </div>
