@@ -12,13 +12,28 @@ import { useEffect, useCallback, useRef } from "react";
  *   #/<lang>/diagnostic/deepdive/<goalNode>    → deep-dive mode with goal
  *
  * <lang> is "pl" or "en". Falls back to "pl" if missing.
+ *
+ * Optional `prefix` (e.g. "map/<beliefCode>") — prepended before the <lang>
+ * segment in every built hash and stripped before parsing. This lets a parent
+ * router (e.g. CourseApp) embed a shareable belief code in the URL without
+ * the graph router clobbering it.
  */
 
 const VALID_LANGS = new Set(["pl", "en"]);
 
-export function parseHash(hash) {
+function splitPrefix(hash, prefix) {
   const raw = (hash || "").replace(/^#\/?/, "");
-  const parts = raw.split("/").filter(Boolean);
+  if (!prefix) return raw;
+  const clean = prefix.replace(/^\/+|\/+$/g, "");
+  if (!clean) return raw;
+  if (raw === clean) return "";
+  if (raw.startsWith(clean + "/")) return raw.slice(clean.length + 1);
+  return raw;
+}
+
+export function parseHash(hash, prefix = null) {
+  const stripped = splitPrefix(hash, prefix);
+  const parts = stripped.split("/").filter(Boolean);
 
   // Extract language prefix
   let lang = "pl";
@@ -51,38 +66,43 @@ export function parseHash(hash) {
   return { view: "graph", lang };
 }
 
-export function buildHash(route) {
+export function buildHash(route, prefix = null) {
   const lang = route?.lang || "pl";
-  if (!route) return `#/${lang}`;
+  const pfx = prefix ? `/${prefix.replace(/^\/+|\/+$/g, "")}` : "";
+  if (!route) return `#${pfx}/${lang}`;
   switch (route.view) {
     case "node":
-      return `#/${lang}/node/${encodeURIComponent(route.nodeId)}`;
+      return `#${pfx}/${lang}/node/${encodeURIComponent(route.nodeId)}`;
     case "resource":
-      return `#/${lang}/node/${encodeURIComponent(route.nodeId)}/resource/${route.resourceIndex}`;
+      return `#${pfx}/${lang}/node/${encodeURIComponent(route.nodeId)}/resource/${route.resourceIndex}`;
     case "question":
-      return `#/${lang}/node/${encodeURIComponent(route.nodeId)}/question/${route.questionIndex}`;
+      return `#${pfx}/${lang}/node/${encodeURIComponent(route.nodeId)}/question/${route.questionIndex}`;
     case "diagnostic":
       if (route.mode === "deepdive" && route.goalNode)
-        return `#/${lang}/diagnostic/deepdive/${encodeURIComponent(route.goalNode)}`;
-      return `#/${lang}/diagnostic/quick`;
+        return `#${pfx}/${lang}/diagnostic/deepdive/${encodeURIComponent(route.goalNode)}`;
+      return `#${pfx}/${lang}/diagnostic/quick`;
     default:
-      return `#/${lang}`;
+      return `#${pfx}/${lang}`;
   }
 }
 
 /**
  * @param {(route: object) => void} onRoute — called when hash changes (including initial load)
+ * @param {{ prefix?: string | null }} [options]
  * @returns {{ setRoute: (route: object) => void }}
  */
-export function useHashRouter(onRoute) {
+export function useHashRouter(onRoute, options = {}) {
   const onRouteRef = useRef(onRoute);
   onRouteRef.current = onRoute;
+
+  const prefixRef = useRef(options.prefix ?? null);
+  prefixRef.current = options.prefix ?? null;
 
   // Suppress the next popstate handler when we're the ones changing the hash
   const suppressRef = useRef(false);
 
   const setRoute = useCallback((route) => {
-    const hash = buildHash(route);
+    const hash = buildHash(route, prefixRef.current);
     if (window.location.hash === hash) return;
     suppressRef.current = true;
     window.location.hash = hash;
@@ -94,13 +114,13 @@ export function useHashRouter(onRoute) {
         suppressRef.current = false;
         return;
       }
-      onRouteRef.current(parseHash(window.location.hash));
+      onRouteRef.current(parseHash(window.location.hash, prefixRef.current));
     };
 
     window.addEventListener("hashchange", handlePop);
 
     // Initial route from URL (deferred so component state is ready)
-    const initial = parseHash(window.location.hash);
+    const initial = parseHash(window.location.hash, prefixRef.current);
     // Always fire on initial load so language is applied
     Promise.resolve().then(() => onRouteRef.current(initial));
 

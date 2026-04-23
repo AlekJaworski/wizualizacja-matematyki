@@ -44,6 +44,7 @@ export default function CurriculumGraph({
   initialEvidence,
   initialSelectedNode,
   initialLang,
+  beliefCode,
   onBackToHome,
 }) {
   const isMobile = useIsMobile();
@@ -170,7 +171,11 @@ export default function CurriculumGraph({
     }
   }, [setLang, setDiagMode, setMode, startDeepDive]);
 
-  const { setRoute } = useHashRouter(handleRoute);
+  // When a belief code is supplied (e.g. user came from quiz results), prefix
+  // every hash with `map/<code>` so the shareable belief stays in the URL and
+  // survives sub-navigation (node selection, diagnostic, etc.).
+  const hashPrefix = beliefCode ? `map/${beliefCode}` : null;
+  const { setRoute } = useHashRouter(handleRoute, { prefix: hashPrefix });
 
   // Sync state → hash (when state changes via UI, not via hash)
   useEffect(() => {
@@ -191,7 +196,7 @@ export default function CurriculumGraph({
     } else {
       setRoute({ view: "graph", lang });
     }
-  }, [selected, openResourceIdx, diagMode, mode, targetNode, quizNode, forceQIndex, lang, setRoute]);
+  }, [selected, openResourceIdx, diagMode, mode, targetNode, quizNode, forceQIndex, lang, setRoute, hashPrefix]);
 
   // ── Derived display state ───────────────────────────────────────
   const filteredIds = useMemo(() => {
@@ -415,6 +420,34 @@ export default function CurriculumGraph({
         {diagMode && (
           <button onClick={() => setShowGoalModal(true)} style={hdrBtn(mode === "deepdive", "#8e44ad")}>
             {t("goalBtn", lang)}
+          </button>
+        )}
+
+        {/* ── Share button (shown when user arrived with a belief code) ── */}
+        {beliefCode && (
+          <button
+            onClick={() => {
+              const shareUrl = `https://oczochodzi.pl/#/results/${beliefCode}`;
+              // Share text reflects the original belief encoded in beliefCode
+              // (what the recipient will see), not any live diagnostic updates.
+              const knownCount = Object.values(initialBelief ?? {}).filter(v => v === "known").length;
+              const total = RAW_NODES.length;
+              const text = lang === "pl"
+                ? `Sprawdziłem swoją wiedzę z matmy — ${knownCount}/${total} tematów znanych! Sprawdź się:`
+                : `I tested my math knowledge — ${knownCount}/${total} topics known! Try it:`;
+              if (navigator.share) {
+                navigator.share({ title: "oczochodzi.pl", text, url: shareUrl }).catch(() => {});
+              } else if (navigator.clipboard) {
+                navigator.clipboard.writeText(`${text} ${shareUrl}`).then(() => {
+                  alert(t("copiedClipboard", lang));
+                }).catch(() => {});
+              }
+            }}
+            style={{ ...hdrBtn(false), padding: isMobile ? "7px 10px" : "7px 13px" }}
+            title={t("resultsShare", lang)}
+            aria-label={t("resultsShare", lang)}
+          >
+            {isMobile ? "↗" : t("mapShare", lang)}
           </button>
         )}
 
