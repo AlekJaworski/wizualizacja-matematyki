@@ -4,7 +4,7 @@ import { COLORS } from "../../styles/tokens.js";
 
 const MODES = [
   { id: "browse",   key: "onboardingBrowse",   descKey: "onboardingBrowseDesc", color: "#4a9eff" },
-  { id: "quick",    key: "onboardingDiag",     descKey: "onboardingDiagDesc",   color: "#f39c12" },
+  { id: "quick",    key: "onboardingDiag",     descKey: "onboardingDiagDesc",   color: COLORS.frontier },
   { id: "deepdive", key: "onboardingDeep",     descKey: "onboardingDeepDesc",   color: "#8e44ad" },
 ];
 

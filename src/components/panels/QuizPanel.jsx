@@ -161,7 +161,7 @@ export function QuizPanel({ nodeId, nodes, questionBank, onAnswer, onSkip, lang,
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             <button onClick={() => onAnswer(true, null, -1)}  style={{ ...ansBtn("#27ae60"), fontSize: 12, padding: "8px 14px" }}>{t("yesKnow", lang)}</button>
-            <button onClick={() => onAnswer(false, null, -1)} style={{ ...ansBtn("#e74c3c"), fontSize: 12, padding: "8px 14px" }}>{t("noKnow", lang)}</button>
+            <button onClick={() => onAnswer(false, null, -1)} style={{ ...ansBtn(COLORS.unknownHi), fontSize: 12, padding: "8px 14px" }}>{t("noKnow", lang)}</button>
             <button onClick={() => onSkip(-1)}                style={{ ...ansBtn("#3a4d63"), fontSize: 12, padding: "8px 14px" }}>{t("skipBtn", lang)}</button>
           </div>
         </>
@@ -199,7 +199,7 @@ export function QuizPanel({ nodeId, nodes, questionBank, onAnswer, onSkip, lang,
               }
               if (revealed) {
                 if (displayIdx === correctDisplayIndex)   { bg = "#27ae6022"; border = "#27ae60"; txtColor = "#2ecc71"; }
-                else if (displayIdx === picked)           { bg = "#e74c3c22"; border = "#e74c3c"; txtColor = "#ff6b6b"; }
+                else if (displayIdx === picked)           { bg = `${COLORS.unknown}22`; border = COLORS.unknown; txtColor = COLORS.unknownHi; }
               }
               return (
                 <button
@@ -278,7 +278,7 @@ export function QuizPanel({ nodeId, nodes, questionBank, onAnswer, onSkip, lang,
           ) : (
             <button
               onClick={confirm}
-              style={{ ...ansBtn(picked === correctDisplayIndex ? "#27ae60" : "#e74c3c"), width: "100%", fontSize: 13 }}
+              style={{ ...ansBtn(picked === correctDisplayIndex ? "#27ae60" : COLORS.unknownHi), width: "100%", fontSize: 13 }}
             >
               {picked === correctDisplayIndex ? t("knownConfirm", lang) : t("unknownConfirm", lang)}
             </button>

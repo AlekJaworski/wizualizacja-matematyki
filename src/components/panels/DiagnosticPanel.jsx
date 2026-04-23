@@ -26,8 +26,8 @@ export function DiagnosticPanel({
   const total   = nodes.length;
 
   const stats = [
-    { label: t("statKnown",    lang), count: known.length,            color: "#27ae60" },
-    { label: t("statUnknown",  lang), count: unknown.length,          color: "#e74c3c" },
+    { label: t("statKnown",    lang), count: known.length,            color: COLORS.known },
+    { label: t("statUnknown",  lang), count: unknown.length,          color: COLORS.unknownHi },
     { label: t("statRemaining",lang), count: expectedRemaining ?? "-", color: "#4a9eff" },
   ];
 
@@ -91,12 +91,12 @@ export function DiagnosticPanel({
               {t("sessionDoneClass", lang)} {known.length + unknown.length}/{total}.<br />
               {t("sessionDoneAcc", lang)}: <span style={{ color: "#4a9eff" }}>{accuracyPct}%</span>.{" "}
               {t("sessionDoneKnown", lang)} <span style={{ color: "#2ecc71" }}>{known.length}</span>,{" "}
-              {t("sessionDoneStudy", lang)} <span style={{ color: "#e74c3c" }}>{unknown.length}</span>.
+              {t("sessionDoneStudy", lang)} <span style={{ color: COLORS.unknownHi }}>{unknown.length}</span>.
             </div>
           </div>
           {unknown.length > 0 && (
             <>
-              <div style={{ color: "#e74c3c", fontSize: fs, fontWeight: 600, marginBottom: 5 }}>
+              <div style={{ color: COLORS.unknownHi, fontSize: fs, fontWeight: 600, marginBottom: 5 }}>
                 {t("toStudy", lang)} ({unknown.length})
               </div>
               {nodes
@@ -106,8 +106,8 @@ export function DiagnosticPanel({
                 .map(n => (
                   <div key={n.id} style={{
                     padding: isMobile ? "8px 10px" : "5px 8px", marginBottom: 4, borderRadius: 4,
-                    background: "#e74c3c12", border: "1px solid #e74c3c30",
-                    fontSize: fs, color: "#ff8a8a", lineHeight: 1.4,
+                    background: `${COLORS.unknown}12`, border: `1px solid ${COLORS.unknown}30`,
+                    fontSize: fs, color: COLORS.unknownHi, lineHeight: 1.4,
                   }}>
                     {getLabel(n.id)}
                     <div style={{ fontSize: fsSmall, color: COLORS.textDim, marginTop: 1 }}>
@@ -159,7 +159,7 @@ export function DiagnosticPanel({
       {/* IN PROGRESS — frontier */}
       {!sessionComplete && hasStarted && visibleFrontier.length > 0 && (
         <>
-          <div style={{ color: "#f39c12", fontSize: fs, fontWeight: 600, marginBottom: 5 }}>
+          <div style={{ color: COLORS.frontier, fontSize: fs, fontWeight: 600, marginBottom: 5 }}>
             {t("whatNext", lang)}
           </div>
           {visibleFrontier.map(id => {
@@ -171,9 +171,9 @@ export function DiagnosticPanel({
                 style={{
                   padding: isMobile ? "10px 12px" : "6px 8px",
                   marginBottom: 4, borderRadius: 4, cursor: "pointer",
-                  background: isNext ? "#4a9eff18" : "#f39c1215",
-                  border: `1px solid ${isNext ? "#4a9eff55" : "#f39c1240"}`,
-                  fontSize: fs, color: isNext ? "#a8d4ff" : "#f5d78e",
+                  background: isNext ? "#4a9eff18" : `${COLORS.frontier}15`,
+                  border: `1px solid ${isNext ? "#4a9eff55" : `${COLORS.frontier}40`}`,
+                  fontSize: fs, color: isNext ? "#a8d4ff" : COLORS.frontierHi,
                   minHeight: isMobile ? 44 : "auto",
                   display: "flex", alignItems: "center", justifyContent: "space-between",
                 }}

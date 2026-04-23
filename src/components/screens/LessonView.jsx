@@ -110,8 +110,8 @@ export function LessonView({
             style={{
               padding: "14px 28px", fontSize: 14, fontWeight: 600,
               fontFamily: FONT, borderRadius: 8,
-              border: "1px solid #f39c1250",
-              background: "#f39c1218", color: "#f39c12",
+              border: `1px solid ${COLORS.unknown}50`,
+              background: `${COLORS.unknown}18`, color: COLORS.unknownHi,
               cursor: "pointer",
             }}
           >
@@ -255,8 +255,8 @@ export function LessonView({
             style={{
               width: "100%", padding: "14px 20px", fontSize: 14,
               fontWeight: 600, fontFamily: FONT, borderRadius: 8,
-              border: "1px solid #f39c1250",
-              background: "#f39c1218", color: "#f39c12",
+              border: `1px solid ${COLORS.unknown}50`,
+              background: `${COLORS.unknown}18`, color: COLORS.unknownHi,
               cursor: "pointer", textAlign: "center",
             }}
           >
@@ -533,14 +533,14 @@ function QuizSection({ nodeId, QUESTION_BANK, belief, evidence, adjacency, lang,
               borderColor = "#27ae6050";
               textColor = "#2ecc71";
             } else if (isSelected && i !== question.correct) {
-              bg = "#e74c3c15";
-              borderColor = "#e74c3c50";
-              textColor = "#ff6b6b";
+              bg = `${COLORS.unknown}15`;
+              borderColor = `${COLORS.unknown}50`;
+              textColor = COLORS.unknownHi;
             }
           } else if (isSelected) {
-            bg = "#f39c1215";
-            borderColor = "#f39c1250";
-            textColor = "#f39c12";
+            bg = `${COLORS.frontier}15`;
+            borderColor = `${COLORS.frontier}50`;
+            textColor = COLORS.frontierHi;
           }
 
           return (
@@ -562,8 +562,8 @@ function QuizSection({ nodeId, QUESTION_BANK, belief, evidence, adjacency, lang,
                 fontWeight: 700, fontSize: 12, flexShrink: 0,
                 width: 22, height: 22, borderRadius: 4,
                 display: "flex", alignItems: "center", justifyContent: "center",
-                background: isSelected && !checked ? "#f39c1220" : checked && i === question.correct ? "#27ae6020" : "transparent",
-                border: `1px solid ${isSelected && !checked ? "#f39c1240" : "transparent"}`,
+                background: isSelected && !checked ? `${COLORS.frontier}20` : checked && i === question.correct ? "#27ae6020" : "transparent",
+                border: `1px solid ${isSelected && !checked ? `${COLORS.frontier}40` : "transparent"}`,
               }}>
                 {letter}
               </span>
@@ -593,8 +593,8 @@ function QuizSection({ nodeId, QUESTION_BANK, belief, evidence, adjacency, lang,
       ) : (
         <div style={{
           padding: "12px 14px", borderRadius: 8,
-          background: isCorrect ? "#27ae6008" : "#e74c3c08",
-          border: `1px solid ${isCorrect ? "#27ae6020" : "#e74c3c20"}`,
+          background: isCorrect ? "#27ae6008" : `${COLORS.unknown}08`,
+          border: `1px solid ${isCorrect ? "#27ae6020" : `${COLORS.unknown}20`}`,
         }}>
           <div style={{
             fontSize: 13, fontWeight: 600, marginBottom: 6,

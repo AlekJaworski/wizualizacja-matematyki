@@ -75,10 +75,10 @@ export const COLORS = {
   // Semantic (constant across themes)
   known:    "#27ae60",
   knownHi:  "#2ecc71",
-  unknown:  "#c0392b",
-  unknownHi:"#e74c3c",
-  frontier: "#f39c12",
-  frontierHi:"#f1c40f",
+  unknown:  "#3b82f6",
+  unknownHi:"#60a5fa",
+  frontier: "#94a3b8",
+  frontierHi:"#cbd5e1",
 };
 
 /**
