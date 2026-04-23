@@ -134,8 +134,9 @@ function animState(t) {
   const opA_start = 1 - remap(t, 0.28, 0.42);                    // leading plateau
   const opA_return = remap(t, 0.92, 1.00);                       // fades back in on return
   const opA = Math.max(opA_start, opA_return);
-  // Phase B: visible around the k=0 plateau.
-  const opB = remap(t, 0.42, 0.48) * (1 - remap(t, 0.55, 0.62));
+  // Phase B: visible around the k=0 plateau. Starts rising at 0.38 (inside the
+  // A→B morph) so there is no dead zone between opA fading out and opB rising.
+  const opB = remap(t, 0.38, 0.48) * (1 - remap(t, 0.55, 0.62));
   // Phase C: visible around the k=+K_AMP plateau.
   const opC = remap(t, 0.62, 0.70) * (1 - remap(t, 0.85, 0.92));
 
@@ -311,14 +312,14 @@ export function HeroParabola({ compact = false, lang = "pl" }) {
           opacity={0.95}
         />
 
-        {/* Root dots — faded in proportion to how deep the vertex sits, so the
-            transition into Phase B (dots meeting at vertex) feels earned rather
-            than abrupt. Single-root (tangent) case collapses to one dot whose
-            opacity tracks Phase B. */}
+        {/* Root dots — opacity and radius are a single continuous function of
+            depth (how deep the vertex sits below the x-axis). The tangent case
+            (one dot at k=0) falls out naturally: depth=0 gives the same visual
+            as the 2-dot case just before they merge, so no snap at the seam. */}
         {displayDots.map((rx, i) => {
           const depth = Math.max(0, -k) / K_AMP;      // 0..1 across Phase A range
-          const op = tangent ? 0.9 * opB : 0.4 + 0.55 * depth;
-          const radius = tangent ? 3.2 : 2.6 + 1.2 * depth;
+          const op = 0.55 + 0.4 * depth;
+          const radius = 3.0 + 0.8 * depth;
           return (
             <circle
               key={`root${i}`}
