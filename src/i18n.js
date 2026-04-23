@@ -179,6 +179,11 @@ const STRINGS = {
   heroStep2:     { pl: "Algorytm mapuje Twoją wiedzę",  en: "Algorithm maps your knowledge" },
   heroStep3:     { pl: "Dostajesz plan, od czego zacząć", en: "Get a plan for where to start" },
 
+  // Hero parabola viz — phase labels for the Δ (discriminant) narrative.
+  heroVizDeltaPos:   { pl: "Δ > 0 — dwa pierwiastki",    en: "Δ > 0 — two roots" },
+  heroVizDeltaZero:  { pl: "Δ = 0 — jeden pierwiastek",  en: "Δ = 0 — one root" },
+  heroVizDeltaNeg:   { pl: "Δ < 0 — brak pierwiastków",  en: "Δ < 0 — no real roots" },
+
   // ── Quiz flow ────────────────────────────────────────────────────
   quizExit:       { pl: "Wyjdź",              en: "Exit" },
   quizQuestion:   { pl: "Pytanie",            en: "Question" },
