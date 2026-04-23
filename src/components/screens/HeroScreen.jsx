@@ -57,7 +57,7 @@ export function HeroScreen({ lang, setLang, themeId, onThemeChange, onStartQuiz,
       width: "100%",
       maxWidth: isMobile ? 360 : 460,
     }}>
-      <HeroParabola compact={isMobile} />
+      <HeroParabola compact={isMobile} lang={lang} />
       {!isMobile && galleryLink}
     </div>
   );
