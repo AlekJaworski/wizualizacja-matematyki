@@ -246,6 +246,7 @@ const STRINGS = {
   galleryTitle:      { pl: "Interaktywne wizualizacje",   en: "Interactive visualizations" },
   galleryCount:      { pl: "wizualizacji",                en: "visualizations" },
   heroBrowseViz:     { pl: "Przeglądaj wizualizacje",     en: "Browse visualizations" },
+  heroVizGalleryLink:{ pl: "Zobacz wszystkie wizualizacje →", en: "See all visualizations →" },
 
   // ── Learning path ────────────────────────────────────────────────
   pathLabel:         { pl: "Ścieżka nauki",              en: "Learning path" },
