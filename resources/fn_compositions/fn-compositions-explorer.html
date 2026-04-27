@@ -18,44 +18,61 @@ const { cx, W, H } = VizCore.init({
   title: T('Złożenia funkcji', 'Function Compositions'),
   H: 360,
   stages: [
-    // ── Stage 0: What is f(g(x)) ─────────────────────────────────
+    // ── Stage 0: Reading f(g(x)) off the graph — the y=x trick ───
     {
-      title: () => T('f(g(x)) — maszyna w maszynie', 'f(g(x)) — a machine inside a machine'),
+      title: () => T('f(g(x)) z wykresu — sztuczka z prostą y = x', 'f(g(x)) from the graph — the y = x trick'),
       desc:  () => T(
-        'Złożenie funkcji: najpierw stosujemy g, potem f do wyniku. Wejście x → g → g(x) → f → f(g(x)). Suwak x pokazuje krok po kroku.',
-        'Function composition: apply g first, then f to the result. Input x → g → g(x) → f → f(g(x)). Slider x shows step by step.'
+        'Wartość f(g(x)) odczytasz z wykresów g i f bez liczenia. Z x na osi: ① pionowo do g — to wysokość g(x); ② poziomo do prostej y = x — ta przerzuca wartość z osi y na oś x; ③ pionowo na oś x — stoimy w punkcie g(x); ④ pionowo do f — wysokość, jaką osiągniesz, to f(g(x)).',
+        'You can read f(g(x)) off the graphs of g and f without computing. From x on the axis: ① vertically up to g — that height is g(x); ② horizontally to the line y = x — this transfers the value from the y-axis to the x-axis; ③ vertically to the x-axis — we now stand at g(x); ④ vertically up to f — the height you reach is f(g(x)).'
       ),
       sliders: [
-        { id: 'x', lbl: 'x', color: COLORS.YELLOW, min: -2.5, max: 2.5, step: 0.1, val: 1 },
+        { id: 'x', lbl: 'x', color: COLORS.YELLOW, min: -1.5, max: 0.5, step: 0.05, val: 0.5 },
       ],
       draw(cx, W, H, vals) {
         const x = vals.x;
         const g = t => 2 * t + 1;      // g(x) = 2x+1
         const f = t => t * t;           // f(x) = x²
-        const fg = t => f(g(t));        // f(g(x)) = (2x+1)²
 
         const v = gv(cx, W, H);
         v.drawGrid(); v.drawAxes();
-        v.plotFn(g,  { color: COLORS.ORANGE, lineWidth: 1.5, dash: [4,3], glow: 4 });
-        v.plotFn(fg, { color: COLORS.CYAN,   lineWidth: 2.5, glow: 4 });
 
-        const gx = g(x), fgx = fg(x);
+        // y = x line (faint dashed)
+        v.line(-3, -3, 6, 6, { color: 'rgba(255,255,255,0.3)', lineWidth: 1, dash: [4,4] });
 
-        // Show pipeline on canvas
+        // Plot g (orange) and f (pink) — both source curves
+        v.plotFn(g, { color: COLORS.ORANGE, lineWidth: 2, glow: 4 });
+        v.plotFn(f, { color: COLORS.PINK,   lineWidth: 2, glow: 4 });
+
+        const gx  = g(x);
+        const fgx = f(gx);
+
+        // ① vertical from (x, 0) to (x, g(x)) — meeting g
         v.segment(x, 0, x, gx, { color: COLORS.ORANGE, lineWidth: 1.5, dash: [3,3] });
-        if (fgx <= 6 && fgx >= -4) {
-          v.segment(x, gx, x, fgx, { color: COLORS.CYAN, lineWidth: 1.5, dash: [3,3] });
-        }
-        v.dot(x, gx, { radius: 5, color: COLORS.ORANGE });
-        if (fgx <= 6 && fgx >= -4) v.dot(x, fgx, { radius: 6, color: COLORS.CYAN });
+        // ② horizontal from (x, g(x)) to (g(x), g(x)) — meeting y=x
+        v.segment(x, gx, gx, gx, { color: COLORS.GREEN, lineWidth: 1.5, dash: [3,3] });
+        // ③ vertical from (g(x), g(x)) to (g(x), 0) — onto x-axis
+        v.segment(gx, gx, gx, 0, { color: COLORS.GREEN, lineWidth: 1.5, dash: [2,3] });
+        // ④ vertical from (g(x), 0) to (g(x), f(g(x))) — meeting f
+        v.segment(gx, 0, gx, fgx, { color: COLORS.CYAN, lineWidth: 2, dash: [3,3] });
 
-        const CX2 = W - 120, CY2 = 40;
+        // Waypoint dots (drawn after segments so they sit on top)
+        v.dot(x,   0,   { radius: 4, color: COLORS.YELLOW });
+        v.dot(x,   gx,  { radius: 5, color: COLORS.ORANGE });
+        v.dot(gx,  gx,  { radius: 4, color: COLORS.GREEN });
+        v.dot(gx,  0,   { radius: 4, color: COLORS.YELLOW });
+        v.dot(gx,  fgx, { radius: 6, color: COLORS.CYAN });
+
+        // Curve labels (top-left)
         cx.font = '12px monospace'; cx.textAlign = 'left';
-        cx.fillStyle = COLORS.YELLOW;  cx.fillText('x = ' + x.toFixed(1), CX2, CY2);
-        cx.fillStyle = COLORS.ORANGE;  cx.fillText('g(x) = 2x+1 = ' + gx.toFixed(1), CX2, CY2 + 18);
-        cx.fillStyle = COLORS.CYAN;    cx.fillText('f(g(x)) = ' + (Math.round(fgx*100)/100), CX2, CY2 + 36);
-        cx.fillStyle = 'rgba(255,255,255,0.3)';
-        cx.fillText('g: ---  f∘g: ───', 14, 22);
+        cx.fillStyle = COLORS.ORANGE; cx.fillText('g(x) = 2x + 1', 14, 22);
+        cx.fillStyle = COLORS.PINK;   cx.fillText('f(x) = x²',     14, 40);
+        cx.fillStyle = 'rgba(255,255,255,0.55)'; cx.fillText('y = x',        14, 58);
+
+        // Live values (top-right)
+        const CX2 = W - 140, CY2 = 22;
+        cx.fillStyle = COLORS.YELLOW; cx.fillText('x = '       + x.toFixed(2),   CX2, CY2);
+        cx.fillStyle = COLORS.ORANGE; cx.fillText('g(x) = '    + gx.toFixed(2),  CX2, CY2 + 18);
+        cx.fillStyle = COLORS.CYAN;   cx.fillText('f(g(x)) = ' + fgx.toFixed(2), CX2, CY2 + 36);
       },
     },
 
