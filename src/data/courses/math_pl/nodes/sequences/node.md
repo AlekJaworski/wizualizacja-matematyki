@@ -24,3 +24,18 @@ Na przykład: ciąg arytmetyczny $2, 5, 8, 11, \ldots$ ma $a_1 = 2$, $d = 3$. Wi
 <!-- see-also -->
 fn_transforms
 fn_concept
+
+<!-- en -->
+A sequence is an ordered list of numbers in which each term has its index — formally, a function from the natural numbers to the real numbers.<br><br>Arithmetic sequence: $a_n = a_1 + (n-1)d$ (constant common difference $d$ between consecutive terms). Geometric sequence: $a_n = a_1 \cdot q^{n-1}$ (constant common ratio $q$).<br><br>Sums: arithmetic $S_n = \frac{n(a_1 + a_n)}{2}$, geometric $S_n = a_1 \cdot \frac{1 - q^n}{1 - q}$.
+
+<!-- example -->
+For example: the arithmetic sequence $2, 5, 8, 11, \ldots$ has $a_1 = 2$, $d = 3$. So $a_{10} = 2 + 9 \cdot 3 = 29$, and $S_{10} = \frac{10(2+29)}{2} = 155$.<br><br>The geometric sequence $3, 6, 12, 24, \ldots$ has $q = 2$, so $a_5 = 3 \cdot 2^4 = 48$.<br><br>**For the curious — a sequence is a function, and reindexing is a graph shift.** By definition a sequence is a function $a: \mathbb{N} \to \mathbb{R}$ with a discrete domain — so the transformations from the fn_transforms node apply directly. Reindexing $b_k = a_{k+1}$ is simply shifting the graph left by $1$ (i.e. $y = f(x+1)$); analogously $c_n = -a_n$ corresponds to reflection across the index axis, and $d_n = a_n + C$ to a vertical shift. A recurrence rule is a functional equation on $a$, and the shifted function satisfies the shifted equation — that is why $a_{n+2} = a_{n+1} + a_n$ becomes $b_{k+1} = b_k + b_{k-1}$ without changing form.
+
+<!-- mistakes -->
+- **Indexing from 1 or 0**: the Polish CKE matura indexes from 1 (the first term is $a_1$), some textbooks from 0. Always check the problem.
+- **Closed-form vs recursive formula**: $a_n = a_1 + (n-1)d$ is the direct form, while $a_{n+1} = a_n + d$ is a recurrence — within one problem it is worth sticking to a single convention.
+- **Sum of $n$ terms**: $S_n = \frac{n(a_1 + a_n)}{2}$ for arithmetic — it is easy to skip the division by 2 in a hurry.
+
+<!-- see-also -->
+fn_transforms
+fn_concept

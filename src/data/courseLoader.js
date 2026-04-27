@@ -74,6 +74,20 @@ export function parseFrontmatter(raw) {
   return { meta, body };
 }
 
+// Split a body on the `<!-- en -->` marker.
+// PL is the canonical body; EN follows the marker if present.
+// Each side keeps its own `<!-- example -->`, `<!-- mistakes -->`, `<!-- see-also -->`
+// structure independently — translators just author the EN side once.
+function splitBodyByLang(body) {
+  const marker = "<!-- en -->";
+  if (!body || !body.includes(marker)) return { bodyPl: body || "", bodyEn: "" };
+  const idx = body.indexOf(marker);
+  return {
+    bodyPl: body.slice(0, idx).trim(),
+    bodyEn: body.slice(idx + marker.length).trim(),
+  };
+}
+
 /**
  * Build RAW_NODES from a Vite glob result of node.md files.
  * @param {Record<string, string>} nodeFiles — result of import.meta.glob
@@ -83,9 +97,11 @@ export function buildNodes(nodeFiles, idPattern) {
   return Object.entries(nodeFiles).map(([path, raw]) => {
     const id = path.match(idPattern)?.[1];
     const { meta, body } = parseFrontmatter(raw);
+    const { bodyPl, bodyEn } = splitBodyByLang(body);
     return {
       id,
-      body:      body || "",
+      body:      bodyPl,
+      bodyEn:    bodyEn,
       label:     meta.label     ?? id,
       labelPl:   meta.labelPl   ?? meta.label ?? id,
       scope:     meta.scope     ?? "default",
@@ -123,20 +139,54 @@ export function buildQuestionBank(questionFiles, idPattern) {
     if (!id) continue;
 
     const { meta, body } = parseFrontmatter(raw);
+    const { bodyPl, bodyEn } = splitBodyByLang(body);
     if (!bank[id]) bank[id] = [];
     bank[id].push({
-      q:       body,
-      options: meta.options ?? [],
-      correct: meta.correct ?? 0,
-      hint:    meta.hint    ?? "",
-      hints:   Array.isArray(meta.hints) ? meta.hints : (meta.hint ? [meta.hint] : []),
-      source:  meta.source  ?? null,
-      tests:   (meta.tests && typeof meta.tests === "object" && Object.keys(meta.tests).length > 0)
-                 ? meta.tests
-                 : { [id]: 1.0 },
+      q:        bodyPl,
+      qEn:      bodyEn || null,
+      options:  meta.options ?? [],
+      optionsEn: Array.isArray(meta.optionsEn) ? meta.optionsEn : null,
+      correct:  meta.correct ?? 0,
+      hint:     meta.hint    ?? "",
+      hintEn:   meta.hintEn  ?? null,
+      hints:    Array.isArray(meta.hints) ? meta.hints : (meta.hint ? [meta.hint] : []),
+      hintsEn:  Array.isArray(meta.hintsEn) ? meta.hintsEn : null,
+      source:   meta.source  ?? null,
+      tests:    (meta.tests && typeof meta.tests === "object" && Object.keys(meta.tests).length > 0)
+                  ? meta.tests
+                  : { [id]: 1.0 },
     });
   }
   return bank;
+}
+
+/**
+ * Pick the lang-appropriate fields for a question.
+ * If EN is incomplete (no qEn or no optionsEn), fall back to PL with `pending: true`.
+ */
+export function pickQuestionLang(q, lang) {
+  if (lang === "en" && q.qEn && q.optionsEn) {
+    return {
+      ...q,
+      q:       q.qEn,
+      options: q.optionsEn,
+      hint:    q.hintEn ?? q.hint,
+      hints:   (q.hintsEn && q.hintsEn.length) ? q.hintsEn : q.hints,
+      pending: false,
+    };
+  }
+  return { ...q, pending: lang === "en" };
+}
+
+/**
+ * Pick the lang-appropriate body for a node.
+ * Falls back to PL (with `pending: true`) when EN is missing.
+ */
+export function pickNodeBodyLang(node, lang) {
+  if (lang === "en" && node.bodyEn) {
+    return { body: node.bodyEn, pending: false };
+  }
+  return { body: node.body, pending: lang === "en" };
 }
 
 /**

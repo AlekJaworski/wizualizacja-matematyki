@@ -22,3 +22,18 @@ Na przykład: arytmetyczny $1, 4, 7, 10$ ($d = 3$) vs geometryczny $1, 2, 4, 8$ 
 <!-- see-also -->
 sequences
 geo_series
+
+<!-- en -->
+Arithmetic and geometric sequences are two fundamental types of sequences — one grows uniformly, the other exponentially.<br><br>Arithmetic sequence: $a_n = a_1 + (n-1)d$, each term differs from the previous one by a constant $d$. Geometric sequence: $a_n = a_1 \cdot q^{n-1}$, each term is $q$ times larger than the previous one.<br><br>The arithmetic one grows linearly, the geometric one exponentially. For $|q| < 1$, the geometric sequence converges to 0, and its infinite sum equals $S_\infty = \frac{a_1}{1-q}$.
+
+<!-- example -->
+For example: arithmetic $1, 4, 7, 10$ ($d = 3$) vs geometric $1, 2, 4, 8$ ($q = 2$).<br><br>At $n = 10$: the arithmetic gives $a_{10} = 28$, and the geometric $a_{10} = 512$ — the difference between linear and exponential growth is immediately visible.<br><br>But when $q = 0{,}5$: $1;\ 0{,}5;\ 0{,}25;\ 0{,}125;\ \ldots$ converges to $S_\infty = \frac{1}{1-0{,}5} = 2$.
+
+<!-- mistakes -->
+- **$(n-1)$, not $n$**: the formula for the term is $a_n = a_1 + (n-1)d$ (arithmetic) and $a_n = a_1 \cdot q^{n-1}$ (geometric). At $n=1$ the exponent or multiplier must give zero/one — because $a_1$ is still the starting point, the common difference/ratio has not yet been applied.
+- **Identifying the type**: a constant DIFFERENCE between consecutive terms → arithmetic; a constant RATIO → geometric. The sequence $1, 2, 4, 7, 11, \ldots$ (differences $1, 2, 3, 4$) is neither — the formulas $a_n = a_1 + (n-1)d$ and $a_n = a_1 q^{n-1}$ do not apply here.
+- **Geometric sum at $q=1$**: the formula $S_n = a_1\cdot\frac{1-q^n}{1-q}$ has zero in the denominator. When $q=1$, the sequence is constant ($a_n = a_1$ for every $n$) and $S_n = n\cdot a_1$ — use this formula instead of the universal one.
+
+<!-- see-also -->
+sequences
+geo_series

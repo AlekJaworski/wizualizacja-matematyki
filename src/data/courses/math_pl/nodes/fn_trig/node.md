@@ -13,3 +13,9 @@ Funkcje trygonometryczne to te same $\sin$, $\cos$, $\tan$, które znasz z trój
 
 <!-- example -->
 Porównaj $y = \sin x$ i $y = 2 \sin x$. Dziedzina i okres te same, ale zbiór wartości się zmienia: $[-2, 2]$ zamiast $[-1, 1]$ — wykres jest "wyższy".<br><br>Okres funkcji $\sin(3x)$: $T = \tfrac{2\pi}{3}$. Czyli pełna fala mieści się na przedziale o długości $\tfrac{2\pi}{3}$ — trzy razy krócej niż zwykły sinus.
+
+<!-- en -->
+Trigonometric functions are the same $\sin$, $\cos$, $\tan$ that you know from triangles, but now you look at them as real-valued functions — with a graph, period, and properties.<br><br>The most important parameters:<br>• $\sin x$: domain $\mathbb{R}$, range $[-1, 1]$, period $2\pi$, **odd** ($\sin(-x) = -\sin x$).<br>• $\cos x$: domain $\mathbb{R}$, range $[-1, 1]$, period $2\pi$, **even** ($\cos(-x) = \cos x$).<br>• $\tan x$: domain $\mathbb{R} \setminus \{\tfrac{\pi}{2} + k\pi\}$, range $\mathbb{R}$, period $\pi$, odd.<br><br>Key points of $\sin x$ in one period: $\sin 0 = 0$, $\sin \tfrac{\pi}{2} = 1$, $\sin \pi = 0$, $\sin \tfrac{3\pi}{2} = -1$. For cosine — the same shifted by $\tfrac{\pi}{2}$ to the left.<br><br>Transformations $y = A \sin(Bx + C)$: $|A|$ is the **amplitude** (stretches the graph vertically), $\tfrac{2\pi}{|B|}$ is the new period (the larger $B$ is, the "denser" the graph), $C$ is responsible for the horizontal shift.
+
+<!-- example -->
+Compare $y = \sin x$ and $y = 2 \sin x$. Same domain and period, but the range changes: $[-2, 2]$ instead of $[-1, 1]$ — the graph is "taller".<br><br>Period of the function $\sin(3x)$: $T = \tfrac{2\pi}{3}$. So a full wave fits on an interval of length $\tfrac{2\pi}{3}$ — three times shorter than the ordinary sine.

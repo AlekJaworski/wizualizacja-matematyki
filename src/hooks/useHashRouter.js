@@ -1,25 +1,19 @@
 import { useEffect, useCallback, useRef } from "react";
 
 /**
- * Lightweight hash-based router.
+ * Lightweight hash-based router for in-graph navigation.
  *
- * URL scheme (all under window.location.hash):
- *   #/<lang>/                                  → graph explore
- *   #/<lang>/node/<nodeId>                     → node selected (InfoPanel open)
- *   #/<lang>/node/<nodeId>/resource/<index>    → resource viewer open
- *   #/<lang>/node/<nodeId>/question/<qIndex>   → quiz panel open at a specific question
- *   #/<lang>/diagnostic/quick                  → quick diagnostic mode
- *   #/<lang>/diagnostic/deepdive/<goalNode>    → deep-dive mode with goal
+ * The parent (CourseApp) owns the top-level hash structure and embeds the
+ * language + map-prefix via the `prefix` option (e.g. "en/map/<beliefCode>").
+ * This hook only handles sub-routes inside that prefix:
  *
- * <lang> is "pl" or "en". Falls back to "pl" if missing.
- *
- * Optional `prefix` (e.g. "map/<beliefCode>") — prepended before the <lang>
- * segment in every built hash and stripped before parsing. This lets a parent
- * router (e.g. CourseApp) embed a shareable belief code in the URL without
- * the graph router clobbering it.
+ *   <prefix>/                                    → graph explore
+ *   <prefix>/node/<nodeId>                       → node selected (InfoPanel open)
+ *   <prefix>/node/<nodeId>/resource/<index>      → resource viewer open
+ *   <prefix>/node/<nodeId>/question/<qIndex>     → quiz panel at a specific question
+ *   <prefix>/diagnostic/quick                    → quick diagnostic mode
+ *   <prefix>/diagnostic/deepdive/<goalNode>      → deep-dive mode with goal
  */
-
-const VALID_LANGS = new Set(["pl", "en"]);
 
 function splitPrefix(hash, prefix) {
   const raw = (hash || "").replace(/^#\/?/, "");
@@ -35,61 +29,52 @@ export function parseHash(hash, prefix = null) {
   const stripped = splitPrefix(hash, prefix);
   const parts = stripped.split("/").filter(Boolean);
 
-  // Extract language prefix
-  let lang = "pl";
-  let rest = parts;
-  if (parts.length > 0 && VALID_LANGS.has(parts[0])) {
-    lang = parts[0];
-    rest = parts.slice(1);
+  if (parts[0] === "node" && parts[1]) {
+    const nodeId = decodeURIComponent(parts[1]);
+    if (parts[2] === "resource" && parts[3] != null) {
+      return { view: "resource", nodeId, resourceIndex: parseInt(parts[3], 10) };
+    }
+    if (parts[2] === "question" && parts[3] != null) {
+      return { view: "question", nodeId, questionIndex: parseInt(parts[3], 10) };
+    }
+    return { view: "node", nodeId };
   }
 
-  if (rest[0] === "node" && rest[1]) {
-    const nodeId = decodeURIComponent(rest[1]);
-    if (rest[2] === "resource" && rest[3] != null) {
-      return { view: "resource", nodeId, resourceIndex: parseInt(rest[3], 10), lang };
+  if (parts[0] === "diagnostic") {
+    if (parts[1] === "deepdive" && parts[2]) {
+      return { view: "diagnostic", mode: "deepdive", goalNode: decodeURIComponent(parts[2]) };
     }
-    if (rest[2] === "question" && rest[3] != null) {
-      return { view: "question", nodeId, questionIndex: parseInt(rest[3], 10), lang };
-    }
-    return { view: "node", nodeId, lang };
-  }
-
-  if (rest[0] === "diagnostic") {
-    if (rest[1] === "deepdive" && rest[2]) {
-      return { view: "diagnostic", mode: "deepdive", goalNode: decodeURIComponent(rest[2]), lang };
-    }
-    if (rest[1] === "quick") {
-      return { view: "diagnostic", mode: "quick", lang };
+    if (parts[1] === "quick") {
+      return { view: "diagnostic", mode: "quick" };
     }
   }
 
-  return { view: "graph", lang };
+  return { view: "graph" };
 }
 
 export function buildHash(route, prefix = null) {
-  const lang = route?.lang || "pl";
   const pfx = prefix ? `/${prefix.replace(/^\/+|\/+$/g, "")}` : "";
-  if (!route) return `#${pfx}/${lang}`;
+  if (!route) return `#${pfx}`;
   switch (route.view) {
     case "node":
-      return `#${pfx}/${lang}/node/${encodeURIComponent(route.nodeId)}`;
+      return `#${pfx}/node/${encodeURIComponent(route.nodeId)}`;
     case "resource":
-      return `#${pfx}/${lang}/node/${encodeURIComponent(route.nodeId)}/resource/${route.resourceIndex}`;
+      return `#${pfx}/node/${encodeURIComponent(route.nodeId)}/resource/${route.resourceIndex}`;
     case "question":
-      return `#${pfx}/${lang}/node/${encodeURIComponent(route.nodeId)}/question/${route.questionIndex}`;
+      return `#${pfx}/node/${encodeURIComponent(route.nodeId)}/question/${route.questionIndex}`;
     case "diagnostic":
       if (route.mode === "deepdive" && route.goalNode)
-        return `#${pfx}/${lang}/diagnostic/deepdive/${encodeURIComponent(route.goalNode)}`;
-      return `#${pfx}/${lang}/diagnostic/quick`;
+        return `#${pfx}/diagnostic/deepdive/${encodeURIComponent(route.goalNode)}`;
+      return `#${pfx}/diagnostic/quick`;
     default:
-      return `#${pfx}/${lang}`;
+      return `#${pfx}`;
   }
 }
 
 /**
  * @param {(route: object) => void} onRoute — called when hash changes (including initial load)
  * @param {{ prefix?: string | null }} [options]
- * @returns {{ setRoute: (route: object) => void }}
+ * @returns {{ setRoute: (route: object, opts?: { replace?: boolean }) => void }}
  */
 export function useHashRouter(onRoute, options = {}) {
   const onRouteRef = useRef(onRoute);
@@ -101,27 +86,12 @@ export function useHashRouter(onRoute, options = {}) {
   // Suppress the next popstate handler when we're the ones changing the hash
   const suppressRef = useRef(false);
 
-  /**
-   * Update the URL hash to match `route`.
-   *
-   * @param {object} route
-   * @param {{ replace?: boolean }} [opts] — when `replace` is true, use
-   *   history.replaceState (no new history entry). Default: push. Callers
-   *   should pass `replace: true` for non-navigational writes such as the
-   *   initial mount-time sync, where a new history entry would create a
-   *   spurious "back" step (e.g. hash `#/map/<code>` → `#/map/<code>/pl`
-   *   on mount should not consume a back press).
-   */
   const setRoute = useCallback((route, opts = {}) => {
     const hash = buildHash(route, prefixRef.current);
     if (window.location.hash === hash) return;
     suppressRef.current = true;
     if (opts.replace) {
-      // Assigning location.hash always pushes; use replaceState instead.
       window.history.replaceState(null, "", hash);
-      // replaceState does NOT fire hashchange, so we don't need the
-      // suppressRef guard to trigger — but we've armed it in case a
-      // stacked change occurs before the next tick.
     } else {
       window.location.hash = hash;
     }
@@ -138,9 +108,7 @@ export function useHashRouter(onRoute, options = {}) {
 
     window.addEventListener("hashchange", handlePop);
 
-    // Initial route from URL (deferred so component state is ready)
     const initial = parseHash(window.location.hash, prefixRef.current);
-    // Always fire on initial load so language is applied
     Promise.resolve().then(() => onRouteRef.current(initial));
 
     return () => window.removeEventListener("hashchange", handlePop);

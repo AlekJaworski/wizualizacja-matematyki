@@ -43,7 +43,8 @@ export default function CurriculumGraph({
   initialBelief,
   initialEvidence,
   initialSelectedNode,
-  initialLang,
+  lang,
+  setLang,
   beliefCode,
   onBackToHome,
 }) {
@@ -52,8 +53,7 @@ export default function CurriculumGraph({
   // ── Layout selection ────────────────────────────────────────────
   const [layoutId, setLayoutId] = useState(DEFAULT_LAYOUT_ID);
 
-  // ── Language & filters ──────────────────────────────────────────
-  const [lang,          setLang]          = useLocalStorage("lang", initialLang ?? "pl");
+  // ── Filters ─────────────────────────────────────────────────────
   const [filterScope,   setFilterScope]   = useState(new Set());
   const [filterSection, setFilterSection] = useState(new Set());
   const [searchTerm,    setSearchTerm]    = useState("");
@@ -142,7 +142,6 @@ export default function CurriculumGraph({
 
   // ── Hash-based routing ──────────────────────────────────────────
   const handleRoute = useCallback((route) => {
-    if (route.lang) setLang(route.lang);
     if (route.view === "node") {
       setSelected(route.nodeId);
       setOpenResourceIdx(null);
@@ -169,12 +168,11 @@ export default function CurriculumGraph({
       setSelected(null);
       setOpenResourceIdx(null);
     }
-  }, [setLang, setDiagMode, setMode, startDeepDive]);
+  }, [setDiagMode, setMode, startDeepDive]);
 
-  // When a belief code is supplied (e.g. user came from quiz results), prefix
-  // every hash with `map/<code>` so the shareable belief stays in the URL and
-  // survives sub-navigation (node selection, diagnostic, etc.).
-  const hashPrefix = beliefCode ? `map/${beliefCode}` : null;
+  // Hash prefix is owned by CourseApp: it embeds the language and (optionally)
+  // the belief code. We just append node/resource/question/diagnostic sub-routes.
+  const hashPrefix = beliefCode ? `${lang}/map/${beliefCode}` : `${lang}/map`;
   const { setRoute } = useHashRouter(handleRoute, { prefix: hashPrefix });
 
   // Sync state → hash (when state changes via UI, not via hash).
@@ -201,23 +199,23 @@ export default function CurriculumGraph({
       if (hashPrefix && curr.startsWith(`#/${hashPrefix}`)) replace = true;
     }
     if (diagMode && quizNode && forceQIndex != null) {
-      setRoute({ view: "question", nodeId: quizNode, questionIndex: forceQIndex, lang }, { replace });
+      setRoute({ view: "question", nodeId: quizNode, questionIndex: forceQIndex }, { replace });
     } else if (diagMode) {
       if (mode === "deepdive" && targetNode) {
-        setRoute({ view: "diagnostic", mode: "deepdive", goalNode: targetNode, lang }, { replace });
+        setRoute({ view: "diagnostic", mode: "deepdive", goalNode: targetNode }, { replace });
       } else {
-        setRoute({ view: "diagnostic", mode: "quick", lang }, { replace });
+        setRoute({ view: "diagnostic", mode: "quick" }, { replace });
       }
     } else if (selected) {
       if (openResourceIdx != null) {
-        setRoute({ view: "resource", nodeId: selected, resourceIndex: openResourceIdx, lang }, { replace });
+        setRoute({ view: "resource", nodeId: selected, resourceIndex: openResourceIdx }, { replace });
       } else {
-        setRoute({ view: "node", nodeId: selected, lang }, { replace });
+        setRoute({ view: "node", nodeId: selected }, { replace });
       }
     } else {
-      setRoute({ view: "graph", lang }, { replace });
+      setRoute({ view: "graph" }, { replace });
     }
-  }, [selected, openResourceIdx, diagMode, mode, targetNode, quizNode, forceQIndex, lang, setRoute, hashPrefix]);
+  }, [selected, openResourceIdx, diagMode, mode, targetNode, quizNode, forceQIndex, setRoute, hashPrefix]);
 
   // ── Derived display state ───────────────────────────────────────
   const filteredIds = useMemo(() => {
@@ -448,7 +446,7 @@ export default function CurriculumGraph({
         {beliefCode && (
           <button
             onClick={() => {
-              const shareUrl = `https://oczochodzi.pl/#/results/${beliefCode}`;
+              const shareUrl = `https://oczochodzi.pl/#/${lang}/results/${beliefCode}`;
               // Share text reflects the original belief encoded in beliefCode
               // (what the recipient will see), not any live diagnostic updates.
               const knownCount = Object.values(initialBelief ?? {}).filter(v => v === "known").length;

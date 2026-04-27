@@ -5,6 +5,7 @@ import { renderLatex } from "../../utils/latex.js";
 import { ResourcePanel } from "../panels/ResourcePanel.jsx";
 import { LocalMap } from "../ui/LocalMap.jsx";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
+import { pickNodeBodyLang } from "../../data/courseLoader.js";
 
 /**
  * Full-screen topic detail view — shown when clicking a node on the map.
@@ -147,7 +148,8 @@ export function TopicView({
         {/* ── Description + "nie kumam" example ─────────────────── */}
         {node.body && (
           <NodeDescription
-            body={node.body}
+            body={pickNodeBodyLang(node, lang).body}
+            translationPending={pickNodeBodyLang(node, lang).pending}
             lang={lang}
             renderRelated={id => {
               const n = byId[id];
@@ -435,7 +437,7 @@ function EvidenceBlock({ nodeId, status, evidence, adjacency, belief, nodes, lan
 }
 
 /** Description block with optional collapsible "nie kumam?" example + "najczęstsze błędy". */
-function NodeDescription({ body, lang, renderRelated }) {
+function NodeDescription({ body, lang, renderRelated, translationPending = false }) {
   const [showExample, setShowExample] = useState(false);
   const [showMistakes, setShowMistakes] = useState(false);
   // Split body into up to four sections by HTML comments.
@@ -462,6 +464,16 @@ function NodeDescription({ body, lang, renderRelated }) {
 
   return (
     <div style={{ marginBottom: 20 }}>
+      {translationPending && (
+        <div style={{
+          fontSize: 12, color: COLORS.textDim,
+          marginBottom: 12, padding: "6px 10px",
+          borderRadius: 6, background: `${COLORS.textDim}12`,
+          border: `1px dashed ${COLORS.border}`,
+        }}>
+          {t("translationPending", lang)}
+        </div>
+      )}
       <div
         style={{
           fontSize: 13, color: COLORS.textBody, lineHeight: 1.7,

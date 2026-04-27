@@ -13,3 +13,9 @@ Ułamki pozwalają zapisać część całości i wykonywać precyzyjne obliczeni
 
 <!-- example -->
 Na przykład: $\frac{2}{3} + \frac{3}{4} = \frac{8}{12} + \frac{9}{12} = \frac{17}{12}$.<br><br>Albo: $\frac{2}{3} \cdot \frac{3}{4} = \frac{6}{12} = \frac{1}{2}$. Sprawdź: $0{,}5 = \frac{1}{2}$ ✓.
+
+<!-- en -->
+Fractions let you write a part of a whole and perform precise calculations without rounding.<br><br>A fraction is the quotient of two numbers: $\frac{a}{b}$ ($b \neq 0$). Reducing: divide numerator and denominator by their GCD. Adding requires a common denominator.<br><br>Multiplication: numerator $\times$ numerator, denominator $\times$ denominator. Division: multiply by the reciprocal of the second fraction.
+
+<!-- example -->
+For example: $\frac{2}{3} + \frac{3}{4} = \frac{8}{12} + \frac{9}{12} = \frac{17}{12}$.<br><br>Or: $\frac{2}{3} \cdot \frac{3}{4} = \frac{6}{12} = \frac{1}{2}$. Check: $0.5 = \frac{1}{2}$ ✓.

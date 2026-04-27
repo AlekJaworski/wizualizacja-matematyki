@@ -234,6 +234,10 @@ const STRINGS = {
   mapShare:          { pl: "Udostępnij",                   en: "Share" },
   resultsRetake:     { pl: "Spróbuj ponownie",            en: "Try again" },
 
+  // ── Translation pending banner ──────────────────────────────────
+  translationPending:{ pl: "Tłumaczenie w toku — pokazujemy wersję polską.",
+                       en: "Translation pending — showing the Polish version." },
+
   // ── Coffee ───────────────────────────────────────────────────────
   coffeeText:        { pl: "Pomogło? Możesz postawić mi kawę.",
                        en: "Found it helpful? You can buy me a coffee." },

@@ -22,3 +22,18 @@ Niech $f(x) = x^2$ (parabola z wierzchołkiem w $(0,0)$).<br><br>**Przesunięcie
 <!-- see-also -->
 fn_quadratic
 fn_concept
+
+<!-- en -->
+Function graph transformations let you quickly draw a whole family of related functions from one known graph $y = f(x)$ — without computing tables of values.<br><br>**Six families of transformations:**<br>• $y = f(x) + c$ — VERTICAL shift (up when $c > 0$, down when $c < 0$).<br>• $y = f(x + a)$ — HORIZONTAL shift. **Note — in the OPPOSITE direction to the sign of $a$**: $f(x+2)$ shifts LEFT, $f(x-2)$ shifts RIGHT.<br>• $y = -f(x)$ — reflection across the $x$-axis (the outer minus changes the sign of the value).<br>• $y = f(-x)$ — reflection across the $y$-axis (the inner minus changes the sign of the argument).<br>• $y = a \cdot f(x)$ for $a > 0$ — vertical stretch/compression (by a factor of $a$).<br>• $y = f(a \cdot x)$ — HORIZONTAL stretch/compression — **again counterintuitive**: $f(2x)$ compresses by half, $f(x/2)$ stretches by two.<br><br>**Universal rule:** what is OUTSIDE the function acts vertically and matches intuition; what is INSIDE the argument acts horizontally and is OPPOSITE to intuition.
+
+<!-- example -->
+Let $f(x) = x^2$ (a parabola with vertex at $(0,0)$).<br><br>**Horizontal shift:** $g(x) = f(x - 3) = (x - 3)^2$. The vertex moves from $(0,0)$ to $(3, 0)$ — i.e. to the RIGHT by 3, even though there is a minus inside the parentheses.<br><br>**Vertical shift:** $h(x) = f(x) + 2 = x^2 + 2$. The vertex goes from $(0,0)$ to $(0, 2)$ — up by 2, in line with intuition.<br><br>**Combination:** $k(x) = (x - 3)^2 + 2$ — vertex at $(3, 2)$. This is exactly the vertex form of a quadratic function.
+
+<!-- mistakes -->
+- **$f(x-2)$ shifts to the RIGHT, not to the left** — the direction is easy to derive by substitution: if the new $x = 5$, then $f(5 - 2) = f(3)$, i.e. the value the function previously had at $x = 3$ now appears at $x = 5$ — the graph has shifted to the right by 2.
+- **$f(2x)$ COMPRESSES, it does not stretch** — even for small $x$ the argument grows quickly, so the full shape fits in a shorter interval. What stretches is $f(x/2)$.
+- **Outer vs inner multiplication** — $2 \cdot f(x)$ acts vertically (stretches the value), while $f(2x)$ acts horizontally (compresses the argument); it is worth consciously distinguishing these two cases.
+
+<!-- see-also -->
+fn_quadratic
+fn_concept

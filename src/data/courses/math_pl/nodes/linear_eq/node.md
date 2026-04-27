@@ -13,3 +13,9 @@ Równanie liniowe to najprostszy typ równania — rozwiązujesz je w kilku krok
 
 <!-- example -->
 Na przykład: $3x + 6 = 0 \Rightarrow 3x = -6 \Rightarrow x = -2$. Sprawdź: $3 \cdot (-2) + 6 = -6 + 6 = 0$ ✓.<br><br>Albo: $2x - 5 = x + 3 \Rightarrow 2x - x = 3 + 5 \Rightarrow x = 8$.
+
+<!-- en -->
+A linear equation is the simplest type of equation — you solve it in a few steps by moving terms to the appropriate sides.<br><br>Form: $ax + b = 0$, solution: $x = \frac{-b}{a}$ (when $a \neq 0$). Method: move terms with $x$ to one side, numbers to the other.<br><br>It is always worth checking the result by substituting it back into the equation.
+
+<!-- example -->
+For example: $3x + 6 = 0 \Rightarrow 3x = -6 \Rightarrow x = -2$. Check: $3 \cdot (-2) + 6 = -6 + 6 = 0$ ✓.<br><br>Or: $2x - 5 = x + 3 \Rightarrow 2x - x = 3 + 5 \Rightarrow x = 8$.

@@ -13,3 +13,6 @@ resources:
   - "interactive|perp-bisector-explorer.html|Perpendicular Bisector — The Fair House|Symetralna — sprawiedliwy domek"
 ---
 Planimetria to geometria płaska — badamy figury, kąty, okręgi i ich własności.<br><br>Kluczowe twierdzenia: kąt wpisany = ½ kąta środkowego, symetralna odcinka to zbiór punktów równoodległych od końców, dwusieczna kąta to zbiór punktów równoodległych od ramion.<br><br>Okrąg opisany przechodzi przez wszystkie wierzchołki trójkąta (środek na przecięciu symetralnych). Okrąg wpisany dotyka wszystkich boków (środek na przecięciu dwusiecznych).
+
+<!-- en -->
+Plane geometry studies figures, angles, circles, and their properties in the plane.<br><br>Key theorems: an inscribed angle equals ½ of the central angle, the perpendicular bisector of a segment is the set of points equidistant from its endpoints, the angle bisector is the set of points equidistant from its arms.<br><br>The circumcircle passes through all vertices of a triangle (center at the intersection of the perpendicular bisectors). The incircle touches all the sides (center at the intersection of the angle bisectors).

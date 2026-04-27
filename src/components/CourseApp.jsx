@@ -3,6 +3,7 @@ import { COURSES, DEFAULT_COURSE_ID } from "../data/courses/index.js";
 import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import { applyTheme } from "../styles/tokens.js";
 import { encodeBelief, decodeBelief } from "../utils/shareCode.js";
+import { detectLang, persistLang, isValidLang } from "../utils/lang.js";
 import CurriculumGraph from "./CurriculumGraph.jsx";
 import { HeroScreen } from "./screens/HeroScreen.jsx";
 import { QuizFlow } from "./screens/QuizFlow.jsx";
@@ -29,26 +30,55 @@ import { LessonView } from "./screens/LessonView.jsx";
  *   "profile"   → Saved learning path / progress
  */
 
+// Hash structure (lang prefix is always present after we sync):
+//   #/<lang>                                        → hero
+//   #/<lang>/results/<code>                         → results
+//   #/<lang>/map                                    → browse map (no belief)
+//   #/<lang>/map/<code>                             → map with belief
+//   #/<lang>/map[/<code>]/node/<id>[/...]           → map sub-routes (CurriculumGraph owns)
+//
+// `<lang>` may be missing in shared links — callers should fall back to detectLang().
 function parseHash() {
   const hash = window.location.hash.replace(/^#\/?/, "");
   const parts = hash.split("/").filter(Boolean);
-  if (parts[0] === "results" && parts[1]) return { phase: "results", code: parts[1] };
-  if (parts[0] === "map" && parts[1]) {
-    // #/map/<code>/<…graph sub-route…> — the CurriculumGraph owns everything
-    // after the code via its own router. We just need the code and an optional
-    // direct node target (when the third segment is "node/<id>").
-    const node = parts[2] === "node" && parts[3] ? parts[3] : null;
-    return { phase: "map", code: parts[1], node };
+
+  let lang = null;
+  let i = 0;
+  if (isValidLang(parts[0])) {
+    lang = parts[0];
+    i = 1;
   }
-  if (parts[0] === "map") return { phase: "map" };
-  return null;
+  const tail = parts.slice(i);
+
+  if (tail[0] === "results" && tail[1]) {
+    return { lang, phase: "results", code: tail[1] };
+  }
+  if (tail[0] === "map") {
+    // The segment after "map" is either a belief code, or "node"/"diagnostic"
+    // (a CurriculumGraph sub-route in browse mode without a belief code).
+    const next = tail[1];
+    const codeReserved = next === "node" || next === "diagnostic";
+    const code = next && !codeReserved ? next : null;
+    const nodeStart = code ? 2 : 1;
+    const node = tail[nodeStart] === "node" && tail[nodeStart + 1] ? tail[nodeStart + 1] : null;
+    return { lang, phase: "map", code, node };
+  }
+  return { lang, phase: null };
 }
 
 export default function CourseApp() {
   const courseId = DEFAULT_COURSE_ID;
   const course = COURSES[courseId];
 
-  const [lang, setLang] = useLocalStorage("lang", "pl");
+  const [lang, setLangState] = useState(detectLang);
+  const setLang = useCallback((next) => {
+    setLangState(prev => {
+      const value = typeof next === "function" ? next(prev) : next;
+      persistLang(value);
+      return value;
+    });
+  }, []);
+
   const systemPrefers = typeof window !== "undefined"
     && window.matchMedia?.("(prefers-color-scheme: light)").matches
     ? "bright" : "midnight";
@@ -97,25 +127,30 @@ export default function CourseApp() {
     // the site).
     const entering = prevPhase !== phase && (phase === "results" || phase === "map");
 
+    const langSeg = `/${lang}`;
+
     if (phase === "results" && quizBelief) {
-      const hash = `#/results/${encodeBelief(quizBelief)}`;
+      const hash = `#${langSeg}/results/${encodeBelief(quizBelief)}`;
       if (window.location.hash !== hash) {
         if (entering) window.history.pushState(null, "", hash);
         else          window.history.replaceState(null, "", hash);
       }
-    } else if (phase === "map" && quizBelief) {
-      const code = encodeBelief(quizBelief);
-      const wanted = `#/map/${code}`;
-      // Only seed the hash if it doesn't already start with our map/<code>
-      // prefix. This preserves sub-routes written by CurriculumGraph.
+    } else if (phase === "map") {
+      const code = quizBelief ? encodeBelief(quizBelief) : null;
+      const wanted = code ? `#${langSeg}/map/${code}` : `#${langSeg}/map`;
+      // Only seed the hash if it doesn't already start with our map prefix.
+      // This preserves sub-routes written by CurriculumGraph.
       if (!window.location.hash.startsWith(wanted)) {
         if (entering) window.history.pushState(null, "", wanted);
         else          window.history.replaceState(null, "", wanted);
       }
-    } else if (phase !== "map" && phase !== "results" && window.location.hash) {
-      window.history.replaceState(null, "", window.location.pathname);
+    } else {
+      const wanted = `#${langSeg}`;
+      if (window.location.hash !== wanted) {
+        window.history.replaceState(null, "", window.location.pathname + wanted);
+      }
     }
-  }, [phase, quizBelief]);
+  }, [phase, quizBelief, lang]);
 
   // Listen for browser back/forward navigation (hashchange).
   //
@@ -132,8 +167,14 @@ export default function CourseApp() {
     const onHashChange = () => {
       const parsed = parseHash();
       const currentPhase = prevPhaseRef.current;
-      if (!parsed) {
-        // Empty or unrecognized hash → only move to hero if we were in a
+
+      // External lang change (back/forward to a hash with a different lang).
+      if (parsed.lang && isValidLang(parsed.lang)) {
+        setLang(parsed.lang);
+      }
+
+      if (parsed.phase === null) {
+        // Empty hash or just `#/<lang>` → only move to hero if we were in a
         // hash-bearing phase (results or map). Otherwise leave phase alone
         // so in-flight flows (quiz, goal quiz, lesson) aren't disrupted.
         if (currentPhase === "results" || currentPhase === "map") {
@@ -164,7 +205,7 @@ export default function CourseApp() {
     };
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
-  }, []);
+  }, [setLang]);
 
   const handleStartQuiz = useCallback((preset = "standard") => {
     setQuizPreset(preset);
@@ -457,7 +498,8 @@ export default function CourseApp() {
           initialBelief={quizBelief}
           initialEvidence={quizEvidence}
           initialSelectedNode={initialSelectedNode}
-          initialLang={lang}
+          lang={lang}
+          setLang={setLang}
           beliefCode={quizBelief && Object.keys(quizBelief).length > 0 ? encodeBelief(quizBelief) : null}
           onBackToHome={handleBackToHero}
         />

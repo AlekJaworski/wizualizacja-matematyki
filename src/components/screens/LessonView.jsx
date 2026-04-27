@@ -4,7 +4,7 @@ import { t } from "../../i18n.js";
 import { renderLatex } from "../../utils/latex.js";
 import { buildAdjacency } from "../../engine/adjacency.js";
 import { propagateKnown } from "../../engine/belief.js";
-import { getQuestion } from "../../data/courseLoader.js";
+import { getQuestion, pickQuestionLang, pickNodeBodyLang } from "../../data/courseLoader.js";
 
 /**
  * LessonView — step-by-step guided lesson through a learning path.
@@ -213,17 +213,34 @@ export function LessonView({
         />
 
         {/* Body text */}
-        {node.body && (
-          <div
-            className="lesson-body"
-            style={{
-              fontSize: 13, color: COLORS.textBody, lineHeight: 1.7,
-              marginBottom: 24,
-              overflowWrap: "break-word", wordBreak: "break-word",
-            }}
-            dangerouslySetInnerHTML={{ __html: renderLatex(node.body.split("<!-- example -->")[0]?.trim() ?? "") }}
-          />
-        )}
+        {(() => {
+          const { body, pending } = pickNodeBodyLang(node, lang);
+          if (!body) return null;
+          const description = body.split("<!-- example -->")[0]?.trim() ?? "";
+          return (
+            <>
+              {pending && (
+                <div style={{
+                  fontSize: 12, color: COLORS.textDim,
+                  marginBottom: 12, padding: "6px 10px",
+                  borderRadius: 6, background: `${COLORS.textDim}12`,
+                  border: `1px dashed ${COLORS.border}`,
+                }}>
+                  {t("translationPending", lang)}
+                </div>
+              )}
+              <div
+                className="lesson-body"
+                style={{
+                  fontSize: 13, color: COLORS.textBody, lineHeight: 1.7,
+                  marginBottom: 24,
+                  overflowWrap: "break-word", wordBreak: "break-word",
+                }}
+                dangerouslySetInnerHTML={{ __html: renderLatex(description) }}
+              />
+            </>
+          );
+        })()}
 
         {/* Visualization iframe */}
         {interactiveResource && (
@@ -457,7 +474,7 @@ function VizSection({ resource, lang }) {
 function QuizSection({ nodeId, QUESTION_BANK, belief, evidence, adjacency, lang, onUpdateBelief }) {
   const [selectedOption, setSelectedOption] = useState(null);
   const [checked, setChecked] = useState(false);
-  const [question, setQuestion] = useState(() => getQuestion(QUESTION_BANK, nodeId, []));
+  const [rawQuestion, setRawQuestion] = useState(() => getQuestion(QUESTION_BANK, nodeId, []));
 
   // Reset quiz state when nodeId changes
   const [prevNodeId, setPrevNodeId] = useState(nodeId);
@@ -465,8 +482,13 @@ function QuizSection({ nodeId, QUESTION_BANK, belief, evidence, adjacency, lang,
     setPrevNodeId(nodeId);
     setSelectedOption(null);
     setChecked(false);
-    setQuestion(getQuestion(QUESTION_BANK, nodeId, []));
+    setRawQuestion(getQuestion(QUESTION_BANK, nodeId, []));
   }
+
+  const question = useMemo(
+    () => rawQuestion ? pickQuestionLang(rawQuestion, lang) : null,
+    [rawQuestion, lang],
+  );
 
   const handleCheck = useCallback(() => {
     if (selectedOption == null || !question) return;
@@ -508,6 +530,18 @@ function QuizSection({ nodeId, QUESTION_BANK, belief, evidence, adjacency, lang,
           background: "#FFD16620",
         }} />
       </div>
+
+      {/* Translation-pending banner */}
+      {question.pending && (
+        <div style={{
+          fontSize: 12, color: COLORS.textDim,
+          marginBottom: 12, padding: "6px 10px",
+          borderRadius: 6, background: `${COLORS.textDim}12`,
+          border: `1px dashed ${COLORS.border}`,
+        }}>
+          {t("translationPending", lang)}
+        </div>
+      )}
 
       {/* Question text */}
       <div

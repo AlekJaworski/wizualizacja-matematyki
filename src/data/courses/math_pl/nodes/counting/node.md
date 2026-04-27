@@ -23,3 +23,19 @@ Na przykład: 3 koszulki $\times$ 4 spodnie $= 12$ zestawów (reguła mnożenia)
 permutations
 combinations
 probability
+
+<!-- en -->
+Counting principles are the foundation of combinatorics — they allow systematic counting of possibilities in complex situations.<br><br>Multiplication rule: if one event has $m$ possibilities and another $n$, then there are $m \cdot n$ combinations together. Addition rule: if events are mutually exclusive, we add the possibilities.<br><br>Pigeonhole principle (Dirichlet's): if $n+1$ objects are placed in $n$ pigeonholes, then at least one contains $\geq 2$ objects. Example: in a group of 13 people, at least two were born in the same month (12 months, 13 people).
+
+<!-- example -->
+For example: 3 shirts $\times$ 4 trousers $= 12$ outfits (multiplication rule).<br><br>Or: entrance A has 5 options, entrance B has 3 options, together $5 + 3 = 8$ options, if they exclude each other (addition rule).<br><br>**For the curious — the birthday paradox.** In a group of just $23$ people, the chance that at least two share a birthday exceeds $50\%$. For $50$ people it's already over $97\%$. Intuition fails here, because we think about the number of people, not the number of pairs — and the number of pairs in an $n$-person group is $\binom{n}{2} = \tfrac{n(n-1)}{2}$. For $23$ people that's $253$ pairs, each having a chance of $\tfrac{1}{365}$ to share a birthday. When the number of pairs becomes comparable to the number of days, shared birthdays become almost certain. Formally: $P(\text{no pair}) = \dfrac{365}{365} \cdot \dfrac{364}{365} \cdot \ldots \cdot \dfrac{343}{365} \approx 0{,}49$, so $P(\text{some pair}) \approx 0{,}51$. The same mechanism — the "paradox" of collisions in a growing number of pairs — is behind cryptographic *birthday attacks* on hash functions.
+
+<!-- mistakes -->
+- **Multiplication vs addition**: we multiply when we choose EACH thing in turn ("3 shirts $\times$ 4 trousers"), we add when the choice is an EXCLUSIVE ALTERNATIVE ("club A or club B" $= 5 + 3$). Criterion: "and" → multiplication, "or" (disjoint) → addition.
+- **With or without repetitions**: can the same element be chosen again? 3 digits from $\{1,\ldots,5\}$ without repetitions: $5 \cdot 4 \cdot 3 = 60$; with repetitions: $5^3 = 125$. The problem statement always decides — "different digits" vs "digits (with possible repetition)".
+- **With or without order**: permutations count arrangements (ABCD $\neq$ BACD), combinations — selections (the set $\{A,B,C\}$ is one combination regardless of order). Podium: with order. 3-person team: without order. The choice of formula depends solely on whether order matters in the problem.
+
+<!-- see-also -->
+permutations
+combinations
+probability

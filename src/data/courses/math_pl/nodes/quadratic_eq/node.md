@@ -25,3 +25,19 @@ Na przykład: $x^2 - 5x + 6 = 0$. Tu $a=1$, $b=-5$, $c=6$.<br><br>$\Delta = 25 -
 factoring
 fn_quadratic
 vieta
+
+<!-- en -->
+A quadratic equation is one of the most common equations in mathematics — you solve it using the discriminant (delta).<br><br>Form: $ax^2 + bx + c = 0$. Discriminant: $\Delta = b^2 - 4ac$. When $\Delta > 0$: two solutions $x = \frac{-b \pm \sqrt{\Delta}}{2a}$. When $\Delta = 0$: one solution $x = \frac{-b}{2a}$. When $\Delta < 0$: no real solutions.<br><br>Alternative methods: factoring or Vieta's formulas.
+
+<!-- example -->
+For example: $x^2 - 5x + 6 = 0$. Here $a=1$, $b=-5$, $c=6$.<br><br>$\Delta = 25 - 24 = 1$. Solutions: $x = \frac{5 \pm 1}{2}$, i.e. $x=3$ or $x=2$.<br><br>Check: $3^2 - 5 \cdot 3 + 6 = 9 - 15 + 6 = 0$ ✓.
+
+<!-- mistakes -->
+- **Vieta's signs**: $x_1 + x_2 = -b/a$ and $x_1 \cdot x_2 = c/a$ — easy to drop the minus on $b$.
+- **Quadratic formula with $2a$ in the denominator**: $x = \frac{-b \pm \sqrt{\Delta}}{2a}$, not $\frac{-b \pm \sqrt{\Delta}}{a}$.
+- **Negative discriminant — no real solutions**: this $\neq$ "the equation is ill-posed". It's just information.
+
+<!-- see-also -->
+factoring
+fn_quadratic
+vieta

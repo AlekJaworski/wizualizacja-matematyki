@@ -17,3 +17,13 @@ Na przykład: $A = \{1,2,3,4\}$, $B = \{3,4,5,6\}$.<br><br>$A \cap B = \{3,4\}$ 
 <!-- see-also -->
 counting
 probability
+
+<!-- en -->
+A set is a basic notion of mathematics — a collection of elements in which each element appears at most once.<br><br>Set operations: union $A \cup B$ (elements in A or B), intersection $A \cap B$ (common elements), difference $A \setminus B$ (elements in A that are not in B), complement $A'$ (elements outside A).<br><br>A Venn diagram is a graphical tool for visualizing relations between sets.
+
+<!-- example -->
+For example: $A = \{1,2,3,4\}$, $B = \{3,4,5,6\}$.<br><br>$A \cap B = \{3,4\}$ (common). $A \cup B = \{1,2,3,4,5,6\}$ (all). $A \setminus B = \{1,2\}$ (in A, not in B).
+
+<!-- see-also -->
+counting
+probability

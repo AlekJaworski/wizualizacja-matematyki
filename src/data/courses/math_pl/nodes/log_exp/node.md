@@ -24,3 +24,19 @@ Na przykład: $2^3 = 8$, więc $\log_2 8 = 3$.<br><br>Reguła iloczynu: $\log_2(
 fn_log
 fn_exp
 powers
+
+<!-- en -->
+A logarithm is the inverse of exponentiation — it answers the question: to what power must the base be raised to obtain a given number?<br><br>Definition: $\log_a b = c \iff a^c = b$. The graph of $y = \log_a x$ is the reflection of $y = a^x$ across the line $y = x$.<br><br>Key properties: $\log(a \cdot b) = \log a + \log b$, $\log(a/b) = \log a - \log b$, $\log(a^n) = n \cdot \log a$. Change of base: $\log_a x = \frac{\log_b x}{\log_b a}$.
+
+<!-- example -->
+For example: $2^3 = 8$, so $\log_2 8 = 3$.<br><br>Product rule: $\log_2(4 \cdot 8) = \log_2 4 + \log_2 8 = 2 + 3 = 5$. Check: $\log_2 32 = 5$ ✓.<br><br>Change of base: $\log_2 8 = \frac{\ln 8}{\ln 2} = \frac{2{.}08}{0{.}69} = 3$ ✓.<br><br>**For the curious — the Richter scale is logarithmic.** An earthquake of magnitude $7{.}0$ is not "a bit stronger" than one of magnitude $6{.}0$ — it is **ten times stronger**, because the Richter scale measures $\log_{10}$ of the amplitude of seismic waves. Magnitude $8{.}0$ is already a hundred times stronger than $6{.}0$. The same logic applies to decibels (loudness, $10\log_{10}$), pH (acidity, $-\log_{10}$ of ion concentration), and stellar magnitudes. All these scales are logarithmic because they describe quantities spanning many orders of magnitude — a linear scale would be illegible.<br><br>**For the curious — human perception is logarithmic (Weber–Fechner law).** When we double the energy of a sound, we do not hear "twice as loud". When we add a second candle, we do not see "twice as bright". 19th-century psychophysics (Weber, Fechner) established that our reaction to stimuli is proportional to $\log$ of intensity. Hence the construction of the decibel: an increase of $10$ dB corresponds to a **tenfold** increase in energy, but is heard as "twice as loud". So the digit $10$ on the volume knob is not twice as large as the digit $5$, but much further — the knob is calibrated for a logarithmic ear.
+
+<!-- mistakes -->
+- **Domain of the logarithm**: the argument must be positive ($\log_a b$ requires $b > 0$, $a > 0$, $a \neq 1$). After solving an equation you must go back and verify within the domain of the original equation.
+- **$\log(a+b) \neq \log a + \log b$**: this is the most common error. Only $\log(a \cdot b) = \log a + \log b$ holds.
+- **Confusing the base**: $\log_2 8 = 3$, but $\log 8 \approx 0{.}9$ (common log). Always check what the base is.
+
+<!-- see-also -->
+fn_log
+fn_exp
+powers

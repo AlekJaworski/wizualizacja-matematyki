@@ -14,3 +14,10 @@ resources:
 log_exp
 fn_log
 powers
+
+<!-- en -->
+
+<!-- see-also -->
+log_exp
+fn_log
+powers

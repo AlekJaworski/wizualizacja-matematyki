@@ -13,3 +13,9 @@ Statystyka zaczyna się od danych — ich zbierania, porządkowania i prezentacj
 
 <!-- example -->
 Na przykład: oceny $3, 4, 4, 5, 2$.<br><br>Średnia $= \frac{3+4+4+5+2}{5} = \frac{18}{5} = 3{,}6$. Mediana: po uporządkowaniu $2, 3, 4, 4, 5$ — środkowa $= 4$. Dominanta $= 4$ (występuje najczęściej).
+
+<!-- en -->
+Statistics begins with data — collecting, organizing and presenting it using tables and charts.<br><br>Three key measures of central tendency: arithmetic mean (sum divided by count), median (middle value after ordering) and mode (the most frequent value).<br><br>Each tells you something different about the data: the mean is sensitive to extreme values, the median is not.
+
+<!-- example -->
+For example: grades $3, 4, 4, 5, 2$.<br><br>Mean $= \frac{3+4+4+5+2}{5} = \frac{18}{5} = 3{,}6$. Median: after ordering $2, 3, 4, 4, 5$ — the middle one $= 4$. Mode $= 4$ (occurs most often).

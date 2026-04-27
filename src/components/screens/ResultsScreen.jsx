@@ -283,7 +283,7 @@ export function ResultsScreen({
           <button
             onClick={() => {
               const code = belief ? encodeBelief(belief) : "";
-              const shareUrl = `https://oczochodzi.pl/#/results/${code}`;
+              const shareUrl = `https://oczochodzi.pl/#/${lang}/results/${code}`;
               const text = lang === "pl"
                 ? `Sprawdziłem swoją wiedzę z matmy — ${known.length}/${total} tematów znanych! Sprawdź się:`
                 : `I tested my math knowledge — ${known.length}/${total} topics known! Try it:`;

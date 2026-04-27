@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { getQuestion } from "../../data/courseLoader.js";
+import { getQuestion, pickQuestionLang } from "../../data/courseLoader.js";
 import { renderLatex } from "../../utils/latex.js";
 import { Permutation } from "../../utils/permutation.js";
 import { ansBtn, COLORS } from "../../styles/tokens.js";
@@ -21,10 +21,11 @@ import { formatSource } from "../../utils/formatSource.js";
  *   isMobile
  */
 export function QuizPanel({ nodeId, nodes, questionBank, onAnswer, onSkip, lang, excludeIndices = [], isMobile, sourceFilter = null, forceIndex = null }) {
-  const node  = nodes.find(n => n.id === nodeId);
-  const q     = useMemo(() => getQuestion(questionBank, nodeId, excludeIndices, sourceFilter, forceIndex), [nodeId, excludeIndices, sourceFilter, forceIndex]);
-  const color = sourceFilter === "cke" ? "#FFD166" : "#4a9eff";
-  const lbl   = node ? (lang === "pl" ? node.labelPl : node.label) : nodeId;
+  const node    = nodes.find(n => n.id === nodeId);
+  const rawQ    = useMemo(() => getQuestion(questionBank, nodeId, excludeIndices, sourceFilter, forceIndex), [nodeId, excludeIndices, sourceFilter, forceIndex]);
+  const q       = useMemo(() => rawQ ? pickQuestionLang(rawQ, lang) : null, [rawQ, lang]);
+  const color   = sourceFilter === "cke" ? "#FFD166" : "#4a9eff";
+  const lbl     = node ? (lang === "pl" ? node.labelPl : node.label) : nodeId;
 
   // Stable shuffle for this question
   const perm = useMemo(
@@ -184,6 +185,18 @@ export function QuizPanel({ nodeId, nodes, questionBank, onAnswer, onSkip, lang,
               }}>{label}</div>
             );
           })()}
+
+          {/* Translation-pending banner */}
+          {q.pending && (
+            <div style={{
+              fontSize: 11, color: COLORS.textDim, marginBottom: 10,
+              padding: "5px 8px", borderRadius: 4,
+              background: `${COLORS.textDim}15`,
+              border: `1px dashed ${COLORS.border}`,
+            }}>
+              {t("translationPending", lang)}
+            </div>
+          )}
 
           {/* Question text */}
           <div style={{ fontSize: 13, color: COLORS.textBody, marginBottom: 12, lineHeight: 1.65 }}>

@@ -17,3 +17,13 @@ Na przykład: na ile sposobów ustawić litery A, B, C?<br><br>To ABC, ACB, BAC,
 <!-- see-also -->
 combinations
 counting
+
+<!-- en -->
+A permutation is an ordering of elements — order matters here, because every different arrangement gives a different outcome.<br><br>Number of permutations of $n$ elements: $P(n) = n!$. Permutations with repetitions (when elements repeat): $\frac{n!}{k_1! \cdot k_2! \cdot \ldots}$.<br><br>A variation is a permutation in which we don't use all $n$ elements — we order only a chosen $k$ of them. Variations without repetitions — choosing $k$ out of $n$ elements with order taken into account: $V(n,k) = \frac{n!}{(n-k)!}$.
+
+<!-- example -->
+For example: in how many ways can we arrange the letters A, B, C?<br><br>That's ABC, ACB, BAC, BCA, CAB, CBA — 6 ways $= 3! = 3 \cdot 2 \cdot 1 = 6$.
+
+<!-- see-also -->
+combinations
+counting

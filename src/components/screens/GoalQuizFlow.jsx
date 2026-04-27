@@ -8,7 +8,7 @@ import {
   pickNextQuestion,
   isSessionComplete,
 } from "../../engine/belief.js";
-import { getQuestion } from "../../data/courseLoader.js";
+import { getQuestion, pickQuestionLang } from "../../data/courseLoader.js";
 import { renderLatex } from "../../utils/latex.js";
 import { Permutation } from "../../utils/permutation.js";
 
@@ -86,10 +86,14 @@ export function GoalQuizFlow({
     return indices;
   }, [answeredQuestions, currentNodeId]);
 
-  // Pick a question for this node
-  const question = useMemo(
+  // Pick a question for this node, then resolve to the active language.
+  const rawQuestion = useMemo(
     () => currentNodeId ? getQuestion(QUESTION_BANK, currentNodeId, excludeIndices) : null,
     [QUESTION_BANK, currentNodeId, excludeIndices],
+  );
+  const question = useMemo(
+    () => rawQuestion ? pickQuestionLang(rawQuestion, lang) : null,
+    [rawQuestion, lang],
   );
 
   // Shuffle options
@@ -343,6 +347,18 @@ export function GoalQuizFlow({
           </div>
         ) : (
           <>
+            {/* Translation-pending banner */}
+            {question.pending && (
+              <div style={{
+                fontSize: 12, color: COLORS.textDim,
+                marginBottom: 16, padding: "8px 12px",
+                borderRadius: 6, background: `${COLORS.textDim}12`,
+                border: `1px dashed ${COLORS.border}`,
+              }}>
+                {t("translationPending", lang)}
+              </div>
+            )}
+
             {/* Question text */}
             <div style={{
               fontSize: 16, color: COLORS.textPrimary,
