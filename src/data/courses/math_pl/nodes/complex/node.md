@@ -13,7 +13,7 @@ Liczby zespolone rozszerzają zbiór liczb rzeczywistych o jednostkę urojoną $
 Równanie $x^2 + 1 = 0$ daje $x^2 = -1$, więc $x = \pm i$ — dwa pierwiastki zespolone, których w liczbach rzeczywistych nie ma.<br><br>Mnożenie liczb zespolonych przebiega tak jak mnożenie wyrażeń algebraicznych, z dodatkową zasadą $i^2 = -1$. Na przykład: $(2 + 3i)(1 - i) = 2 - 2i + 3i - 3i^2 = 2 + i - 3 \cdot (-1) = 5 + i$.
 
 <!-- mistakes -->
-- **$\sqrt{-4} \neq -2$**: pierwiastek z liczby ujemnej nie jest liczbą rzeczywistą — w liczbach zespolonych $\sqrt{-4} = \pm 2i$, ponieważ $(2i)^2 = 4i^2 = -4$. Pisanie $-2$ to mylenie pierwiastka kwadratowego z liczbą przeciwną.
+- **$\sqrt{-4}$ nie jest liczbą rzeczywistą**: pierwiastek z liczby ujemnej nie ma wartości rzeczywistej — równanie $x^2 = -4$ ma w liczbach zespolonych dwa rozwiązania $x = \pm 2i$, ponieważ $(\pm 2i)^2 = -4$. Pisanie $\sqrt{-4} = -2$ to mylenie pierwiastka kwadratowego z liczbą przeciwną.
 - **Pominięte $i^2 = -1$**: przy mnożeniu liczb zespolonych łatwo zostawić $i^2$ bez zamiany na $-1$ albo zamienić je na $+1$. Przykład: $(1 + i)^2 = 1 + 2i + i^2 = 1 + 2i - 1 = 2i$, a nie $1 + 2i + 1 = 2 + 2i$.
 - **Moduł to nie wartość bezwzględna**: $|z|$ dla $z = a + bi$ to długość wektora $(a, b)$, czyli $\sqrt{a^2 + b^2}$, a nie wartość bezwzględna pojedynczej liczby. Na przykład $|3 + 4i| = 5$, a nie $3$ ani $4$.
 
@@ -28,7 +28,7 @@ Complex numbers extend the real numbers by the imaginary unit $i$, defined by $i
 The equation $x^2 + 1 = 0$ gives $x^2 = -1$, so $x = \pm i$ — two complex roots that do not exist among the reals.<br><br>Multiplication of complex numbers proceeds like multiplication of algebraic expressions, with the extra rule $i^2 = -1$. For example: $(2 + 3i)(1 - i) = 2 - 2i + 3i - 3i^2 = 2 + i - 3 \cdot (-1) = 5 + i$.
 
 <!-- mistakes -->
-- **$\sqrt{-4} \neq -2$**: the square root of a negative number is not a real number — over the complex numbers $\sqrt{-4} = \pm 2i$, since $(2i)^2 = 4i^2 = -4$. Writing $-2$ confuses the square root with the negative of the number.
+- **$\sqrt{-4}$ is not a real number**: the square root of a negative number has no real value — the equation $x^2 = -4$ has two complex solutions $x = \pm 2i$, since $(\pm 2i)^2 = -4$. Writing $\sqrt{-4} = -2$ confuses the square root with the negative of the number.
 - **Forgetting $i^2 = -1$**: when multiplying complex numbers it is easy to leave $i^2$ unsimplified, or to replace it with $+1$. Example: $(1 + i)^2 = 1 + 2i + i^2 = 1 + 2i - 1 = 2i$, not $1 + 2i + 1 = 2 + 2i$.
 - **Modulus is not ordinary absolute value**: for $z = a + bi$, $|z|$ is the length of the vector $(a, b)$, namely $\sqrt{a^2 + b^2}$, not the absolute value of a single number. For instance $|3 + 4i| = 5$, not $3$ or $4$.
 
