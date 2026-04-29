@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { COURSES, DEFAULT_COURSE_ID } from "../data/courses/index.js";
+import { COURSES, DEFAULT_COURSE_ID, detectCourseId } from "../data/courses/index.js";
 import { useLocalStorage } from "../hooks/useLocalStorage.js";
 import { applyTheme } from "../styles/tokens.js";
 import { encodeBelief, decodeBelief } from "../utils/shareCode.js";
@@ -67,10 +67,11 @@ function parseHash() {
 }
 
 export default function CourseApp() {
-  const courseId = DEFAULT_COURSE_ID;
+  const courseId = detectCourseId();
   const course = COURSES[courseId];
 
-  const [lang, setLangState] = useState(detectLang);
+  const langFallback = course?.COURSE_META?.lang === "en" ? "en" : "pl";
+  const [lang, setLangState] = useState(() => detectLang(langFallback));
   const setLang = useCallback((next) => {
     setLangState(prev => {
       const value = typeof next === "function" ? next(prev) : next;
@@ -147,7 +148,8 @@ export default function CourseApp() {
     } else {
       const wanted = `#${langSeg}`;
       if (window.location.hash !== wanted) {
-        window.history.replaceState(null, "", window.location.pathname + wanted);
+        // Preserve the query string so `?course=phys` survives phase changes.
+        window.history.replaceState(null, "", window.location.pathname + window.location.search + wanted);
       }
     }
   }, [phase, quizBelief, lang]);

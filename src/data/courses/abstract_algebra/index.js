@@ -33,7 +33,8 @@ const nodeFiles = import.meta.glob(
 
 export const RAW_NODES = buildNodes(
   nodeFiles,
-  /\.\/nodes\/([^/]+)\/node\.md$/
+  /\.\/nodes\/([^/]+)\/node\.md$/,
+  COURSE_META.lang
 );
 
 // ── Question files ─────────────────────────────────────────────────
@@ -44,5 +45,6 @@ const questionFiles = import.meta.glob(
 
 export const QUESTION_BANK = buildQuestionBank(
   questionFiles,
-  /\.\/nodes\/([^/]+)\/questions\//
+  /\.\/nodes\/([^/]+)\/questions\//,
+  COURSE_META.lang
 );

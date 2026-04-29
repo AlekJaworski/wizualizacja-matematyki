@@ -46,8 +46,8 @@ function langFromBrowser() {
   return null;
 }
 
-export function detectLang() {
-  return langFromHash() ?? langFromStorage() ?? langFromBrowser() ?? "pl";
+export function detectLang(fallback = "pl") {
+  return langFromHash() ?? langFromStorage() ?? langFromBrowser() ?? fallback;
 }
 
 export function persistLang(lang) {

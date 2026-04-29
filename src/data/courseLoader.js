@@ -78,9 +78,14 @@ export function parseFrontmatter(raw) {
 // PL is the canonical body; EN follows the marker if present.
 // Each side keeps its own `<!-- example -->`, `<!-- mistakes -->`, `<!-- see-also -->`
 // structure independently — translators just author the EN side once.
-function splitBodyByLang(body) {
+function splitBodyByLang(body, courseLang = "pl") {
   const marker = "<!-- en -->";
-  if (!body || !body.includes(marker)) return { bodyPl: body || "", bodyEn: "" };
+  if (!body || !body.includes(marker)) {
+    // No explicit marker — interpret the body as the course's primary language.
+    return courseLang === "en"
+      ? { bodyPl: "", bodyEn: body || "" }
+      : { bodyPl: body || "", bodyEn: "" };
+  }
   const idx = body.indexOf(marker);
   return {
     bodyPl: body.slice(0, idx).trim(),
@@ -93,11 +98,11 @@ function splitBodyByLang(body) {
  * @param {Record<string, string>} nodeFiles — result of import.meta.glob
  * @param {RegExp} idPattern — regex with one capture group for the node id
  */
-export function buildNodes(nodeFiles, idPattern) {
+export function buildNodes(nodeFiles, idPattern, courseLang = "pl") {
   return Object.entries(nodeFiles).map(([path, raw]) => {
     const id = path.match(idPattern)?.[1];
     const { meta, body } = parseFrontmatter(raw);
-    const { bodyPl, bodyEn } = splitBodyByLang(body);
+    const { bodyPl, bodyEn } = splitBodyByLang(body, courseLang);
     return {
       id,
       body:      bodyPl,
@@ -132,25 +137,35 @@ export function buildNodes(nodeFiles, idPattern) {
  * @param {Record<string, string>} questionFiles
  * @param {RegExp} idPattern — regex with one capture group for the node id
  */
-export function buildQuestionBank(questionFiles, idPattern) {
+export function buildQuestionBank(questionFiles, idPattern, courseLang = "pl") {
   const bank = {};
   for (const [path, raw] of Object.entries(questionFiles)) {
     const id = path.match(idPattern)?.[1];
     if (!id) continue;
 
     const { meta, body } = parseFrontmatter(raw);
-    const { bodyPl, bodyEn } = splitBodyByLang(body);
+    const { bodyPl, bodyEn } = splitBodyByLang(body, courseLang);
     if (!bank[id]) bank[id] = [];
+
+    const options  = meta.options ?? [];
+    const hint     = meta.hint    ?? "";
+    const hints    = Array.isArray(meta.hints) ? meta.hints : (hint ? [hint] : []);
+    const optionsEn = Array.isArray(meta.optionsEn) ? meta.optionsEn
+                    : (courseLang === "en" ? options : null);
+    const hintEn    = meta.hintEn ?? (courseLang === "en" ? hint : null);
+    const hintsEn   = Array.isArray(meta.hintsEn) ? meta.hintsEn
+                    : (courseLang === "en" ? hints : null);
+
     bank[id].push({
       q:        bodyPl,
       qEn:      bodyEn || null,
-      options:  meta.options ?? [],
-      optionsEn: Array.isArray(meta.optionsEn) ? meta.optionsEn : null,
+      options,
+      optionsEn,
       correct:  meta.correct ?? 0,
-      hint:     meta.hint    ?? "",
-      hintEn:   meta.hintEn  ?? null,
-      hints:    Array.isArray(meta.hints) ? meta.hints : (meta.hint ? [meta.hint] : []),
-      hintsEn:  Array.isArray(meta.hintsEn) ? meta.hintsEn : null,
+      hint,
+      hintEn,
+      hints,
+      hintsEn,
       source:   meta.source  ?? null,
       tests:    (meta.tests && typeof meta.tests === "object" && Object.keys(meta.tests).length > 0)
                   ? meta.tests
