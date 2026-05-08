@@ -106,7 +106,7 @@
 </div>
 
 <script type="module">
-import { initWarsztat, renderMath } from '../lib/warsztat-core.js';
+import { initWarsztat, renderMath, T } from '../lib/warsztat-core.js';
 import { drawDomainGate, drawMiniGate } from '../lib/domain-gate.js';
 {
   const cv = document.getElementById('cv');
@@ -162,61 +162,83 @@ import { drawDomainGate, drawMiniGate } from '../lib/domain-gate.js';
     // ═══════════════════════════════════════════════════════════
     {
       id: 'ch1',
-      title: 'Dziedzina przed rozwi\u0105zaniem',
-      desc: 'R\u00F3wnanie: $\\log_2(x - 3) = 4$. Najpierw zapisz dziedzin\u0119, potem rozwi\u0105\u017C. Ka\u017Cdy kandydat musi przej\u015B\u0107 przez **Bramk\u0119 Dziedziny**.',
+      title:   'Dziedzina przed rozwiązaniem',
+      titleEn: 'Domain before solving',
+      desc:    'Równanie: $\\log_2(x - 3) = 4$. Najpierw zapisz dziedzinę, potem rozwiąż. Każdy kandydat musi przejść przez **Bramkę Dziedziny**.',
+      descEn:  'Equation: $\\log_2(x - 3) = 4$. Write down the domain first, then solve. Every candidate has to pass through the **Domain Gate**.',
       drawBackground: 'blank',
       init() { C.ch1Pick = null; },
       predict: {
-        question: 'Przed rozwi\u0105zaniem: jakie warunki na $x$ musi spe\u0142ni\u0107?',
+        question:   'Przed rozwiązaniem: jakie warunki na $x$ musi spełnić?',
+        questionEn: 'Before solving: what conditions must $x$ satisfy?',
         options: [
-          { label: '$x > 0$',        correct: false, why: 'Taki warunek pasowałby do $\\log_2 x$, ale tutaj logarytm działa na $x - 3$, więc to wyrażenie $x - 3$ musi być dodatnie.' },
-          { label: '$x > 3$',        correct: true,  why: 'Argument $\\log_2(x-3)$ musi być dodatni, więc $x - 3 > 0$.' },
-          { label: '$x \\geq 3$',    correct: false, why: 'Niemal poprawnie, ale $\\log_2 0$ nie istnieje, więc wymagamy nierówności ściśle większej.' },
-          { label: 'brak warunk\u00F3w', correct: false, why: 'Każdy logarytm ma ograniczoną dziedzinę — jej zapisanie jest pierwszym krokiem w każdym zadaniu.' },
+          { label: '$x > 0$',        labelEn: '$x > 0$',
+            correct: false,
+            why:   'Taki warunek pasowałby do $\\log_2 x$, ale tutaj logarytm działa na $x - 3$, więc to wyrażenie $x - 3$ musi być dodatnie.',
+            whyEn: 'That condition would fit $\\log_2 x$, but here the logarithm acts on $x - 3$, so it’s the expression $x - 3$ that has to be positive.' },
+          { label: '$x > 3$',        labelEn: '$x > 3$',
+            correct: true,
+            why:   'Argument $\\log_2(x-3)$ musi być dodatni, więc $x - 3 > 0$.',
+            whyEn: 'The argument of $\\log_2(x-3)$ must be positive, so $x - 3 > 0$.' },
+          { label: '$x \\geq 3$',    labelEn: '$x \\geq 3$',
+            correct: false,
+            why:   'Niemal poprawnie, ale $\\log_2 0$ nie istnieje, więc wymagamy nierówności ściśle większej.',
+            whyEn: 'Almost right, but $\\log_2 0$ doesn’t exist, so the inequality has to be strict.' },
+          { label: 'brak warunków', labelEn: 'no conditions',
+            correct: false,
+            why:   'Każdy logarytm ma ograniczoną dziedzinę — jej zapisanie jest pierwszym krokiem w każdym zadaniu.',
+            whyEn: 'Every logarithm has a restricted domain — writing it down is the first step in every problem.' },
         ],
       },
       choices: {
-        question: 'Jak rozwi\u0105za\u0107 $\\log_2(x-3) = 4$?',
+        question:   'Jak rozwiązać $\\log_2(x-3) = 4$?',
+        questionEn: 'How do you solve $\\log_2(x-3) = 4$?',
         options: [
-          { id: 'a', label: '$x - 3 = 2^4 = 16$, wi\u0119c $x = 19$', correct: true },
-          { id: 'b', label: '$x - 3 = \\log_2 4$, wi\u0119c $x = 5$',  correct: false },
-          { id: 'c', label: '$x = 4 \\cdot 2 + 3 = 11$',              correct: false },
+          { id: 'a', label: '$x - 3 = 2^4 = 16$, więc $x = 19$', labelEn: '$x - 3 = 2^4 = 16$, so $x = 19$', correct: true },
+          { id: 'b', label: '$x - 3 = \\log_2 4$, więc $x = 5$',  labelEn: '$x - 3 = \\log_2 4$, so $x = 5$',  correct: false },
+          { id: 'c', label: '$x = 4 \\cdot 2 + 3 = 11$',              labelEn: '$x = 4 \\cdot 2 + 3 = 11$',         correct: false },
         ],
         pick(id) { C.ch1Pick = id; },
       },
       pips() {
         return [
           { label: 'dziedzina: $x > 3$', ok: true }, // assumed after predict
-          { label: 'rozwi\u0105zanie wybrane', ok: C.ch1Pick === 'a' },
+          { label: 'rozwiązanie wybrane', ok: C.ch1Pick === 'a' },
         ];
       },
       solved() { return C.ch1Pick === 'a'; },
       hints: [
-        '\u2460 Najpierw **dziedzina**: $x - 3 > 0 \\Rightarrow x > 3$. Zapisz ten warunek od razu.',
-        '\u2461 Teraz rozwi\u0105zanie: zamie\u0144 $\\log_2 A = 4$ na $A = 2^4$. Tu $A = x - 3$, wi\u0119c $x - 3 = 16$.',
-        '\u2462 $x = 19$. Sprawd\u017A z dziedzin\u0105: $19 > 3$ \u2713. Bramka przepuszcza.',
+        '① Najpierw **dziedzina**: $x - 3 > 0 \\Rightarrow x > 3$. Zapisz ten warunek od razu.',
+        '② Teraz rozwiązanie: zamień $\\log_2 A = 4$ na $A = 2^4$. Tu $A = x - 3$, więc $x - 3 = 16$.',
+        '③ $x = 19$. Sprawdź z dziedziną: $19 > 3$ ✓. Bramka przepuszcza.',
       ],
-      solvedMsg: 'W każdym zadaniu logarytmicznym zaczynamy od zapisania dziedziny, a dopiero potem rozwiązujemy algebraicznie — bez dziedziny można otrzymać liczbę, która wcale równania nie spełnia.',
+      hintsEn: [
+        '① First the **domain**: $x - 3 > 0 \\Rightarrow x > 3$. Write the condition down right away.',
+        '② Now the solving: rewrite $\\log_2 A = 4$ as $A = 2^4$. Here $A = x - 3$, so $x - 3 = 16$.',
+        '③ $x = 19$. Check against the domain: $19 > 3$ ✓. The gate lets it through.',
+      ],
+      solvedMsg:   'W każdym zadaniu logarytmicznym zaczynamy od zapisania dziedziny, a dopiero potem rozwiązujemy algebraicznie — bez dziedziny można otrzymać liczbę, która wcale równania nie spełnia.',
+      solvedMsgEn: 'For every logarithmic problem we start by writing the domain, and only then solve algebraically — without it you can land on a number that doesn’t actually satisfy the equation.',
       draw() {
         clearCanvas();
         // Build candidates based on current pick
         const candidates = [];
         if (C.ch1Pick === 'a' || C.ch1Pick === null) {
-          candidates.push({ value: 19, label: 'x=19', passed: true, note: '19 > 3 \u2713' });
+          candidates.push({ value: 19, label: 'x=19', passed: true, note: '19 > 3 ✓' });
         }
         if (C.ch1Pick === 'b') {
           candidates.push({ value: 19, label: 'x=19', passed: true });
-          candidates.push({ value: 5,  label: 'x=5',  passed: false, note: '5 > 3? tak — ale nie spe\u0142nia r\u00F3wnania' });
+          candidates.push({ value: 5,  label: 'x=5',  passed: false, note: '5 > 3? tak — ale nie spełnia równania' });
         }
         if (C.ch1Pick === 'c') {
           candidates.push({ value: 19, label: 'x=19', passed: true });
-          candidates.push({ value: 11, label: 'x=11', passed: false, note: 'to nie rozwi\u0105zanie r\u00F3wnania' });
+          candidates.push({ value: 11, label: 'x=11', passed: false, note: 'to nie rozwiązanie równania' });
         }
 
         drawDomainGate(ctx, {
           bounds: { x: 10, y: 10, w: W - 20, h: H - 20 },
-          title: 'log\u2082(x \u2212 3) = 4',
-          subtitle: 'Dziedzina: x \u2212 3 > 0, czyli x > 3',
+          title: 'log₂(x − 3) = 4',
+          subtitle: 'Dziedzina: x − 3 > 0, czyli x > 3',
           domain: { label: 'x > 3', predicate: v => v > 3 },
           candidates,
           t: now(),
@@ -229,24 +251,37 @@ import { drawDomainGate, drawMiniGate } from '../lib/domain-gate.js';
     // ═══════════════════════════════════════════════════════════
     {
       id: 'ch2',
-      title: 'Pierwiastek pozorny — bramka odrzuca',
-      desc: 'Rozwiązujemy $\\log_2(x^2 - 9) = \\log_2(x + 3)$. Obaj kandydaci z równania kwadratowego spróbują przejść — o tym, który przechodzi, decyduje bramka dziedziny.',
+      title:   'Pierwiastek pozorny — bramka odrzuca',
+      titleEn: 'Spurious root — the gate blocks it',
+      desc:    'Rozwiązujemy $\\log_2(x^2 - 9) = \\log_2(x + 3)$. Obaj kandydaci z równania kwadratowego spróbują przejść — o tym, który przechodzi, decyduje bramka dziedziny.',
+      descEn:  'We solve $\\log_2(x^2 - 9) = \\log_2(x + 3)$. Both candidates from the quadratic try to pass — the domain gate decides which one gets through.',
       drawBackground: 'blank',
       init() { C.ch2Pick = null; },
       predict: {
-        question: 'Czy $x = -3$ mo\u017Ce by\u0107 rozwi\u0105zaniem?',
+        question:   'Czy $x = -3$ może być rozwiązaniem?',
+        questionEn: 'Can $x = -3$ be a solution?',
         options: [
-          { label: 'Tak — przecie\u017C $x^2 - 9 = x + 3$ ma $-3$ jako pierwiastek.', correct: false, why: 'Podstawiając do oryginalnego równania, dostajemy $\\log_2((-3)^2 - 9) = \\log_2 0$, a taka wartość logarytmu nie istnieje.' },
-          { label: 'Nie — spe\u0142nia r\u00F3wnanie algebraiczne, ale nie dziedzin\u0119.', correct: false, why: 'Bliski trop, ale precyzyjniej: dziedzinę wyznaczamy najpierw, a dopiero potem sprawdzamy w niej kandydatów.' },
-          { label: 'Trzeba sprawdzi\u0107 w dziedzinie.', correct: true, why: 'Reguła mówi: najpierw dziedzina. Dla $\\log_2(x^2-9) = \\log_2(x+3)$ wymagamy jednocześnie $x^2 > 9$ oraz $x+3 > 0$, czyli $x > 3$.' },
+          { label: 'Tak — przecież $x^2 - 9 = x + 3$ ma $-3$ jako pierwiastek.', labelEn: 'Yes — after all $x^2 - 9 = x + 3$ has $-3$ as a root.',
+            correct: false,
+            why:   'Podstawiając do oryginalnego równania, dostajemy $\\log_2((-3)^2 - 9) = \\log_2 0$, a taka wartość logarytmu nie istnieje.',
+            whyEn: 'Substituting into the original equation gives $\\log_2((-3)^2 - 9) = \\log_2 0$, and that value of the logarithm doesn’t exist.' },
+          { label: 'Nie — spełnia równanie algebraiczne, ale nie dziedzinę.', labelEn: 'No — it satisfies the algebraic equation but not the domain.',
+            correct: false,
+            why:   'Bliski trop, ale precyzyjniej: dziedzinę wyznaczamy najpierw, a dopiero potem sprawdzamy w niej kandydatów.',
+            whyEn: 'Close, but more precisely: we determine the domain first, and only then check candidates against it.' },
+          { label: 'Trzeba sprawdzić w dziedzinie.', labelEn: 'You have to check it against the domain.',
+            correct: true,
+            why:   'Reguła mówi: najpierw dziedzina. Dla $\\log_2(x^2-9) = \\log_2(x+3)$ wymagamy jednocześnie $x^2 > 9$ oraz $x+3 > 0$, czyli $x > 3$.',
+            whyEn: 'The rule says: domain first. For $\\log_2(x^2-9) = \\log_2(x+3)$ we need both $x^2 > 9$ and $x+3 > 0$, i.e. $x > 3$.' },
         ],
       },
       choices: {
-        question: 'Jaki jest prawid\u0142owy zbi\u00F3r rozwi\u0105za\u0144?',
+        question:   'Jaki jest prawidłowy zbiór rozwiązań?',
+        questionEn: 'What is the correct solution set?',
         options: [
-          { id: 'both', label: '$\\{-3,\\ 4\\}$ — oba pierwiastki kwadratowego', correct: false },
-          { id: 'only4', label: '$\\{4\\}$ — tylko $4$ przechodzi bramk\u0119', correct: true },
-          { id: 'onlyneg', label: '$\\{-3\\}$', correct: false },
+          { id: 'both', label: '$\\{-3,\\ 4\\}$ — oba pierwiastki kwadratowego', labelEn: '$\\{-3,\\ 4\\}$ — both roots of the quadratic',  correct: false },
+          { id: 'only4', label: '$\\{4\\}$ — tylko $4$ przechodzi bramkę',     labelEn: '$\\{4\\}$ — only $4$ passes the gate',          correct: true },
+          { id: 'onlyneg', label: '$\\{-3\\}$',                                    labelEn: '$\\{-3\\}$',                                  correct: false },
         ],
         pick(id) { C.ch2Pick = id; },
       },
@@ -259,21 +294,27 @@ import { drawDomainGate, drawMiniGate } from '../lib/domain-gate.js';
       },
       solved() { return C.ch2Pick === 'only4'; },
       hints: [
-        '\u2460 Dziedzina: jednocze\u015Bnie $x^2 - 9 > 0$ (czyli $x > 3$ lub $x < -3$) ORAZ $x + 3 > 0$ (czyli $x > -3$). Przeci\u0119cie: $x > 3$.',
-        '\u2461 Rozwi\u0105zanie algebraiczne: $x^2 - 9 = x + 3 \\Rightarrow x^2 - x - 12 = 0 \\Rightarrow (x-4)(x+3) = 0$.',
-        '\u2462 Kandydaci: $x = 4$ (przechodzi \u2713) i $x = -3$ (nie spe\u0142nia $x > 3$ — bramka odrzuca). Zbi\u00F3r: $\\{4\\}$.',
+        '① Dziedzina: jednocześnie $x^2 - 9 > 0$ (czyli $x > 3$ lub $x < -3$) ORAZ $x + 3 > 0$ (czyli $x > -3$). Przecięcie: $x > 3$.',
+        '② Rozwiązanie algebraiczne: $x^2 - 9 = x + 3 \\Rightarrow x^2 - x - 12 = 0 \\Rightarrow (x-4)(x+3) = 0$.',
+        '③ Kandydaci: $x = 4$ (przechodzi ✓) i $x = -3$ (nie spełnia $x > 3$ — bramka odrzuca). Zbiór: $\\{4\\}$.',
       ],
-      solvedMsg: 'Każdego kandydata warto zweryfikować z dziedziną — rozwiązania, które do niej nie należą, są pozorne i nie zaliczają się do zbioru rozwiązań.',
+      hintsEn: [
+        '① Domain: simultaneously $x^2 - 9 > 0$ (i.e. $x > 3$ or $x < -3$) AND $x + 3 > 0$ (i.e. $x > -3$). Intersection: $x > 3$.',
+        '② Algebraic solving: $x^2 - 9 = x + 3 \\Rightarrow x^2 - x - 12 = 0 \\Rightarrow (x-4)(x+3) = 0$.',
+        '③ Candidates: $x = 4$ (passes ✓) and $x = -3$ (fails $x > 3$ — gate rejects). Set: $\\{4\\}$.',
+      ],
+      solvedMsg:   'Każdego kandydata warto zweryfikować z dziedziną — rozwiązania, które do niej nie należą, są pozorne i nie zaliczają się do zbioru rozwiązań.',
+      solvedMsgEn: 'Every candidate is worth checking against the domain — solutions that fall outside it are spurious and don’t belong in the solution set.',
       draw() {
         clearCanvas();
         drawDomainGate(ctx, {
           bounds: { x: 10, y: 10, w: W - 20, h: H - 20 },
-          title: 'log\u2082(x\u00B2 \u2212 9) = log\u2082(x + 3)',
-          subtitle: 'Dziedzina: x\u00B2 > 9 i x + 3 > 0  \u21D2  x > 3',
+          title: 'log₂(x² − 9) = log₂(x + 3)',
+          subtitle: 'Dziedzina: x² > 9 i x + 3 > 0  ⇒  x > 3',
           domain: { label: 'x > 3', predicate: v => v > 3 },
           candidates: [
-            { value: 4,  label: 'x=4',  passed: true,  note: '4 > 3 \u2713' },
-            { value: -3, label: 'x=\u22123', passed: false, note: '\u22123 + 3 = 0, log\u2082 0 nie istnieje' },
+            { value: 4,  label: 'x=4',  passed: true,  note: '4 > 3 ✓' },
+            { value: -3, label: 'x=−3', passed: false, note: '−3 + 3 = 0, log₂ 0 nie istnieje' },
           ],
           t: now(),
         });
@@ -285,41 +326,60 @@ import { drawDomainGate, drawMiniGate } from '../lib/domain-gate.js';
     // ═══════════════════════════════════════════════════════════
     {
       id: 'ch3',
-      title: 'Podstawienie: $(\\log_2 x)^2 - 3\\log_2 x + 2 = 0$',
-      desc: 'Tym razem pułapka tkwi nie w dziedzinie, lecz w samym podstawieniu — bramka $x > 0$ i tak czeka na końcu.',
+      title:   'Podstawienie: $(\\log_2 x)^2 - 3\\log_2 x + 2 = 0$',
+      titleEn: 'Substitution: $(\\log_2 x)^2 - 3\\log_2 x + 2 = 0$',
+      desc:    'Tym razem pułapka tkwi nie w dziedzinie, lecz w samym podstawieniu — bramka $x > 0$ i tak czeka na końcu.',
+      descEn:  'This time the trap isn’t in the domain but in the substitution itself — the $x > 0$ gate is still waiting at the end.',
       drawBackground: 'blank',
       init() { C.ch3Pick = null; },
       predict: {
-        question: 'Jak rozwi\u0105za\u0107 to r\u00F3wnanie?',
+        question:   'Jak rozwiązać to równanie?',
+        questionEn: 'How do you solve this equation?',
         options: [
-          { label: 'Podnie\u015B\u0107 obie strony do kwadratu',         correct: false, why: 'W równaniu pojawia się kwadrat logarytmu, a nie kwadrat całego wyrażenia — podnoszenie stron do kwadratu niczego nie porządkuje.' },
-          { label: 'Podstawienie $t = \\log_2 x$, rozwi\u0105za\u0107 $t^2 - 3t + 2 = 0$', correct: true, why: 'Takie podstawienie sprowadza całość do zwykłego równania kwadratowego w zmiennej $t$.' },
-          { label: 'Bezpo\u015Brednio podstawi\u0107 $x = 2^?$',        correct: false, why: 'Pomysłowe, ale znacznie trudniejsze rachunkowo — podstawienie $t = \\log_2 x$ jest czytelniejsze.' },
+          { label: 'Podnieść obie strony do kwadratu',         labelEn: 'Square both sides',
+            correct: false,
+            why:   'W równaniu pojawia się kwadrat logarytmu, a nie kwadrat całego wyrażenia — podnoszenie stron do kwadratu niczego nie porządkuje.',
+            whyEn: 'The equation has a squared logarithm, not a squared expression — squaring the sides doesn’t simplify anything.' },
+          { label: 'Podstawienie $t = \\log_2 x$, rozwiązać $t^2 - 3t + 2 = 0$', labelEn: 'Substitute $t = \\log_2 x$ and solve $t^2 - 3t + 2 = 0$',
+            correct: true,
+            why:   'Takie podstawienie sprowadza całość do zwykłego równania kwadratowego w zmiennej $t$.',
+            whyEn: 'That substitution reduces the whole thing to an ordinary quadratic in $t$.' },
+          { label: 'Bezpośrednio podstawić $x = 2^?$',        labelEn: 'Plug in $x = 2^?$ directly',
+            correct: false,
+            why:   'Pomysłowe, ale znacznie trudniejsze rachunkowo — podstawienie $t = \\log_2 x$ jest czytelniejsze.',
+            whyEn: 'Creative, but much harder computationally — the substitution $t = \\log_2 x$ is cleaner.' },
         ],
       },
       choices: {
-        question: 'Zbi\u00F3r rozwi\u0105za\u0144 w $x$:',
+        question:   'Zbiór rozwiązań w $x$:',
+        questionEn: 'Solution set in $x$:',
         options: [
-          { id: 'x24', label: '$\\{2,\\ 4\\}$',                 correct: true },
-          { id: 'x12', label: '$\\{1,\\ 2\\}$ (pomy\u0142ka przy wracaniu $t \\to x$)', correct: false },
-          { id: 't12', label: '$\\{t=1,\\ t=2\\}$ (zapomnia\u0142e\u015B wr\u00F3ci\u0107 do $x$)', correct: false },
+          { id: 'x24', label: '$\\{2,\\ 4\\}$',                                                       labelEn: '$\\{2,\\ 4\\}$',                                                          correct: true },
+          { id: 'x12', label: '$\\{1,\\ 2\\}$ (pomyłka przy wracaniu $t \\to x$)',                  labelEn: '$\\{1,\\ 2\\}$ (slip when going back from $t$ to $x$)',                    correct: false },
+          { id: 't12', label: '$\\{t=1,\\ t=2\\}$ (zapomniałeś wrócić do $x$)',          labelEn: '$\\{t=1,\\ t=2\\}$ (you forgot to convert back to $x$)',                  correct: false },
         ],
         pick(id) { C.ch3Pick = id; },
       },
       pips() {
         return [
           { label: 'podstawienie $t = \\log_2 x$', ok: true },
-          { label: 'rozwi\u0105zane w $t$: $t \\in \\{1, 2\\}$', ok: true },
-          { label: 'powr\u00F3t do $x$', ok: C.ch3Pick === 'x24' },
+          { label: 'rozwiązane w $t$: $t \\in \\{1, 2\\}$', ok: true },
+          { label: 'powrót do $x$', ok: C.ch3Pick === 'x24' },
         ];
       },
       solved() { return C.ch3Pick === 'x24'; },
       hints: [
-        '\u2460 Je\u015Bli widzisz $(\\log x)^2$, **podstaw** $t = \\log x$. R\u00F3wnanie staje si\u0119 kwadratowe w $t$.',
-        '\u2461 Rozwi\u0105\u017C kwadratowe: $t^2 - 3t + 2 = 0 \\Rightarrow (t-1)(t-2) = 0 \\Rightarrow t = 1$ lub $t = 2$.',
-        '\u2462 Wr\u00F3\u0107 do $x$: $\\log_2 x = 1 \\Rightarrow x = 2$;  $\\log_2 x = 2 \\Rightarrow x = 4$. Bramka $x > 0$ — oba pasuj\u0105.',
+        '① Jeśli widzisz $(\\log x)^2$, **podstaw** $t = \\log x$. Równanie staje się kwadratowe w $t$.',
+        '② Rozwiąż kwadratowe: $t^2 - 3t + 2 = 0 \\Rightarrow (t-1)(t-2) = 0 \\Rightarrow t = 1$ lub $t = 2$.',
+        '③ Wróć do $x$: $\\log_2 x = 1 \\Rightarrow x = 2$;  $\\log_2 x = 2 \\Rightarrow x = 4$. Bramka $x > 0$ — oba pasują.',
       ],
-      solvedMsg: 'Gdy w równaniu pojawia się $(\\log x)^2$ lub $a \\cdot \\log x + b$, podstawienie $t = \\log x$ sprowadza je do zwykłego równania kwadratowego. Po wyznaczeniu $t$ trzeba pamiętać o powrocie do zmiennej $x$.',
+      hintsEn: [
+        '① If you see $(\\log x)^2$, **substitute** $t = \\log x$. The equation becomes a quadratic in $t$.',
+        '② Solve the quadratic: $t^2 - 3t + 2 = 0 \\Rightarrow (t-1)(t-2) = 0 \\Rightarrow t = 1$ or $t = 2$.',
+        '③ Go back to $x$: $\\log_2 x = 1 \\Rightarrow x = 2$;  $\\log_2 x = 2 \\Rightarrow x = 4$. The $x > 0$ gate — both pass.',
+      ],
+      solvedMsg:   'Gdy w równaniu pojawia się $(\\log x)^2$ lub $a \\cdot \\log x + b$, podstawienie $t = \\log x$ sprowadza je do zwykłego równania kwadratowego. Po wyznaczeniu $t$ trzeba pamiętać o powrocie do zmiennej $x$.',
+      solvedMsgEn: 'Whenever an equation contains $(\\log x)^2$ or $a \\cdot \\log x + b$, the substitution $t = \\log x$ turns it into an ordinary quadratic. Once you find $t$, don’t forget to convert back to $x$.',
       draw() {
         clearCanvas();
         // Visual: a "flow" diagram above the gate showing the substitution.
@@ -328,29 +388,29 @@ import { drawDomainGate, drawMiniGate } from '../lib/domain-gate.js';
         ctx.fillStyle = 'rgba(255,255,255,0.88)';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
-        ctx.fillText('(log\u2082 x)\u00B2 \u2212 3\u00B7log\u2082 x + 2 = 0', W / 2, 8);
+        ctx.fillText('(log₂ x)² − 3·log₂ x + 2 = 0', W / 2, 8);
 
         ctx.font = '11px monospace';
         ctx.fillStyle = 'rgba(255,209,102,0.85)';
-        ctx.fillText('podstaw t = log\u2082 x   \u2192   t\u00B2 \u2212 3t + 2 = 0   \u2192   t \u2208 {1, 2}   \u2192   x \u2208 {2, 4}', W / 2, 26);
+        ctx.fillText('podstaw t = log₂ x   →   t² − 3t + 2 = 0   →   t ∈ {1, 2}   →   x ∈ {2, 4}', W / 2, 26);
         ctx.restore();
 
         // Show either both candidates passing, or student's wrong set.
         let candidates;
         if (C.ch3Pick === 'x12') {
           candidates = [
-            { value: 2, label: 'x=2', passed: true, note: 't=1 \u2192 x=2 \u2713' },
-            { value: 1, label: 'x=1', passed: false, note: 'b\u0142\u0105d: z t=1 wychodzi x=2, nie 1' },
+            { value: 2, label: 'x=2', passed: true, note: 't=1 → x=2 ✓' },
+            { value: 1, label: 'x=1', passed: false, note: 'błąd: z t=1 wychodzi x=2, nie 1' },
           ];
         } else if (C.ch3Pick === 't12') {
           candidates = [
-            { value: 't1', label: 't=1', passed: false, note: 'nie wr\u00F3ci\u0142e\u015B do x' },
-            { value: 't2', label: 't=2', passed: false, note: 'nie wr\u00F3ci\u0142e\u015B do x' },
+            { value: 't1', label: 't=1', passed: false, note: 'nie wróciłeś do x' },
+            { value: 't2', label: 't=2', passed: false, note: 'nie wróciłeś do x' },
           ];
         } else {
           candidates = [
-            { value: 2, label: 'x=2', passed: true, note: '2 > 0 \u2713' },
-            { value: 4, label: 'x=4', passed: true, note: '4 > 0 \u2713' },
+            { value: 2, label: 'x=2', passed: true, note: '2 > 0 ✓' },
+            { value: 4, label: 'x=4', passed: true, note: '4 > 0 ✓' },
           ];
         }
 
@@ -370,45 +430,64 @@ import { drawDomainGate, drawMiniGate } from '../lib/domain-gate.js';
     // ═══════════════════════════════════════════════════════════
     {
       id: 'ch4',
-      title: 'Debug: czego Jan nie zauwa\u017Cy\u0142',
-      desc: 'Wskaż krok, w którym Jan popełnił błąd — a być może coś istotnego pominął.',
+      title:   'Debug: czego Jan nie zauważył',
+      titleEn: 'Debug: what Jan missed',
+      desc:    'Wskaż krok, w którym Jan popełnił błąd — a być może coś istotnego pominął.',
+      descEn:  'Point out the step where Jan made the mistake — or perhaps something important he skipped.',
       drawBackground: 'blank',
       init() {},
       debug: {
-        task: 'Jan rozwi\u0105zuje <b>log\u2082(x \u2212 1) + log\u2082(x + 2) = 2</b> i pisze:',
+        task:   'Jan rozwiązuje <b>log₂(x − 1) + log₂(x + 2) = 2</b> i pisze:',
+        taskEn: 'Jan is solving <b>log₂(x − 1) + log₂(x + 2) = 2</b> and writes:',
         steps: [
-          { n: 1, text: 'log\u2082((x \u2212 1)(x + 2)) = 2   [z wzoru na sum\u0119 logarytm\u00F3w]' },
-          { n: 2, text: '(x \u2212 1)(x + 2) = 4' },
-          { n: 3, text: 'x\u00B2 + x \u2212 6 = 0   \u2192   (x + 3)(x \u2212 2) = 0' },
-          { n: 4, text: 'St\u0105d x = \u22123 lub x = 2. Oba s\u0105 rozwi\u0105zaniami.' },
+          { n: 1, text:   'log₂((x − 1)(x + 2)) = 2   [z wzoru na sumę logarytmów]',
+                  textEn: 'log₂((x − 1)(x + 2)) = 2   [from the sum-of-logarithms rule]' },
+          { n: 2, text:   '(x − 1)(x + 2) = 4',
+                  textEn: '(x − 1)(x + 2) = 4' },
+          { n: 3, text:   'x² + x − 6 = 0   →   (x + 3)(x − 2) = 0',
+                  textEn: 'x² + x − 6 = 0   →   (x + 3)(x − 2) = 0' },
+          { n: 4, text:   'Stąd x = −3 lub x = 2. Oba są rozwiązaniami.',
+                  textEn: 'Hence x = −3 or x = 2. Both are solutions.' },
         ],
         errorLine: 4,
         wrongChoice: {
-          1: 'Krok 1 jest poprawny — $\\log_a M + \\log_a N = \\log_a(MN)$ obowi\u0105zuje.',
-          2: 'Krok 2 jest poprawny — obie strony s\u0105 teraz bez log.',
-          3: 'Krok 3 jest poprawny — $(x+3)(x-2)$ rzeczywi\u015Bcie daje $x^2+x-6$.',
+          1: 'Krok 1 jest poprawny — $\\log_a M + \\log_a N = \\log_a(MN)$ obowiązuje.',
+          2: 'Krok 2 jest poprawny — obie strony są teraz bez log.',
+          3: 'Krok 3 jest poprawny — $(x+3)(x-2)$ rzeczywiście daje $x^2+x-6$.',
         },
-        correctExplanation: 'Jan pomin\u0105\u0142 <b>dziedzin\u0119</b>. Wymagamy jednocze\u015Bnie $x - 1 > 0$ i $x + 2 > 0$, czyli $x > 1$. Z dw\u00F3ch kandydat\u00F3w $(-3, 2)$ tylko $2$ spe\u0142nia $x > 1$. Rozwi\u0105zanie: $\\{2\\}$, nie $\\{-3, 2\\}$. Bramka odrzuca $-3$.',
+        wrongChoiceEn: {
+          1: 'Step 1 is correct — $\\log_a M + \\log_a N = \\log_a(MN)$ holds.',
+          2: 'Step 2 is correct — both sides are now log-free.',
+          3: 'Step 3 is correct — $(x+3)(x-2)$ really does give $x^2+x-6$.',
+        },
+        correctExplanation:   'Jan pominął <b>dziedzinę</b>. Wymagamy jednocześnie $x - 1 > 0$ i $x + 2 > 0$, czyli $x > 1$. Z dwóch kandydatów $(-3, 2)$ tylko $2$ spełnia $x > 1$. Rozwiązanie: $\\{2\\}$, nie $\\{-3, 2\\}$. Bramka odrzuca $-3$.',
+        correctExplanationEn: 'Jan skipped the <b>domain</b>. We need both $x - 1 > 0$ and $x + 2 > 0$, i.e. $x > 1$. Of the two candidates $(-3, 2)$, only $2$ satisfies $x > 1$. Solution: $\\{2\\}$, not $\\{-3, 2\\}$. The gate rejects $-3$.',
         // Need renderMath for the steps? They use plain Unicode/HTML — OK.
       },
       pips: () => [],
       solved: () => false,
       hints: [
-        'Przejrzyj ka\u017Cdy krok — czy algebra si\u0119 zgadza? A je\u015Bli tak, to co zostaje?',
-        'Jan nigdzie nie zapisa\u0142 dziedziny. Czy oba pierwiastki pasuj\u0105 do dziedziny oryginalnego r\u00F3wnania?',
+        'Przejrzyj każdy krok — czy algebra się zgadza? A jeśli tak, to co zostaje?',
+        'Jan nigdzie nie zapisał dziedziny. Czy oba pierwiastki pasują do dziedziny oryginalnego równania?',
         'Dla $\\log_2(x-1)$ wymagamy $x > 1$. Czy $-3 > 1$?',
       ],
-      solvedMsg: 'Jan pominął bramkę dziedziny. Błąd nie leży w algebrze, lecz w logice — zbiór rozwiązań równania logarytmicznego to część wspólna rozwiązań równania algebraicznego i dziedziny.',
+      hintsEn: [
+        'Walk through each step — does the algebra check out? And if it does, what’s left?',
+        'Jan never wrote down the domain. Do both roots fit the domain of the original equation?',
+        'For $\\log_2(x-1)$ we need $x > 1$. Is $-3 > 1$?',
+      ],
+      solvedMsg:   'Jan pominął bramkę dziedziny. Błąd nie leży w algebrze, lecz w logice — zbiór rozwiązań równania logarytmicznego to część wspólna rozwiązań równania algebraicznego i dziedziny.',
+      solvedMsgEn: 'Jan skipped the domain gate. The mistake isn’t in the algebra, it’s in the logic — the solution set of a logarithmic equation is the intersection of the algebraic solutions with the domain.',
       draw() {
         clearCanvas();
         drawDomainGate(ctx, {
           bounds: { x: 10, y: 10, w: W - 20, h: H - 20 },
-          title: 'log\u2082(x \u2212 1) + log\u2082(x + 2) = 2',
-          subtitle: 'Dziedzina: x \u2212 1 > 0 i x + 2 > 0  \u21D2  x > 1',
+          title: 'log₂(x − 1) + log₂(x + 2) = 2',
+          subtitle: 'Dziedzina: x − 1 > 0 i x + 2 > 0  ⇒  x > 1',
           domain: { label: 'x > 1', predicate: v => v > 1 },
           candidates: [
-            { value: 2, label: 'x=2', passed: true, note: '2 > 1 \u2713' },
-            { value: -3, label: 'x=\u22123', passed: false, note: '\u22123 \u2212 1 = \u22124, log nieokre\u015Blony' },
+            { value: 2, label: 'x=2', passed: true, note: '2 > 1 ✓' },
+            { value: -3, label: 'x=−3', passed: false, note: '−3 − 1 = −4, log nieokreślony' },
           ],
           t: now(),
         });
@@ -420,39 +499,73 @@ import { drawDomainGate, drawMiniGate } from '../lib/domain-gate.js';
     // ═══════════════════════════════════════════════════════════
     {
       id: 'ch5',
-      title: 'Trzy bramki logarytmu',
-      desc: 'Ograniczenia ma nie tylko argument, lecz także **podstawa** logarytmu. W równaniu $\\log_x 9 = 2$: jakie wartości $x$ są dozwolone?',
+      title:   'Trzy bramki logarytmu',
+      titleEn: 'Three gates of the logarithm',
+      desc:    'Ograniczenia ma nie tylko argument, lecz także **podstawa** logarytmu. W równaniu $\\log_x 9 = 2$: jakie wartości $x$ są dozwolone?',
+      descEn:  'It’s not only the argument that has restrictions — the **base** of the logarithm has them too. In $\\log_x 9 = 2$: which values of $x$ are allowed?',
       drawBackground: 'blank',
       init() {},
       predict: {
-        question: 'R\u00F3wnanie $\\log_x 9 = 2$. Jakie warunki na $x$?',
+        question:   'Równanie $\\log_x 9 = 2$. Jakie warunki na $x$?',
+        questionEn: 'Equation $\\log_x 9 = 2$. What conditions on $x$?',
         options: [
-          { label: '$x > 0$',                    correct: false, why: 'Ten warunek jest niewystarczający — podstawa logarytmu ma dodatkowe ograniczenie.' },
-          { label: '$x > 0$ i $x \\neq 1$',      correct: true,  why: 'Podstawa logarytmu musi być dodatnia i różna od $1$ — gdyby $x = 1$, to $1^a = 1$ dla każdego $a$ i równanie byłoby niejednoznaczne.' },
-          { label: '$x > 0$ i $x \\neq 0$',      correct: false, why: 'Drugi warunek powtarza pierwszy, a brakuje wykluczenia $x = 1$.' },
-          { label: '$x$ mo\u017Ce by\u0107 dowolne', correct: false, why: 'Podstawa logarytmu podlega podobnym ograniczeniom co argument — oba musimy sprawdzać.' },
+          { label: '$x > 0$',                    labelEn: '$x > 0$',
+            correct: false,
+            why:   'Ten warunek jest niewystarczający — podstawa logarytmu ma dodatkowe ograniczenie.',
+            whyEn: 'That condition isn’t enough — the base of a logarithm has an extra restriction.' },
+          { label: '$x > 0$ i $x \\neq 1$',      labelEn: '$x > 0$ and $x \\neq 1$',
+            correct: true,
+            why:   'Podstawa logarytmu musi być dodatnia i różna od $1$ — gdyby $x = 1$, to $1^a = 1$ dla każdego $a$ i równanie byłoby niejednoznaczne.',
+            whyEn: 'The base of a logarithm must be positive and different from $1$ — if $x = 1$, then $1^a = 1$ for every $a$ and the equation would be ambiguous.' },
+          { label: '$x > 0$ i $x \\neq 0$',      labelEn: '$x > 0$ and $x \\neq 0$',
+            correct: false,
+            why:   'Drugi warunek powtarza pierwszy, a brakuje wykluczenia $x = 1$.',
+            whyEn: 'The second condition just repeats the first, and the exclusion $x = 1$ is missing.' },
+          { label: '$x$ może być dowolne', labelEn: '$x$ can be anything',
+            correct: false,
+            why:   'Podstawa logarytmu podlega podobnym ograniczeniom co argument — oba musimy sprawdzać.',
+            whyEn: 'The base of a logarithm is restricted in the same spirit as the argument — both have to be checked.' },
         ],
       },
       pips: () => [],
       solved() { return true; }, // trivial — predict gates via core
       hints: [
-        'Argument logarytmu musi by\u0107 dodatni.',
-        'Podstawa logarytmu te\u017C musi by\u0107 dodatnia — ale to nie wszystko.',
-        'Dodatkowo: podstawa $\\neq 1$ (bo $1^a = 1$ dla ka\u017Cdego $a$ — logarytm by\u0142by wieloznaczny).',
+        'Argument logarytmu musi być dodatni.',
+        'Podstawa logarytmu też musi być dodatnia — ale to nie wszystko.',
+        'Dodatkowo: podstawa $\\neq 1$ (bo $1^a = 1$ dla każdego $a$ — logarytm byłby wieloznaczny).',
       ],
-      solvedMsg: 'Trzy warunki dziedziny logarytmu: argument $> 0$, podstawa $> 0$, podstawa $\\neq 1$. Warto zapisywać je na marginesie już na początku każdego zadania logarytmicznego.',
+      hintsEn: [
+        'The argument of a logarithm must be positive.',
+        'The base of a logarithm must be positive too — but that’s not all.',
+        'Also: the base $\\neq 1$ (because $1^a = 1$ for every $a$ — the logarithm would be ambiguous).',
+      ],
+      solvedMsg:   'Trzy warunki dziedziny logarytmu: argument $> 0$, podstawa $> 0$, podstawa $\\neq 1$. Warto zapisywać je na marginesie już na początku każdego zadania logarytmicznego.',
+      solvedMsgEn: 'Three domain conditions for a logarithm: argument $> 0$, base $> 0$, base $\\neq 1$. Worth jotting them in the margin at the start of every logarithmic problem.',
       predictAfter: {
-        question: 'Dla $\\log_{x-2} 16 = 4$, jakie $x$?',
+        question:   'Dla $\\log_{x-2} 16 = 4$, jakie $x$?',
+        questionEn: 'For $\\log_{x-2} 16 = 4$, which $x$?',
         options: [
-          { label: '$x = 4$',         correct: true,  why: 'Podstawa wynosi $x - 2 = 2$ i $2^4 = 16$. Dziedzina wymaga $x > 2$ oraz $x \\neq 3$ — oba warunki są spełnione.' },
-          { label: '$x = 3$',         correct: false, why: 'Podstawa wynosiłaby $x - 2 = 1$, co jest niedozwolone — trzecia bramka dziedziny odrzuca tę wartość.' },
-          { label: '$x = 0$',         correct: false, why: 'Podstawa wyszłaby ujemna ($-2$), co wyklucza już pierwsza bramka dziedziny.' },
-          { label: 'Nie ma rozwi\u0105zania', correct: false, why: 'Rozwiązanie istnieje — to $x = 4$.' },
+          { label: '$x = 4$',         labelEn: '$x = 4$',
+            correct: true,
+            why:   'Podstawa wynosi $x - 2 = 2$ i $2^4 = 16$. Dziedzina wymaga $x > 2$ oraz $x \\neq 3$ — oba warunki są spełnione.',
+            whyEn: 'The base is $x - 2 = 2$ and $2^4 = 16$. The domain requires $x > 2$ and $x \\neq 3$ — both are satisfied.' },
+          { label: '$x = 3$',         labelEn: '$x = 3$',
+            correct: false,
+            why:   'Podstawa wynosiłaby $x - 2 = 1$, co jest niedozwolone — trzecia bramka dziedziny odrzuca tę wartość.',
+            whyEn: 'The base would be $x - 2 = 1$, which is not allowed — the third domain gate rejects this value.' },
+          { label: '$x = 0$',         labelEn: '$x = 0$',
+            correct: false,
+            why:   'Podstawa wyszłaby ujemna ($-2$), co wyklucza już pierwsza bramka dziedziny.',
+            whyEn: 'The base would come out negative ($-2$), which is already ruled out by the first domain gate.' },
+          { label: 'Nie ma rozwiązania', labelEn: 'No solution',
+            correct: false,
+            why:   'Rozwiązanie istnieje — to $x = 4$.',
+            whyEn: 'A solution does exist — it’s $x = 4$.' },
         ],
       },
       draw() {
         clearCanvas();
-        drawHeader('log_x 9 = 2', 'Trzy warunki na podstaw\u0119/argument logarytmu');
+        drawHeader('log_x 9 = 2', 'Trzy warunki na podstawę/argument logarytmu');
 
         // Three mini-gates representing the three domain conditions.
         const gy = 80, gh = 130;
@@ -460,7 +573,7 @@ import { drawDomainGate, drawMiniGate } from '../lib/domain-gate.js';
         const gw = (totalW - 20) / 3;
         drawMiniGate(ctx, { x: 20,             y: gy, w: gw, h: gh, label: 'argument > 0',     passed: true, t: now() });
         drawMiniGate(ctx, { x: 20 + gw + 10,   y: gy, w: gw, h: gh, label: 'podstawa > 0',    passed: true, t: now() });
-        drawMiniGate(ctx, { x: 20 + 2*(gw+10), y: gy, w: gw, h: gh, label: 'podstawa \u2260 1', passed: true, t: now() });
+        drawMiniGate(ctx, { x: 20 + 2*(gw+10), y: gy, w: gw, h: gh, label: 'podstawa ≠ 1', passed: true, t: now() });
 
         // Single candidate flowing through all three.
         ctx.save();
@@ -477,11 +590,11 @@ import { drawDomainGate, drawMiniGate } from '../lib/domain-gate.js';
         ctx.lineTo(W - 40, gy + gh + 26);
         ctx.stroke();
         ctx.setLineDash([]);
-        ctx.fillText('x = 3   \u2713 spe\u0142nia wszystkie trzy warunki (dla log\u2083 9 = 2)', W/2, gy + gh + 40);
+        ctx.fillText('x = 3   ✓ spełnia wszystkie trzy warunki (dla log₃ 9 = 2)', W/2, gy + gh + 40);
 
         ctx.font = '11px monospace';
         ctx.fillStyle = 'rgba(255,255,255,0.5)';
-        ctx.fillText('Ka\u017Cdy logarytm musi przej\u015B\u0107 przez wszystkie trzy bramki.', W/2, gy + gh + 60);
+        ctx.fillText('Każdy logarytm musi przejść przez wszystkie trzy bramki.', W/2, gy + gh + 60);
         ctx.restore();
       },
     },
@@ -491,7 +604,8 @@ import { drawDomainGate, drawMiniGate } from '../lib/domain-gate.js';
     canvasId: 'cv',
     challenges,
     lsKey: 'warsztat:log-eq:completed',
-    wrapup: 'Dwie zasady do zapamiętania na maturze: (1) najpierw dziedzina, dopiero potem algebra — dla każdego logarytmu warto zapisać warunki na argument i podstawę; (2) każde rozwiązanie wyznaczone algebraicznie musi przejść przez bramkę dziedziny, inaczej pozostaje rozwiązaniem pozornym.',
+    wrapup:   'Dwie zasady do zapamiętania na maturze: (1) najpierw dziedzina, dopiero potem algebra — dla każdego logarytmu warto zapisać warunki na argument i podstawę; (2) każde rozwiązanie wyznaczone algebraicznie musi przejść przez bramkę dziedziny, inaczej pozostaje rozwiązaniem pozornym.',
+    wrapupEn: 'Two rules to keep in mind for the exam: (1) domain first, algebra second — for every logarithm it pays to write the conditions on the argument and the base; (2) every algebraically obtained solution has to pass through the domain gate, otherwise it stays a spurious root.',
   });
 }
 </script>

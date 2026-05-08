@@ -7,7 +7,7 @@ level: 1
 x: 340
 y: 1060
 resources:
-  - "interactive|equation-domain-warsztat.html|Equation Domain Warsztat|Dziedzina równania — Warsztat"
+  - "interactive|equation-domain-warsztat.html|Equation Domain Workshop|Dziedzina równania — Warsztat"
 ---
 Obok [pułapki liniowości](./linearity_fallacy) równie groźna przy rozwiązywaniu równań jest **ślepota na dziedzinę** — sytuacja, w której "oczywiste" przekształcenie po cichu zmienia zbiór rozwiązań:<br><br>$x^2 = 5x \;\overset{:x}{\Longrightarrow}\; x = 5$ (zgubione $x = 0$)<br>$\log(x - 2) = 1 \;\Longrightarrow\; x = 12$ (bez sprawdzenia $x - 2 > 0$)<br>$\sqrt{x - 1} = x - 3 \;\overset{(\cdot)^2}{\Longrightarrow}\; x = 2 \text{ lub } x = 5$ (ale $x = 2$ **nie** spełnia oryginału)<br>$\dfrac{x^2 - 1}{x - 1} = x + 1$ (fałsz przy $x = 1$ — LHS nieokreślone)<br><br>**Dlaczego to się dzieje?** Każda operacja algebraiczna ma *swoje warunki ważności*. **Dzielenie przez wyrażenie** wymaga, by to wyrażenie było $\neq 0$ — inaczej gubimy przypadek $=0$. **Podnoszenie do kwadratu** nie jest równoważnością — może *dodać* nowe rozwiązania (bo $a^2 = b^2$ to słabszy warunek niż $a = b$). **Logarytm** i **pierwiastek** mają wbudowane ograniczenia dziedziny, które **nie znikają** po przekształceniu.<br><br>**Reguła żelazna:** *przed* rozwiązywaniem napisz **dziedzinę** ($D$), a *po* rozwiązaniu **sprawdź**, że każdy kandydat do $D$ należy i spełnia równanie oryginalne. Operacje "bezpieczne" (dodawanie stałej, mnożenie przez stałą $\neq 0$) zachowują zbiór rozwiązań. Operacje "niebezpieczne" (dzielenie przez wyrażenie z $x$, podnoszenie do kwadratu, mnożenie przez $f(x)$) mogą go zmienić — w obie strony.
 

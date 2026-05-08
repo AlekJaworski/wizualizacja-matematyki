@@ -89,7 +89,7 @@
 
 <script type="module">
 import { GraphView } from '../lib/graph-core.js';
-import { initWarsztat } from '../lib/warsztat-core.js';
+import { initWarsztat, T } from '../lib/warsztat-core.js';
 {
   const cv = document.getElementById('cv');
   const ctx = cv.getContext('2d');
@@ -266,16 +266,19 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     {
       id: 'ch1_quadrant_signs',
       title: 'Znaki $\\sin, \\cos, \\tan$ w ćwiartkach',
+      titleEn: 'Signs of $\\sin, \\cos, \\tan$ in quadrants',
+      descEn: 'Move $\\alpha$ and observe the signs. Mnemonic: "All Students Take Calculus" — which function is POSITIVE in each quadrant.',
       desc: 'Przesuwaj $\\alpha$ i obserwuj znaki. Mnemonik polski: „wszystkie, sinus, tangens, cosinus" — która funkcja jest DODATNIA w danej ćwiartce.',
       drawBackground: 'none',
       init() { C.alpha1 = 0.6; C.alpha1Moved = false; C.ch1Visited = new Set([1]); },
       predict: {
         question: 'W której ćwiartce $\\sin\\alpha > 0$ i $\\cos\\alpha < 0$?',
+        questionEn: 'In which quadrant is $\\sin\\alpha > 0$ and $\\cos\\alpha < 0$?',
         options: [
-          { label: 'I ćwiartka', correct: false, why: 'W I ćwiartce oba są dodatnie ($x>0, y>0$).' },
-          { label: 'II ćwiartka', correct: true, why: 'Tak — II ćwiartka: $x<0$ (lewo od osi $y$) więc $\\cos<0$; $y>0$ (nad osią $x$) więc $\\sin>0$. Kąty między $90°$ a $180°$.' },
-          { label: 'III ćwiartka', correct: false, why: 'W III ćwiartce oba są ujemne ($x<0, y<0$).' },
-          { label: 'IV ćwiartka', correct: false, why: 'W IV ćwiartce $\\sin<0$, $\\cos>0$ — dokładnie odwrotnie.' },
+          { label: 'I ćwiartka', labelEn: 'Quadrant I', correct: false, why: 'W I ćwiartce oba są dodatnie ($x>0, y>0$).', whyEn: 'In Quadrant I both are positive ($x>0, y>0$).' },
+          { label: 'II ćwiartka', labelEn: 'Quadrant II', correct: true, why: 'Tak — II ćwiartka: $x<0$ (lewo od osi $y$) więc $\\cos<0$; $y>0$ (nad osią $x$) więc $\\sin>0$. Kąty między $90°$ a $180°$.', whyEn: 'Yes — Quadrant II: $x<0$ (left of the $y$-axis) so $\\cos<0$; $y>0$ (above the $x$-axis) so $\\sin>0$. Angles between $90°$ and $180°$.' },
+          { label: 'III ćwiartka', labelEn: 'Quadrant III', correct: false, why: 'W III ćwiartce oba są ujemne ($x<0, y<0$).', whyEn: 'In Quadrant III both are negative ($x<0, y<0$).' },
+          { label: 'IV ćwiartka', labelEn: 'Quadrant IV', correct: false, why: 'W IV ćwiartce $\\sin<0$, $\\cos>0$ — dokładnie odwrotnie.', whyEn: 'In Quadrant IV $\\sin<0$, $\\cos>0$ — exactly the opposite.' },
         ],
       },
       sliders: [
@@ -289,7 +292,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
       ],
       pips() {
         return [
-          { label: 'odwiedzono wszystkie 4 ćwiartki', ok: C.ch1Visited.size >= 4 },
+          { label: T('odwiedzono wszystkie 4 ćwiartki', 'visited all 4 quadrants'), ok: C.ch1Visited.size >= 4 },
         ];
       },
       solved() { return C.ch1Visited.size >= 4; },
@@ -298,13 +301,20 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         'Mnemonik „wszystkie, sinus, tangens, cosinus" (ang. „All Students Take Calculus"): w I wszystkie dodatnie, w II tylko sinus, w III tylko tangens, w IV tylko cosinus.',
         '$\\tan\\alpha = \\sin\\alpha / \\cos\\alpha$ — więc tangens jest dodatni, gdy $\\sin$ i $\\cos$ mają TEN SAM znak (I i III), a ujemny gdy różne znaki (II i IV).',
       ],
+      hintsEn: [
+        'Sign of $\\sin\\alpha$ = sign of the point’s $y$-coordinate. Sign of $\\cos\\alpha$ = sign of $x$. That’s the base rule.',
+        'Mnemonic "All Students Take Calculus": in I all positive, in II only sine, in III only tangent, in IV only cosine.',
+        '$\\tan\\alpha = \\sin\\alpha / \\cos\\alpha$ — so tangent is positive when $\\sin$ and $\\cos$ share the SAME sign (I and III), and negative when they differ (II and IV).',
+      ],
+      solvedMsgEn: 'Sign of $\\sin$ = sign of $y$, sign of $\\cos$ = sign of $x$, sign of $\\tan$ = their product. Mnemonic: All / Sine / Tangent / Cosine (positive in quadrants I / II / III / IV).',
       solvedMsg: 'Znak $\\sin$ = znak $y$, znak $\\cos$ = znak $x$, znak $\\tan$ = ich iloczyn. Mnemonik „wszystkie, sinus, tangens, cosinus" działa dla kolejnych ćwiartek I → II → III → IV.',
       predictAfter: {
-        question: 'W którym przedziale $\\tan\\alpha < 0$?',
+        question:   'W którym przedziale $\\tan\\alpha < 0$?',
+        questionEn: 'In which interval is $\\tan\\alpha < 0$?',
         options: [
-          { label: '$\\alpha \\in (0, \\pi/2)$ (I ćwiartka)', correct: false, why: 'W I ćwiartce oba $\\sin, \\cos > 0$, więc $\\tan > 0$.' },
-          { label: '$\\alpha \\in (\\pi/2, \\pi)$ (II ćwiartka)', correct: true, why: 'Tak — $\\sin>0$, $\\cos<0$, iloraz ujemny. Tangens jest też ujemny w IV ćwiartce.' },
-          { label: '$\\alpha \\in (\\pi, 3\\pi/2)$ (III ćwiartka)', correct: false, why: 'W III obie funkcje ujemne — iloraz dwóch ujemnych to dodatnia.' },
+          { label: '$\\alpha \\in (0, \\pi/2)$ (I ćwiartka)', labelEn: '$\\alpha \\in (0, \\pi/2)$ (Quadrant I)', correct: false, why: 'W I ćwiartce oba $\\sin, \\cos > 0$, więc $\\tan > 0$.', whyEn: 'In Quadrant I both $\\sin, \\cos > 0$, so $\\tan > 0$.' },
+          { label: '$\\alpha \\in (\\pi/2, \\pi)$ (II ćwiartka)', labelEn: '$\\alpha \\in (\\pi/2, \\pi)$ (Quadrant II)', correct: true, why: 'Tak — $\\sin>0$, $\\cos<0$, iloraz ujemny. Tangens jest też ujemny w IV ćwiartce.', whyEn: 'Yes — $\\sin>0$, $\\cos<0$, the quotient is negative. Tangent is also negative in Quadrant IV.' },
+          { label: '$\\alpha \\in (\\pi, 3\\pi/2)$ (III ćwiartka)', labelEn: '$\\alpha \\in (\\pi, 3\\pi/2)$ (Quadrant III)', correct: false, why: 'W III obie funkcje ujemne — iloraz dwóch ujemnych to dodatnia.', whyEn: 'In Quadrant III both functions are negative — the quotient of two negatives is positive.' },
         ],
       },
       draw() {
@@ -334,16 +344,16 @@ import { initWarsztat } from '../lib/warsztat-core.js';
 
         // Quadrant labels (4 corners)
         const labels = [
-          { x: 0.5, y: 0.5, title: 'I', note: 'wszystkie +' },
-          { x: -0.5, y: 0.5, title: 'II', note: 'sinus +' },
-          { x: -0.5, y: -0.5, title: 'III', note: 'tangens +' },
-          { x: 0.5, y: -0.5, title: 'IV', note: 'cosinus +' },
+          { x: 0.5, y: 0.5, title: 'I', note: 'wszystkie +', noteEn: 'all +' },
+          { x: -0.5, y: 0.5, title: 'II', note: 'sinus +', noteEn: 'sine +' },
+          { x: -0.5, y: -0.5, title: 'III', note: 'tangens +', noteEn: 'tangent +' },
+          { x: 0.5, y: -0.5, title: 'IV', note: 'cosinus +', noteEn: 'cosine +' },
         ];
         labels.forEach(L => {
           const highlight = (L.title === ['I','II','III','IV'][q-1]);
           const col = highlight ? COL_ACC : 'rgba(255,255,255,0.5)';
           text(L.title, px(L.x), py(L.y), col, highlight ? 15 : 13, 'center', 'middle');
-          text(L.note, px(L.x), py(L.y) + 14, col, 10, 'center', 'middle');
+          text(T(L.note, L.noteEn || L.note), px(L.x), py(L.y) + 14, col, 10, 'center', 'middle');
         });
 
         // Top: angle value
@@ -362,11 +372,11 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         });
 
         // Right side: mnemonic
-        text('Mnemonik:', W - 140, H - 78, 'rgba(255,255,255,0.7)', 11);
-        text('I: wszystkie', W - 140, H - 62, q === 1 ? COL_ACC : COL_DIM, 11);
-        text('II: sinus', W - 140, H - 48, q === 2 ? COL_ACC : COL_DIM, 11);
-        text('III: tangens', W - 140, H - 34, q === 3 ? COL_ACC : COL_DIM, 11);
-        text('IV: cosinus', W - 140, H - 20, q === 4 ? COL_ACC : COL_DIM, 11);
+        text(T('Mnemonik:', 'Mnemonic:'), W - 140, H - 78, 'rgba(255,255,255,0.7)', 11);
+        text(T('I: wszystkie', 'I: all'), W - 140, H - 62, q === 1 ? COL_ACC : COL_DIM, 11);
+        text(T('II: sinus', 'II: sine'), W - 140, H - 48, q === 2 ? COL_ACC : COL_DIM, 11);
+        text(T('III: tangens', 'III: tangent'), W - 140, H - 34, q === 3 ? COL_ACC : COL_DIM, 11);
+        text(T('IV: cosinus', 'IV: cosine'), W - 140, H - 20, q === 4 ? COL_ACC : COL_DIM, 11);
       },
     },
 
@@ -374,15 +384,17 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     {
       id: 'ch2_reduction_180_minus',
       title: 'Wzory redukcyjne: $\\sin(180°-\\alpha)$, $\\cos(180°-\\alpha)$',
+      titleEn: 'Reduction formulas: $\\sin(180°-\\alpha)$, $\\cos(180°-\\alpha)$',
       desc: 'Punkty $\\alpha$ i $180°-\\alpha$ są SYMETRYCZNE względem osi $y$. Zobacz, która współrzędna się zmienia, a która zostaje.',
       drawBackground: 'none',
       init() { C.alpha2 = 40 * Math.PI / 180; C.alpha2Moved = false; C.ch2Pick = null; },
       predict: {
-        question: 'Jeżeli odbijemy punkt $(\\cos\\alpha, \\sin\\alpha)$ względem osi $y$, to otrzymamy punkt o współrzędnych:',
+        question:   'Jeżeli odbijemy punkt $(\\cos\\alpha, \\sin\\alpha)$ względem osi $y$, to otrzymamy punkt o współrzędnych:',
+        questionEn: 'Reflect the point $(\\cos\\alpha, \\sin\\alpha)$ across the $y$-axis. The new point has coordinates:',
         options: [
-          { label: '$(\\cos\\alpha, -\\sin\\alpha)$ — zmienia się $y$', correct: false, why: 'Odbicie względem osi $y$ zmienia $x$, nie $y$. To byłoby odbicie względem osi $x$.' },
-          { label: '$(-\\cos\\alpha, \\sin\\alpha)$ — zmienia się $x$', correct: true, why: 'Tak — odbicie wokół osi $y$ odwraca znak $x$, zostawia $y$. A ten nowy punkt leży pod kątem $180°-\\alpha$.' },
-          { label: '$(-\\cos\\alpha, -\\sin\\alpha)$ — zmieniają się obie', correct: false, why: 'To odbicie przez środek $(0,0)$, czyli obrót o $180°$. Tu mamy tylko odbicie, więc tylko jedna współrzędna zmienia znak.' },
+          { label: '$(\\cos\\alpha, -\\sin\\alpha)$ — zmienia się $y$', labelEn: '$(\\cos\\alpha, -\\sin\\alpha)$ — $y$ changes', correct: false, why: 'Odbicie względem osi $y$ zmienia $x$, nie $y$. To byłoby odbicie względem osi $x$.', whyEn: 'Reflection across the $y$-axis flips $x$, not $y$. That would be a reflection across the $x$-axis.' },
+          { label: '$(-\\cos\\alpha, \\sin\\alpha)$ — zmienia się $x$', labelEn: '$(-\\cos\\alpha, \\sin\\alpha)$ — $x$ changes', correct: true, why: 'Tak — odbicie wokół osi $y$ odwraca znak $x$, zostawia $y$. A ten nowy punkt leży pod kątem $180°-\\alpha$.', whyEn: 'Yes — reflection across the $y$-axis flips $x$, leaves $y$. The new point sits at the angle $180°-\\alpha$.' },
+          { label: '$(-\\cos\\alpha, -\\sin\\alpha)$ — zmieniają się obie', labelEn: '$(-\\cos\\alpha, -\\sin\\alpha)$ — both change', correct: false, why: 'To odbicie przez środek $(0,0)$, czyli obrót o $180°$. Tu mamy tylko odbicie, więc tylko jedna współrzędna zmienia znak.', whyEn: 'That’s a reflection through the origin $(0,0)$, i.e. a $180°$ rotation. We have only a reflection, so just one coordinate changes sign.' },
         ],
       },
       sliders: [
@@ -390,24 +402,28 @@ import { initWarsztat } from '../lib/warsztat-core.js';
           get: () => C.alpha2, set: v => { C.alpha2 = v; C.alpha2Moved = true; } },
       ],
       choices: {
-        question: 'Stąd wynika, że:',
+        question:   'Stąd wynika, że:',
+        questionEn: 'Therefore:',
         options: [
-          { id: 'a', label: '$\\sin(180°-\\alpha) = \\sin\\alpha$,  $\\cos(180°-\\alpha) = -\\cos\\alpha$', correct: true },
-          { id: 'b', label: '$\\sin(180°-\\alpha) = -\\sin\\alpha$,  $\\cos(180°-\\alpha) = \\cos\\alpha$', correct: false },
-          { id: 'c', label: '$\\sin(180°-\\alpha) = -\\sin\\alpha$,  $\\cos(180°-\\alpha) = -\\cos\\alpha$', correct: false },
-          { id: 'd', label: 'oba pozostają takie same jak dla $\\alpha$', correct: false },
+          { id: 'a', label: '$\\sin(180°-\\alpha) = \\sin\\alpha$,  $\\cos(180°-\\alpha) = -\\cos\\alpha$', labelEn: '$\\sin(180°-\\alpha) = \\sin\\alpha$,  $\\cos(180°-\\alpha) = -\\cos\\alpha$', correct: true },
+          { id: 'b', label: '$\\sin(180°-\\alpha) = -\\sin\\alpha$,  $\\cos(180°-\\alpha) = \\cos\\alpha$', labelEn: '$\\sin(180°-\\alpha) = -\\sin\\alpha$,  $\\cos(180°-\\alpha) = \\cos\\alpha$', correct: false },
+          { id: 'c', label: '$\\sin(180°-\\alpha) = -\\sin\\alpha$,  $\\cos(180°-\\alpha) = -\\cos\\alpha$', labelEn: '$\\sin(180°-\\alpha) = -\\sin\\alpha$,  $\\cos(180°-\\alpha) = -\\cos\\alpha$', correct: false },
+          { id: 'd', label: 'oba pozostają takie same jak dla $\\alpha$', labelEn: 'both stay the same as for $\\alpha$', correct: false },
         ],
         pick(id) { C.ch2Pick = id; },
       },
       pips() {
         const msgs = {
-          b: 'Odwrotnie — to $\\sin$ zostaje, a $\\cos$ zmienia znak (bo odbicie względem osi $y$ wpływa na $x$).',
-          c: 'Zbyt mocno — tylko JEDNA współrzędna zmienia znak. Odbicie, nie obrót o $180°$.',
-          d: 'Nie — jedna ze współrzędnych MUSI zmienić znak, bo nowy punkt leży w II ćwiartce (inna strona osi $y$).',
+          b: T('Odwrotnie — to $\\sin$ zostaje, a $\\cos$ zmienia znak (bo odbicie względem osi $y$ wpływa na $x$).',
+               'Other way around — $\\sin$ stays, $\\cos$ changes sign (reflection across the $y$-axis flips $x$).'),
+          c: T('Zbyt mocno — tylko JEDNA współrzędna zmienia znak. Odbicie, nie obrót o $180°$.',
+               'Too much — only ONE coordinate changes sign. A reflection, not a $180°$ rotation.'),
+          d: T('Nie — jedna ze współrzędnych MUSI zmienić znak, bo nowy punkt leży w II ćwiartce (inna strona osi $y$).',
+               'No — one coordinate MUST change sign, because the new point sits in Quadrant II (other side of the $y$-axis).'),
         };
-        if (C.ch2Pick === 'a') return [{ label: 'poprawne wzory redukcyjne', ok: true }];
+        if (C.ch2Pick === 'a') return [{ label: T('poprawne wzory redukcyjne', 'correct reduction formulas'), ok: true }];
         if (C.ch2Pick && msgs[C.ch2Pick]) return [{ label: msgs[C.ch2Pick], ok: false }];
-        return [{ label: 'wybierz poprawne wzory', ok: false }];
+        return [{ label: T('wybierz poprawne wzory', 'pick the correct formulas'), ok: false }];
       },
       solved() { return C.ch2Pick === 'a' && C.alpha2Moved; },
       hints: [
@@ -415,6 +431,12 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         'Odbicie względem osi $y$: $(x, y) \\to (-x, y)$. Współrzędna $y$ (czyli $\\sin$) NIE zmienia się; $x$ (czyli $\\cos$) zmienia znak.',
         'Stąd: $\\sin(180°-\\alpha) = \\sin\\alpha$ (bez zmiany), $\\cos(180°-\\alpha) = -\\cos\\alpha$ (minus).',
       ],
+      hintsEn: [
+        'The point at angle $180°-\\alpha$ sits in Quadrant II, symmetric to the point at angle $\\alpha$ across the $y$-axis.',
+        'Reflection across the $y$-axis: $(x, y) \\to (-x, y)$. The $y$-coordinate (i.e. $\\sin$) is UNCHANGED; $x$ (i.e. $\\cos$) flips sign.',
+        'Hence $\\sin(180°-\\alpha) = \\sin\\alpha$ (no change), $\\cos(180°-\\alpha) = -\\cos\\alpha$ (sign flip).',
+      ],
+      solvedMsgEn: 'Rule: reflection across the $y$-axis leaves $\\sin$ unchanged, reverses $\\cos$. Use this: $\\sin 150° = \\sin 30° = 1/2$, $\\cos 150° = -\\cos 30° = -\\sqrt{3}/2$.',
       solvedMsg: 'Zasada: odbicie wokół osi $y$ zostawia $\\sin$, odwraca $\\cos$. Używasz tego codziennie — np. $\\sin 150° = \\sin 30° = 1/2$, $\\cos 150° = -\\cos 30° = -\\sqrt{3}/2$.',
       draw() {
         drawAxesCircle();
@@ -473,15 +495,18 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     {
       id: 'ch3_parity',
       title: 'Parzystość: $\\sin(-\\alpha)$ i $\\cos(-\\alpha)$',
-      desc: 'Kąt $-\\alpha$ to lustrzane odbicie $\\alpha$ względem osi $x$ (odwrócenie kierunku obrotu). Która współrzędna teraz zmienia znak?',
+      titleEn: 'Parity: $\\sin(-\\alpha)$ and $\\cos(-\\alpha)$',
+      desc:   'Kąt $-\\alpha$ to lustrzane odbicie $\\alpha$ względem osi $x$ (odwrócenie kierunku obrotu). Która współrzędna teraz zmienia znak?',
+      descEn: 'The angle $-\\alpha$ is the mirror image of $\\alpha$ across the $x$-axis (reverse rotation direction). Which coordinate flips sign now?',
       drawBackground: 'none',
       init() { C.alpha3 = 50 * Math.PI / 180; C.alpha3Moved = false; C.ch3Pick = null; },
       predict: {
-        question: 'Odbicie punktu $(\\cos\\alpha, \\sin\\alpha)$ względem osi $x$ daje:',
+        question:   'Odbicie punktu $(\\cos\\alpha, \\sin\\alpha)$ względem osi $x$ daje:',
+        questionEn: 'Reflecting the point $(\\cos\\alpha, \\sin\\alpha)$ across the $x$-axis gives:',
         options: [
-          { label: '$(\\cos\\alpha, -\\sin\\alpha)$ — zmienia się $y$', correct: true, why: 'Tak — oś $x$ odbija znak $y$, zostawia $x$. Czyli $\\cos$ zostaje, $\\sin$ zmienia znak.' },
-          { label: '$(-\\cos\\alpha, \\sin\\alpha)$ — zmienia się $x$', correct: false, why: 'To by było odbicie względem osi $y$ (czyli wzór na $180°-\\alpha$ z poprzedniej planszy).' },
-          { label: '$(-\\cos\\alpha, -\\sin\\alpha)$', correct: false, why: 'To obrót o $180°$, nie odbicie.' },
+          { label: '$(\\cos\\alpha, -\\sin\\alpha)$ — zmienia się $y$', labelEn: '$(\\cos\\alpha, -\\sin\\alpha)$ — $y$ changes', correct: true, why: 'Tak — oś $x$ odbija znak $y$, zostawia $x$. Czyli $\\cos$ zostaje, $\\sin$ zmienia znak.', whyEn: 'Yes — the $x$-axis flips $y$ and leaves $x$. So $\\cos$ stays, $\\sin$ flips sign.' },
+          { label: '$(-\\cos\\alpha, \\sin\\alpha)$ — zmienia się $x$', labelEn: '$(-\\cos\\alpha, \\sin\\alpha)$ — $x$ changes', correct: false, why: 'To by było odbicie względem osi $y$ (czyli wzór na $180°-\\alpha$ z poprzedniej planszy).', whyEn: 'That would be reflection across the $y$-axis (the previous board’s $180°-\\alpha$ formula).' },
+          { label: '$(-\\cos\\alpha, -\\sin\\alpha)$', labelEn: '$(-\\cos\\alpha, -\\sin\\alpha)$', correct: false, why: 'To obrót o $180°$, nie odbicie.', whyEn: 'That’s a $180°$ rotation, not a reflection.' },
         ],
       },
       sliders: [
@@ -489,24 +514,28 @@ import { initWarsztat } from '../lib/warsztat-core.js';
           get: () => C.alpha3, set: v => { C.alpha3 = v; C.alpha3Moved = true; } },
       ],
       choices: {
-        question: 'Wniosek — jak zachowują się $\\sin$ i $\\cos$ dla kąta ujemnego?',
+        question:   'Wniosek — jak zachowują się $\\sin$ i $\\cos$ dla kąta ujemnego?',
+        questionEn: 'Conclusion — how do $\\sin$ and $\\cos$ behave for a negative angle?',
         options: [
-          { id: 'a', label: '$\\sin(-\\alpha) = -\\sin\\alpha$,  $\\cos(-\\alpha) = \\cos\\alpha$  (sinus nieparzysty, cosinus parzysty)', correct: true },
-          { id: 'b', label: '$\\sin(-\\alpha) = \\sin\\alpha$,  $\\cos(-\\alpha) = -\\cos\\alpha$', correct: false },
-          { id: 'c', label: 'oba zmieniają znak: $\\sin(-\\alpha) = -\\sin\\alpha$,  $\\cos(-\\alpha) = -\\cos\\alpha$', correct: false },
-          { id: 'd', label: 'oba zostają takie same', correct: false },
+          { id: 'a', label: '$\\sin(-\\alpha) = -\\sin\\alpha$,  $\\cos(-\\alpha) = \\cos\\alpha$  (sinus nieparzysty, cosinus parzysty)', labelEn: '$\\sin(-\\alpha) = -\\sin\\alpha$,  $\\cos(-\\alpha) = \\cos\\alpha$  (sine odd, cosine even)', correct: true },
+          { id: 'b', label: '$\\sin(-\\alpha) = \\sin\\alpha$,  $\\cos(-\\alpha) = -\\cos\\alpha$', labelEn: '$\\sin(-\\alpha) = \\sin\\alpha$,  $\\cos(-\\alpha) = -\\cos\\alpha$', correct: false },
+          { id: 'c', label: 'oba zmieniają znak: $\\sin(-\\alpha) = -\\sin\\alpha$,  $\\cos(-\\alpha) = -\\cos\\alpha$', labelEn: 'both flip: $\\sin(-\\alpha) = -\\sin\\alpha$,  $\\cos(-\\alpha) = -\\cos\\alpha$', correct: false },
+          { id: 'd', label: 'oba zostają takie same', labelEn: 'both stay the same', correct: false },
         ],
         pick(id) { C.ch3Pick = id; },
       },
       pips() {
         const msgs = {
-          b: 'Odwrotnie — to $\\cos$ jest parzysty (zostaje), a $\\sin$ nieparzysty (zmienia znak).',
-          c: 'Tylko jedna ze współrzędnych zmienia znak przy odbiciu — nie obie.',
-          d: 'Niemożliwe — punkt naprawdę przenosi się na drugą stronę osi $x$, więc $\\sin$ musi zmienić znak.',
+          b: T('Odwrotnie — to $\\cos$ jest parzysty (zostaje), a $\\sin$ nieparzysty (zmienia znak).',
+               'Other way around — $\\cos$ is even (stays), $\\sin$ is odd (flips sign).'),
+          c: T('Tylko jedna ze współrzędnych zmienia znak przy odbiciu — nie obie.',
+               'Only ONE coordinate flips sign on a reflection — not both.'),
+          d: T('Niemożliwe — punkt naprawdę przenosi się na drugą stronę osi $x$, więc $\\sin$ musi zmienić znak.',
+               'Not possible — the point really crosses the $x$-axis, so $\\sin$ must change sign.'),
         };
-        if (C.ch3Pick === 'a') return [{ label: 'poprawna parzystość', ok: true }];
+        if (C.ch3Pick === 'a') return [{ label: T('poprawna parzystość', 'parity correct'), ok: true }];
         if (C.ch3Pick && msgs[C.ch3Pick]) return [{ label: msgs[C.ch3Pick], ok: false }];
-        return [{ label: 'wybierz poprawną parzystość', ok: false }];
+        return [{ label: T('wybierz poprawną parzystość', 'pick the correct parity'), ok: false }];
       },
       solved() { return C.ch3Pick === 'a' && C.alpha3Moved; },
       hints: [
@@ -514,6 +543,12 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         'Odbicie względem osi $x$: $(x, y) \\to (x, -y)$. $\\cos$ (czyli $x$) zostaje, $\\sin$ (czyli $y$) zmienia znak.',
         'Funkcja $f$ nieparzysta: $f(-x) = -f(x)$ (symetria względem $(0,0)$). Parzysta: $f(-x) = f(x)$ (symetria względem osi $y$). $\\sin$ jest nieparzysty, $\\cos$ parzysty.',
       ],
+      hintsEn: [
+        'The angle $-\\alpha$ is measured in the opposite direction (clockwise). The point lands on the mirror image across the $x$-axis.',
+        'Reflection across the $x$-axis: $(x, y) \\to (x, -y)$. $\\cos$ (i.e. $x$) stays, $\\sin$ (i.e. $y$) flips sign.',
+        'Odd function: $f(-x) = -f(x)$ (symmetry through $(0,0)$). Even: $f(-x) = f(x)$ (symmetry across the $y$-axis). $\\sin$ is odd, $\\cos$ is even.',
+      ],
+      solvedMsgEn: 'Sine is ODD: $\\sin(-\\alpha) = -\\sin\\alpha$. Cosine is EVEN: $\\cos(-\\alpha) = \\cos\\alpha$. Consequence: $\\tan(-\\alpha) = -\\tan\\alpha$ (odd).',
       solvedMsg: 'Sinus jest NIEPARZYSTY: $\\sin(-\\alpha) = -\\sin\\alpha$. Cosinus PARZYSTY: $\\cos(-\\alpha) = \\cos\\alpha$. Konsekwencja: $\\tan(-\\alpha) = -\\tan\\alpha$ (iloraz parzystego i nieparzystego jest nieparzysty).',
       draw() {
         drawAxesCircle();
@@ -569,36 +604,43 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     {
       id: 'ch4_pattern_mcq',
       title: 'Trening: szybka analiza ćwiartki',
-      desc: 'Zastosuj wszystko naraz: znaki w ćwiartkach + wzory redukcyjne + parzystość.',
+      titleEn: 'Drill: quick quadrant analysis',
+      desc:   'Zastosuj wszystko naraz: znaki w ćwiartkach + wzory redukcyjne + parzystość.',
+      descEn: 'Use everything at once: signs by quadrant + reduction formulas + parity.',
       drawBackground: 'none',
       init() { C.ch4Pick = null; },
       predict: {
-        question: 'Dla $\\alpha \\in (\\pi, 3\\pi/2)$ (III ćwiartka): jaki znak ma $\\sin\\alpha \\cdot \\cos\\alpha$?',
+        question:   'Dla $\\alpha \\in (\\pi, 3\\pi/2)$ (III ćwiartka): jaki znak ma $\\sin\\alpha \\cdot \\cos\\alpha$?',
+        questionEn: 'For $\\alpha \\in (\\pi, 3\\pi/2)$ (Quadrant III): what is the sign of $\\sin\\alpha \\cdot \\cos\\alpha$?',
         options: [
-          { label: 'dodatni', correct: true, why: 'Tak — w III ćwiartce oba $\\sin<0$ i $\\cos<0$. Iloczyn dwóch ujemnych to dodatnia.' },
-          { label: 'ujemny', correct: false, why: 'Nie — mimo że oba są ujemne (bo III ćwiartka), ich ILOCZYN jest dodatni. To mnożenie: $(-) \\cdot (-) = (+)$.' },
-          { label: 'zero', correct: false, why: 'Ani $\\sin$, ani $\\cos$ nie jest zerem w środku III ćwiartki.' },
+          { label: 'dodatni', labelEn: 'positive', correct: true, why: 'Tak — w III ćwiartce oba $\\sin<0$ i $\\cos<0$. Iloczyn dwóch ujemnych to dodatnia.', whyEn: 'Yes — in Quadrant III both $\\sin<0$ and $\\cos<0$. The product of two negatives is positive.' },
+          { label: 'ujemny', labelEn: 'negative', correct: false, why: 'Nie — mimo że oba są ujemne (bo III ćwiartka), ich ILOCZYN jest dodatni. To mnożenie: $(-) \\cdot (-) = (+)$.', whyEn: 'No — even though both are negative (Quadrant III), their PRODUCT is positive: $(-) \\cdot (-) = (+)$.' },
+          { label: 'zero', labelEn: 'zero', correct: false, why: 'Ani $\\sin$, ani $\\cos$ nie jest zerem w środku III ćwiartki.', whyEn: 'Neither $\\sin$ nor $\\cos$ is zero in the interior of Quadrant III.' },
         ],
       },
       choices: {
-        question: 'Uprość $\\cos(180° - \\alpha) + \\sin(-\\alpha)$:',
+        question:   'Uprość $\\cos(180° - \\alpha) + \\sin(-\\alpha)$:',
+        questionEn: 'Simplify $\\cos(180° - \\alpha) + \\sin(-\\alpha)$:',
         options: [
-          { id: 'a', label: '$\\cos\\alpha + \\sin\\alpha$', correct: false },
-          { id: 'b', label: '$-\\cos\\alpha - \\sin\\alpha$', correct: true },
-          { id: 'c', label: '$-\\cos\\alpha + \\sin\\alpha$', correct: false },
-          { id: 'd', label: '$\\cos\\alpha - \\sin\\alpha$', correct: false },
+          { id: 'a', label: '$\\cos\\alpha + \\sin\\alpha$', labelEn: '$\\cos\\alpha + \\sin\\alpha$', correct: false },
+          { id: 'b', label: '$-\\cos\\alpha - \\sin\\alpha$', labelEn: '$-\\cos\\alpha - \\sin\\alpha$', correct: true },
+          { id: 'c', label: '$-\\cos\\alpha + \\sin\\alpha$', labelEn: '$-\\cos\\alpha + \\sin\\alpha$', correct: false },
+          { id: 'd', label: '$\\cos\\alpha - \\sin\\alpha$', labelEn: '$\\cos\\alpha - \\sin\\alpha$', correct: false },
         ],
         pick(id) { C.ch4Pick = id; },
       },
       pips() {
         const msgs = {
-          a: 'Brak minusów — ale $\\cos(180°-\\alpha) = -\\cos\\alpha$ (znak minus!) i $\\sin(-\\alpha) = -\\sin\\alpha$ (znak minus!).',
-          c: 'Masz jeden minus dobrze, drugi źle. Sprawdź: $\\sin(-\\alpha) = -\\sin\\alpha$, nie $+\\sin\\alpha$.',
-          d: 'Odwrotnie — pomyliłeś, która funkcja dostaje minus. Zarówno $\\cos(180°-\\alpha)$ jak i $\\sin(-\\alpha)$ dostają minus.',
+          a: T('Brak minusów — ale $\\cos(180°-\\alpha) = -\\cos\\alpha$ (znak minus!) i $\\sin(-\\alpha) = -\\sin\\alpha$ (znak minus!).',
+               'No minuses — but $\\cos(180°-\\alpha) = -\\cos\\alpha$ (minus!) and $\\sin(-\\alpha) = -\\sin\\alpha$ (minus!).'),
+          c: T('Masz jeden minus dobrze, drugi źle. Sprawdź: $\\sin(-\\alpha) = -\\sin\\alpha$, nie $+\\sin\\alpha$.',
+               'One minus right, the other wrong. Check: $\\sin(-\\alpha) = -\\sin\\alpha$, not $+\\sin\\alpha$.'),
+          d: T('Odwrotnie — pomyliłeś, która funkcja dostaje minus. Zarówno $\\cos(180°-\\alpha)$ jak i $\\sin(-\\alpha)$ dostają minus.',
+               'Reversed — you swapped which function gets the minus. Both $\\cos(180°-\\alpha)$ and $\\sin(-\\alpha)$ get a minus.'),
         };
-        if (C.ch4Pick === 'b') return [{ label: 'poprawne uproszczenie', ok: true }];
+        if (C.ch4Pick === 'b') return [{ label: T('poprawne uproszczenie', 'simplification correct'), ok: true }];
         if (C.ch4Pick && msgs[C.ch4Pick]) return [{ label: msgs[C.ch4Pick], ok: false }];
-        return [{ label: 'uprość wyrażenie', ok: false }];
+        return [{ label: T('uprość wyrażenie', 'simplify the expression'), ok: false }];
       },
       solved() { return C.ch4Pick === 'b'; },
       hints: [
@@ -606,6 +648,12 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '$\\sin(-\\alpha) = -\\sin\\alpha$ (sinus nieparzysty).',
         'Razem: $(-\\cos\\alpha) + (-\\sin\\alpha) = -\\cos\\alpha - \\sin\\alpha$.',
       ],
+      hintsEn: [
+        '$\\cos(180°-\\alpha) = -\\cos\\alpha$ (reflection across the $y$-axis flips $x$).',
+        '$\\sin(-\\alpha) = -\\sin\\alpha$ (sine is odd).',
+        'Together: $(-\\cos\\alpha) + (-\\sin\\alpha) = -\\cos\\alpha - \\sin\\alpha$.',
+      ],
+      solvedMsgEn: 'Algorithm for every reduction problem: (1) draw $\\alpha$ on the unit circle; (2) see which quadrant the transformed angle is in; (3) check which coordinate changes sign. No memorisation needed with this approach.',
       solvedMsg: 'Algorytm na każde zadanie z redukcjami: (1) narysuj $\\alpha$ na kole; (2) zobacz, w której ćwiartce leży przekształcony kąt; (3) sprawdź, która współrzędna zmienia znak. Przy takim podejściu nie trzeba zapamiętywać osobnych wzorów.',
       draw() {
         ctx.save();
@@ -645,7 +693,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         ctx.textAlign = 'center';
         ctx.font = '11px monospace';
         ctx.fillStyle = COL_ACC;
-        ctx.fillText('Nie zapamiętuj wzorów — narysuj punkt na kole i odczytaj znaki.', W/2, H - 12);
+        ctx.fillText(T('Nie zapamiętuj wzorów — narysuj punkt na kole i odczytaj znaki.', 'Do not memorise formulas — draw the point on the circle and read the signs.'), W/2, H - 12);
 
         ctx.restore();
       },
@@ -657,6 +705,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     canvasId: 'cv',
     challenges,
     lsKey: 'warsztat:trig_quadrants:completed',
+    wrapupEn: 'Three rules: (1) sign of $\\sin$ = sign of $y$, sign of $\\cos$ = sign of $x$ — the quadrant tells you everything; (2) $180°-\\alpha$ = reflection across $y$: $\\sin$ unchanged, $\\cos$ changes sign; (3) $-\\alpha$ = reflection across $x$: $\\cos$ unchanged (even), $\\sin$ changes sign (odd). When in doubt — draw the unit circle.',
     wrapup: 'Trzy zasady: (1) znak $\\sin$ = znak $y$, znak $\\cos$ = znak $x$ — ćwiartka mówi Ci wszystko; (2) $180°-\\alpha$ = odbicie przez oś $y$: $\\sin$ zostaje, $\\cos$ zmienia znak; (3) $-\\alpha$ = odbicie przez oś $x$: $\\cos$ zostaje (parzysty), $\\sin$ zmienia znak (nieparzysty). Gdy zapomnisz wzoru — narysuj kółko.',
     onFrame({ ch }) {
       ctx.save();

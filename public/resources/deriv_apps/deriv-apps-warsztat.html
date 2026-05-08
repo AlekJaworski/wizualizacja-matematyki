@@ -83,7 +83,7 @@
 
 <script type="module">
 import { GraphView } from '../lib/graph-core.js';
-import { initWarsztat } from '../lib/warsztat-core.js';
+import { initWarsztat, T } from '../lib/warsztat-core.js';
 {
   const cv = document.getElementById('cv');
   const ctx = cv.getContext('2d');
@@ -148,29 +148,45 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     // ─── Ch.1 ─────────────────────────────────────────────────────────
     {
       id: 'ch1',
-      title: 'Pudełko z kartonu',
-      desc: 'Z arkusza $20 \\times 30$ wycinamy kwadratowe rogi o boku $x$ i zaginamy brzegi. Jakie $x$ daje maksymalną objętość otwartego pudełka?',
+      title:   'Pudełko z kartonu',
+      titleEn: 'Cardboard box',
+      desc:    'Z arkusza $20 \\times 30$ wycinamy kwadratowe rogi o boku $x$ i zaginamy brzegi. Jakie $x$ daje maksymalną objętość otwartego pudełka?',
+      descEn:  'From a $20 \\times 30$ sheet you cut square corners of side $x$ and fold up the edges. Which $x$ gives the largest volume of the open-top box?',
       drawBackground: 'graph',
       init() { C.ch1Pick = null; },
       predict: {
-        question: 'Zanim cokolwiek policzysz — jaką zmienną weźmiesz pod pochodną?',
+        question:   'Zanim cokolwiek policzysz — jaką zmienną weźmiesz pod pochodną?',
+        questionEn: 'Before computing anything — which variable will you differentiate with respect to?',
         options: [
-          { label: 'długość arkusza', correct: false, why: 'Długość arkusza to $30$ — ustalona wartość, nie zmienna. Nie możesz po niej różniczkować.' },
-          { label: 'bok wycinanego kwadratu $x$', correct: true, why: 'Tak. $x$ jest jedyną wielkością, którą wybierasz. Wszystko inne (długość, szerokość, wysokość pudełka) wyrazisz przez $x$.' },
-          { label: 'wysokość pudełka oddzielnie', correct: false, why: 'Wysokość pudełka to dokładnie $x$ — ten sam parametr. Nie ma dwóch niezależnych zmiennych.' },
+          { label:   'długość arkusza',
+            labelEn: 'length of the sheet',
+            correct: false,
+            why:   'Długość arkusza to $30$ — ustalona wartość, nie zmienna. Nie możesz po niej różniczkować.',
+            whyEn: 'The length of the sheet is $30$ — a fixed value, not a variable. You can’t differentiate with respect to a constant.' },
+          { label:   'bok wycinanego kwadratu $x$',
+            labelEn: 'side $x$ of the cut-out square',
+            correct: true,
+            why:   'Tak. $x$ jest jedyną wielkością, którą wybierasz. Wszystko inne (długość, szerokość, wysokość pudełka) wyrazisz przez $x$.',
+            whyEn: 'Yes. $x$ is the only quantity you choose. Everything else (length, width, height of the box) is expressed in terms of $x$.' },
+          { label:   'wysokość pudełka oddzielnie',
+            labelEn: 'box height separately',
+            correct: false,
+            why:   'Wysokość pudełka to dokładnie $x$ — ten sam parametr. Nie ma dwóch niezależnych zmiennych.',
+            whyEn: 'The box height equals $x$ — the same parameter. There aren’t two independent variables.' },
         ],
       },
       choices: {
-        question: 'Który wzór na objętość $V(x)$ jest poprawny?',
+        question:   'Który wzór na objętość $V(x)$ jest poprawny?',
+        questionEn: 'Which formula for the volume $V(x)$ is correct?',
         options: [
-          { id: 'a', label: '$V(x) = 20 \\cdot 30 \\cdot x$', correct: false },
-          { id: 'b', label: '$V(x) = (20 - 2x)(30 - 2x) \\cdot x$', correct: true },
-          { id: 'c', label: '$V(x) = (20 - x)(30 - x) \\cdot x$', correct: false },
+          { id: 'a', label: '$V(x) = 20 \\cdot 30 \\cdot x$',           labelEn: '$V(x) = 20 \\cdot 30 \\cdot x$',           correct: false },
+          { id: 'b', label: '$V(x) = (20 - 2x)(30 - 2x) \\cdot x$',     labelEn: '$V(x) = (20 - 2x)(30 - 2x) \\cdot x$',     correct: true },
+          { id: 'c', label: '$V(x) = (20 - x)(30 - x) \\cdot x$',       labelEn: '$V(x) = (20 - x)(30 - x) \\cdot x$',       correct: false },
         ],
         pick(id) { C.ch1Pick = id; },
       },
       pips() {
-        return [{ label: 'wzór na $V(x)$ wybrany', ok: C.ch1Pick === 'b' }];
+        return [{ label: T('wzór na $V(x)$ wybrany', 'formula for $V(x)$ chosen'), ok: C.ch1Pick === 'b' }];
       },
       solved() { return C.ch1Pick === 'b'; },
       hints: [
@@ -178,51 +194,70 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② Wysokość pudełka to $x$. $V = \\text{długość} \\cdot \\text{szerokość} \\cdot \\text{wysokość} = (30-2x)(20-2x) \\cdot x$.',
         '③ $V\'(x) = 0$ dla $x \\approx 3{,}92$ (z równania kwadratowego). Sprawdź dziedzinę: $0 < x < 10$.',
       ],
-      solvedMsg: 'Schemat pracy: tekst → zmienna → funkcja → pochodna → miejsce zerowe → sprawdzenie dziedziny. Przy wycinaniu kwadratów z rogów każdy bok skraca się o $2x$, a nie o $x$.',
+      hintsEn: [
+        '① After cutting an $x \\times x$ square from each corner, the $20$ and $30$ sides each shrink **by $2x$** (one $x$ off each end).',
+        '② The box height is $x$. $V = \\text{length} \\cdot \\text{width} \\cdot \\text{height} = (30-2x)(20-2x) \\cdot x$.',
+        '③ $V\'(x) = 0$ at $x \\approx 3.92$ (from a quadratic equation). Check the domain: $0 < x < 10$.',
+      ],
+      solvedMsg:   'Schemat pracy: tekst → zmienna → funkcja → pochodna → miejsce zerowe → sprawdzenie dziedziny. Przy wycinaniu kwadratów z rogów każdy bok skraca się o $2x$, a nie o $x$.',
+      solvedMsgEn: 'The workflow: words → variable → function → derivative → critical point → domain check. When cutting squares from corners, each side loses $2x$ in total, not $x$.',
       view: { xRange: [-1.5, 11], yRange: [-100, 700] },
       draw() {
-        // plot V(x) for x ∈ [0, 10]
         view.plotFn(V1, { color: COL_FN, domain: [0, 10], lineWidth: 2.5 });
-        // critical point
         view.dot(X_CRIT_1, V_MAX_1, { radius: 6, color: COL_CRIT });
         view.segment(X_CRIT_1, 0, X_CRIT_1, V_MAX_1, { color: COL_CRIT, alpha: 0.4, dash: [4,4], lineWidth: 1.2 });
-        view.label('x\u2248' + fmt(X_CRIT_1), X_CRIT_1, -20, { color: COL_CRIT, align: 'center', font: '11px monospace' });
-        view.label('V\u2248' + fmt(V_MAX_1), X_CRIT_1 + 0.2, V_MAX_1, { color: COL_CRIT, align: 'left', font: '11px monospace' });
-        // domain endpoints
+        view.label('x≈' + fmt(X_CRIT_1), X_CRIT_1, -20, { color: COL_CRIT, align: 'center', font: '11px monospace' });
+        view.label('V≈' + fmt(V_MAX_1), X_CRIT_1 + 0.2, V_MAX_1, { color: COL_CRIT, align: 'left', font: '11px monospace' });
         view.dot(0, 0, { radius: 5, color: COL_END });
         view.dot(10, 0, { radius: 5, color: COL_END });
         view.label('V(0)=0', 0, 40, { color: COL_END, align: 'left', font: '10px monospace', offsetX: 4 });
         view.label('V(10)=0', 10, 40, { color: COL_END, align: 'right', font: '10px monospace', offsetX: -4 });
-        infoBox('V(x) = x(20\u22122x)(30\u22122x),  x \u2208 (0, 10)', W/2, 22, COL_FN);
+        infoBox('V(x) = x(20−2x)(30−2x),  x ∈ (0, 10)', W/2, 22, COL_FN);
       },
     },
 
     // ─── Ch.2 ─────────────────────────────────────────────────────────
     {
       id: 'ch2',
-      title: 'Ogrodzenie wzdłuż rzeki',
-      desc: 'Prostokątne pole nad rzeką — ogrodzenie tylko z trzech stron (rzeka zastępuje czwartą). Masz $100$ m siatki. Jakie wymiary dają największe pole?',
+      title:   'Ogrodzenie wzdłuż rzeki',
+      titleEn: 'Fence along a river',
+      desc:    'Prostokątne pole nad rzeką — ogrodzenie tylko z trzech stron (rzeka zastępuje czwartą). Masz $100$ m siatki. Jakie wymiary dają największe pole?',
+      descEn:  'Rectangular field by a river — fence only on three sides (the river covers the fourth). You have $100$ m of fencing. What dimensions give the largest area?',
       drawBackground: 'graph',
       init() { C.ch2Pick = null; },
       predict: {
-        question: 'Ogrodzenie to 3 boki. Które 3 boki?',
+        question:   'Ogrodzenie to 3 boki. Które 3 boki?',
+        questionEn: 'The fence covers 3 sides. Which 3 sides?',
         options: [
-          { label: '2 długości + szerokość', correct: true, why: 'Tak — rzeka zastępuje jedną z długości. Zostają dwie szerokości prostopadłe do rzeki plus jeden bok równoległy do niej.' },
-          { label: '2 szerokości + długość', correct: false, why: 'Nazewnictwo drugorzędne — kluczowe, żeby rzeka zastępowała dokładnie JEDEN bok, a dwa równoległe do niej boki to byłaby ogrodzenie z obu stron rzeki.' },
-          { label: '4 boki jak zawsze', correct: false, why: 'Wtedy rzeka nie daje żadnej oszczędności — a cały sens zadania polega na tym, że jeden bok masz za darmo.' },
+          { label:   '2 długości + szerokość',
+            labelEn: '2 lengths + width',
+            correct: true,
+            why:   'Tak — rzeka zastępuje jedną z długości. Zostają dwie szerokości prostopadłe do rzeki plus jeden bok równoległy do niej.',
+            whyEn: 'Yes — the river replaces one of the long sides. You’re left with two widths perpendicular to the river plus one side parallel to it.' },
+          { label:   '2 szerokości + długość',
+            labelEn: '2 widths + length',
+            correct: false,
+            why:   'Nazewnictwo drugorzędne — kluczowe, żeby rzeka zastępowała dokładnie JEDEN bok, a dwa równoległe do niej boki to byłaby ogrodzenie z obu stron rzeki.',
+            whyEn: 'The naming is secondary — the key is that the river replaces exactly ONE side; two sides parallel to the river would mean fencing on both banks.' },
+          { label:   '4 boki jak zawsze',
+            labelEn: 'all 4 sides as usual',
+            correct: false,
+            why:   'Wtedy rzeka nie daje żadnej oszczędności — a cały sens zadania polega na tym, że jeden bok masz za darmo.',
+            whyEn: 'Then the river saves you nothing — but the whole point is that one side comes for free.' },
         ],
       },
       choices: {
-        question: 'Niech $x$ = długość boku prostopadłego do rzeki. Który wzór na pole $P(x)$ jest poprawny?',
+        question:   'Niech $x$ = długość boku prostopadłego do rzeki. Który wzór na pole $P(x)$ jest poprawny?',
+        questionEn: 'Let $x$ = length of the side perpendicular to the river. Which formula for the area $P(x)$ is correct?',
         options: [
-          { id: 'a', label: '$P(x) = x \\cdot (100 - 2x)$', correct: true },
-          { id: 'b', label: '$P(x) = x \\cdot (100 - x)$', correct: false },
-          { id: 'c', label: '$P(x) = 100 \\cdot x$', correct: false },
+          { id: 'a', label: '$P(x) = x \\cdot (100 - 2x)$', labelEn: '$P(x) = x \\cdot (100 - 2x)$', correct: true },
+          { id: 'b', label: '$P(x) = x \\cdot (100 - x)$',  labelEn: '$P(x) = x \\cdot (100 - x)$',  correct: false },
+          { id: 'c', label: '$P(x) = 100 \\cdot x$',         labelEn: '$P(x) = 100 \\cdot x$',         correct: false },
         ],
         pick(id) { C.ch2Pick = id; },
       },
       pips() {
-        return [{ label: 'wzór na $P(x)$ wybrany', ok: C.ch2Pick === 'a' }];
+        return [{ label: T('wzór na $P(x)$ wybrany', 'formula for $P(x)$ chosen'), ok: C.ch2Pick === 'a' }];
       },
       solved() { return C.ch2Pick === 'a'; },
       hints: [
@@ -230,7 +265,13 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② $y = 100 - 2x$. Pole: $P = x \\cdot y = x(100 - 2x)$.',
         '③ $P\'(x) = 100 - 4x = 0 \\Rightarrow x = 25$. $y = 50$. Pole maks $= 1250$ m².',
       ],
-      solvedMsg: 'W zadaniach, w których jeden z boków nie wymaga ogrodzenia, warto zacząć od szkicu sytuacji — pozwala on od razu zobaczyć, które boki składają się na długość ogrodzenia.',
+      hintsEn: [
+        '① The river replaces one of the long sides. The fence is $2x + y$ where $x$ is the width and $y$ the side parallel to the river.',
+        '② $y = 100 - 2x$. Area: $P = x \\cdot y = x(100 - 2x)$.',
+        '③ $P\'(x) = 100 - 4x = 0 \\Rightarrow x = 25$. $y = 50$. Maximum area $= 1250$ m².',
+      ],
+      solvedMsg:   'W zadaniach, w których jeden z boków nie wymaga ogrodzenia, warto zacząć od szkicu sytuacji — pozwala on od razu zobaczyć, które boki składają się na długość ogrodzenia.',
+      solvedMsgEn: 'In problems where one side needs no fence, start with a sketch — it instantly shows which sides add up to the fence length.',
       view: { xRange: [-8, 58], yRange: [-200, 1500] },
       draw() {
         view.plotFn(P2, { color: COL_FN, domain: [0, 50], lineWidth: 2.5 });
@@ -242,37 +283,53 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         view.dot(50, 0, { radius: 5, color: COL_END });
         view.label('P(0)=0', 0, 80, { color: COL_END, align: 'left', font: '10px monospace', offsetX: 4 });
         view.label('P(50)=0', 50, 80, { color: COL_END, align: 'right', font: '10px monospace', offsetX: -4 });
-        infoBox('P(x) = x(100 \u2212 2x),  x \u2208 (0, 50)', W/2, 22, COL_FN);
+        infoBox('P(x) = x(100 − 2x),  x ∈ (0, 50)', W/2, 22, COL_FN);
       },
     },
 
     // ─── Ch.3 ─────────────────────────────────────────────────────────
     {
       id: 'ch3',
-      title: 'Najmniejsza suma',
-      desc: 'Znajdź dwie liczby dodatnie, których iloczyn jest równy $100$, a suma jest minimalna.',
+      title:   'Najmniejsza suma',
+      titleEn: 'Smallest sum',
+      desc:    'Znajdź dwie liczby dodatnie, których iloczyn jest równy $100$, a suma jest minimalna.',
+      descEn:  'Find two positive numbers whose product equals $100$ and whose sum is minimised.',
       drawBackground: 'graph',
       init() { C.ch3Pick = null; },
       predict: {
-        question: 'Intuicja: suma jest minimalna, gdy liczby są...',
+        question:   'Intuicja: suma jest minimalna, gdy liczby są...',
+        questionEn: 'Intuition: the sum is smallest when the numbers are...',
         options: [
-          { label: 'bardzo różne (np. $1$ i $100$)', correct: false, why: 'Wtedy suma to $101$ — olbrzymia. Im bardziej różne, tym jedna z nich eksploduje.' },
-          { label: 'równe', correct: true, why: 'Tak. To szczególny przypadek nierówności AM-GM: gdy iloczyn jest ustalony, suma minimalna wypada dla $a = b$.' },
-          { label: 'obie wielkie', correct: false, why: 'Jeśli obie są wielkie, a iloczyn $= 100$, to obie nie mogą być wielkie jednocześnie (wtedy iloczyn byłby gigantyczny).' },
+          { label:   'bardzo różne (np. $1$ i $100$)',
+            labelEn: 'very different (e.g. $1$ and $100$)',
+            correct: false,
+            why:   'Wtedy suma to $101$ — olbrzymia. Im bardziej różne, tym jedna z nich eksploduje.',
+            whyEn: 'Then the sum is $101$ — huge. The more unequal they get, the more one of them blows up.' },
+          { label:   'równe',
+            labelEn: 'equal',
+            correct: true,
+            why:   'Tak. To szczególny przypadek nierówności AM-GM: gdy iloczyn jest ustalony, suma minimalna wypada dla $a = b$.',
+            whyEn: 'Yes. A special case of AM-GM: when the product is fixed, the sum is minimised at $a = b$.' },
+          { label:   'obie wielkie',
+            labelEn: 'both large',
+            correct: false,
+            why:   'Jeśli obie są wielkie, a iloczyn $= 100$, to obie nie mogą być wielkie jednocześnie (wtedy iloczyn byłby gigantyczny).',
+            whyEn: 'If both were large and the product $= 100$, both can’t be large at once (the product would be huge).' },
         ],
       },
       choices: {
-        question: 'Wybierz parę $(a, b)$ z iloczynem $100$ i najmniejszą sumą:',
+        question:   'Wybierz parę $(a, b)$ z iloczynem $100$ i najmniejszą sumą:',
+        questionEn: 'Pick the pair $(a, b)$ with product $100$ and smallest sum:',
         options: [
-          { id: 'a', label: '$a = 1,\\ b = 100$ (suma = 101)', correct: false },
-          { id: 'b', label: '$a = 10,\\ b = 10$ (suma = 20)', correct: true },
-          { id: 'c', label: '$a = 25,\\ b = 4$ (suma = 29)', correct: false },
-          { id: 'd', label: '$a = 50,\\ b = 2$ (suma = 52)', correct: false },
+          { id: 'a', label: '$a = 1,\\ b = 100$ (suma = 101)',  labelEn: '$a = 1,\\ b = 100$ (sum = 101)',  correct: false },
+          { id: 'b', label: '$a = 10,\\ b = 10$ (suma = 20)',   labelEn: '$a = 10,\\ b = 10$ (sum = 20)',   correct: true },
+          { id: 'c', label: '$a = 25,\\ b = 4$ (suma = 29)',     labelEn: '$a = 25,\\ b = 4$ (sum = 29)',     correct: false },
+          { id: 'd', label: '$a = 50,\\ b = 2$ (suma = 52)',     labelEn: '$a = 50,\\ b = 2$ (sum = 52)',     correct: false },
         ],
         pick(id) { C.ch3Pick = id; },
       },
       pips() {
-        return [{ label: 'para $(a,b)$ z minimalną sumą', ok: C.ch3Pick === 'b' }];
+        return [{ label: T('para $(a,b)$ z minimalną sumą', 'pair $(a,b)$ with minimum sum'), ok: C.ch3Pick === 'b' }];
       },
       solved() { return C.ch3Pick === 'b'; },
       hints: [
@@ -280,7 +337,13 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② $S(a) = a + \\frac{100}{a}$. Policz $S\'(a) = 1 - \\frac{100}{a^2}$.',
         '③ $S\'(a) = 0 \\Rightarrow a^2 = 100 \\Rightarrow a = 10$. Wtedy $b = 10$, $S = 20$.',
       ],
-      solvedMsg: 'Gdy iloczyn dwóch liczb dodatnich jest ustalony, minimum sumy uzyskujemy, gdy obie wartości są równe. To szczególny przypadek nierówności między średnią arytmetyczną a geometryczną.',
+      hintsEn: [
+        '① Let $a$ be the first number. From the constraint $a \\cdot b = 100$: $b = \\frac{100}{a}$.',
+        '② $S(a) = a + \\frac{100}{a}$. Compute $S\'(a) = 1 - \\frac{100}{a^2}$.',
+        '③ $S\'(a) = 0 \\Rightarrow a^2 = 100 \\Rightarrow a = 10$. Then $b = 10$, $S = 20$.',
+      ],
+      solvedMsg:   'Gdy iloczyn dwóch liczb dodatnich jest ustalony, minimum sumy uzyskujemy, gdy obie wartości są równe. To szczególny przypadek nierówności między średnią arytmetyczną a geometryczną.',
+      solvedMsgEn: 'When the product of two positive numbers is fixed, the sum is minimised when the two values are equal. This is a special case of the AM-GM inequality.',
       view: { xRange: [-3, 32], yRange: [-5, 55] },
       draw() {
         view.plotFn(S3, { color: COL_FN, domain: [0.5, 30], lineWidth: 2.5 });
@@ -298,13 +361,13 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     canvasId: 'cv',
     challenges,
     lsKey: 'warsztat:deriv_apps:completed',
-    wrapup: 'Schemat zadań optymalizacyjnych: (1) narysuj rysunek; (2) nazwij zmienną; (3) zapisz ograniczenie; (4) wyraź jedno przez drugie; (5) pochodna = 0; (6) sprawdź dziedzinę.',
+    wrapup:   'Schemat zadań optymalizacyjnych: (1) narysuj rysunek; (2) nazwij zmienną; (3) zapisz ograniczenie; (4) wyraź jedno przez drugie; (5) pochodna = 0; (6) sprawdź dziedzinę.',
+    wrapupEn: 'Optimisation playbook: (1) draw a sketch; (2) name a variable; (3) write the constraint; (4) express one quantity in terms of the other; (5) derivative = 0; (6) check the domain.',
     onFrame({ ch }) {
       const v = ch.view || { xRange: [-6, 6], yRange: [-4, 4] };
       makeView(v.xRange, v.yRange);
       view.clear();
       if (ch.drawBackground === 'graph') {
-        // choose a reasonable y-grid step per challenge so the grid isn't too dense
         const yStep = (v.yRange[1] - v.yRange[0]) > 200 ? (v.yRange[1] - v.yRange[0]) / 8 : 5;
         const xStep = (v.xRange[1] - v.xRange[0]) > 20 ? 5 : 1;
         view.drawGrid({ color: 'rgba(255,255,255,0.04)', step: xStep });

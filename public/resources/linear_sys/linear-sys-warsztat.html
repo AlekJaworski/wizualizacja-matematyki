@@ -83,7 +83,7 @@
 </div>
 
 <script type="module">
-import { initWarsztat } from '../lib/warsztat-core.js';
+import { initWarsztat, T } from '../lib/warsztat-core.js';
 {
   const cv = document.getElementById('cv');
   const ctx = cv.getContext('2d');
@@ -135,28 +135,32 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     {
       id: 'ch1',
       title: 'Procent: jabłonie i grusze',
+      titleEn: 'Percentages: apple and pear trees',
       desc: 'W sadzie było $x$ jabłoni i $y$ grusz. Wycięto $5\\%$ jabłoni i $10\\%$ grusz — zostało razem $880$ drzew. Ponadto $60\\%$ tego, co zostało z grusz, to $132$ drzewa. Zapisz układ równań.',
+      descEn: 'An orchard had $x$ apple trees and $y$ pear trees. $5\\%$ of the apples and $10\\%$ of the pears were cut down — leaving $880$ trees in total. Also, $60\\%$ of the remaining pears amount to $132$ trees. Write the system of equations.',
       drawBackground: 'blank',
       init() { C.percentPick = null; },
       predict: {
         question: 'Po wycięciu $5\\%$ jabłoni zostaje:',
+        questionEn: 'After cutting down $5\\%$ of the apple trees, what remains is:',
         options: [
-          { label: '$0{,}05x$',  correct: false, why: 'To liczba jabłoni, które wycięto ($5\\%$ z $x$), a szukamy liczby drzew, które **zostały**.' },
-          { label: '$0{,}95x$',  correct: true,  why: 'Skoro wycięto $5\\%$, zostało $95\\%$, czyli $0{,}95x$ — w zadaniach procentowych operujemy tym, co pozostało.' },
-          { label: '$x - 5$',    correct: false, why: 'Procent jest ułamkiem, a nie liczbą bezwzględną — $5\\%$ jabłoni to $0{,}05x$, a nie $5$ sztuk.' },
+          { label: '$0{,}05x$',  labelEn: '$0.05x$',  correct: false, why: 'To liczba jabłoni, które wycięto ($5\\%$ z $x$), a szukamy liczby drzew, które **zostały**.', whyEn: 'That’s the number of apples that were cut ($5\\%$ of $x$), but we want the number that **remain**.' },
+          { label: '$0{,}95x$',  labelEn: '$0.95x$',  correct: true,  why: 'Skoro wycięto $5\\%$, zostało $95\\%$, czyli $0{,}95x$ — w zadaniach procentowych operujemy tym, co pozostało.', whyEn: 'If $5\\%$ was cut, $95\\%$ remains, i.e. $0.95x$ — in percentage problems we work with what’s left.' },
+          { label: '$x - 5$',    labelEn: '$x - 5$',  correct: false, why: 'Procent jest ułamkiem, a nie liczbą bezwzględną — $5\\%$ jabłoni to $0{,}05x$, a nie $5$ sztuk.', whyEn: 'A percent is a fraction, not an absolute number — $5\\%$ of the apples is $0.05x$, not $5$ trees.' },
         ],
       },
       choices: {
         question: 'Wybierz poprawny układ równań:',
+        questionEn: 'Pick the correct system of equations:',
         options: [
-          { id: 'a', label: '$\\{0{,}95x + 0{,}9y = 880;\\; 0{,}6 \\cdot 0{,}9y = 132\\}$', correct: true  },
-          { id: 'b', label: '$\\{0{,}05x + 0{,}1y = 880;\\; 0{,}6y = 132\\}$',               correct: false },
-          { id: 'c', label: '$\\{x + y = 880;\\; 0{,}6y = 132\\}$',                          correct: false },
+          { id: 'a', label: '$\\{0{,}95x + 0{,}9y = 880;\\; 0{,}6 \\cdot 0{,}9y = 132\\}$', labelEn: '$\\{0.95x + 0.9y = 880;\\; 0.6 \\cdot 0.9y = 132\\}$', correct: true  },
+          { id: 'b', label: '$\\{0{,}05x + 0{,}1y = 880;\\; 0{,}6y = 132\\}$',               labelEn: '$\\{0.05x + 0.1y = 880;\\; 0.6y = 132\\}$',               correct: false },
+          { id: 'c', label: '$\\{x + y = 880;\\; 0{,}6y = 132\\}$',                          labelEn: '$\\{x + y = 880;\\; 0.6y = 132\\}$',                          correct: false },
         ],
         pick(id) { C.percentPick = id; },
       },
       pips() {
-        return [{ label: 'wybrano poprawny układ', ok: C.percentPick === 'a' }];
+        return [{ label: T('wybrano poprawny układ', 'correct system selected'), ok: C.percentPick === 'a' }];
       },
       solved() { return C.percentPick === 'a'; },
       hints: [
@@ -164,7 +168,13 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         "② '$60\\%$ tego, co zostało w sadzie grusz' — grusz zostało $0{,}9y$, więc $60\\%$ z tego: $0{,}6 \\cdot 0{,}9y$.",
         "③ Układ: $0{,}95x + 0{,}9y = 880$ oraz $0{,}54y = 132$. [Zadanie z CKE 2023 — rozwiązanie: $x = 600, y = 200$, sprawdź arytmetykę samodzielnie.]",
       ],
+      hintsEn: [
+        "① 'Cut $5\\%$' means: $95\\%$ remains, i.e. $0.95x$. Always work with what **remains**, not with what was removed.",
+        "② '$60\\%$ of the pears still in the orchard' — pears remaining are $0.9y$, so $60\\%$ of that is $0.6 \\cdot 0.9y$.",
+        "③ The system: $0.95x + 0.9y = 880$ and $0.54y = 132$. [Polish CKE 2023 problem — solution: $x = 600, y = 200$, check the arithmetic yourself.]",
+      ],
       solvedMsg: "Zasada z procentów: 'wycięto $p\\%$' to to samo co 'zostało $(100-p)\\%$'. Równanie zapisujemy na tym, co zostało, bo właśnie o to pyta zadanie.",
+      solvedMsgEn: "Percentage rule: 'cut $p\\%$' is the same as 'remained $(100-p)\\%$'. Write the equation in terms of what remains, because that’s what the problem asks about.",
       draw() {
         textCenter('Sad — rozłożenie zadania', W/2, 26, COL_PAR, 14);
         let y = 60;
@@ -197,28 +207,32 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     {
       id: 'ch2',
       title: 'Mieszanina: dwie solanki',
+      titleEn: 'Mixture: two brines',
       desc: 'Zmieszano $x$ kg roztworu $20\\%$ z $y$ kg roztworu $50\\%$. Otrzymano $60$ kg roztworu $40\\%$. Zapisz układ równań.',
+      descEn: 'Mix $x$ kg of a $20\\%$ solution with $y$ kg of a $50\\%$ solution. The result is $60$ kg of a $40\\%$ solution. Write the system of equations.',
       drawBackground: 'blank',
       init() { C.mixPick = null; },
       predict: {
         question: 'Masa soli w $x$ kg $20\\%$ roztworu to:',
+        questionEn: 'The mass of salt in $x$ kg of a $20\\%$ solution is:',
         options: [
-          { label: '$x$',                correct: false, why: 'Oznaczenie $x$ to masa całego roztworu (wody i soli razem), a sól stanowi tylko część tej masy.' },
-          { label: '$20\\%$ to $0{,}2$ kg', correct: false, why: 'Procent jest ułamkiem masy, a nie liczbą bezwzględną. Dla $x = 10$ kg soli mamy $0{,}2 \\cdot 10 = 2$ kg, a nie $0{,}2$ kg.' },
-          { label: '$0{,}2 \\cdot x$ kg', correct: true,  why: 'Procent razy masa roztworu daje masę składnika (tutaj soli) — to uniwersalna reguła w zadaniach o mieszaninach.' },
+          { label: '$x$',                labelEn: '$x$',                correct: false, why: 'Oznaczenie $x$ to masa całego roztworu (wody i soli razem), a sól stanowi tylko część tej masy.', whyEn: 'The variable $x$ is the mass of the whole solution (water and salt together), and salt is only a fraction of that.' },
+          { label: '$20\\%$ to $0{,}2$ kg', labelEn: '$20\\%$ is $0.2$ kg', correct: false, why: 'Procent jest ułamkiem masy, a nie liczbą bezwzględną. Dla $x = 10$ kg soli mamy $0{,}2 \\cdot 10 = 2$ kg, a nie $0{,}2$ kg.', whyEn: 'A percent is a fraction of the mass, not an absolute number. For $x = 10$ kg, the salt is $0.2 \\cdot 10 = 2$ kg, not $0.2$ kg.' },
+          { label: '$0{,}2 \\cdot x$ kg', labelEn: '$0.2 \\cdot x$ kg', correct: true,  why: 'Procent razy masa roztworu daje masę składnika (tutaj soli) — to uniwersalna reguła w zadaniach o mieszaninach.', whyEn: 'Percent times the mass of the solution gives the mass of the component (here, salt) — that’s the universal rule for mixture problems.' },
         ],
       },
       choices: {
         question: 'Wybierz poprawny układ:',
+        questionEn: 'Pick the correct system:',
         options: [
-          { id: 'a', label: '$\\{x + y = 60;\\; 0{,}2x + 0{,}5y = 0{,}4 \\cdot 60\\}$', correct: true  },
-          { id: 'b', label: '$\\{x + y = 60;\\; 20 + 50 = 40\\}$',                      correct: false },
-          { id: 'c', label: '$\\{0{,}2 + 0{,}5 = 0{,}4;\\; x + y = 60\\}$',             correct: false },
+          { id: 'a', label: '$\\{x + y = 60;\\; 0{,}2x + 0{,}5y = 0{,}4 \\cdot 60\\}$', labelEn: '$\\{x + y = 60;\\; 0.2x + 0.5y = 0.4 \\cdot 60\\}$', correct: true  },
+          { id: 'b', label: '$\\{x + y = 60;\\; 20 + 50 = 40\\}$',                      labelEn: '$\\{x + y = 60;\\; 20 + 50 = 40\\}$',                      correct: false },
+          { id: 'c', label: '$\\{0{,}2 + 0{,}5 = 0{,}4;\\; x + y = 60\\}$',             labelEn: '$\\{0.2 + 0.5 = 0.4;\\; x + y = 60\\}$',             correct: false },
         ],
         pick(id) { C.mixPick = id; },
       },
       pips() {
-        return [{ label: 'wybrano poprawny układ', ok: C.mixPick === 'a' }];
+        return [{ label: T('wybrano poprawny układ', 'correct system selected'), ok: C.mixPick === 'a' }];
       },
       solved() { return C.mixPick === 'a'; },
       hints: [
@@ -226,7 +240,13 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② $x + y = 60$ (masa). $0{,}2x + 0{,}5y = 24$ (sól).',
         '③ Rozwiązanie: $y = 40, x = 20$.',
       ],
+      hintsEn: [
+        '① Salt in each solution: percent ⋅ mass of the solution. After mixing: total salt = new percent ⋅ new mass.',
+        '② $x + y = 60$ (mass). $0.2x + 0.5y = 24$ (salt).',
+        '③ Solution: $y = 40, x = 20$.',
+      ],
       solvedMsg: 'W zadaniach o mieszaninach zapisujemy dwa bilanse — masy i masy składnika. Procenty nie sumują się bezpośrednio, bo waży je masa całego roztworu.',
+      solvedMsgEn: 'In mixture problems we write two balances — total mass and mass of the component. Percents don’t add directly, because each is weighted by the mass of the whole solution.',
       draw() {
         textCenter('Bilans soli i masy', W/2, 26, COL_PAR, 14);
         // Two beakers
@@ -261,28 +281,32 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     {
       id: 'ch3',
       title: 'Wiek: Jan i Kasia',
+      titleEn: 'Ages: John and Kate',
       desc: 'Jan jest $3$ razy starszy od Kasi. Za $10$ lat Jan będzie $2$ razy starszy od Kasi. Zapisz układ równań.',
+      descEn: 'John is $3$ times as old as Kate. In $10$ years John will be $2$ times as old as Kate. Write the system of equations.',
       drawBackground: 'blank',
       init() { C.agePick = null; },
       predict: {
         question: "'$3$ razy starszy' oznacza:",
+        questionEn: "'$3$ times as old' means:",
         options: [
-          { label: '$J = K + 3$',   correct: false, why: "Takie równanie odpowiada sformułowaniu '$3$ lata starszy' — to dodawanie, a '$3$ razy starszy' oznacza mnożenie." },
-          { label: '$J = 3K$',      correct: true,  why: "Zapis '$n$ razy starszy' przekłada się na mnożenie wieku przez $n$, więc Jan ma trzy razy tyle lat co Kasia." },
-          { label: '$J/K = 3\\%$',  correct: false, why: 'Procenty nie mają tu zastosowania — to zwykły stosunek i zapisujemy go jako $J = 3K$.' },
+          { label: '$J = K + 3$',   labelEn: '$J = K + 3$',   correct: false, why: "Takie równanie odpowiada sformułowaniu '$3$ lata starszy' — to dodawanie, a '$3$ razy starszy' oznacza mnożenie.", whyEn: "That equation matches '$3$ years older' — addition. '$3$ times as old' means multiplication." },
+          { label: '$J = 3K$',      labelEn: '$J = 3K$',      correct: true,  why: "Zapis '$n$ razy starszy' przekłada się na mnożenie wieku przez $n$, więc Jan ma trzy razy tyle lat co Kasia.", whyEn: "'$n$ times as old' translates into multiplying the age by $n$, so John’s age is three times Kate’s." },
+          { label: '$J/K = 3\\%$',  labelEn: '$J/K = 3\\%$',  correct: false, why: 'Procenty nie mają tu zastosowania — to zwykły stosunek i zapisujemy go jako $J = 3K$.', whyEn: 'Percents don’t apply here — it’s a plain ratio, written as $J = 3K$.' },
         ],
       },
       choices: {
         question: 'Wybierz poprawny układ:',
+        questionEn: 'Pick the correct system:',
         options: [
-          { id: 'a', label: '$\\{J = 3K;\\; J + 10 = 2(K + 10)\\}$', correct: true  },
-          { id: 'b', label: '$\\{J = 3K;\\; J = 2K + 10\\}$',         correct: false },
-          { id: 'c', label: '$\\{J = K + 3;\\; J = 2K\\}$',           correct: false },
+          { id: 'a', label: '$\\{J = 3K;\\; J + 10 = 2(K + 10)\\}$', labelEn: '$\\{J = 3K;\\; J + 10 = 2(K + 10)\\}$', correct: true  },
+          { id: 'b', label: '$\\{J = 3K;\\; J = 2K + 10\\}$',         labelEn: '$\\{J = 3K;\\; J = 2K + 10\\}$',         correct: false },
+          { id: 'c', label: '$\\{J = K + 3;\\; J = 2K\\}$',           labelEn: '$\\{J = K + 3;\\; J = 2K\\}$',           correct: false },
         ],
         pick(id) { C.agePick = id; },
       },
       pips() {
-        return [{ label: 'wybrano poprawny układ', ok: C.agePick === 'a' }];
+        return [{ label: T('wybrano poprawny układ', 'correct system selected'), ok: C.agePick === 'a' }];
       },
       solved() { return C.agePick === 'a'; },
       hints: [
@@ -290,7 +314,13 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         "② 'Za $10$ lat': dodaj $10$ do KAŻDEGO wieku. Jan za $10$ lat: $J+10$. Kasia: $K+10$.",
         "③ Układ: $J = 3K$ oraz $J + 10 = 2(K+10)$. Podstaw: $3K + 10 = 2K + 20 \\Rightarrow K = 10, J = 30$.",
       ],
+      hintsEn: [
+        "① 'Twice as old' = multiplication. '$2$ years older' = addition. The distinction is critical.",
+        "② 'In $10$ years': add $10$ to EVERY age. John in $10$ years: $J+10$. Kate: $K+10$.",
+        "③ The system: $J = 3K$ and $J + 10 = 2(K+10)$. Substitute: $3K + 10 = 2K + 20 \\Rightarrow K = 10, J = 30$.",
+      ],
       solvedMsg: "Sformułowania 'razy' i 'o tyle a tyle' to zupełnie różne operacje. Gdy w zadaniu mija czas, dodajemy go do wieku obu osób, zanim zapiszemy warunek.",
+      solvedMsgEn: "'Times as much' and 'this much more' are completely different operations. When time passes in the problem, add it to both people’s ages before writing the condition.",
       draw() {
         textCenter('Oś czasu', W/2, 26, COL_PAR, 14);
         // Timeline
@@ -347,28 +377,32 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     {
       id: 'ch4',
       title: 'Ruch: turysta i rowerzysta',
+      titleEn: 'Motion: hiker and cyclist',
       desc: 'Miejscowości $A$ i $B$ dzieli $60$ km. Z $A$ wychodzi turysta idący $5$ km/h, z $B$ rowerzysta jadący $15$ km/h naprzeciw. Po ilu godzinach się spotkają?',
+      descEn: 'Towns $A$ and $B$ are $60$ km apart. A hiker leaves $A$ walking at $5$ km/h; a cyclist leaves $B$ riding at $15$ km/h toward the hiker. After how many hours do they meet?',
       drawBackground: 'blank',
       init() { C.speedPick = null; },
       predict: {
         question: 'W ruchu przeciwległym prędkość zbliżania to:',
+        questionEn: 'For motion toward each other, the closing speed is:',
         options: [
-          { label: '$15 - 5 = 10$ km/h',        correct: false, why: 'Odejmowanie dotyczy ruchu w tę samą stronę (pościg), a tu osoby poruszają się naprzeciw siebie.' },
-          { label: '$15 + 5 = 20$ km/h',        correct: true,  why: 'W ruchu naprzeciw prędkości zbliżania sumują się — każdy uczestnik pokonuje część tych $60$ km.' },
-          { label: '$\\sqrt{15^2 + 5^2}$ km/h', correct: false, why: 'Twierdzenie Pitagorasa dotyczy ruchów prostopadłych, a tutaj obie prędkości są zgrane wzdłuż jednej prostej.' },
+          { label: '$15 - 5 = 10$ km/h',        labelEn: '$15 - 5 = 10$ km/h',        correct: false, why: 'Odejmowanie dotyczy ruchu w tę samą stronę (pościg), a tu osoby poruszają się naprzeciw siebie.', whyEn: 'Subtraction applies to motion in the same direction (a chase), but here the two are moving toward each other.' },
+          { label: '$15 + 5 = 20$ km/h',        labelEn: '$15 + 5 = 20$ km/h',        correct: true,  why: 'W ruchu naprzeciw prędkości zbliżania sumują się — każdy uczestnik pokonuje część tych $60$ km.', whyEn: 'For motion toward each other the closing speeds add — each participant covers part of those $60$ km.' },
+          { label: '$\\sqrt{15^2 + 5^2}$ km/h', labelEn: '$\\sqrt{15^2 + 5^2}$ km/h', correct: false, why: 'Twierdzenie Pitagorasa dotyczy ruchów prostopadłych, a tutaj obie prędkości są zgrane wzdłuż jednej prostej.', whyEn: 'Pythagoras applies to perpendicular motions, but here both velocities lie along the same line.' },
         ],
       },
       choices: {
         question: 'Wybierz poprawne równanie:',
+        questionEn: 'Pick the correct equation:',
         options: [
-          { id: 'a', label: '$60 = 20 \\cdot t \\Rightarrow t = 3$', correct: true  },
-          { id: 'b', label: '$60 = 10 \\cdot t \\Rightarrow t = 6$', correct: false },
-          { id: 'c', label: '$60 = 15 \\cdot t \\Rightarrow t = 4$', correct: false },
+          { id: 'a', label: '$60 = 20 \\cdot t \\Rightarrow t = 3$', labelEn: '$60 = 20 \\cdot t \\Rightarrow t = 3$', correct: true  },
+          { id: 'b', label: '$60 = 10 \\cdot t \\Rightarrow t = 6$', labelEn: '$60 = 10 \\cdot t \\Rightarrow t = 6$', correct: false },
+          { id: 'c', label: '$60 = 15 \\cdot t \\Rightarrow t = 4$', labelEn: '$60 = 15 \\cdot t \\Rightarrow t = 4$', correct: false },
         ],
         pick(id) { C.speedPick = id; },
       },
       pips() {
-        return [{ label: 'wybrano poprawne równanie', ok: C.speedPick === 'a' }];
+        return [{ label: T('wybrano poprawne równanie', 'correct equation selected'), ok: C.speedPick === 'a' }];
       },
       solved() { return C.speedPick === 'a'; },
       hints: [
@@ -376,7 +410,13 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② $v_{\\text{zbl}} = 15 + 5 = 20$ km/h. Odległość do pokonania: $60$ km.',
         '③ $t = \\frac{\\text{odległość}}{\\text{prędkość}} = \\frac{60}{20} = 3$ godziny.',
       ],
+      hintsEn: [
+        '① Motion **toward each other** → speeds add (they close the gap faster).',
+        '② $v_{\\text{close}} = 15 + 5 = 20$ km/h. Distance to cover: $60$ km.',
+        '③ $t = \\frac{\\text{distance}}{\\text{speed}} = \\frac{60}{20} = 3$ hours.',
+      ],
       solvedMsg: 'W ruchu przeciwnym prędkości dodajemy, w ruchu w tę samą stronę — odejmujemy. Warto pamiętać o kierunku, zanim zapiszemy równanie czasu.',
+      solvedMsgEn: 'For opposing motion, speeds add; for motion in the same direction, they subtract. Check the direction before writing the time equation.',
       draw() {
         textCenter('Trasa A ─── B (60 km)', W/2, 26, COL_PAR, 14);
         // Road
@@ -437,6 +477,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     challenges,
     lsKey: 'warsztat:linear-sys:completed',
     wrapup: 'Dwa kroki w zadaniach z treścią: (1) wychwytujemy wszystkie warunki ("wycięto $p\\%$", "dwa razy starszy") — każdy z nich przekłada się na osobne równanie; (2) zapisujemy je w zmiennych, tłumacząc język potoczny na matematyczny.',
+    wrapupEn: 'Two steps for word problems: (1) catch every condition ("cut $p\\%$", "twice as old") — each becomes a separate equation; (2) write them in variables, translating everyday language into math.',
     onFrame() {
       ctx.clearRect(0, 0, W, H);
       // subtle backdrop

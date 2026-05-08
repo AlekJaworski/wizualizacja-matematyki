@@ -25,13 +25,13 @@ const SECTIONS = [
     titlePl: "Klasyki maturalne",
     titleEn: "Matura classics",
     subtitlePl: "Kluczowe tematy z najczystszymi Warsztatami",
-    subtitleEn: "Core topics with the cleanest Warsztats",
+    subtitleEn: "Core topics with the cleanest Workshops",
     accent: "#58C4DD",
     items: [
-      { nodeId: "vieta",       match: "Warsztat",  hookPl: "Wzory Viete'a bez delty — pierwiastki wprost ze współczynników." },
-      { nodeId: "derivative",  match: "Warsztat",  hookPl: "Reguły pochodnych na przykładach, z wizualizacją stycznej." },
-      { nodeId: "trig_basic",  match: "Warsztat",  hookPl: "Trygonometria od okręgu jednostkowego, krok po kroku." },
-      { nodeId: "probability", match: "Warsztat",  hookPl: "Drzewo zdarzeń oraz reguły dodawania i mnożenia na konkretnych przykładach." },
+      { nodeId: "vieta",       match: "Warsztat",  hookPl: "Wzory Viete'a bez delty — pierwiastki wprost ze współczynników.",             hookEn: "Vieta's formulas — roots straight from coefficients, no discriminant needed." },
+      { nodeId: "derivative",  match: "Warsztat",  hookPl: "Reguły pochodnych na przykładach, z wizualizacją stycznej.",                    hookEn: "Derivative rules through examples, with a live tangent-line visualisation." },
+      { nodeId: "trig_basic",  match: "Warsztat",  hookPl: "Trygonometria od okręgu jednostkowego, krok po kroku.",                        hookEn: "Trigonometry built from the unit circle — one step at a time." },
+      { nodeId: "probability", match: "Warsztat",  hookPl: "Drzewo zdarzeń oraz reguły dodawania i mnożenia na konkretnych przykładach.",  hookEn: "Event trees plus addition and multiplication rules on concrete examples." },
     ],
   },
   {
@@ -42,10 +42,10 @@ const SECTIONS = [
     subtitleEn: "Errors that quietly cost points every matura",
     accent: "#FF6B6B",
     items: [
-      { nodeId: "linearity_fallacy", match: "Warsztat", hookPl: "$(a+b)^2 \\neq a^2 + b^2$ i pięć podobnych pułapek w jednym miejscu." },
-      { nodeId: "equation_domain",   match: "Warsztat", hookPl: "Dlaczego dzielenie przez $x$ gubi rozwiązania — i jak tego uniknąć." },
-      { nodeId: "trig_basic",        match: "kwadrant",  hookPl: "Znaki sinusa i kosinusa w każdej ćwiartce — reguła z okręgu jednostkowego." },
-      { nodeId: "abs_value",         match: "odleg",     hookPl: "$|x-a|$ jako odległość na osi liczbowej — geometria pokonuje rachunek." },
+      { nodeId: "linearity_fallacy", match: "Warsztat", hookPl: "$(a+b)^2 \\neq a^2 + b^2$ i pięć podobnych pułapek w jednym miejscu.",              hookEn: "$(a+b)^2 \\neq a^2 + b^2$ — and five similar traps, all in one place." },
+      { nodeId: "equation_domain",   match: "Warsztat", hookPl: "Dlaczego dzielenie przez $x$ gubi rozwiązania — i jak tego uniknąć.",            hookEn: "Why dividing by $x$ loses solutions — and how to avoid it." },
+      { nodeId: "trig_basic",        match: "kwadrant",  hookPl: "Znaki sinusa i kosinusa w każdej ćwiartce — reguła z okręgu jednostkowego.",    hookEn: "Signs of sine and cosine in every quadrant — the unit-circle rule." },
+      { nodeId: "abs_value",         match: "odleg",     hookPl: "$|x-a|$ jako odległość na osi liczbowej — geometria pokonuje rachunek.",         hookEn: "$|x-a|$ as distance on the number line — geometry beats algebra." },
     ],
   },
   {
@@ -56,10 +56,10 @@ const SECTIONS = [
     subtitleEn: "Interactive explorers — slide, rotate, watch it move",
     accent: "#83C167",
     items: [
-      { nodeId: "solid_geom",    match: "Warsztat", hookPl: "Ostrosłupy i przekątne w 3D — przekroje pokazane na rzucie izometrycznym." },
-      { nodeId: "fn_transforms", match: "Warsztat", hookPl: "Przesunięcia, odbicia i skalowanie — cztery rodziny na paraboli i sinusoidzie." },
-      { nodeId: "derivative",    match: "Why",       hookPl: "Dlaczego pochodna $x^2$ równa się $2x$ — wyprowadzenie geometryczne." },
-      { nodeId: "integral",      match: "Explor",    hookPl: "Całka jako pole pod wykresem — sumy Riemanna na żywo." },
+      { nodeId: "solid_geom",    match: "Warsztat", hookPl: "Ostrosłupy i przekątne w 3D — przekroje pokazane na rzucie izometrycznym.",          hookEn: "Pyramids and diagonals in 3D — cross-sections shown in isometric projection." },
+      { nodeId: "fn_transforms", match: "Warsztat", hookPl: "Przesunięcia, odbicia i skalowanie — cztery rodziny na paraboli i sinusoidzie.",       hookEn: "Shifts, reflections, and scaling — four families on the parabola and sine curve." },
+      { nodeId: "derivative",    match: "Why",       hookPl: "Dlaczego pochodna $x^2$ równa się $2x$ — wyprowadzenie geometryczne.",                 hookEn: "Why the derivative of $x^2$ equals $2x$ — a geometric proof." },
+      { nodeId: "integral",      match: "Explor",    hookPl: "Całka jako pole pod wykresem — sumy Riemanna na żywo.",                               hookEn: "The integral as area under a curve — Riemann sums in real time." },
     ],
   },
   {
@@ -70,10 +70,10 @@ const SECTIONS = [
     subtitleEn: "Reasoning techniques that transfer across topics",
     accent: "#C78DFF",
     items: [
-      { nodeId: "odtwarzanie_wzorow", match: null, hookPl: "Jak odtworzyć wzór, którego nie pamiętasz — pięć sprawdzonych technik." },
-      { nodeId: "matura_pytania",     match: null, hookPl: "Jak czytać polecenia: „wykaż\" vs „sprawdź\" vs „wyznacz\" i dlaczego to ma znaczenie." },
-      { nodeId: "linearity_fallacy",  match: null, hookPl: "Klasyczne błędy liniowości — i dlaczego intuicja je podpowiada." },
-      { nodeId: "proof",              match: null, hookPl: "Struktura dowodu: założenie → przekształcenia → teza." },
+      { nodeId: "odtwarzanie_wzorow", match: null, hookPl: "Jak odtworzyć wzór, którego nie pamiętasz — pięć sprawdzonych technik.",                                                      hookEn: "How to reconstruct a formula you forgot — five proven techniques." },
+      { nodeId: "matura_pytania",     match: null, hookPl: "Jak czytać polecenia: „wykaż\" vs „sprawdź\" vs „wyznacz\" i dlaczego to ma znaczenie.",                                    hookEn: "Reading the question: \"prove\" vs \"verify\" vs \"find\" — and why the difference matters." },
+      { nodeId: "linearity_fallacy",  match: null, hookPl: "Klasyczne błędy liniowości — i dlaczego intuicja je podpowiada.",                                                           hookEn: "Classic linearity fallacies — and why intuition keeps suggesting them." },
+      { nodeId: "proof",              match: null, hookPl: "Struktura dowodu: założenie → przekształcenia → teza.",                                                                      hookEn: "Proof structure: hypothesis → steps → conclusion." },
     ],
   },
 ];
@@ -170,7 +170,7 @@ export function ShowcaseGallery({ RAW_NODES, SCOPE_COLORS, SCOPE_LABELS, lang, o
             <p style={{ margin: 0, fontSize: 12, color: COLORS.textDim }}>
               {lang === "pl"
                 ? "Ręcznie wybrane Warsztaty i wizualizacje — zacznij bez testu"
-                : "Hand-picked Warsztats and explorers — entry without the quiz"}
+                : "Hand-picked Workshops and explorers — entry without the quiz"}
             </p>
           </div>
         </div>

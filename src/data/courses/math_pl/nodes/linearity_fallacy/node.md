@@ -7,7 +7,7 @@ level: 1
 x: 200
 y: 1060
 resources:
-  - "interactive|linearity-fallacy-warsztat.html|Linearity Fallacy Warsztat|Pułapka liniowości — Warsztat"
+  - "interactive|linearity-fallacy-warsztat.html|Linearity Fallacy Workshop|Pułapka liniowości — Warsztat"
 ---
 Jednym z najczęstszych błędów algebraicznych jest założenie, że funkcja **rozdziela się względem dodawania** — czyli zapisy typu:<br><br>$(a + b)^2 \stackrel{?}{=} a^2 + b^2$<br>$\sqrt{a^2 + b^2} \stackrel{?}{=} a + b$<br>$\log(a + b) \stackrel{?}{=} \log a + \log b$<br>$\sin(\alpha + \beta) \stackrel{?}{=} \sin \alpha + \sin \beta$<br>$\dfrac{1}{a + b} \stackrel{?}{=} \dfrac{1}{a} + \dfrac{1}{b}$<br><br>Wszystkie te równości są **fałszywe** (poza trywialnymi przypadkami, gdy np. $a = 0$). Intuicja, która za nimi stoi, wywodzi się z rozdzielności mnożenia: $c(a+b) = ca + cb$. Taką własność mają jednak wyłącznie funkcje **liniowe** postaci $f(x) = cx$ — a kwadrat, pierwiastek, logarytm, sinus czy odwrotność liniowe nie są, więc rozdzielności nie mają.<br><br>**Reguła ogólna:** $f(a + b) \neq f(a) + f(b)$ dla niemal każdej funkcji spotykanej w szkole. Gdy widzisz taki zapis, warto sprawdzić go podstawieniem (np. $a = b = 1$), zanim przepiszesz go dalej.
 

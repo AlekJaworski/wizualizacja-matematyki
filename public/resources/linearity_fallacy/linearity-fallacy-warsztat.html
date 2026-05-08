@@ -89,7 +89,7 @@
 
 <script type="module">
 import { GraphView } from '../lib/graph-core.js';
-import { initWarsztat } from '../lib/warsztat-core.js';
+import { initWarsztat, T } from '../lib/warsztat-core.js';
 {
   const cv = document.getElementById('cv');
   const ctx = cv.getContext('2d');
@@ -154,16 +154,28 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     // ─── Ch.1: (a + b)² vs a² + b² ─────────────────────────────
     {
       id: 'ch1_square_of_sum',
-      title: 'Kwadrat sumy: $(a+b)^2$',
-      desc: 'Często spotykany błąd to zapis $(a+b)^2 = a^2 + b^2$. Geometrycznie widać, dlaczego jest fałszywy — kwadrat o boku $a+b$ rozkłada się na cztery kawałki, nie na dwa.',
+      title:   'Kwadrat sumy: $(a+b)^2$',
+      titleEn: 'Square of a sum: $(a+b)^2$',
+      desc:    'Często spotykany błąd to zapis $(a+b)^2 = a^2 + b^2$. Geometrycznie widać, dlaczego jest fałszywy — kwadrat o boku $a+b$ rozkłada się na cztery kawałki, nie na dwa.',
+      descEn:  'A common mistake is to write $(a+b)^2 = a^2 + b^2$. Geometrically you can see why it’s false — a square of side $a+b$ splits into four pieces, not two.',
       drawBackground: 'none',
       init() {},
       predict: {
-        question: 'Podstaw $a = 3$, $b = 2$. Ile wynosi $(3 + 2)^2$?',
+        question:   'Podstaw $a = 3$, $b = 2$. Ile wynosi $(3 + 2)^2$?',
+        questionEn: 'Plug in $a = 3$, $b = 2$. What is $(3 + 2)^2$?',
         options: [
-          { label: '$3^2 + 2^2 = 13$', correct: false, why: 'To wynik, jaki dostalibyśmy, gdyby kwadrat był rozdzielny — ale $(3+2)^2 = 5^2 = 25$, a nie $13$. Różnica $12$ to dokładnie $2 \\cdot 3 \\cdot 2$, czyli brakujący człon $2ab$.' },
-          { label: '$5^2 = 25$', correct: true,  why: 'Tak wygląda poprawne podejście — najpierw dodajemy, potem podnosimy do kwadratu. Różnica $25 - 13 = 12$ to właśnie $2ab$, którego brakuje w błędnej wersji.' },
-          { label: '$3 + 2^2 = 7$', correct: false, why: 'Kolejność działań — najpierw nawias $(3+2) = 5$, dopiero potem kwadrat.' },
+          { label: '$3^2 + 2^2 = 13$', labelEn: '$3^2 + 2^2 = 13$',
+            correct: false,
+            why:   'To wynik, jaki dostalibyśmy, gdyby kwadrat był rozdzielny — ale $(3+2)^2 = 5^2 = 25$, a nie $13$. Różnica $12$ to dokładnie $2 \\cdot 3 \\cdot 2$, czyli brakujący człon $2ab$.',
+            whyEn: 'That would be the answer if squaring distributed — but $(3+2)^2 = 5^2 = 25$, not $13$. The difference of $12$ is exactly $2 \\cdot 3 \\cdot 2$, the missing $2ab$ term.' },
+          { label: '$5^2 = 25$', labelEn: '$5^2 = 25$',
+            correct: true,
+            why:   'Tak wygląda poprawne podejście — najpierw dodajemy, potem podnosimy do kwadratu. Różnica $25 - 13 = 12$ to właśnie $2ab$, którego brakuje w błędnej wersji.',
+            whyEn: 'That’s the right approach — add first, then square. The difference $25 - 13 = 12$ is exactly the $2ab$ that the wrong version drops.' },
+          { label: '$3 + 2^2 = 7$', labelEn: '$3 + 2^2 = 7$',
+            correct: false,
+            why:   'Kolejność działań — najpierw nawias $(3+2) = 5$, dopiero potem kwadrat.',
+            whyEn: 'Order of operations — parentheses first $(3+2) = 5$, then the square.' },
         ],
       },
       sliders: [
@@ -172,8 +184,8 @@ import { initWarsztat } from '../lib/warsztat-core.js';
       ],
       pips() {
         return [
-          { label: 'widzisz rozkład $a^2 + 2ab + b^2$', ok: true },
-          { label: 'zmień $a$ lub $b$', ok: C.a !== 3 || C.b !== 2 },
+          { label: T('widzisz rozkład $a^2 + 2ab + b^2$', 'you see the breakdown $a^2 + 2ab + b^2$'), ok: true },
+          { label: T('zmień $a$ lub $b$', 'change $a$ or $b$'), ok: C.a !== 3 || C.b !== 2 },
         ];
       },
       solved() { return C.a !== 3 || C.b !== 2; },
@@ -182,13 +194,29 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② Z tych czterech: jeden to kwadrat $a \\times a = a^2$, drugi to $b \\times b = b^2$, a dwa pozostałe to prostokąty $a \\times b$. Suma wszystkich: $a^2 + b^2 + 2ab$.',
         '③ Więc $(a+b)^2 = a^2 + 2ab + b^2$. Brakujące $2ab$ to ROŻNICA między LHS a RHS w błędnej wersji — geometrycznie dwa prostokąty $a \\times b$, które "gubi się" przy rozdzielaniu.',
       ],
-      solvedMsg: 'Geometryczny dowód: kwadrat o boku $a+b$ ma pole $(a+b)^2 = a^2 + 2ab + b^2$ dla dowolnych $a$ i $b$.',
+      hintsEn: [
+        '① Draw a square of side $(a+b)$. Split each side into a piece of length $a$ and a piece of length $b$. You get a $2 \\times 2$ grid — FOUR rectangles.',
+        '② Of those four: one is the square $a \\times a = a^2$, another $b \\times b = b^2$, and the remaining two are $a \\times b$ rectangles. Total: $a^2 + b^2 + 2ab$.',
+        '③ So $(a+b)^2 = a^2 + 2ab + b^2$. The missing $2ab$ is the gap between LHS and RHS in the wrong version — geometrically the two $a \\times b$ rectangles that get "lost" when distributing.',
+      ],
+      solvedMsg:   'Geometryczny dowód: kwadrat o boku $a+b$ ma pole $(a+b)^2 = a^2 + 2ab + b^2$ dla dowolnych $a$ i $b$.',
+      solvedMsgEn: 'Geometric proof: a square with side $a+b$ has area $(a+b)^2 = a^2 + 2ab + b^2$ for any $a$ and $b$.',
       predictAfter: {
-        question: 'A więc $(a - b)^2 = ?$',
+        question:   'A więc $(a - b)^2 = ?$',
+        questionEn: 'So then $(a - b)^2 = ?$',
         options: [
-          { label: '$a^2 - b^2$', correct: false, why: 'To wzór na różnicę kwadratów: $a^2 - b^2 = (a-b)(a+b)$. Kwadrat różnicy jest czymś innym.' },
-          { label: '$a^2 - 2ab + b^2$', correct: true,  why: 'Środkowy człon zmienia znak, bo $-b \\cdot a$ pojawia się dwa razy, natomiast $(-b)^2 = +b^2$ pozostaje dodatnie.' },
-          { label: '$a^2 - 2ab - b^2$', correct: false, why: 'Kwadrat $(-b)^2$ jest dodatni — każdy kwadrat liczby rzeczywistej jest $\\geq 0$.' },
+          { label: '$a^2 - b^2$',         labelEn: '$a^2 - b^2$',
+            correct: false,
+            why:   'To wzór na różnicę kwadratów: $a^2 - b^2 = (a-b)(a+b)$. Kwadrat różnicy jest czymś innym.',
+            whyEn: 'That’s the difference of squares: $a^2 - b^2 = (a-b)(a+b)$. The square of a difference is something else.' },
+          { label: '$a^2 - 2ab + b^2$',   labelEn: '$a^2 - 2ab + b^2$',
+            correct: true,
+            why:   'Środkowy człon zmienia znak, bo $-b \\cdot a$ pojawia się dwa razy, natomiast $(-b)^2 = +b^2$ pozostaje dodatnie.',
+            whyEn: 'The middle term flips sign because $-b \\cdot a$ shows up twice, while $(-b)^2 = +b^2$ stays positive.' },
+          { label: '$a^2 - 2ab - b^2$',   labelEn: '$a^2 - 2ab - b^2$',
+            correct: false,
+            why:   'Kwadrat $(-b)^2$ jest dodatni — każdy kwadrat liczby rzeczywistej jest $\\geq 0$.',
+            whyEn: 'The square $(-b)^2$ is positive — every square of a real number is $\\geq 0$.' },
         ],
       },
       draw() {
@@ -242,23 +270,35 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         const sumSq = C.a*C.a + C.b*C.b;
         const cross = 2 * C.a * C.b;
         infoBox('(a+b)\u00B2 = ' + total2, W * 0.25, 22, COL_RHS);
-        infoBox('a\u00B2 + b\u00B2 = ' + sumSq + '  (brak 2ab = ' + cross + ')', W * 0.72, 22, COL_LHS);
+        infoBox('a\u00B2 + b\u00B2 = ' + sumSq + T('  (brak 2ab = ', '  (missing 2ab = ') + cross + ')', W * 0.72, 22, COL_LHS);
       },
     },
 
     // ─── Ch.2: √(a² + b²) vs a + b  (Pythagoras vs naive) ──────
     {
       id: 'ch2_sqrt_sum',
-      title: 'Pierwiastek sumy kwadratów: $\\sqrt{a^2 + b^2}$',
-      desc: 'Wyrażenie $\\sqrt{a^2 + b^2}$ to przeciwprostokątna trójkąta prostokątnego o przyprostokątnych $a$ i $b$. Bywa "upraszczane" do $a + b$ — zobaczmy, dlaczego taka równość nigdy nie zachodzi.',
+      title:   'Pierwiastek sumy kwadratów: $\\sqrt{a^2 + b^2}$',
+      titleEn: 'Square root of a sum of squares: $\\sqrt{a^2 + b^2}$',
+      desc:    'Wyrażenie $\\sqrt{a^2 + b^2}$ to przeciwprostokątna trójkąta prostokątnego o przyprostokątnych $a$ i $b$. Bywa "upraszczane" do $a + b$ — zobaczmy, dlaczego taka równość nigdy nie zachodzi.',
+      descEn:  'The expression $\\sqrt{a^2 + b^2}$ is the hypotenuse of a right triangle with legs $a$ and $b$. People sometimes "simplify" it to $a + b$ — let’s see why that equality never holds.',
       drawBackground: 'none',
       init() {},
       predict: {
-        question: 'Dla trójkąta prostokątnego o przyprostokątnych $a = 3$, $b = 4$: która liczba to długość przeciwprostokątnej?',
+        question:   'Dla trójkąta prostokątnego o przyprostokątnych $a = 3$, $b = 4$: która liczba to długość przeciwprostokątnej?',
+        questionEn: 'For a right triangle with legs $a = 3$, $b = 4$: which number is the hypotenuse?',
         options: [
-          { label: '$3 + 4 = 7$', correct: false, why: 'To długość łamanej złożonej z dwóch przyprostokątnych, a przeciwprostokątna jest skrótem między ich końcami — zawsze krótszym niż suma boków.' },
-          { label: '$\\sqrt{3^2 + 4^2} = 5$', correct: true,  why: 'To wynik z twierdzenia Pitagorasa. Zauważ, że $5 < 7$ — skrót jest krótszy od obejścia o $2$ jednostki.' },
-          { label: '$\\sqrt{3 \\cdot 4} = \\sqrt{12}$', correct: false, why: 'To średnia geometryczna, a w twierdzeniu Pitagorasa sumujemy kwadraty, nie mnożymy boków.' },
+          { label: '$3 + 4 = 7$',                       labelEn: '$3 + 4 = 7$',
+            correct: false,
+            why:   'To długość łamanej złożonej z dwóch przyprostokątnych, a przeciwprostokątna jest skrótem między ich końcami — zawsze krótszym niż suma boków.',
+            whyEn: 'That’s the length of the bent path along the two legs, but the hypotenuse is the shortcut between their endpoints — always shorter than the sum of the sides.' },
+          { label: '$\\sqrt{3^2 + 4^2} = 5$',           labelEn: '$\\sqrt{3^2 + 4^2} = 5$',
+            correct: true,
+            why:   'To wynik z twierdzenia Pitagorasa. Zauważ, że $5 < 7$ — skrót jest krótszy od obejścia o $2$ jednostki.',
+            whyEn: 'That’s Pythagoras. Note that $5 < 7$ — the shortcut beats the long way by $2$ units.' },
+          { label: '$\\sqrt{3 \\cdot 4} = \\sqrt{12}$', labelEn: '$\\sqrt{3 \\cdot 4} = \\sqrt{12}$',
+            correct: false,
+            why:   'To średnia geometryczna, a w twierdzeniu Pitagorasa sumujemy kwadraty, nie mnożymy boków.',
+            whyEn: 'That’s the geometric mean. Pythagoras adds the squares, it doesn’t multiply the sides.' },
         ],
       },
       sliders: [
@@ -268,8 +308,8 @@ import { initWarsztat } from '../lib/warsztat-core.js';
       pips() {
         const gap = (C.la + C.lb) - Math.sqrt(C.la*C.la + C.lb*C.lb);
         return [
-          { label: 'trójkąt pokazuje różnicę', ok: true },
-          { label: 'suma > pierwiastek (zawsze)', ok: gap > 0.01 },
+          { label: T('trójkąt pokazuje różnicę', 'the triangle shows the gap'), ok: true },
+          { label: T('suma > pierwiastek (zawsze)', 'sum > square root (always)'), ok: gap > 0.01 },
         ];
       },
       solved() { return C.la !== 3 || C.lb !== 4; },
@@ -278,7 +318,13 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② Suma $a + b$ to długość drogi "po dwóch przyprostokątnych" — łamana. Z nierówności trójkąta ta łamana jest zawsze $\\geq$ skrót, z równością tylko gdy trójkąt zdegeneruje się (czyli $a = 0$ lub $b = 0$).',
         '③ Formalnie: $\\sqrt{a^2 + b^2} \\leq a + b$, a po podniesieniu do kwadratu dostajemy $a^2 + b^2 \\leq a^2 + 2ab + b^2$, czyli $0 \\leq 2ab$ — prawdziwe dla $a, b \\geq 0$.',
       ],
-      solvedMsg: 'Z nierówności trójkąta wiemy, że suma dwóch boków jest większa od trzeciego. Dla trójkąta prostokątnego przekłada się to na $a + b > \\sqrt{a^2 + b^2}$, dlatego równość "pierwiastek sumy kwadratów = suma" nie zachodzi.',
+      hintsEn: [
+        '① The hypotenuse is the shortest segment between the triangle’s endpoints — a straight line.',
+        '② The sum $a + b$ is the length of the path along the two legs — a bend. By the triangle inequality, the bend is always $\\geq$ the shortcut, with equality only when the triangle collapses (i.e. $a = 0$ or $b = 0$).',
+        '③ Formally: $\\sqrt{a^2 + b^2} \\leq a + b$. Squaring gives $a^2 + b^2 \\leq a^2 + 2ab + b^2$, i.e. $0 \\leq 2ab$ — true for $a, b \\geq 0$.',
+      ],
+      solvedMsg:   'Z nierówności trójkąta wiemy, że suma dwóch boków jest większa od trzeciego. Dla trójkąta prostokątnego przekłada się to na $a + b > \\sqrt{a^2 + b^2}$, dlatego równość "pierwiastek sumy kwadratów = suma" nie zachodzi.',
+      solvedMsgEn: 'By the triangle inequality, the sum of two sides is greater than the third. For a right triangle this becomes $a + b > \\sqrt{a^2 + b^2}$, so "square root of a sum of squares = sum" never holds.',
       draw() {
         // Draw right triangle with legs a, b
         const scale = 42;
@@ -331,23 +377,35 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         // Numeric comparison boxes
         ctx.textAlign = 'left';
         infoBox('\u221A(a\u00B2+b\u00B2) = ' + fmt(hyp), W*0.24, 22, COL_RHS);
-        infoBox('a + b = ' + (C.la + C.lb) + '  (NIGDY nie równe)', W*0.74, 22, COL_LHS);
+        infoBox('a + b = ' + (C.la + C.lb) + T('  (NIGDY nie równe)', '  (NEVER equal)'), W*0.74, 22, COL_LHS);
       },
     },
 
     // ─── Ch.3: log(a+b) vs log a + log b ───────────────────────
     {
       id: 'ch3_log_sum',
-      title: 'Logarytm sumy vs iloczynu',
-      desc: 'Reguła logarytmu iloczynu mówi, że $\\log(ab) = \\log a + \\log b$. Częsta pomyłka polega na zamianie iloczynu na sumę w argumencie — dla sumy logarytm nie jest rozdzielny.',
+      title:   'Logarytm sumy vs iloczynu',
+      titleEn: 'Logarithm of a sum vs a product',
+      desc:    'Reguła logarytmu iloczynu mówi, że $\\log(ab) = \\log a + \\log b$. Częsta pomyłka polega na zamianie iloczynu na sumę w argumencie — dla sumy logarytm nie jest rozdzielny.',
+      descEn:  'The product rule for logarithms says $\\log(ab) = \\log a + \\log b$. A common slip swaps the product for a sum in the argument — but logarithms don’t distribute over sums.',
       drawBackground: 'log',
       init() {},
       predict: {
-        question: 'Dla $a = 4$, $b = 6$: co równa się $\\log 4 + \\log 6$?',
+        question:   'Dla $a = 4$, $b = 6$: co równa się $\\log 4 + \\log 6$?',
+        questionEn: 'For $a = 4$, $b = 6$: what does $\\log 4 + \\log 6$ equal?',
         options: [
-          { label: '$\\log(4 + 6) = \\log 10$', correct: false, why: 'To pomyłka między regułą iloczynu a sumą. $\\log(4+6) = \\log 10 = 1$ (dla $\\log_{10}$), natomiast $\\log 4 + \\log 6 \\approx 0{,}60 + 0{,}78 = 1{,}38$.' },
-          { label: '$\\log(4 \\cdot 6) = \\log 24$', correct: true,  why: 'Logarytm iloczynu to suma logarytmów: $\\log(ab) = \\log a + \\log b$. Dlatego $\\log 4 + \\log 6 = \\log 24$, a nie $\\log 10$.' },
-          { label: '$\\log(4/6)$', correct: false, why: 'Dla ilorazu mamy różnicę logarytmów: $\\log(a/b) = \\log a - \\log b$.' },
+          { label: '$\\log(4 + 6) = \\log 10$',     labelEn: '$\\log(4 + 6) = \\log 10$',
+            correct: false,
+            why:   'To pomyłka między regułą iloczynu a sumą. $\\log(4+6) = \\log 10 = 1$ (dla $\\log_{10}$), natomiast $\\log 4 + \\log 6 \\approx 0{,}60 + 0{,}78 = 1{,}38$.',
+            whyEn: 'Confusing the product rule with a sum. $\\log(4+6) = \\log 10 = 1$ (for $\\log_{10}$), while $\\log 4 + \\log 6 \\approx 0.60 + 0.78 = 1.38$.' },
+          { label: '$\\log(4 \\cdot 6) = \\log 24$', labelEn: '$\\log(4 \\cdot 6) = \\log 24$',
+            correct: true,
+            why:   'Logarytm iloczynu to suma logarytmów: $\\log(ab) = \\log a + \\log b$. Dlatego $\\log 4 + \\log 6 = \\log 24$, a nie $\\log 10$.',
+            whyEn: 'Log of a product is the sum of logs: $\\log(ab) = \\log a + \\log b$. So $\\log 4 + \\log 6 = \\log 24$, not $\\log 10$.' },
+          { label: '$\\log(4/6)$',                   labelEn: '$\\log(4/6)$',
+            correct: false,
+            why:   'Dla ilorazu mamy różnicę logarytmów: $\\log(a/b) = \\log a - \\log b$.',
+            whyEn: 'For a quotient you’d have a difference of logs: $\\log(a/b) = \\log a - \\log b$.' },
         ],
       },
       sliders: [
@@ -356,8 +414,8 @@ import { initWarsztat } from '../lib/warsztat-core.js';
       ],
       pips() {
         return [
-          { label: 'zmień $a$ lub $b$', ok: C.log_a !== 4 || C.log_b !== 6 },
-          { label: 'widzisz 3 różne wartości', ok: true },
+          { label: T('zmień $a$ lub $b$', 'change $a$ or $b$'), ok: C.log_a !== 4 || C.log_b !== 6 },
+          { label: T('widzisz 3 różne wartości', 'you see 3 distinct values'), ok: true },
         ];
       },
       solved() { return C.log_a !== 4 || C.log_b !== 6; },
@@ -366,13 +424,29 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② Dla sumy $\\log(a+b)$ nie ma prostej postaci — wyrażenie zostawiamy takie, jakie jest.',
         '③ Test kontrolny: dla $a = b = 1$ i $\\log = \\log_{10}$ mamy $\\log(1 + 1) = \\log 2 \\approx 0{,}30$, a $\\log 1 + \\log 1 = 0$. Wartości się różnią, więc rozdzielność dla sumy nie zachodzi.',
       ],
-      solvedMsg: 'Kluczowa reguła: logarytm zamienia iloczyn w sumę, a nie sumę w sumę. Mylenie tych dwóch sytuacji należy do najczęstszych błędów maturalnych.',
+      hintsEn: [
+        '① Worth memorising three rules:  $\\log(ab) = \\log a + \\log b$,  $\\log(a/b) = \\log a - \\log b$,  $\\log(a^k) = k \\log a$.',
+        '② For a sum $\\log(a+b)$ there’s no clean form — the expression stays as it is.',
+        '③ Sanity check: for $a = b = 1$ and $\\log = \\log_{10}$ we get $\\log(1 + 1) = \\log 2 \\approx 0.30$, while $\\log 1 + \\log 1 = 0$. The values differ, so distributivity over a sum fails.',
+      ],
+      solvedMsg:   'Kluczowa reguła: logarytm zamienia iloczyn w sumę, a nie sumę w sumę. Mylenie tych dwóch sytuacji należy do najczęstszych błędów maturalnych.',
+      solvedMsgEn: 'Key rule: a logarithm turns a product into a sum, not a sum into a sum. Confusing the two is one of the most common exam mistakes.',
       predictAfter: {
-        question: 'Które wyrażenie JEST poprawne?',
+        question:   'Które wyrażenie JEST poprawne?',
+        questionEn: 'Which expression IS correct?',
         options: [
-          { label: '$\\log(a + b) = \\log a + \\log b$', correct: false, why: 'Logarytm sumy nie ma prostej postaci.' },
-          { label: '$\\log(a \\cdot b) = \\log a + \\log b$', correct: true,  why: 'To logarytm iloczynu — jedyna z trzech opcji o poprawnej strukturze.' },
-          { label: '$\\log(a^b) = b + \\log a$', correct: false, why: 'Zbliżony pomysł, ale poprawny wzór to $\\log(a^b) = b \\cdot \\log a$ — mnożenie, a nie dodawanie.' },
+          { label: '$\\log(a + b) = \\log a + \\log b$',     labelEn: '$\\log(a + b) = \\log a + \\log b$',
+            correct: false,
+            why:   'Logarytm sumy nie ma prostej postaci.',
+            whyEn: 'A logarithm of a sum has no clean form.' },
+          { label: '$\\log(a \\cdot b) = \\log a + \\log b$', labelEn: '$\\log(a \\cdot b) = \\log a + \\log b$',
+            correct: true,
+            why:   'To logarytm iloczynu — jedyna z trzech opcji o poprawnej strukturze.',
+            whyEn: 'That’s the product rule — the only one of the three with the right structure.' },
+          { label: '$\\log(a^b) = b + \\log a$',              labelEn: '$\\log(a^b) = b + \\log a$',
+            correct: false,
+            why:   'Zbliżony pomysł, ale poprawny wzór to $\\log(a^b) = b \\cdot \\log a$ — mnożenie, a nie dodawanie.',
+            whyEn: 'Close idea, but the correct form is $\\log(a^b) = b \\cdot \\log a$ — multiplication, not addition.' },
         ],
       },
       draw() {
@@ -415,16 +489,31 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     // ─── Ch.4: sin(α+β) vs sin α + sin β ─────────────────────────
     {
       id: 'ch4_sin_sum',
-      title: 'Sinus sumy: $\\sin(\\alpha + \\beta)$',
-      desc: 'Sinus jest ograniczony przedziałem $[-1, 1]$, natomiast $\\sin \\alpha + \\sin \\beta$ może sięgać $2$. Sam ten fakt pokazuje, że rozdzielność nie ma prawa zachodzić.',
+      title:   'Sinus sumy: $\\sin(\\alpha + \\beta)$',
+      titleEn: 'Sine of a sum: $\\sin(\\alpha + \\beta)$',
+      desc:    'Sinus jest ograniczony przedziałem $[-1, 1]$, natomiast $\\sin \\alpha + \\sin \\beta$ może sięgać $2$. Sam ten fakt pokazuje, że rozdzielność nie ma prawa zachodzić.',
+      descEn:  'Sine is bounded by $[-1, 1]$, while $\\sin \\alpha + \\sin \\beta$ can reach $2$. That fact alone shows distributivity can’t possibly hold.',
       drawBackground: 'none',
       init() {},
       predict: {
-        question: 'Dla $\\alpha = 30°$, $\\beta = 60°$: jak mają się $\\sin(\\alpha + \\beta)$ i $\\sin \\alpha + \\sin \\beta$?',
+        question:   'Dla $\\alpha = 30°$, $\\beta = 60°$: jak mają się $\\sin(\\alpha + \\beta)$ i $\\sin \\alpha + \\sin \\beta$?',
+        questionEn: 'For $\\alpha = 30°$, $\\beta = 60°$: how do $\\sin(\\alpha + \\beta)$ and $\\sin \\alpha + \\sin \\beta$ compare?',
         options: [
-          { label: 'Są równe — tak jak w każdej innej funkcji', correct: false, why: 'Sinus sumy nie jest sumą sinusów: $\\sin 90° = 1$, a $\\sin 30° + \\sin 60° = 0{,}5 + 0{,}87 \\approx 1{,}37$, więc wartości są różne.' },
-          { label: '$\\sin(\\alpha+\\beta) < \\sin \\alpha + \\sin \\beta$', correct: true,  why: 'W tym przypadku $1 < 1{,}37$. Ogólnie dla niewielkich kątów suma sinusów rośnie prawie liniowo, a sam sinus zakrzywia się i zostaje mniejszy.' },
-          { label: '$\\sin(\\alpha+\\beta) > \\sin \\alpha + \\sin \\beta$', correct: false, why: 'Taki układ bywa możliwy dla niektórych kątów ujemnych lub z drugiej ćwiartki, ale dla $30°$ i $60°$ nierówność jest odwrotna.' },
+          { label:   'Są równe — tak jak w każdej innej funkcji',
+            labelEn: 'Equal — just like for any other function',
+            correct: false,
+            why:   'Sinus sumy nie jest sumą sinusów: $\\sin 90° = 1$, a $\\sin 30° + \\sin 60° = 0{,}5 + 0{,}87 \\approx 1{,}37$, więc wartości są różne.',
+            whyEn: 'Sine of a sum is not a sum of sines: $\\sin 90° = 1$, while $\\sin 30° + \\sin 60° = 0.5 + 0.87 \\approx 1.37$ — the values disagree.' },
+          { label:   '$\\sin(\\alpha+\\beta) < \\sin \\alpha + \\sin \\beta$',
+            labelEn: '$\\sin(\\alpha+\\beta) < \\sin \\alpha + \\sin \\beta$',
+            correct: true,
+            why:   'W tym przypadku $1 < 1{,}37$. Ogólnie dla niewielkich kątów suma sinusów rośnie prawie liniowo, a sam sinus zakrzywia się i zostaje mniejszy.',
+            whyEn: 'Here $1 < 1.37$. For small angles the sum of sines grows nearly linearly, while sine itself bends and falls behind.' },
+          { label:   '$\\sin(\\alpha+\\beta) > \\sin \\alpha + \\sin \\beta$',
+            labelEn: '$\\sin(\\alpha+\\beta) > \\sin \\alpha + \\sin \\beta$',
+            correct: false,
+            why:   'Taki układ bywa możliwy dla niektórych kątów ujemnych lub z drugiej ćwiartki, ale dla $30°$ i $60°$ nierówność jest odwrotna.',
+            whyEn: 'That can happen for some negative or second-quadrant angles, but for $30°$ and $60°$ the inequality goes the other way.' },
         ],
       },
       sliders: [
@@ -435,8 +524,8 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         const a = C.alpha * Math.PI/180, b = C.beta * Math.PI/180;
         const sumSin = Math.sin(a) + Math.sin(b);
         return [
-          { label: 'zmień któryś kąt', ok: C.alpha !== 30 || C.beta !== 60 },
-          { label: 'suma sinusów > 1 (gdy sensowne kąty)', ok: sumSin > 1.01 },
+          { label: T('zmień któryś kąt', 'change one of the angles'), ok: C.alpha !== 30 || C.beta !== 60 },
+          { label: T('suma sinusów > 1 (gdy sensowne kąty)', 'sum of sines > 1 (for reasonable angles)'), ok: sumSin > 1.01 },
         ];
       },
       solved() { return C.alpha !== 30 || C.beta !== 60; },
@@ -445,13 +534,32 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② $\\sin \\alpha + \\sin \\beta$ to suma dwóch osobnych sinusów; gdy oba są dodatnie i bliskie $1$, może sięgać $2$. Sama ta obserwacja wystarcza, by stwierdzić, że rozdzielność musi zawodzić.',
         '③ Poprawny wzór to $\\sin(\\alpha+\\beta) = \\sin\\alpha \\cos\\beta + \\cos\\alpha \\sin\\beta$. Miesza sinusy z kosinusami, dlatego nie da się tego wyrażenia rozbić na samą sumę sinusów.',
       ],
-      solvedMsg: 'Argument z ograniczenia: lewa strona należy do $[-1, 1]$, a prawa może sięgać $2$. Skoro zbiory wartości są różne, równość w ogólności nie zachodzi.',
+      hintsEn: [
+        '① $\\sin(\\alpha + \\beta)$ is a single sine with argument $\\alpha+\\beta$, so its value always lies in $[-1, 1]$.',
+        '② $\\sin \\alpha + \\sin \\beta$ is the sum of two separate sines; when both are positive and close to $1$, it can reach $2$. That observation alone forces distributivity to fail.',
+        '③ The correct identity is $\\sin(\\alpha+\\beta) = \\sin\\alpha \\cos\\beta + \\cos\\alpha \\sin\\beta$. It mixes sines with cosines, so the expression can’t collapse into a plain sum of sines.',
+      ],
+      solvedMsg:   'Argument z ograniczenia: lewa strona należy do $[-1, 1]$, a prawa może sięgać $2$. Skoro zbiory wartości są różne, równość w ogólności nie zachodzi.',
+      solvedMsgEn: 'Bounding argument: the left side lies in $[-1, 1]$, the right side can reach $2$. Different ranges, so the equality can’t hold in general.',
       predictAfter: {
-        question: 'Z którego równania skorzystasz, żeby obliczyć $\\sin 75°$ (dokładnie, bez kalkulatora)?',
+        question:   'Z którego równania skorzystasz, żeby obliczyć $\\sin 75°$ (dokładnie, bez kalkulatora)?',
+        questionEn: 'Which identity do you use to compute $\\sin 75°$ (exactly, no calculator)?',
         options: [
-          { label: '$\\sin 75° = \\sin 30° + \\sin 45°$', correct: false, why: 'Sinus sumy nie jest sumą sinusów, więc ta równość jest fałszywa.' },
-          { label: '$\\sin 75° = \\sin(30° + 45°) = \\sin 30° \\cos 45° + \\cos 30° \\sin 45°$', correct: true,  why: 'To wzór na sinus sumy — wszystkie wartości po prawej stronie są tablicowe.' },
-          { label: '$\\sin 75° = \\sqrt{\\sin^2 30° + \\sin^2 45°}$', correct: false, why: 'Taki wzór nie istnieje — byłby to rodzaj twierdzenia Pitagorasa dla sinusów, ale nic takiego nie obowiązuje.' },
+          { label: '$\\sin 75° = \\sin 30° + \\sin 45°$',
+            labelEn: '$\\sin 75° = \\sin 30° + \\sin 45°$',
+            correct: false,
+            why:   'Sinus sumy nie jest sumą sinusów, więc ta równość jest fałszywa.',
+            whyEn: 'Sine of a sum is not a sum of sines, so this is false.' },
+          { label: '$\\sin 75° = \\sin(30° + 45°) = \\sin 30° \\cos 45° + \\cos 30° \\sin 45°$',
+            labelEn: '$\\sin 75° = \\sin(30° + 45°) = \\sin 30° \\cos 45° + \\cos 30° \\sin 45°$',
+            correct: true,
+            why:   'To wzór na sinus sumy — wszystkie wartości po prawej stronie są tablicowe.',
+            whyEn: 'That’s the angle-sum identity — all the values on the right are standard.' },
+          { label: '$\\sin 75° = \\sqrt{\\sin^2 30° + \\sin^2 45°}$',
+            labelEn: '$\\sin 75° = \\sqrt{\\sin^2 30° + \\sin^2 45°}$',
+            correct: false,
+            why:   'Taki wzór nie istnieje — byłby to rodzaj twierdzenia Pitagorasa dla sinusów, ale nic takiego nie obowiązuje.',
+            whyEn: 'No such formula — it would be a Pythagorean-style identity for sines, and that doesn’t hold.' },
         ],
       },
       draw() {
@@ -490,21 +598,21 @@ import { initWarsztat } from '../lib/warsztat-core.js';
 
         // Tick label for "1 = max sine"
         ctx.font = '10px monospace'; ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.textAlign = 'center';
-        ctx.fillText('1 (max dla pojedynczego sinusa)', barX + barMaxW/2, 82);
+        ctx.fillText(T('1 (max dla pojedynczego sinusa)', '1 (max for a single sine)'), barX + barMaxW/2, 82);
         ctx.fillText('2', barX + barMaxW, 82);
         ctx.fillText('0', barX, 82);
 
         // Difference indicator
         const diff = rhs - lhs;
-        const gapLabel = Math.abs(diff) < 0.001 ? 'różnica \u2248 0' :
-          'różnica = ' + fmt(diff) + (diff > 0 ? '  (RHS większy)' : '  (LHS większy)');
+        const gapLabel = Math.abs(diff) < 0.001 ? T('różnica \u2248 0', 'gap \u2248 0') :
+          T('różnica = ', 'gap = ') + fmt(diff) + (diff > 0 ? T('  (RHS większy)', '  (RHS larger)') : T('  (LHS większy)', '  (LHS larger)'));
         ctx.font = '12px monospace'; ctx.fillStyle = COL_AB; ctx.textAlign = 'center';
         ctx.fillText(gapLabel, W/2, 200);
 
         // Small message
         ctx.font = '11px monospace'; ctx.fillStyle = 'rgba(255,255,255,0.5)';
-        ctx.fillText('zielony pasek NIGDY nie przekroczy 1 — bo to pojedynczy sinus', W/2, 230);
-        ctx.fillText('czerwony pasek może dojść do 2 — to suma dwóch sinusów', W/2, 248);
+        ctx.fillText(T('zielony pasek NIGDY nie przekroczy 1 — bo to pojedynczy sinus', 'the green bar NEVER exceeds 1 — it’s a single sine'), W/2, 230);
+        ctx.fillText(T('czerwony pasek może dojść do 2 — to suma dwóch sinusów', 'the red bar can reach 2 — it’s a sum of two sines'), W/2, 248);
 
         ctx.textAlign = 'left';
         infoBox('sin(\u03B1+\u03B2) \u2208 [-1, 1]', W*0.27, 22, COL_RHS);
@@ -515,31 +623,52 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     // ─── Ch.5: Pattern recognition — which IS distributive? ────
     {
       id: 'ch5_which_is_true',
-      title: 'Rozpoznaj: która równość JEST prawdziwa?',
-      desc: 'Nie każde wyrażenie kryje pułapkę — niektóre operacje rzeczywiście są rozdzielne. Wybierz jedyną poprawną równość.',
+      title:   'Rozpoznaj: która równość JEST prawdziwa?',
+      titleEn: 'Spot the one identity that IS true',
+      desc:    'Nie każde wyrażenie kryje pułapkę — niektóre operacje rzeczywiście są rozdzielne. Wybierz jedyną poprawną równość.',
+      descEn:  'Not every expression hides a trap — some operations really are distributive. Pick the single correct equality.',
       drawBackground: 'none',
       init() { C.ch5Pick = null; },
       predict: {
-        question: 'Które z tych równań JEST poprawne DLA KAŻDYCH $a, b > 0$?',
+        question:   'Które z tych równań JEST poprawne DLA KAŻDYCH $a, b > 0$?',
+        questionEn: 'Which of these IS correct FOR ALL $a, b > 0$?',
         options: [
-          { label: '$\\sqrt{a + b} = \\sqrt{a} + \\sqrt{b}$', correct: false, why: 'Równość jest fałszywa: $\\sqrt{1+1} = \\sqrt{2} \\approx 1{,}41$, natomiast $\\sqrt{1}+\\sqrt{1} = 2$.' },
-          { label: '$\\dfrac{1}{a} + \\dfrac{1}{b} = \\dfrac{a + b}{ab}$', correct: true,  why: 'To poprawny sposób dodawania ułamków — wspólny mianownik $ab$. Nie należy tego mylić z $\\dfrac{1}{a+b}$, które nie jest równe $\\dfrac{1}{a} + \\dfrac{1}{b}$.' },
-          { label: '$e^{a+b} = e^a + e^b$', correct: false, why: 'Prawidłowo jest $e^{a+b} = e^a \\cdot e^b$ — funkcja wykładnicza zamienia sumę w iloczyn, nie w sumę.' },
-          { label: '$\\cos(\\alpha + \\beta) = \\cos \\alpha + \\cos \\beta$', correct: false, why: 'Analogicznie do sinusa poprawny wzór brzmi $\\cos(\\alpha+\\beta) = \\cos\\alpha\\cos\\beta - \\sin\\alpha\\sin\\beta$.' },
+          { label: '$\\sqrt{a + b} = \\sqrt{a} + \\sqrt{b}$',
+            labelEn: '$\\sqrt{a + b} = \\sqrt{a} + \\sqrt{b}$',
+            correct: false,
+            why:   'Równość jest fałszywa: $\\sqrt{1+1} = \\sqrt{2} \\approx 1{,}41$, natomiast $\\sqrt{1}+\\sqrt{1} = 2$.',
+            whyEn: 'False: $\\sqrt{1+1} = \\sqrt{2} \\approx 1.41$, while $\\sqrt{1}+\\sqrt{1} = 2$.' },
+          { label: '$\\dfrac{1}{a} + \\dfrac{1}{b} = \\dfrac{a + b}{ab}$',
+            labelEn: '$\\dfrac{1}{a} + \\dfrac{1}{b} = \\dfrac{a + b}{ab}$',
+            correct: true,
+            why:   'To poprawny sposób dodawania ułamków — wspólny mianownik $ab$. Nie należy tego mylić z $\\dfrac{1}{a+b}$, które nie jest równe $\\dfrac{1}{a} + \\dfrac{1}{b}$.',
+            whyEn: 'Correct addition of fractions — common denominator $ab$. Don’t confuse it with $\\dfrac{1}{a+b}$, which does NOT equal $\\dfrac{1}{a} + \\dfrac{1}{b}$.' },
+          { label: '$e^{a+b} = e^a + e^b$',
+            labelEn: '$e^{a+b} = e^a + e^b$',
+            correct: false,
+            why:   'Prawidłowo jest $e^{a+b} = e^a \\cdot e^b$ — funkcja wykładnicza zamienia sumę w iloczyn, nie w sumę.',
+            whyEn: 'The correct form is $e^{a+b} = e^a \\cdot e^b$ — the exponential turns a sum into a product, not into a sum.' },
+          { label: '$\\cos(\\alpha + \\beta) = \\cos \\alpha + \\cos \\beta$',
+            labelEn: '$\\cos(\\alpha + \\beta) = \\cos \\alpha + \\cos \\beta$',
+            correct: false,
+            why:   'Analogicznie do sinusa poprawny wzór brzmi $\\cos(\\alpha+\\beta) = \\cos\\alpha\\cos\\beta - \\sin\\alpha\\sin\\beta$.',
+            whyEn: 'Like for sine, the correct identity is $\\cos(\\alpha+\\beta) = \\cos\\alpha\\cos\\beta - \\sin\\alpha\\sin\\beta$.' },
         ],
       },
       choices: {
-        question: 'Dla utrwalenia — zaznacz którą operację rozdzielność UJĘŁA poprawnie (w tym przykładzie).',
+        question:   'Dla utrwalenia — zaznacz którą operację rozdzielność UJĘŁA poprawnie (w tym przykładzie).',
+        questionEn: 'For practice — pick the operation in which distributivity IS captured correctly (in this example).',
         options: [
-          { id: 'a', label: '$c \\cdot (a + b) = c \\cdot a + c \\cdot b$ (stałe $c$ razy suma)', correct: true },
-          { id: 'b', label: '$(a+b)^2 = a^2 + b^2$', correct: false },
-          { id: 'c', label: '$\\log(a+b) = \\log a + \\log b$', correct: false },
-          { id: 'd', label: '$\\dfrac{1}{a+b} = \\dfrac{1}{a} + \\dfrac{1}{b}$', correct: false },
+          { id: 'a', label: '$c \\cdot (a + b) = c \\cdot a + c \\cdot b$ (stałe $c$ razy suma)',
+                     labelEn: '$c \\cdot (a + b) = c \\cdot a + c \\cdot b$ (constant $c$ times a sum)', correct: true },
+          { id: 'b', label: '$(a+b)^2 = a^2 + b^2$',                          labelEn: '$(a+b)^2 = a^2 + b^2$',                          correct: false },
+          { id: 'c', label: '$\\log(a+b) = \\log a + \\log b$',                labelEn: '$\\log(a+b) = \\log a + \\log b$',                correct: false },
+          { id: 'd', label: '$\\dfrac{1}{a+b} = \\dfrac{1}{a} + \\dfrac{1}{b}$', labelEn: '$\\dfrac{1}{a+b} = \\dfrac{1}{a} + \\dfrac{1}{b}$', correct: false },
         ],
         pick(id) { C.ch5Pick = id; },
       },
       pips() {
-        return [{ label: 'poprawna operacja rozdzielna', ok: C.ch5Pick === 'a' }];
+        return [{ label: T('poprawna operacja rozdzielna', 'correctly distributive operation'), ok: C.ch5Pick === 'a' }];
       },
       solved() { return C.ch5Pick === 'a'; },
       hints: [
@@ -547,21 +676,27 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② Wszystkie funkcje nieliniowe — kwadrat, pierwiastek, logarytm, sinus, kosinus, wykładnicza czy odwrotność — łamią rozdzielność względem sumy.',
         '③ Szybki test geometryczny: jeśli wykres $y = f(x)$ nie jest prostą przechodzącą przez początek układu, rozdzielność nie zachodzi.',
       ],
-      solvedMsg: 'Jedynie mnożenie przez stałą jest w pełni rozdzielne. Dlatego $2(a+b) = 2a + 2b$ zachodzi, a $(a+b)^2 \\neq a^2 + b^2$.',
+      hintsEn: [
+        '① Distributivity $f(a+b) = f(a) + f(b)$ holds only for linear functions of the form $f(x) = cx$ — multiplication by a constant, no offset.',
+        '② Every non-linear function — square, square root, logarithm, sine, cosine, exponential, reciprocal — breaks distributivity over a sum.',
+        '③ Quick geometric test: if the graph $y = f(x)$ is not a straight line through the origin, distributivity fails.',
+      ],
+      solvedMsg:   'Jedynie mnożenie przez stałą jest w pełni rozdzielne. Dlatego $2(a+b) = 2a + 2b$ zachodzi, a $(a+b)^2 \\neq a^2 + b^2$.',
+      solvedMsgEn: 'Only multiplication by a constant is fully distributive. That’s why $2(a+b) = 2a + 2b$ works, but $(a+b)^2 \\neq a^2 + b^2$.',
       draw() {
         // List of true vs false distributivity statements, color-coded
         ctx.font = 'bold 14px monospace'; ctx.fillStyle = '#FFFFFF'; ctx.textAlign = 'center';
-        ctx.fillText('Rozdzielność — ściągawka', W/2, 40);
+        ctx.fillText(T('Rozdzielność — ściągawka', 'Distributivity — cheat sheet'), W/2, 40);
 
         const items = [
-          { txt: 'c\u00B7(a+b) = c\u00B7a + c\u00B7b', ok: true,  note: 'mnożenie przez stałą' },
-          { txt: '(a+b)\u00B2 = a\u00B2 + 2ab + b\u00B2', ok: true,  note: 'TAK — ale z członem 2ab' },
-          { txt: '(a+b)\u00B2 = a\u00B2 + b\u00B2',        ok: false, note: 'brak 2ab' },
-          { txt: '\u221A(a\u00B2+b\u00B2) = a + b',          ok: false, note: 'łamie nier. trójkąta' },
-          { txt: 'log(a\u00B7b) = log a + log b',           ok: true,  note: 'iloczyn, nie suma' },
-          { txt: 'log(a+b) = log a + log b',                 ok: false, note: 'pomylone z iloczynem' },
-          { txt: 'sin(\u03B1+\u03B2) = sin\u03B1\u00B7cos\u03B2 + cos\u03B1\u00B7sin\u03B2', ok: true,  note: 'wzór na sin sumy' },
-          { txt: 'sin(\u03B1+\u03B2) = sin\u03B1 + sin\u03B2',                ok: false, note: 'przekracza 1' },
+          { txt: 'c\u00B7(a+b) = c\u00B7a + c\u00B7b', ok: true,  note: 'mnożenie przez stałą', noteEn: 'multiplication by a constant' },
+          { txt: '(a+b)\u00B2 = a\u00B2 + 2ab + b\u00B2', ok: true,  note: 'TAK — ale z członem 2ab', noteEn: 'YES — but with the 2ab term' },
+          { txt: '(a+b)\u00B2 = a\u00B2 + b\u00B2',        ok: false, note: 'brak 2ab', noteEn: 'missing 2ab' },
+          { txt: '\u221A(a\u00B2+b\u00B2) = a + b',          ok: false, note: 'łamie nier. trójkąta', noteEn: 'violates the triangle inequality' },
+          { txt: 'log(a\u00B7b) = log a + log b',           ok: true,  note: 'iloczyn, nie suma', noteEn: 'product, not sum' },
+          { txt: 'log(a+b) = log a + log b',                 ok: false, note: 'pomylone z iloczynem', noteEn: 'confused with the product rule' },
+          { txt: 'sin(\u03B1+\u03B2) = sin\u03B1\u00B7cos\u03B2 + cos\u03B1\u00B7sin\u03B2', ok: true,  note: 'wzór na sin sumy', noteEn: 'sine-of-a-sum identity' },
+          { txt: 'sin(\u03B1+\u03B2) = sin\u03B1 + sin\u03B2',                ok: false, note: 'przekracza 1', noteEn: 'exceeds 1' },
           { txt: '1/(a+b) = 1/a + 1/b',                      ok: false, note: '1/(1+1)=0.5 \u2260 2' },
         ];
 
@@ -571,7 +706,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
           ctx.fillStyle = it.ok ? COL_RHS : COL_LHS;
           ctx.fillText((it.ok ? '\u2713 ' : '\u2717 ') + it.txt, 40, row);
           ctx.fillStyle = 'rgba(255,255,255,0.45)';
-          ctx.fillText(it.note, 340, row);
+          ctx.fillText(T(it.note, it.noteEn), 340, row);
         });
       },
     },
@@ -582,7 +717,8 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     canvasId: 'cv',
     challenges,
     lsKey: 'warsztat:linearity_fallacy:completed',
-    wrapup: 'Zasada ogólna: $f(a+b) \\neq f(a) + f(b)$ dla niemal każdej funkcji poza liniowymi $f(x) = cx$. Kwadrat, pierwiastek, logarytm, sinus, kosinus, wykładnicza ani odwrotność nie są rozdzielne. W razie wątpliwości warto podstawić $a = b = 1$ — jedno porównanie zazwyczaj wystarczy, by wyłapać pułapkę.',
+    wrapup:   'Zasada ogólna: $f(a+b) \\neq f(a) + f(b)$ dla niemal każdej funkcji poza liniowymi $f(x) = cx$. Kwadrat, pierwiastek, logarytm, sinus, kosinus, wykładnicza ani odwrotność nie są rozdzielne. W razie wątpliwości warto podstawić $a = b = 1$ — jedno porównanie zazwyczaj wystarczy, by wyłapać pułapkę.',
+    wrapupEn: 'General rule: $f(a+b) \\neq f(a) + f(b)$ for almost every function except linear ones $f(x) = cx$. Squaring, square roots, logarithms, sine, cosine, exponentials and reciprocals all break distributivity over a sum. When in doubt, plug in $a = b = 1$ — one comparison is usually enough to catch the trap.',
     onFrame({ ch }) {
       // Clear canvas manually — some challenges draw without GraphView.
       ctx.save();

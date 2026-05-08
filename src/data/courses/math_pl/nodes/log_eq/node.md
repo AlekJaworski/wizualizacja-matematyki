@@ -8,7 +8,7 @@ x: 740
 y: 310
 resources:
   - "interactive|log-eq-explorer.html|Log & Exp Equations Explorer|Równania log. i wykł."
-  - "interactive|log-eq-warsztat.html|Log Equations Warsztat — Domain Gate|Równania log. — Warsztat z Bramką Dziedziny"
+  - "interactive|log-eq-warsztat.html|Log Equations Workshop — Domain Gate|Równania log. — Warsztat z Bramką Dziedziny"
 ---
 Równanie logarytmiczne to równanie, w którym niewiadoma występuje pod znakiem logarytmu, a równanie wykładnicze to takie, w którym niewiadoma stoi w wykładniku potęgi. Oba typy są ze sobą ściśle powiązane przez równoważność $\log_b x = y \Leftrightarrow b^y = x$, która pozwala przechodzić od jednej postaci do drugiej.<br><br>W równaniach logarytmicznych standardowa strategia polega na tym, by — korzystając z własności $\log a + \log b = \log(ab)$, $\log a - \log b = \log\!\left(\tfrac{a}{b}\right)$ oraz $n\log a = \log a^n$ — sprowadzić obie strony do jednego logarytmu, a następnie użyć powyższej definicji, aby pozbyć się logarytmu. Konieczne jest też wyznaczenie dziedziny: argument każdego logarytmu musi być dodatni, a podstawa dodatnia i różna od jedności.<br><br>W równaniach wykładniczych dążymy do tego, by obie strony miały tę samą podstawę — wtedy z $b^{f(x)} = b^{g(x)}$ wynika $f(x) = g(x)$. Gdy podstawy się różnią, pomocna bywa zamiana zmiennych (np. $t = 2^x$ przy równaniach kwadratowych w $2^x$) albo logarytmowanie obu stron.
 
