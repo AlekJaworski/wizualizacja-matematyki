@@ -97,7 +97,7 @@
 
 <script type="module">
 import { GraphView } from '../lib/graph-core.js';
-import { initWarsztat } from '../lib/warsztat-core.js';
+import { initWarsztat, T } from '../lib/warsztat-core.js';
 {
   const cv = document.getElementById('cv');
   const ctx = cv.getContext('2d');
@@ -179,32 +179,52 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     // ─── Ch.1: |x - 3| = 5 ──────────────────────────────────
     {
       id: 'ch1',
-      title: 'Rozbicie modułu: $|x - 3| = 5$',
-      desc: 'Moduł to nie "znak do usunięcia" — to odległość. Ile liczb leży dokładnie w odległości $5$ od $3$?',
+      title:   'Rozbicie modułu: $|x - 3| = 5$',
+      titleEn: 'Splitting an absolute value: $|x - 3| = 5$',
+      desc:    'Moduł to nie "znak do usunięcia" — to odległość. Ile liczb leży dokładnie w odległości $5$ od $3$?',
+      descEn:  'Absolute value isn’t a "sign to drop" — it’s a distance. How many numbers lie exactly $5$ away from $3$?',
       drawBackground: 'graph',
       view: { xRange: [-7, 10], yRange: [-1.5, 7] },
       init() { C.pick1 = null; viewCfg = { xRange: [-7, 10], yRange: [-1.5, 7] }; },
       predict: {
-        question: 'Ile rozwiązań ma równanie $|x - 3| = 5$?',
+        question:   'Ile rozwiązań ma równanie $|x - 3| = 5$?',
+        questionEn: 'How many solutions does $|x - 3| = 5$ have?',
         options: [
-          { label: 'Jedno (bo $|\\ldots|$ zawsze dodatnie)', correct: false, why: 'To typowa pułapka. Dodatniość wyniku modułu nie ogranicza liczby rozwiązań — są **dwa** $x$, których odległość od $3$ wynosi $5$.' },
-          { label: 'Dwa', correct: true,  why: 'Tak. $|x-3|=5$ oznacza "odległość $x$ od $3$ to $5$". Dwa punkty spełniają ten warunek: $3-5=-2$ oraz $3+5=8$.' },
-          { label: 'Nieskończenie wiele', correct: false, why: 'Nie — odległość od stałego punktu równa stałej liczbie wyznacza dokładnie dwa punkty na prostej.' },
-          { label: 'Zero', correct: false, why: '$|\\cdot| = 5 \\geq 0$, więc rozwiązania istnieją. Brak rozwiązań mielibyśmy dopiero dla $|\\ldots| = -1$.' },
+          { label:   'Jedno (bo $|\\ldots|$ zawsze dodatnie)',
+            labelEn: 'One (since $|\\ldots|$ is always positive)',
+            correct: false,
+            why:   'To typowa pułapka. Dodatniość wyniku modułu nie ogranicza liczby rozwiązań — są **dwa** $x$, których odległość od $3$ wynosi $5$.',
+            whyEn: 'A classic trap. The output being positive doesn’t limit the number of solutions — there are **two** values of $x$ whose distance from $3$ is $5$.' },
+          { label:   'Dwa',
+            labelEn: 'Two',
+            correct: true,
+            why:   'Tak. $|x-3|=5$ oznacza "odległość $x$ od $3$ to $5$". Dwa punkty spełniają ten warunek: $3-5=-2$ oraz $3+5=8$.',
+            whyEn: 'Yes. $|x-3|=5$ says "the distance from $x$ to $3$ is $5$". Two points fit: $3-5=-2$ and $3+5=8$.' },
+          { label:   'Nieskończenie wiele',
+            labelEn: 'Infinitely many',
+            correct: false,
+            why:   'Nie — odległość od stałego punktu równa stałej liczbie wyznacza dokładnie dwa punkty na prostej.',
+            whyEn: 'No — a fixed distance from a fixed point picks out exactly two points on the line.' },
+          { label:   'Zero',
+            labelEn: 'None',
+            correct: false,
+            why:   '$|\\cdot| = 5 \\geq 0$, więc rozwiązania istnieją. Brak rozwiązań mielibyśmy dopiero dla $|\\ldots| = -1$.',
+            whyEn: '$|\\cdot| = 5 \\geq 0$, so solutions exist. You’d only get no solutions for $|\\ldots| = -1$.' },
         ],
       },
       choices: {
-        question: 'Zbiór rozwiązań:',
+        question:   'Zbiór rozwiązań:',
+        questionEn: 'Solution set:',
         options: [
-          { id: 'a', label: '$\\{-2, 8\\}$', correct: true  },
-          { id: 'b', label: '$\\{5, -5\\}$ (bez uwzględnienia $-3$)', correct: false },
-          { id: 'c', label: '$\\{8\\}$ (tylko dodatni przypadek)', correct: false },
-          { id: 'd', label: '$\\{-2\\}$ (tylko ujemny przypadek)', correct: false },
+          { id: 'a', label: '$\\{-2, 8\\}$',                                labelEn: '$\\{-2, 8\\}$',                                correct: true  },
+          { id: 'b', label: '$\\{5, -5\\}$ (bez uwzględnienia $-3$)',       labelEn: '$\\{5, -5\\}$ (ignoring the $-3$)',            correct: false },
+          { id: 'c', label: '$\\{8\\}$ (tylko dodatni przypadek)',          labelEn: '$\\{8\\}$ (only the positive case)',           correct: false },
+          { id: 'd', label: '$\\{-2\\}$ (tylko ujemny przypadek)',          labelEn: '$\\{-2\\}$ (only the negative case)',          correct: false },
         ],
         pick(id) { C.pick1 = id; },
       },
       pips() {
-        return [{ label: 'wybrany pełny zbiór rozwiązań', ok: C.pick1 === 'a' }];
+        return [{ label: T('wybrany pełny zbiór rozwiązań', 'full solution set selected'), ok: C.pick1 === 'a' }];
       },
       solved() { return C.pick1 === 'a'; },
       hints: [
@@ -212,7 +232,13 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② Rozbij na przypadki: $x - 3 = 5$ (gdy $x - 3 \\geq 0$) oraz $-(x - 3) = 5$ (gdy $x - 3 < 0$).',
         '③ Z pierwszego: $x = 8$. Z drugiego: $x = -2$. Oba w dziedzinie (zawsze są — moduł nie ma ograniczeń). Zbiór: $\\{-2, 8\\}$.',
       ],
-      solvedMsg: '$|a| = b$ ($b \\geq 0$) ma **zawsze dwa** rozwiązania, chyba że $b = 0$. Nie "usuwaj" modułu — rozbij na przypadki.',
+      hintsEn: [
+        '① $|x - 3| = 5$ means: the distance from $x$ to $3$ is $5$. There are **two** such points.',
+        '② Split into cases: $x - 3 = 5$ (when $x - 3 \\geq 0$) and $-(x - 3) = 5$ (when $x - 3 < 0$).',
+        '③ From the first: $x = 8$. From the second: $x = -2$. Both are valid (no domain restrictions on absolute value). Set: $\\{-2, 8\\}$.',
+      ],
+      solvedMsg:   '$|a| = b$ ($b \\geq 0$) ma **zawsze dwa** rozwiązania, chyba że $b = 0$. Nie "usuwaj" modułu — rozbij na przypadki.',
+      solvedMsgEn: '$|a| = b$ (with $b \\geq 0$) **always** has two solutions, except when $b = 0$. Don’t "drop" the absolute value — split into cases.',
       draw() {
         // y = |x - 3|
         view.plotFn(x => Math.abs(x - 3), { color: COL_PAR, alpha: 0.95, lineWidth: 2.5 });
@@ -237,31 +263,47 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     // ─── Ch.2: |x + 2| < 3 ──────────────────────────────────
     {
       id: 'ch2',
-      title: 'Nierówność z modułem: $|x + 2| < 3$',
-      desc: '"$|\\ldots| < b$" to nie "$\\ldots < b$". Zamiast zdejmować moduł, zamień nierówność na przedział dwustronny.',
+      title:   'Nierówność z modułem: $|x + 2| < 3$',
+      titleEn: 'Inequality with absolute value: $|x + 2| < 3$',
+      desc:    '"$|\\ldots| < b$" to nie "$\\ldots < b$". Zamiast zdejmować moduł, zamień nierówność na przedział dwustronny.',
+      descEn:  '"$|\\ldots| < b$" is not "$\\ldots < b$". Instead of stripping the absolute value, turn the inequality into a two-sided interval.',
       drawBackground: 'graph',
       view: { xRange: [-8, 4], yRange: [-1.5, 2.5] },
       init() { C.pick2 = null; viewCfg = { xRange: [-8, 4], yRange: [-1.5, 2.5] }; },
       predict: {
-        question: '$|x + 2| < 3$ oznacza:',
+        question:   '$|x + 2| < 3$ oznacza:',
+        questionEn: '$|x + 2| < 3$ means:',
         options: [
-          { label: '$x + 2 < 3$', correct: false, why: 'To tylko połowa. Bez dolnego ograniczenia tracisz wszystkie wartości $x + 2 < -3$, dla których moduł też jest $\\geq 3$.' },
-          { label: '$x + 2 > -3$', correct: false, why: 'Druga połowa. Sama w sobie nie wystarczy — potrzebne są OBA ograniczenia.' },
-          { label: '$-3 < x + 2 < 3$', correct: true, why: 'Tak. $|A| < b$ to skrócony zapis $-b < A < b$. Dwa ograniczenia naraz, jeden przedział.' },
-          { label: '$x < 3$', correct: false, why: 'Tu nawet nie ma $x + 2$ — nierówność z modułu zależy od CAŁEGO wyrażenia wewnątrz.' },
+          { label: '$x + 2 < 3$',           labelEn: '$x + 2 < 3$',
+            correct: false,
+            why:   'To tylko połowa. Bez dolnego ograniczenia tracisz wszystkie wartości $x + 2 < -3$, dla których moduł też jest $\\geq 3$.',
+            whyEn: 'Only half. Without a lower bound you lose every $x + 2 < -3$, whose absolute value is also $\\geq 3$.' },
+          { label: '$x + 2 > -3$',          labelEn: '$x + 2 > -3$',
+            correct: false,
+            why:   'Druga połowa. Sama w sobie nie wystarczy — potrzebne są OBA ograniczenia.',
+            whyEn: 'The other half. On its own it’s not enough — you need BOTH bounds.' },
+          { label: '$-3 < x + 2 < 3$',      labelEn: '$-3 < x + 2 < 3$',
+            correct: true,
+            why:   'Tak. $|A| < b$ to skrócony zapis $-b < A < b$. Dwa ograniczenia naraz, jeden przedział.',
+            whyEn: 'Yes. $|A| < b$ is shorthand for $-b < A < b$. Two bounds at once, one interval.' },
+          { label: '$x < 3$',               labelEn: '$x < 3$',
+            correct: false,
+            why:   'Tu nawet nie ma $x + 2$ — nierówność z modułu zależy od CAŁEGO wyrażenia wewnątrz.',
+            whyEn: 'There’s not even an $x + 2$ here — the inequality depends on the WHOLE expression inside the bars.' },
         ],
       },
       choices: {
-        question: 'Zbiór rozwiązań:',
+        question:   'Zbiór rozwiązań:',
+        questionEn: 'Solution set:',
         options: [
-          { id: 'a', label: '$(-5, 1)$', correct: true  },
-          { id: 'b', label: '$(-1, 5)$ (zły znak — przesunięcie w złą stronę)', correct: false },
-          { id: 'c', label: '$(-3, 3)$ (zapomniał o $+2$)', correct: false },
+          { id: 'a', label: '$(-5, 1)$',                                              labelEn: '$(-5, 1)$',                                                       correct: true  },
+          { id: 'b', label: '$(-1, 5)$ (zły znak — przesunięcie w złą stronę)',       labelEn: '$(-1, 5)$ (wrong sign — shifted the wrong way)',                  correct: false },
+          { id: 'c', label: '$(-3, 3)$ (zapomniał o $+2$)',                            labelEn: '$(-3, 3)$ (forgot about the $+2$)',                              correct: false },
         ],
         pick(id) { C.pick2 = id; },
       },
       pips() {
-        return [{ label: 'wybrany poprawny przedział', ok: C.pick2 === 'a' }];
+        return [{ label: T('wybrany poprawny przedział', 'correct interval selected'), ok: C.pick2 === 'a' }];
       },
       solved() { return C.pick2 === 'a'; },
       hints: [
@@ -269,7 +311,13 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② Wszystkie $x$ bliższe niż $3$ od $-2$: od $-2 - 3 = -5$ do $-2 + 3 = 1$.',
         '③ Nawiasy otwarte (nierówność ostra): $(-5, 1)$.',
       ],
-      solvedMsg: '$|x - a| < b$ oznacza "odległość od $a$ mniejsza niż $b$", czyli przedział $(a-b, a+b)$. Geometryczna interpretacja jest tu często szybsza niż rozbicie na przypadki.',
+      hintsEn: [
+        '① $|x + 2| < 3$ says "the distance from $x$ to $-2$ is less than $3$".',
+        '② All $x$ within $3$ of $-2$: from $-2 - 3 = -5$ to $-2 + 3 = 1$.',
+        '③ Open brackets (strict inequality): $(-5, 1)$.',
+      ],
+      solvedMsg:   '$|x - a| < b$ oznacza "odległość od $a$ mniejsza niż $b$", czyli przedział $(a-b, a+b)$. Geometryczna interpretacja jest tu często szybsza niż rozbicie na przypadki.',
+      solvedMsgEn: '$|x - a| < b$ means "distance from $a$ less than $b$", i.e. the interval $(a-b, a+b)$. The geometric reading is often quicker than splitting into cases.',
       draw() {
         // Number line at y=0
         const yL = 0;
@@ -306,31 +354,47 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     // ─── Ch.3: |x| + |x - 4| = 6 ────────────────────────────
     {
       id: 'ch3',
-      title: 'Dwa moduły: $|x| + |x - 4| = 6$',
-      desc: 'Dwa moduły — dwa punkty krytyczne. Oś dzieli się na trzy przedziały; w każdym moduły rozwijają się z konkretnym znakiem.',
+      title:   'Dwa moduły: $|x| + |x - 4| = 6$',
+      titleEn: 'Two absolute values: $|x| + |x - 4| = 6$',
+      desc:    'Dwa moduły — dwa punkty krytyczne. Oś dzieli się na trzy przedziały; w każdym moduły rozwijają się z konkretnym znakiem.',
+      descEn:  'Two absolute values, two critical points. The axis splits into three intervals; on each one the bars unfold with a definite sign.',
       drawBackground: 'blank',
       init() { C.pick3 = null; },
       predict: {
-        question: 'Ile przypadków trzeba rozważyć?',
+        question:   'Ile przypadków trzeba rozważyć?',
+        questionEn: 'How many cases do you need to consider?',
         options: [
-          { label: '$1$ (zawsze dodatnie)', correct: false, why: '"Zawsze dodatnie" mówi o wartości modułu, nie o znaku wyrażenia w środku. Przy rozwijaniu musisz znać znak każdego wyrażenia osobno.' },
-          { label: '$2$ (plus i minus)', correct: false, why: 'Dla jednego modułu — tak. Dla dwóch modułów zmiany znaku zachodzą w DWÓCH różnych miejscach, więc przedziałów jest więcej.' },
-          { label: '$3$ (zero, środek, brzeg)', correct: false, why: 'Prawie! Są trzy — ale kryterium nie jest "zero/środek/brzeg", tylko znaki obu wyrażeń wewnątrz modułów.' },
-          { label: '$3$ przedziały', correct: true, why: 'Tak. $|x|$ zmienia znak w $x=0$, $|x-4|$ w $x=4$. Dostajemy przedziały: $x<0$, $0 \\leq x < 4$, $x \\geq 4$.' },
+          { label: '$1$ (zawsze dodatnie)',                       labelEn: '$1$ (always positive)',
+            correct: false,
+            why:   '"Zawsze dodatnie" mówi o wartości modułu, nie o znaku wyrażenia w środku. Przy rozwijaniu musisz znać znak każdego wyrażenia osobno.',
+            whyEn: '"Always positive" describes the output of the absolute value, not the sign inside. When unfolding, you need the sign of each inner expression separately.' },
+          { label: '$2$ (plus i minus)',                          labelEn: '$2$ (plus and minus)',
+            correct: false,
+            why:   'Dla jednego modułu — tak. Dla dwóch modułów zmiany znaku zachodzą w DWÓCH różnych miejscach, więc przedziałów jest więcej.',
+            whyEn: 'For one absolute value — sure. With two, the sign changes happen at TWO different places, so you get more intervals.' },
+          { label: '$3$ (zero, środek, brzeg)',                   labelEn: '$3$ (zero, middle, edge)',
+            correct: false,
+            why:   'Prawie! Są trzy — ale kryterium nie jest "zero/środek/brzeg", tylko znaki obu wyrażeń wewnątrz modułów.',
+            whyEn: 'Close! There are three — but the criterion isn’t "zero/middle/edge", it’s the signs of the two expressions inside the bars.' },
+          { label: '$3$ przedziały',                               labelEn: '$3$ intervals',
+            correct: true,
+            why:   'Tak. $|x|$ zmienia znak w $x=0$, $|x-4|$ w $x=4$. Dostajemy przedziały: $x<0$, $0 \\leq x < 4$, $x \\geq 4$.',
+            whyEn: 'Yes. $|x|$ flips sign at $x=0$, $|x-4|$ at $x=4$. The intervals are: $x<0$, $0 \\leq x < 4$, $x \\geq 4$.' },
         ],
       },
       choices: {
-        question: 'Zbiór rozwiązań:',
+        question:   'Zbiór rozwiązań:',
+        questionEn: 'Solution set:',
         options: [
-          { id: 'a', label: '$\\{-1, 5\\}$', correct: true  },
-          { id: 'b', label: '$\\{2, 4\\}$', correct: false },
-          { id: 'c', label: '$\\{-1, 2, 5\\}$', correct: false },
-          { id: 'd', label: '$\\{0, 4\\}$', correct: false },
+          { id: 'a', label: '$\\{-1, 5\\}$',     labelEn: '$\\{-1, 5\\}$',     correct: true  },
+          { id: 'b', label: '$\\{2, 4\\}$',      labelEn: '$\\{2, 4\\}$',      correct: false },
+          { id: 'c', label: '$\\{-1, 2, 5\\}$',  labelEn: '$\\{-1, 2, 5\\}$',  correct: false },
+          { id: 'd', label: '$\\{0, 4\\}$',      labelEn: '$\\{0, 4\\}$',      correct: false },
         ],
         pick(id) { C.pick3 = id; },
       },
       pips() {
-        return [{ label: 'wybrany poprawny zbiór rozwiązań', ok: C.pick3 === 'a' }];
+        return [{ label: T('wybrany poprawny zbiór rozwiązań', 'correct solution set selected'), ok: C.pick3 === 'a' }];
       },
       solved() { return C.pick3 === 'a'; },
       hints: [
@@ -338,7 +402,13 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② W każdym przedziale **usuwamy moduły z konkretnym znakiem** i rozwiązujemy.',
         '③ Pamiętaj o **sprawdzeniu**: czy rozwiązanie leży w przedziale, w którym je znalazłeś. $x = -1$ leży w $x < 0$ ✓; środkowy przedział daje sprzeczność.',
       ],
-      solvedMsg: '$n$ modułów daje do $n+1$ przedziałów po rozbiciu na przypadki. Zawsze sprawdzamy, czy znalezione rozwiązanie leży w przedziale, na którym pracowaliśmy — w przeciwnym razie jest to pozorny pierwiastek.',
+      hintsEn: [
+        '① Critical points: $|x|$ flips at $x = 0$, $|x-4|$ at $x = 4$. The axis splits into three intervals.',
+        '② On each interval **drop the bars with a definite sign** and solve.',
+        '③ Always **check**: does the solution actually lie in the interval you assumed? $x = -1$ does lie in $x < 0$ ✓; the middle interval yields a contradiction.',
+      ],
+      solvedMsg:   '$n$ modułów daje do $n+1$ przedziałów po rozbiciu na przypadki. Zawsze sprawdzamy, czy znalezione rozwiązanie leży w przedziale, na którym pracowaliśmy — w przeciwnym razie jest to pozorny pierwiastek.',
+      solvedMsgEn: '$n$ absolute values give up to $n+1$ intervals after splitting into cases. Always check that a candidate solution lies in the interval you worked on — otherwise it’s a spurious root.',
       draw() {
         // Title
         centerText('|x| + |x - 4| = 6', W/2, 22, COL_PAR, 15);
@@ -407,17 +477,20 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     // ─── Ch.4: Debug ────────────────────────────────────────
     {
       id: 'ch4',
-      title: 'Debug: Marta "usuwa" moduł',
-      desc: 'Marta rozwiązuje $|2x - 6| = 10$ i dostaje jedno rozwiązanie. Znajdź krok, w którym popełniła błąd myślenia.',
+      title:   'Debug: Marta "usuwa" moduł',
+      titleEn: 'Debug: Marta "drops" the absolute value',
+      desc:    'Marta rozwiązuje $|2x - 6| = 10$ i dostaje jedno rozwiązanie. Znajdź krok, w którym popełniła błąd myślenia.',
+      descEn:  'Marta solves $|2x - 6| = 10$ and gets one solution. Find the step where her reasoning goes wrong.',
       drawBackground: 'blank',
       init() {},
       debug: {
-        task: 'Marta rozwiązała $|2x - 6| = 10$ pisząc $2x - 6 = 10$ i dostała $x = 8$. Co ominęła?',
+        task:   'Marta rozwiązała $|2x - 6| = 10$ pisząc $2x - 6 = 10$ i dostała $x = 8$. Co ominęła?',
+        taskEn: 'Marta solved $|2x - 6| = 10$ by writing $2x - 6 = 10$ and got $x = 8$. What did she miss?',
         steps: [
-          { n: 1, text: '$|2x - 6| = 10$' },
-          { n: 2, text: 'Usuwam moduł (bo jest zawsze dodatni): $2x - 6 = 10$' },
-          { n: 3, text: '$2x = 16$' },
-          { n: 4, text: '$x = 8$.' },
+          { n: 1, text: '$|2x - 6| = 10$',                                              textEn: '$|2x - 6| = 10$' },
+          { n: 2, text: 'Usuwam moduł (bo jest zawsze dodatni): $2x - 6 = 10$',          textEn: 'Drop the absolute value (since it’s always positive): $2x - 6 = 10$' },
+          { n: 3, text: '$2x = 16$',                                                     textEn: '$2x = 16$' },
+          { n: 4, text: '$x = 8$.',                                                      textEn: '$x = 8$.' },
         ],
         errorLine: 2,
         wrongChoice: {
@@ -425,7 +498,13 @@ import { initWarsztat } from '../lib/warsztat-core.js';
           3: 'Krok 3 algebraicznie poprawny, ale wynika z błędnego kroku 2.',
           4: 'Krok 4 arytmetycznie OK.',
         },
-        correctExplanation: 'Krok 2: **moduł nie "usuwa się" — rozbija się na przypadki**. $|A| = b$ oznacza $A = b$ LUB $A = -b$. Marta rozważyła tylko pierwszy przypadek i zapomniała o $2x - 6 = -10 \\Rightarrow x = -2$. Pełne rozwiązanie: $\\{-2, 8\\}$.',
+        wrongChoiceEn: {
+          1: 'Step 1 is just the original equation — nothing has been done yet.',
+          3: 'Step 3 is algebraically correct, but it follows from the broken step 2.',
+          4: 'Step 4 is arithmetically fine.',
+        },
+        correctExplanation:   'Krok 2: **moduł nie "usuwa się" — rozbija się na przypadki**. $|A| = b$ oznacza $A = b$ LUB $A = -b$. Marta rozważyła tylko pierwszy przypadek i zapomniała o $2x - 6 = -10 \\Rightarrow x = -2$. Pełne rozwiązanie: $\\{-2, 8\\}$.',
+        correctExplanationEn: 'Step 2: **the absolute value doesn’t "drop" — it splits into cases**. $|A| = b$ means $A = b$ OR $A = -b$. Marta only considered the first case and forgot about $2x - 6 = -10 \\Rightarrow x = -2$. Full solution: $\\{-2, 8\\}$.',
       },
       pips() { return []; },
       solved() { return false; },
@@ -434,7 +513,13 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② $|A| = b$ ma **dwa** przypadki: $A = b$ ORAZ $A = -b$. Marta zapomniała o drugim.',
         '③ Drugi przypadek: $2x - 6 = -10 \\Rightarrow 2x = -4 \\Rightarrow x = -2$. Pełny zbiór: $\\{-2, 8\\}$.',
       ],
-      solvedMsg: 'Zamiast "usuwam moduł" warto zapisywać: "$|A| = b$ daje $A = b$ lub $A = -b$", a następnie rozwiązać oba równania.',
+      hintsEn: [
+        '① "Always positive" refers to the OUTPUT of the absolute value, not to the expression inside — that one can be negative.',
+        '② $|A| = b$ has **two** cases: $A = b$ AND $A = -b$. Marta forgot the second.',
+        '③ Second case: $2x - 6 = -10 \\Rightarrow 2x = -4 \\Rightarrow x = -2$. Full set: $\\{-2, 8\\}$.',
+      ],
+      solvedMsg:   'Zamiast "usuwam moduł" warto zapisywać: "$|A| = b$ daje $A = b$ lub $A = -b$", a następnie rozwiązać oba równania.',
+      solvedMsgEn: 'Instead of "I drop the absolute value", write: "$|A| = b$ gives $A = b$ or $A = -b$", then solve both equations.',
       draw() {
         centerText('|2x - 6| = 10', W/2, 40, COL_PAR, 22);
 
@@ -485,32 +570,48 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     // ─── Ch.5: nested modulus, W-shape graph ───────────────────────
     {
       id: 'ch5',
-      title: 'Zagnieżdżony moduł: kształt W',
-      desc: 'Rozwiąż $||x - 3| - 2| = 1$. Wykres zagnieżdżonego modułu ma kształt W — prosta $y = 1$ przecina go w kilku punktach.',
+      title:   'Zagnieżdżony moduł: kształt W',
+      titleEn: 'Nested absolute value: the W shape',
+      desc:    'Rozwiąż $||x - 3| - 2| = 1$. Wykres zagnieżdżonego modułu ma kształt W — prosta $y = 1$ przecina go w kilku punktach.',
+      descEn:  'Solve $||x - 3| - 2| = 1$. The graph of a nested absolute value has a W shape — the line $y = 1$ cuts it in several points.',
       drawBackground: 'graph',
       view: { xRange: [-1.5, 7.5], yRange: [-0.6, 3.6], scale: 70 },
       init() { C.ch5Pick = null; },
       predict: {
-        question: 'Ile rozwiązań ma $||x - 3| - 2| = 1$?',
+        question:   'Ile rozwiązań ma $||x - 3| - 2| = 1$?',
+        questionEn: 'How many solutions does $||x - 3| - 2| = 1$ have?',
         options: [
-          { label: '1', correct: false, why: 'Zagnieżdżony moduł = zagnieżdżone rozbicie. Co najmniej dwa przypadki zewnętrzne.' },
-          { label: '2', correct: false, why: 'Prawie — zewnętrzne $|\\cdot| - 2 = \\pm 1$ daje dwie wartości wewnętrznego modułu. Każda z nich daje **po dwa** rozwiązania, więc łącznie 4.' },
-          { label: '4', correct: true, why: 'Tak — dwa przypadki zewnętrzne $\\times$ dwa wewnętrzne. Wykres ma kształt **W**; prosta $y = 1$ przecina go w 4 punktach.' },
-          { label: 'nieskończenie wiele', correct: false, why: 'Równanie z modułem ma skończenie wiele rozwiązań punktowych.' },
+          { label: '1',                          labelEn: '1',
+            correct: false,
+            why:   'Zagnieżdżony moduł = zagnieżdżone rozbicie. Co najmniej dwa przypadki zewnętrzne.',
+            whyEn: 'Nested absolute value = nested case-splitting. At least two outer cases.' },
+          { label: '2',                          labelEn: '2',
+            correct: false,
+            why:   'Prawie — zewnętrzne $|\\cdot| - 2 = \\pm 1$ daje dwie wartości wewnętrznego modułu. Każda z nich daje **po dwa** rozwiązania, więc łącznie 4.',
+            whyEn: 'Close — the outer $|\\cdot| - 2 = \\pm 1$ gives two values for the inner absolute value. Each of those gives **two** solutions, so 4 in total.' },
+          { label: '4',                          labelEn: '4',
+            correct: true,
+            why:   'Tak — dwa przypadki zewnętrzne $\\times$ dwa wewnętrzne. Wykres ma kształt **W**; prosta $y = 1$ przecina go w 4 punktach.',
+            whyEn: 'Yes — two outer cases $\\times$ two inner cases. The graph is a **W**; the line $y = 1$ cuts it in 4 points.' },
+          { label: 'nieskończenie wiele',         labelEn: 'infinitely many',
+            correct: false,
+            why:   'Równanie z modułem ma skończenie wiele rozwiązań punktowych.',
+            whyEn: 'An absolute-value equation has finitely many point solutions.' },
         ],
       },
       choices: {
-        question: 'Który zbiór to rozwiązanie?',
+        question:   'Który zbiór to rozwiązanie?',
+        questionEn: 'Which set is the solution?',
         options: [
-          { id: 'a', label: '$\\{2, 4\\}$', correct: false },
-          { id: 'b', label: '$\\{0, 2, 4, 6\\}$', correct: true },
-          { id: 'c', label: '$\\{0, 6\\}$', correct: false },
-          { id: 'd', label: '$\\{-1, 3, 7\\}$', correct: false },
+          { id: 'a', label: '$\\{2, 4\\}$',         labelEn: '$\\{2, 4\\}$',         correct: false },
+          { id: 'b', label: '$\\{0, 2, 4, 6\\}$',   labelEn: '$\\{0, 2, 4, 6\\}$',   correct: true },
+          { id: 'c', label: '$\\{0, 6\\}$',         labelEn: '$\\{0, 6\\}$',         correct: false },
+          { id: 'd', label: '$\\{-1, 3, 7\\}$',     labelEn: '$\\{-1, 3, 7\\}$',     correct: false },
         ],
         pick(id) { C.ch5Pick = id; },
       },
       pips() {
-        return [{ label: 'rozwiązanie $\\{0, 2, 4, 6\\}$', ok: C.ch5Pick === 'b' }];
+        return [{ label: T('rozwiązanie $\\{0, 2, 4, 6\\}$', 'solution $\\{0, 2, 4, 6\\}$'), ok: C.ch5Pick === 'b' }];
       },
       solved() { return C.ch5Pick === 'b'; },
       hints: [
@@ -518,7 +619,13 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② Każde równanie $|x - 3| = k$ (dla $k > 0$) daje **dwa** rozwiązania $x = 3 \\pm k$. Mamy dwa takie równania.',
         '③ $|x-3| = 3 \\Rightarrow x \\in \\{0, 6\\}$; $|x-3| = 1 \\Rightarrow x \\in \\{2, 4\\}$. Razem $\\{0, 2, 4, 6\\}$.',
       ],
-      solvedMsg: 'Zagnieżdżony moduł = kształt **W** (lub **M** gdy z minusem). $n$ warstw → do $2^n$ rozwiązań. Zasada: rozwiązuj **od zewnątrz do środka**. &nbsp;<br>Głębszy wgląd: kształt W nie jest przypadkowy — to **$y = |x|$ przekształcone**. $y = |x-3|$ przesuwa w prawo; odjęcie 2 i ponowna wartość bezwzględna „odbija" ujemną część w górę, robiąc W. To ta sama logika, co **wzór na wierzchołek paraboli** $y = (x-h)^2 + k$ — obie sprowadzają się do przekształceń wykresu bazowego. Zobacz: **Warsztat z przekształceń wykresów funkcji** (node `fn_transforms`).',
+      hintsEn: [
+        '① Work **from the outside in**: $||\\cdot| - 2| = 1$ means $|\\cdot| - 2 = \\pm 1$, so the inner $|\\cdot| = 3$ OR $|\\cdot| = 1$.',
+        '② Each equation $|x - 3| = k$ (for $k > 0$) gives **two** solutions $x = 3 \\pm k$. We have two such equations.',
+        '③ $|x-3| = 3 \\Rightarrow x \\in \\{0, 6\\}$; $|x-3| = 1 \\Rightarrow x \\in \\{2, 4\\}$. Together $\\{0, 2, 4, 6\\}$.',
+      ],
+      solvedMsg:   'Zagnieżdżony moduł = kształt **W** (lub **M** gdy z minusem). $n$ warstw → do $2^n$ rozwiązań. Zasada: rozwiązuj **od zewnątrz do środka**. &nbsp;<br>Głębszy wgląd: kształt W nie jest przypadkowy — to **$y = |x|$ przekształcone**. $y = |x-3|$ przesuwa w prawo; odjęcie 2 i ponowna wartość bezwzględna „odbija" ujemną część w górę, robiąc W. To ta sama logika, co **wzór na wierzchołek paraboli** $y = (x-h)^2 + k$ — obie sprowadzają się do przekształceń wykresu bazowego. Zobacz: **Warsztat z przekształceń wykresów funkcji** (node `fn_transforms`).',
+      solvedMsgEn: 'Nested absolute value = a **W** shape (or **M** with a minus). $n$ layers → up to $2^n$ solutions. Rule: work **from the outside in**. &nbsp;<br>Deeper insight: the W shape isn’t accidental — it’s **$y = |x|$ transformed**. $y = |x-3|$ shifts it right; subtracting 2 and taking another absolute value "flips" the negative part up, producing the W. Same logic as the **vertex form of a parabola** $y = (x-h)^2 + k$ — both come down to transforming a base graph. See: **Workshop on graph transformations** (node `fn_transforms`).',
       draw() {
         // W-shape: y = ||x - 3| - 2|
         view.plotFn(x => Math.abs(Math.abs(x - 3) - 2), { color: '#58C4DD', lineWidth: 2.5, alpha: 0.95 });
@@ -539,12 +646,25 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         view.label('y = 1', -1.3, 1.18, { color: '#FFD166', align: 'left', font: '11px monospace' });
       },
       predictAfter: {
-        question: 'A ile rozwiązań ma $||x - 3| - 2| = 3$?',
+        question:   'A ile rozwiązań ma $||x - 3| - 2| = 3$?',
+        questionEn: 'And how many solutions does $||x - 3| - 2| = 3$ have?',
         options: [
-          { label: '4', correct: false, why: 'Wykres ma lokalne maksimum $y = 2$ w $(3, 2)$. Prosta $y = 3$ jest **powyżej** środkowej części W, więc przecina tylko zewnętrzne ramiona.' },
-          { label: '2', correct: true, why: 'Tak — tylko zewnętrzne ramiona. Algebra: $|x-3| - 2 = \\pm 3 \\Rightarrow |x-3| = 5$ (daje $\\{-2, 8\\}$) lub $|x-3| = -1$ (brak). Razem 2.' },
-          { label: '1', correct: false, why: 'Zewnętrzny przypadek $|x-3| = 5$ zawsze daje dwa rozwiązania (symetryczne wokół 3).' },
-          { label: '0', correct: false, why: 'Ramiona W rozciągają się nieograniczenie — rozwiązanie zawsze istnieje dla $y \\geq 0$ gdy $y$ jest w zasięgu ramion.' },
+          { label: '4', labelEn: '4',
+            correct: false,
+            why:   'Wykres ma lokalne maksimum $y = 2$ w $(3, 2)$. Prosta $y = 3$ jest **powyżej** środkowej części W, więc przecina tylko zewnętrzne ramiona.',
+            whyEn: 'The graph has a local max of $y = 2$ at $(3, 2)$. The line $y = 3$ sits **above** the middle of the W, so it only meets the outer arms.' },
+          { label: '2', labelEn: '2',
+            correct: true,
+            why:   'Tak — tylko zewnętrzne ramiona. Algebra: $|x-3| - 2 = \\pm 3 \\Rightarrow |x-3| = 5$ (daje $\\{-2, 8\\}$) lub $|x-3| = -1$ (brak). Razem 2.',
+            whyEn: 'Yes — only the outer arms. Algebra: $|x-3| - 2 = \\pm 3 \\Rightarrow |x-3| = 5$ (gives $\\{-2, 8\\}$) or $|x-3| = -1$ (none). Total: 2.' },
+          { label: '1', labelEn: '1',
+            correct: false,
+            why:   'Zewnętrzny przypadek $|x-3| = 5$ zawsze daje dwa rozwiązania (symetryczne wokół 3).',
+            whyEn: 'The outer case $|x-3| = 5$ always gives two solutions (symmetric about 3).' },
+          { label: '0', labelEn: '0',
+            correct: false,
+            why:   'Ramiona W rozciągają się nieograniczenie — rozwiązanie zawsze istnieje dla $y \\geq 0$ gdy $y$ jest w zasięgu ramion.',
+            whyEn: 'The arms of the W extend to infinity — solutions always exist for $y \\geq 0$ once $y$ is in reach of the arms.' },
         ],
       },
     },
@@ -554,7 +674,8 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     canvasId: 'cv',
     challenges,
     lsKey: 'warsztat:abs-value:completed',
-    wrapup: 'Moduł sprowadza się do rozbicia na przypadki. Cztery podstawowe wzorce: (1) $|A| = b$ daje $A = \\pm b$; (2) $|A| < b$ odpowiada $-b < A < b$; (3) w $|A_1| + |A_2| = c$ oś dzielimy na przedziały wyznaczone przez punkty krytyczne; (4) **zagnieżdżony moduł daje wykres w kształcie W** — rozwiązujemy go od zewnątrz, a każda warstwa podwaja liczbę przypadków (dla $n$ warstw otrzymujemy do $2^n$ rozwiązań).',
+    wrapup:   'Moduł sprowadza się do rozbicia na przypadki. Cztery podstawowe wzorce: (1) $|A| = b$ daje $A = \\pm b$; (2) $|A| < b$ odpowiada $-b < A < b$; (3) w $|A_1| + |A_2| = c$ oś dzielimy na przedziały wyznaczone przez punkty krytyczne; (4) **zagnieżdżony moduł daje wykres w kształcie W** — rozwiązujemy go od zewnątrz, a każda warstwa podwaja liczbę przypadków (dla $n$ warstw otrzymujemy do $2^n$ rozwiązań).',
+    wrapupEn: 'Absolute value comes down to splitting into cases. Four core patterns: (1) $|A| = b$ gives $A = \\pm b$; (2) $|A| < b$ becomes $-b < A < b$; (3) for $|A_1| + |A_2| = c$ the axis splits into intervals at the critical points; (4) **a nested absolute value gives a W-shaped graph** — solve from the outside in, and each layer doubles the number of cases (for $n$ layers you get up to $2^n$ solutions).',
     onFrame({ ch }) {
       if (ch.view) viewCfg = ch.view;
       initView();

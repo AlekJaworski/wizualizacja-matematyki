@@ -90,7 +90,7 @@
 
 <script type="module">
 import { GraphView } from '../lib/graph-core.js';
-import { initWarsztat } from '../lib/warsztat-core.js';
+import { initWarsztat, T } from '../lib/warsztat-core.js';
 {
   const cv = document.getElementById('cv');
   const ctx = cv.getContext('2d');
@@ -169,20 +169,24 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     {
       id: 'ch1',
       title: 'Wyłącz wspólny czynnik: 6x² + 9x',
+      titleEn: 'Factor out GCF: 6x² + 9x',
       desc: 'Zanim sięgniesz po wzory — zawsze sprawdź, czy da się wyciągnąć wspólny czynnik. Znajdź największy czynnik dzielący oba wyrazy.',
+      descEn: 'Before reaching for formulas — always check for a common factor first. Find the greatest common factor of both terms.',
       drawBackground: 'blank',
       init() { C.gcfPick = null; },
       predict: {
         question: 'Co jest największym wspólnym dzielnikiem wyrazów 6x² i 9x?',
+        questionEn: 'What is the greatest common factor of 6x² and 9x?',
         options: [
-          { label: '3',   correct: false, why: 'Prawie — 3 dzieli obie liczby, ale zapominasz o x. W 6x² i 9x jest jeszcze wspólne x.' },
-          { label: '3x',  correct: true,  why: 'Tak. NWD liczb to 3, a najmniejsza potęga x to x¹. Razem: 3x. Wyciągasz 3x przed nawias.' },
-          { label: 'x',   correct: false, why: 'Tylko częściowo — 3 też dzieli oba wyrazy (6 = 3·2, 9 = 3·3), więc GCF to 3x, nie samo x.' },
-          { label: '9x',  correct: false, why: '9 nie dzieli 6. GCF musi dzielić OBA wyrazy — a 6x² / 9x nie jest całkowite.' },
+          { label: '3',   correct: false, why: 'Prawie — 3 dzieli obie liczby, ale zapominasz o x. W 6x² i 9x jest jeszcze wspólne x.', whyEn: 'Almost — 3 divides both numbers, but you are forgetting the x. Both 6x² and 9x also share an x.' },
+          { label: '3x',  correct: true,  why: 'Tak. NWD liczb to 3, a najmniejsza potęga x to x¹. Razem: 3x. Wyciągasz 3x przed nawias.', whyEn: 'Correct. GCF of the numbers is 3, and the lowest power of x is x¹. Together: 3x.' },
+          { label: 'x',   correct: false, why: 'Tylko częściowo — 3 też dzieli oba wyrazy (6 = 3·2, 9 = 3·3), więc GCF to 3x, nie samo x.', whyEn: 'Only partially — 3 also divides both terms (6 = 3·2, 9 = 3·3), so the GCF is 3x, not just x.' },
+          { label: '9x',  correct: false, why: '9 nie dzieli 6. GCF musi dzielić OBA wyrazy — a 6x² / 9x nie jest całkowite.', whyEn: '9 does not divide 6. The GCF must divide BOTH terms — and 6x² ÷ 9x is not a whole number.' },
         ],
       },
       choices: {
         question: 'Wybierz poprawny rozkład:',
+        questionEn: 'Choose the correct factorization:',
         options: [
           { id: 'a', label: '3x · (2x + 3)',   correct: true  },
           { id: 'b', label: '3 · (2x² + 3x)',  correct: false },
@@ -192,7 +196,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         pick(id) { C.gcfPick = id; },
       },
       pips() {
-        return [{ label: 'wybrano poprawny rozkład', ok: C.gcfPick === 'a' }];
+        return [{ label: T('wybrano poprawny rozkład', 'correct factorization selected'), ok: C.gcfPick === 'a' }];
       },
       solved() { return C.gcfPick === 'a'; },
       hints: [
@@ -200,7 +204,13 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         'NWD(6, 9) = 3. W 6x² są dwa x, w 9x jeden x — wspólne to x¹.',
         'Wyciągasz 3x: 6x² = 3x · 2x, 9x = 3x · 3. Razem: 3x · (2x + 3).',
       ],
+      hintsEn: [
+        'Look at the numbers: what is GCF(6, 9)? Now look at the x-powers: how many x-s does each term have?',
+        'GCF(6, 9) = 3. 6x² has two x-s, 9x has one — the shared power is x¹.',
+        'Factor out 3x: 6x² = 3x · 2x, 9x = 3x · 3. Together: 3x · (2x + 3).',
+      ],
       solvedMsg: 'Tak — wyłączenie wspólnego czynnika to zawsze pierwszy krok przy rozkładzie.',
+      solvedMsgEn: 'Correct — factoring out the GCF is always the first step when factoring.',
       draw() {
         const isOK = C.gcfPick === 'a';
         centerText('6x² + 9x', W*0.25, 60, COL_PAR, 20);
@@ -234,7 +244,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         ctx.fillText(' · 3', W*0.75, 130);
         ctx.restore();
 
-        centerText('wspólne: 3x', W*0.5, 175, COL_GCF, 13);
+        centerText(T('wspólne: 3x', 'common: 3x'), W*0.5, 175, COL_GCF, 13);
 
         ctx.save();
         ctx.font = '12px monospace';
@@ -244,11 +254,11 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         ctx.restore();
 
         if (isOK) {
-          centerText('\u2713 rozkład poprawny', W*0.5, 265, COL_OK, 14);
+          centerText(T('\u2713 rozkład poprawny', '\u2713 factorization correct'), W*0.5, 265, COL_OK, 14);
         } else if (C.gcfPick) {
-          centerText('spróbuj jeszcze raz', W*0.5, 265, COL_R1, 13);
+          centerText(T('spróbuj jeszcze raz', 'try again'), W*0.5, 265, COL_R1, 13);
         } else {
-          centerText('wybierz rozkład pod spodem \u2193', W*0.5, 265, 'rgba(255,255,255,0.35)', 12);
+          centerText(T('wybierz rozkład pod spodem \u2193', 'choose a factorization below \u2193'), W*0.5, 265, 'rgba(255,255,255,0.35)', 12);
         }
       },
     },
@@ -257,16 +267,19 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     {
       id: 'ch2',
       title: 'Wzór: a² − b² = (a−b)(a+b)',
+      titleEn: 'Formula: a² − b² = (a−b)(a+b)',
       desc: 'Cel: x² − 25. Ustaw a i b tak, żeby wzór a² − b² pasował do celu. Zobacz, jak pierwiastki pojawiają się przy ±b.',
+      descEn: 'Target: x² − 25. Adjust b so that a² − b² matches the target. Watch how the roots appear at ±b.',
       drawBackground: 'graph',
       init() { C.a = 1; C.b = 1; },
       predict: {
         question: 'Który wzór pasuje do x² − 25?',
+        questionEn: 'Which formula matches x² − 25?',
         options: [
-          { label: '(x − 5)(x + 5)',     correct: true,  why: 'Tak. 25 = 5², więc x² − 25 to różnica kwadratów: (x − 5)(x + 5). Pierwiastki w ±5.' },
-          { label: '(x − 5)²',            correct: false, why: '(x − 5)² = x² − 10x + 25 — to kwadrat dwumianu, nie różnica kwadratów. Jest środkowy wyraz.' },
-          { label: '(x + 5)²',            correct: false, why: '(x + 5)² = x² + 10x + 25 — znowu kwadrat sumy, ze środkowym wyrazem. I plus zamiast minus.' },
-          { label: '(x² − 5)(x² + 5)',    correct: false, why: 'To dałoby x⁴ − 25 (różnica kwadratów z x², nie z x). Tu a = x, b = 5.' },
+          { label: '(x − 5)(x + 5)',     correct: true,  why: 'Tak. 25 = 5², więc x² − 25 to różnica kwadratów: (x − 5)(x + 5). Pierwiastki w ±5.', whyEn: 'Yes. 25 = 5², so x² − 25 is a difference of squares: (x − 5)(x + 5). Roots at ±5.' },
+          { label: '(x − 5)²',            correct: false, why: '(x − 5)² = x² − 10x + 25 — to kwadrat dwumianu, nie różnica kwadratów. Jest środkowy wyraz.', whyEn: '(x − 5)² = x² − 10x + 25 — that is a perfect square trinomial. There is a middle term.' },
+          { label: '(x + 5)²',            correct: false, why: '(x + 5)² = x² + 10x + 25 — znowu kwadrat sumy, ze środkowym wyrazem. I plus zamiast minus.', whyEn: '(x + 5)² = x² + 10x + 25 — again a perfect square with a middle term. And a plus instead of minus.' },
+          { label: '(x² − 5)(x² + 5)',    correct: false, why: 'To dałoby x⁴ − 25 (różnica kwadratów z x², nie z x). Tu a = x, b = 5.', whyEn: 'This gives x⁴ − 25 (difference of squares with x², not x). Here a = x, b = 5.' },
         ],
       },
       sliders: [
@@ -274,7 +287,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
       ],
       pips() {
         return [
-          { label: 'a = 1 (bo mamy x², więc a² = 1·x²)', ok: true },
+          { label: T('a = 1 (bo mamy x², więc a² = 1·x²)', 'a = 1 (since we have x², so a² = 1·x²)'), ok: true },
           { label: 'b² = 25 ⇒ b = 5', ok: C.b === 5 },
         ];
       },
@@ -284,7 +297,13 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         'Wzór mówi: x² − b² = (x − b)(x + b). Tu x² − 25 = x² − b².',
         'b² = 25, więc b = 5. Ustaw suwak na 5.',
       ],
+      hintsEn: [
+        '25 is the square of some number. Which one?',
+        'The formula: x² − b² = (x − b)(x + b). Here x² − 25 = x² − b².',
+        'b² = 25, so b = 5. Move the slider to 5.',
+      ],
       solvedMsg: 'Różnica kwadratów — zawsze patrz na to pierwsze, gdy widzisz minus między dwoma kwadratami.',
+      solvedMsgEn: 'Difference of squares — always look for this first when you see a minus between two perfect squares.',
       draw() {
         const scale = 8;
         view.plotFn(x => (x*x - 25) / scale, { color: COL_TARGET, alpha: 0.35, lineWidth: 2, dash: [5,4] });
@@ -308,16 +327,19 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     {
       id: 'ch3',
       title: 'Rozłóż: x² − 5x + 6',
+      titleEn: 'Factor: x² − 5x + 6',
       desc: 'Ustaw pierwiastki x₁, x₂ tak, by ich suma i iloczyn pasowały do współczynników trójmianu. Wzory Vièty pozwalają odczytać pierwiastki wprost z postaci ogólnej, bez liczenia wyróżnika.',
+      descEn: "Set the roots x₁, x₂ so that their sum and product match the trinomial's coefficients. Vieta's formulas let you read the roots directly from the general form, without computing the discriminant.",
       drawBackground: 'graph',
       init() { C.x1 = 0; C.x2 = 0; },
       predict: {
         question: 'Dla x² − 5x + 6 — jakich liczb szukasz?',
+        questionEn: 'For x² − 5x + 6 — what two numbers are you looking for?',
         options: [
-          { label: 'suma 5, iloczyn 6',    correct: true,  why: 'Tak. Dla a=1: x₁ + x₂ = −b = 5, x₁ · x₂ = c = 6. Szukasz pary liczb spełniających OBA warunki.' },
-          { label: 'suma −5, iloczyn 6',   correct: false, why: 'Znak sumy idzie z −b. Tu b = −5, więc −b = +5. Suma to +5, nie −5.' },
-          { label: 'suma 5, iloczyn −6',   correct: false, why: 'Iloczyn = c (dla a=1). Tu c = +6, więc iloczyn dodatni.' },
-          { label: 'suma 6, iloczyn 5',    correct: false, why: 'Przestawione role. Suma idzie z b, iloczyn z c — nie odwrotnie.' },
+          { label: 'suma 5, iloczyn 6',    correct: true,  why: 'Tak. Dla a=1: x₁ + x₂ = −b = 5, x₁ · x₂ = c = 6. Szukasz pary liczb spełniających OBA warunki.', whyEn: 'Correct. For a=1: x₁ + x₂ = −b = 5, x₁ · x₂ = c = 6. You need a pair satisfying BOTH conditions.' },
+          { label: 'suma −5, iloczyn 6',   correct: false, why: 'Znak sumy idzie z −b. Tu b = −5, więc −b = +5. Suma to +5, nie −5.', whyEn: 'The sign of the sum comes from −b. Here b = −5, so −b = +5. The sum is +5, not −5.' },
+          { label: 'suma 5, iloczyn −6',   correct: false, why: 'Iloczyn = c (dla a=1). Tu c = +6, więc iloczyn dodatni.', whyEn: 'Product = c (for a=1). Here c = +6, so the product is positive.' },
+          { label: 'suma 6, iloczyn 5',    correct: false, why: 'Przestawione role. Suma idzie z b, iloczyn z c — nie odwrotnie.', whyEn: 'The roles are swapped. Sum comes from b, product from c — not the other way around.' },
         ],
       },
       sliders: [
@@ -327,8 +349,8 @@ import { initWarsztat } from '../lib/warsztat-core.js';
       pips() {
         const s = C.x1 + C.x2, p = C.x1 * C.x2;
         return [
-          { label: 'suma = 5', ok: near(s, 5) },
-          { label: 'iloczyn = 6', ok: near(p, 6) },
+          { label: T('suma = 5', 'sum = 5'), ok: near(s, 5) },
+          { label: T('iloczyn = 6', 'product = 6'), ok: near(p, 6) },
         ];
       },
       solved() {
@@ -340,7 +362,13 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         'x₁ + x₂ = 5   I   x₁ · x₂ = 6. Które pary liczb dają iloczyn 6?',
         'Pary o iloczynie 6: (1,6), (2,3), (−1,−6), (−2,−3). Która daje sumę 5? Para (2, 3).',
       ],
+      hintsEn: [
+        'You are looking for two numbers — not two separate equations. BOTH conditions must hold simultaneously.',
+        'x₁ + x₂ = 5  AND  x₁ · x₂ = 6. Which integer pairs give a product of 6?',
+        'Pairs with product 6: (1,6), (2,3), (−1,−6), (−2,−3). Which gives sum 5? The pair (2, 3).',
+      ],
       solvedMsg: 'Wzory Vièty pokazują, że współczynniki trójmianu niosą bezpośrednią informację o pierwiastkach: x² − 5x + 6 = (x − 2)(x − 3).',
+      solvedMsgEn: "Vieta's formulas show that the trinomial's coefficients carry direct information about the roots: x² − 5x + 6 = (x − 2)(x − 3).",
       draw() {
         view.plotFn(x => x*x - 5*x + 6, { color: COL_TARGET, alpha: 0.35, lineWidth: 2, dash: [5,4] });
         const s = C.x1 + C.x2, p = C.x1 * C.x2;
@@ -367,31 +395,35 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     {
       id: 'ch4',
       title: 'Grupowanie: x³ + 2x² + 3x + 6',
+      titleEn: 'Grouping: x³ + 2x² + 3x + 6',
       desc: 'Cztery wyrazy — zgrupuj je w pary tak, by po wyłączeniu czynników z każdej pary został ten sam nawias.',
+      descEn: 'Four terms — group them into pairs so that after factoring from each pair the same binomial remains.',
       drawBackground: 'blank',
       init() { C.groupPick = null; },
       predict: {
         question: 'Jak najrozsądniej zgrupować wyrazy?',
+        questionEn: 'What is the most natural way to group the terms?',
         options: [
-          { label: 'pary sąsiednie: (x³+2x²) + (3x+6)', correct: true,  why: 'Tak. Z pierwszej pary wyciągasz x² (zostaje x+2), z drugiej wyciągasz 3 (zostaje x+2). Ten sam nawias — grupowanie zadziałało.' },
-          { label: 'co drugi: (x³+3x) + (2x²+6)',       correct: false, why: 'Tutaj też by zadziałało (x(x²+3) + 2(x²+3)), ale jako pierwszy odruch próbuj par sąsiednich — to prostsze i częściej działa.' },
-          { label: 'wszystko w jedną grupę',            correct: false, why: 'To nie jest grupowanie — to samo wyrażenie. Grupowanie wymaga co najmniej dwóch grup, z których każda ma wspólny czynnik.' },
-          { label: 'po jednym wyrazie osobno',          correct: false, why: 'Pojedyncze wyrazy nie mają „wspólnego" czynnika z niczym. Sensem grupowania jest znalezienie wspólnego czynnika WEWNĄTRZ pary.' },
+          { label: 'pary sąsiednie: (x³+2x²) + (3x+6)', correct: true,  why: 'Tak. Z pierwszej pary wyciągasz x² (zostaje x+2), z drugiej wyciągasz 3 (zostaje x+2). Ten sam nawias — grupowanie zadziałało.', whyEn: 'Yes. From the first pair factor x² (leaving x+2), from the second factor 3 (leaving x+2). Same binomial — grouping worked.' },
+          { label: 'co drugi: (x³+3x) + (2x²+6)',       correct: false, why: 'Tutaj też by zadziałało (x(x²+3) + 2(x²+3)), ale jako pierwszy odruch próbuj par sąsiednich — to prostsze i częściej działa.', whyEn: 'This also works (x(x²+3) + 2(x²+3)), but try adjacent pairs first — it is simpler and succeeds more often.' },
+          { label: 'wszystko w jedną grupę',            correct: false, why: 'To nie jest grupowanie — to samo wyrażenie. Grupowanie wymaga co najmniej dwóch grup, z których każda ma wspólny czynnik.', whyEn: 'That is not grouping — it is the same expression. Grouping requires at least two groups each with a common factor.' },
+          { label: 'po jednym wyrazie osobno',          correct: false, why: 'Pojedyncze wyrazy nie mają „wspólnego" czynnika z niczym. Sensem grupowania jest znalezienie wspólnego czynnika WEWNĄTRZ pary.', whyEn: 'Single terms have no common factor with anything else. The point of grouping is to find a common factor WITHIN a pair.' },
         ],
       },
       choices: {
         question: 'Wybierz grupowanie prowadzące do rozkładu:',
+        questionEn: 'Choose the grouping that leads to a factorization:',
         options: [
           { id: 'a', label: '(x³ + 2x²) + (3x + 6)  →  x²(x+2) + 3(x+2)  →  (x+2)(x²+3)', correct: true  },
           { id: 'b', label: '(x³ + 3x) + (2x² + 6)  →  x(x²+3) + 2(x²+3)  →  (x²+3)(x+2)', correct: true  },
-          { id: 'c', label: '(x³ + 6) + (2x² + 3x)  →  brak wspólnego nawiasu',              correct: false },
-          { id: 'd', label: 'nie da się zgrupować',                                           correct: false },
+          { id: 'c', label: '(x³ + 6) + (2x² + 3x)  →  brak wspólnego nawiasu', labelEn: '(x³ + 6) + (2x² + 3x)  →  no common binomial',              correct: false },
+          { id: 'd', label: 'nie da się zgrupować', labelEn: 'grouping is impossible',                                           correct: false },
         ],
         pick(id) { C.groupPick = id; },
       },
       pips() {
         const ok = C.groupPick === 'a' || C.groupPick === 'b';
-        return [{ label: 'wybrano działające grupowanie', ok }];
+        return [{ label: T('wybrano działające grupowanie', 'working grouping selected'), ok }];
       },
       solved() { return C.groupPick === 'a' || C.groupPick === 'b'; },
       hints: [
@@ -399,7 +431,13 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         'Z (x³ + 2x²) wyciągasz x² → x²(x + 2). Z (3x + 6) wyciągasz 3 → 3(x + 2).',
         'Obydwa kończą się tym samym (x + 2) — wyciągasz go przed nawias: (x + 2)(x² + 3).',
       ],
+      hintsEn: [
+        'Factor the GCF from each pair separately. What binomial remains?',
+        'From (x³ + 2x²) factor x² → x²(x + 2). From (3x + 6) factor 3 → 3(x + 2).',
+        'Both end with (x + 2) — factor it out: (x + 2)(x² + 3).',
+      ],
       solvedMsg: 'Grupowanie działa, gdy po wyłączeniu czynników z obu grup zostaje ten sam nawias. Jeśli nie zostaje — zmień grupowanie.',
+      solvedMsgEn: 'Grouping works when factoring from both pairs leaves the same binomial. If not — try a different grouping.',
       draw() {
         ctx.save();
         ctx.font = '18px monospace';
@@ -431,12 +469,12 @@ import { initWarsztat } from '../lib/warsztat-core.js';
           ctx.fillStyle = COL_B;
           ctx.fillText('+ ( 2x² + 3x )', W*0.68, 90);
           ctx.fillStyle = COL_A;
-          ctx.fillText('brak wspólnego czynnika', W*0.28, 140);
+          ctx.fillText(T('brak wspólnego czynnika', 'no common factor'), W*0.28, 140);
           ctx.fillStyle = COL_B;
           ctx.fillText('x(2x + 3)', W*0.68, 140);
           ctx.fillStyle = COL_R1;
           ctx.font = '14px monospace';
-          ctx.fillText('nawiasy się nie pokrywają — to grupowanie nie działa', W/2, 200);
+          ctx.fillText(T('nawiasy się nie pokrywają — to grupowanie nie działa', 'brackets do not match — this grouping does not work'), W/2, 200);
         } else {
           ctx.fillStyle = COL_A;
           ctx.fillText('( x³ + 2x² )', W*0.28, 90);
@@ -448,7 +486,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
           ctx.fillText('+ 3 · (x + 2)', W*0.68, 140);
           ctx.fillStyle = COL_GCF;
           ctx.font = '13px monospace';
-          ctx.fillText('\u2191 wspólne: (x + 2) \u2191', W/2, 170);
+          ctx.fillText(T('\u2191 wspólne: (x + 2) \u2191', '\u2191 common: (x + 2) \u2191'), W/2, 170);
           ctx.fillStyle = pick === 'a' ? COL_OK : 'rgba(255,255,255,0.55)';
           ctx.font = '18px monospace';
           ctx.fillText('=  (x + 2)(x² + 3)', W/2, 210);
@@ -458,13 +496,13 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         ctx.textBaseline = 'middle';
         if (!pick) {
           ctx.fillStyle = 'rgba(255,255,255,0.4)';
-          ctx.fillText('wybierz grupowanie pod spodem \u2193', W/2, 265);
+          ctx.fillText(T('wybierz grupowanie pod spodem \u2193', 'choose a grouping below \u2193'), W/2, 265);
         } else if (pick === 'a' || pick === 'b') {
           ctx.fillStyle = COL_OK;
-          ctx.fillText('\u2713 grupowanie działa', W/2, 265);
+          ctx.fillText(T('\u2713 grupowanie działa', '\u2713 grouping works'), W/2, 265);
         } else {
           ctx.fillStyle = COL_R1;
-          ctx.fillText('to grupowanie nie prowadzi do rozkładu', W/2, 265);
+          ctx.fillText(T('to grupowanie nie prowadzi do rozkładu', 'this grouping does not lead to a factorization'), W/2, 265);
         }
         ctx.restore();
       },
@@ -476,6 +514,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     challenges,
     lsKey: 'warsztat:factoring:completed',
     wrapup: 'Trzy główne ścieżki rozkładu: <b>wspólny czynnik</b> → <b>wzór skróconego mnożenia</b> → <b>Vieta / grupowanie</b>. Zawsze zacznij od wspólnego czynnika — to jedyne narzędzie, które NIGDY nie zaszkodzi.',
+    wrapupEn: 'Three main factoring routes: <b>GCF</b> → <b>special product formulas</b> → <b>Vieta / grouping</b>. Always start with the GCF — it is the only tool that can never hurt.',
     onFrame({ ch }) {
       initView();
       view.clear();

@@ -105,7 +105,7 @@
 
 <script type="module">
 import { GraphView } from '../lib/graph-core.js';
-import { initWarsztat } from '../lib/warsztat-core.js';
+import { initWarsztat, T } from '../lib/warsztat-core.js';
 {
   const cv = document.getElementById('cv');
   const ctx = cv.getContext('2d');
@@ -186,30 +186,46 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     {
       id: 'ch1',
       title: 'Trójkąt 30-60-90: podstawowe stosunki',
-      desc: 'Przypomnij sobie (albo zobacz po raz pierwszy), skąd biorą się wartości $\\sin 30°$, $\\cos 30°$, $\\tan 30°$.',
+      titleEn: '30-60-90 triangle: basic ratios',
+      desc:   'Przypomnij sobie (albo zobacz po raz pierwszy), skąd biorą się wartości $\\sin 30°$, $\\cos 30°$, $\\tan 30°$.',
+      descEn: 'Recall (or see for the first time) where the values of $\\sin 30°$, $\\cos 30°$, $\\tan 30°$ come from.',
       drawBackground: 'blank',
       init() { C.ch1Pick = null; },
       predict: {
-        question: 'W trójkącie prostokątnym o kątach $30°, 60°, 90°$, stosunek boku naprzeciwległego do $30°$ do przeciwprostokątnej to...',
+        question:   'W trójkącie prostokątnym o kątach $30°, 60°, 90°$, stosunek boku naprzeciwległego do $30°$ do przeciwprostokątnej to...',
+        questionEn: 'In a right triangle with angles $30°, 60°, 90°$, the ratio of the side opposite $30°$ to the hypotenuse is...',
         options: [
-          { label: '$\\frac{1}{2}$', correct: true, why: 'Tak — to właśnie definicja $\\sin 30°$. Zapamiętaj: naprzeciwko kąta $30°$ leży bok o długości $1$, przeciwprostokątna $2$.' },
-          { label: '$\\frac{\\sqrt{3}}{2}$', correct: false, why: 'To jest $\\cos 30°$ (stosunek boku *przyległego* do przeciwprostokątnej).' },
-          { label: '$\\frac{\\sqrt{3}}{3}$', correct: false, why: 'To jest $\\tan 30°$.' },
-          { label: '$1$', correct: false, why: 'To byłby $\\sin 90°$, ale dla $90°$ nie ma trójkąta prostokątnego.' },
+          { label: '$\\frac{1}{2}$', labelEn: '$\\frac{1}{2}$', correct: true,
+            why:   'Tak — to właśnie definicja $\\sin 30°$. Zapamiętaj: naprzeciwko kąta $30°$ leży bok o długości $1$, przeciwprostokątna $2$.',
+            whyEn: 'Yes — that’s the definition of $\\sin 30°$. Remember: opposite the $30°$ angle is a side of length $1$, with hypotenuse $2$.' },
+          { label: '$\\frac{\\sqrt{3}}{2}$', labelEn: '$\\frac{\\sqrt{3}}{2}$', correct: false,
+            why:   'To jest $\\cos 30°$ (stosunek boku *przyległego* do przeciwprostokątnej).',
+            whyEn: 'That’s $\\cos 30°$ (the ratio of the *adjacent* side to the hypotenuse).' },
+          { label: '$\\frac{\\sqrt{3}}{3}$', labelEn: '$\\frac{\\sqrt{3}}{3}$', correct: false,
+            why:   'To jest $\\tan 30°$.',
+            whyEn: 'That’s $\\tan 30°$.' },
+          { label: '$1$', labelEn: '$1$', correct: false,
+            why:   'To byłby $\\sin 90°$, ale dla $90°$ nie ma trójkąta prostokątnego.',
+            whyEn: 'That would be $\\sin 90°$, but there’s no right triangle for $90°$.' },
         ],
       },
       choices: {
-        question: 'Który zestaw wartości jest poprawny dla kąta $30°$?',
+        question:   'Który zestaw wartości jest poprawny dla kąta $30°$?',
+        questionEn: 'Which set of values is correct for the angle $30°$?',
         options: [
-          { id: 'a', label: '$\\sin 30° = \\frac{1}{2},\\ \\cos 30° = \\frac{\\sqrt{3}}{2},\\ \\tan 30° = \\frac{\\sqrt{3}}{3}$', correct: true },
-          { id: 'b', label: '$\\sin 30° = \\frac{\\sqrt{3}}{2},\\ \\cos 30° = \\frac{1}{2},\\ \\tan 30° = \\sqrt{3}$', correct: false },
-          { id: 'c', label: '$\\sin 30° = \\frac{1}{2},\\ \\cos 30° = \\frac{1}{2},\\ \\tan 30° = 1$', correct: false },
-          { id: 'd', label: '$\\sin 30° = \\frac{\\sqrt{2}}{2},\\ \\cos 30° = \\frac{\\sqrt{2}}{2},\\ \\tan 30° = 1$', correct: false },
+          { id: 'a', label:   '$\\sin 30° = \\frac{1}{2},\\ \\cos 30° = \\frac{\\sqrt{3}}{2},\\ \\tan 30° = \\frac{\\sqrt{3}}{3}$',
+                     labelEn: '$\\sin 30° = \\frac{1}{2},\\ \\cos 30° = \\frac{\\sqrt{3}}{2},\\ \\tan 30° = \\frac{\\sqrt{3}}{3}$', correct: true },
+          { id: 'b', label:   '$\\sin 30° = \\frac{\\sqrt{3}}{2},\\ \\cos 30° = \\frac{1}{2},\\ \\tan 30° = \\sqrt{3}$',
+                     labelEn: '$\\sin 30° = \\frac{\\sqrt{3}}{2},\\ \\cos 30° = \\frac{1}{2},\\ \\tan 30° = \\sqrt{3}$', correct: false },
+          { id: 'c', label:   '$\\sin 30° = \\frac{1}{2},\\ \\cos 30° = \\frac{1}{2},\\ \\tan 30° = 1$',
+                     labelEn: '$\\sin 30° = \\frac{1}{2},\\ \\cos 30° = \\frac{1}{2},\\ \\tan 30° = 1$', correct: false },
+          { id: 'd', label:   '$\\sin 30° = \\frac{\\sqrt{2}}{2},\\ \\cos 30° = \\frac{\\sqrt{2}}{2},\\ \\tan 30° = 1$',
+                     labelEn: '$\\sin 30° = \\frac{\\sqrt{2}}{2},\\ \\cos 30° = \\frac{\\sqrt{2}}{2},\\ \\tan 30° = 1$', correct: false },
         ],
         pick(id) { C.ch1Pick = id; },
       },
       pips() {
-        return [{ label: 'wybrano poprawny zestaw', ok: C.ch1Pick === 'a' }];
+        return [{ label: T('wybrano poprawny zestaw', 'correct set chosen'), ok: C.ch1Pick === 'a' }];
       },
       solved() { return C.ch1Pick === 'a'; },
       hints: [
@@ -217,14 +233,29 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         'Najkrótszy bok (naprzeciwko najmniejszego kąta) to $1$. Przeciwprostokątna to $2$.',
         '$\\sin 30° = \\frac{1}{2}$. Zapamiętaj tę wartość — pojawia się w co drugim zadaniu maturalnym.',
       ],
+      hintsEn: [
+        '$\\sin = \\frac{\\text{opposite}}{\\text{hypotenuse}}$. Identify which side lies OPPOSITE the $30°$ angle.',
+        'The shortest side (opposite the smallest angle) is $1$. The hypotenuse is $2$.',
+        '$\\sin 30° = \\frac{1}{2}$. Memorise this value — it shows up in every other exam problem.',
+      ],
+      solvedMsgEn: 'Values of $\\sin, \\cos, \\tan$ for $30°, 45°, 60°$ MUST be memorised. They come from two triangles (half equilateral and half square).',
       solvedMsg: 'Wartości $\\sin, \\cos, \\tan$ dla $30°, 45°, 60°$ MUSISZ znać na pamięć. Nie są skomplikowane — wynikają z dwóch trójkątów (równobocznego połówki i kwadratu połówki).',
       predictAfter: {
-        question: 'Ile wynosi $\\cos 60°$?',
+        question:   'Ile wynosi $\\cos 60°$?',
+        questionEn: 'What is $\\cos 60°$?',
         options: [
-          { label: '$\\frac{1}{2}$', correct: true, why: 'Tak — w trójkącie 30-60-90 $\\cos 60°$ to stosunek przyległej do kąta $60°$ (czyli boku o długości $1$) do przeciwprostokątnej ($2$).' },
-          { label: '$\\frac{\\sqrt{3}}{2}$', correct: false, why: 'To $\\sin 60°$ (albo $\\cos 30°$). Dla $60°$ bok przyległy ma długość $1$, nie $\\sqrt{3}$.' },
-          { label: '$1$', correct: false, why: 'To $\\cos 0°$ — cosinus osiąga $1$ tylko w $0°$.' },
-          { label: '$0$', correct: false, why: 'To $\\cos 90°$. Dla $60°$ cosinus jest jeszcze dodatni.' },
+          { label: '$\\frac{1}{2}$', labelEn: '$\\frac{1}{2}$', correct: true,
+            why:   'Tak — w trójkącie 30-60-90 $\\cos 60°$ to stosunek przyległej do kąta $60°$ (czyli boku o długości $1$) do przeciwprostokątnej ($2$).',
+            whyEn: 'Yes — in the 30-60-90 triangle $\\cos 60°$ is the ratio of the side adjacent to the $60°$ angle (length $1$) to the hypotenuse ($2$).' },
+          { label: '$\\frac{\\sqrt{3}}{2}$', labelEn: '$\\frac{\\sqrt{3}}{2}$', correct: false,
+            why:   'To $\\sin 60°$ (albo $\\cos 30°$). Dla $60°$ bok przyległy ma długość $1$, nie $\\sqrt{3}$.',
+            whyEn: 'That’s $\\sin 60°$ (or $\\cos 30°$). For $60°$ the adjacent side has length $1$, not $\\sqrt{3}$.' },
+          { label: '$1$', labelEn: '$1$', correct: false,
+            why:   'To $\\cos 0°$ — cosinus osiąga $1$ tylko w $0°$.',
+            whyEn: 'That’s $\\cos 0°$ — cosine reaches $1$ only at $0°$.' },
+          { label: '$0$', labelEn: '$0$', correct: false,
+            why:   'To $\\cos 90°$. Dla $60°$ cosinus jest jeszcze dodatni.',
+            whyEn: 'That’s $\\cos 90°$. At $60°$ cosine is still positive.' },
         ],
       },
       draw() {
@@ -323,7 +354,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         text('2', (A2.x + C2.x) / 2 + 10, (A2.y + C2.y) / 2 - 4, COL_HYP, 13, 'left');
 
         // Title row
-        centerText('trójkąt 30° — 60° — 90°', W * 0.5, 26, COL_ACC, 13);
+        centerText(T('trójkąt 30° — 60° — 90°', '30° — 60° — 90° triangle'), W * 0.5, 26, COL_ACC, 13);
 
         // Highlighted ratio formula
         ctx.save();
@@ -331,7 +362,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         const y0 = H - 48;
         ctx.fillStyle = 'rgba(255,255,255,0.55)';
         ctx.textAlign = 'center';
-        ctx.fillText('sin 30° = (naprzeciwległa) / (przeciwprostokątna)', W * 0.5, y0);
+        ctx.fillText(T('sin 30° = (naprzeciwległa) / (przeciwprostokątna)', 'sin 30° = (opposite) / (hypotenuse)'), W * 0.5, y0);
         ctx.fillStyle = COL_OK;
         ctx.fillText('sin 30°  =  1 / 2', W * 0.5, y0 + 22);
         ctx.restore();
@@ -342,25 +373,40 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     {
       id: 'ch2',
       title: 'DOWÓD: $\\sin^2\\alpha + \\cos^2\\alpha = 1$',
-      desc: 'Przesuwaj $\\alpha$. Punkt $P$ zawsze leży na okręgu jednostkowym, więc jego odległość od środka wynosi $1$ — a resztę rozumowania załatwia twierdzenie Pitagorasa.',
+      titleEn: 'PROOF: $\\sin^2\\alpha + \\cos^2\\alpha = 1$',
+      desc:   'Przesuwaj $\\alpha$. Punkt $P$ zawsze leży na okręgu jednostkowym, więc jego odległość od środka wynosi $1$ — a resztę rozumowania załatwia twierdzenie Pitagorasa.',
+      descEn: 'Slide $\\alpha$. The point $P$ always lies on the unit circle, so its distance from the centre is $1$ — Pythagoras handles the rest.',
       drawBackground: 'blank',
       init() {
         C.alpha = 1.0;
         C.alphaMoved = false;
       },
       predict: {
-        question: 'Punkt $P$ leży na okręgu jednostkowym o środku w $(0,0)$. Jaka jest jego odległość od środka?',
+        question:   'Punkt $P$ leży na okręgu jednostkowym o środku w $(0,0)$. Jaka jest jego odległość od środka?',
+        questionEn: 'The point $P$ lies on the unit circle centred at $(0,0)$. What is its distance from the centre?',
         options: [
-          { label: 'Zależy od kąta $\\alpha$', correct: false, why: 'Wszystkie punkty okręgu jednostkowego leżą w tej samej odległości — to definicja okręgu.' },
-          { label: 'Zawsze równa $1$', correct: true, why: 'Tak — okrąg jednostkowy = zbiór punktów odległych o $1$ od środka. To właśnie ta „jedynka".' },
-          { label: 'Zależy od $\\sin\\alpha$', correct: false, why: '$\\sin\\alpha$ to tylko *jedna ze współrzędnych* — odległość od środka liczymy z twierdzenia Pitagorasa.' },
+          { label:   'Zależy od kąta $\\alpha$',
+            labelEn: 'It depends on the angle $\\alpha$',
+            correct: false,
+            why:   'Wszystkie punkty okręgu jednostkowego leżą w tej samej odległości — to definicja okręgu.',
+            whyEn: 'Every point on the unit circle is the same distance from the centre — that’s the definition of a circle.' },
+          { label:   'Zawsze równa $1$',
+            labelEn: 'Always equal to $1$',
+            correct: true,
+            why:   'Tak — okrąg jednostkowy = zbiór punktów odległych o $1$ od środka. To właśnie ta „jedynka".',
+            whyEn: 'Yes — the unit circle is the set of points at distance $1$ from the centre. That’s exactly the "one" in the identity.' },
+          { label:   'Zależy od $\\sin\\alpha$',
+            labelEn: 'It depends on $\\sin\\alpha$',
+            correct: false,
+            why:   '$\\sin\\alpha$ to tylko *jedna ze współrzędnych* — odległość od środka liczymy z twierdzenia Pitagorasa.',
+            whyEn: '$\\sin\\alpha$ is just *one of the coordinates* — the distance from the centre comes from Pythagoras.' },
         ],
       },
       sliders: [
         { id: 'alpha', lbl: '\u03B1', color: COL_HYP, min: 0, max: Math.PI * 2, step: 0.05, get: () => C.alpha, set: v => { C.alpha = v; C.alphaMoved = true; } },
       ],
       pips() {
-        return [{ label: 'punkt $P$ pozostaje na okręgu — odległość $= 1$', ok: true }];
+        return [{ label: T('punkt $P$ pozostaje na okręgu — odległość $= 1$', 'point $P$ stays on the circle — distance $= 1$'), ok: true }];
       },
       solved() { return C.alphaMoved; },
       hints: [
@@ -368,13 +414,26 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         'Przyprostokątne tego trójkąta mają długości $|\\cos\\alpha|$ i $|\\sin\\alpha|$. Przeciwprostokątna (promień) ma długość $1$.',
         'Czyli $\\cos^2\\alpha + \\sin^2\\alpha = 1^2 = 1$ — i to jest cały dowód.',
       ],
+      hintsEn: [
+        'Pythagoras says that in a right triangle the sum of the squares of the legs equals the square of the hypotenuse.',
+        'The legs of this triangle have lengths $|\\cos\\alpha|$ and $|\\sin\\alpha|$. The hypotenuse (the radius) has length $1$.',
+        'So $\\cos^2\\alpha + \\sin^2\\alpha = 1^2 = 1$ — and that’s the whole proof.',
+      ],
+      solvedMsgEn: 'The Pythagorean identity is simply **Pythagoras on the unit circle** — worth remembering as an intuition, not just a formula.',
       solvedMsg: 'Jedynka trygonometryczna to po prostu **Pitagoras na kole jednostkowym** — warto zapamiętać tę intuicję, bo wzór nie zależy od kąta i zawsze działa.',
       predictAfter: {
-        question: 'Jeżeli $\\sin\\alpha = \\frac{3}{5}$ i $\\alpha$ jest kątem ostrym, ile wynosi $\\cos\\alpha$?',
+        question:   'Jeżeli $\\sin\\alpha = \\frac{3}{5}$ i $\\alpha$ jest kątem ostrym, ile wynosi $\\cos\\alpha$?',
+        questionEn: 'If $\\sin\\alpha = \\frac{3}{5}$ and $\\alpha$ is acute, what is $\\cos\\alpha$?',
         options: [
-          { label: '$\\frac{3}{5}$', correct: false, why: 'To byłoby, gdyby $\\sin$ i $\\cos$ były zawsze równe. Tak nie jest — są *dopełnieniem* do $1$ (w sensie kwadratów).' },
-          { label: '$\\frac{4}{5}$', correct: true, why: 'Tak — $\\cos^2\\alpha = 1 - \\frac{9}{25} = \\frac{16}{25}$, więc $\\cos\\alpha = \\frac{4}{5}$ (dodatnie, bo kąt ostry).' },
-          { label: '$\\frac{2}{5}$', correct: false, why: 'Błąd arytmetyczny. $1 - \\frac{9}{25} = \\frac{16}{25}$, a $\\sqrt{16/25} = 4/5$, nie $2/5$.' },
+          { label: '$\\frac{3}{5}$', labelEn: '$\\frac{3}{5}$', correct: false,
+            why:   'To byłoby, gdyby $\\sin$ i $\\cos$ były zawsze równe. Tak nie jest — są *dopełnieniem* do $1$ (w sensie kwadratów).',
+            whyEn: 'That would only hold if $\\sin$ and $\\cos$ were always equal. They’re not — they *complement* each other to $1$ (in squares).' },
+          { label: '$\\frac{4}{5}$', labelEn: '$\\frac{4}{5}$', correct: true,
+            why:   'Tak — $\\cos^2\\alpha = 1 - \\frac{9}{25} = \\frac{16}{25}$, więc $\\cos\\alpha = \\frac{4}{5}$ (dodatnie, bo kąt ostry).',
+            whyEn: 'Yes — $\\cos^2\\alpha = 1 - \\frac{9}{25} = \\frac{16}{25}$, so $\\cos\\alpha = \\frac{4}{5}$ (positive, since the angle is acute).' },
+          { label: '$\\frac{2}{5}$', labelEn: '$\\frac{2}{5}$', correct: false,
+            why:   'Błąd arytmetyczny. $1 - \\frac{9}{25} = \\frac{16}{25}$, a $\\sqrt{16/25} = 4/5$, nie $2/5$.',
+            whyEn: 'Arithmetic slip. $1 - \\frac{9}{25} = \\frac{16}{25}$, and $\\sqrt{16/25} = 4/5$, not $2/5$.' },
         ],
       },
       draw() {
@@ -484,25 +543,41 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     {
       id: 'ch3',
       title: 'Znaki $\\sin$ i $\\cos$ w ćwiartkach',
-      desc: 'Znak zależy od współrzędnej punktu na okręgu. Spójrz, a potem znajdź błąd w rozumowaniu.',
+      titleEn: 'Signs of $\\sin$ and $\\cos$ in quadrants',
+      desc:   'Znak zależy od współrzędnej punktu na okręgu. Spójrz, a potem znajdź błąd w rozumowaniu.',
+      descEn: 'The sign depends on the point\u2019s coordinate on the circle. Take a look, then spot the flaw in the reasoning.',
       drawBackground: 'blank',
       init() {},
       predict: {
-        question: 'W drugiej ćwiartce (kąt $\\alpha$ między $90°$ a $180°$) znaki $\\sin\\alpha$ i $\\cos\\alpha$ są:',
+        question:   'W drugiej ćwiartce (kąt $\\alpha$ między $90°$ a $180°$) znaki $\\sin\\alpha$ i $\\cos\\alpha$ są:',
+        questionEn: 'In the second quadrant (angle $\\alpha$ between $90°$ and $180°$) the signs of $\\sin\\alpha$ and $\\cos\\alpha$ are:',
         options: [
-          { label: 'sin +, cos +', correct: false, why: 'To jest pierwsza ćwiartka.' },
-          { label: 'sin +, cos \u2212', correct: true, why: 'Tak — w drugiej ćwiartce $x < 0$ (na lewo od osi $y$), więc $\\cos\\alpha < 0$. Ale $y > 0$ (nad osią $x$), więc $\\sin\\alpha > 0$.' },
-          { label: 'sin \u2212, cos +', correct: false, why: 'To czwarta ćwiartka.' },
-          { label: 'sin \u2212, cos \u2212', correct: false, why: 'To trzecia ćwiartka.' },
+          { label: 'sin +, cos +', labelEn: 'sin +, cos +', correct: false,
+            why:   'To jest pierwsza ćwiartka.',
+            whyEn: 'That’s the first quadrant.' },
+          { label: 'sin +, cos \u2212', labelEn: 'sin +, cos \u2212', correct: true,
+            why:   'Tak — w drugiej ćwiartce $x < 0$ (na lewo od osi $y$), więc $\\cos\\alpha < 0$. Ale $y > 0$ (nad osią $x$), więc $\\sin\\alpha > 0$.',
+            whyEn: 'Yes — in the second quadrant $x < 0$ (left of the $y$-axis), so $\\cos\\alpha < 0$. But $y > 0$ (above the $x$-axis), so $\\sin\\alpha > 0$.' },
+          { label: 'sin \u2212, cos +', labelEn: 'sin −, cos +', correct: false,
+            why:   'To czwarta ćwiartka.',
+            whyEn: 'That’s the fourth quadrant.' },
+          { label: 'sin \u2212, cos \u2212', labelEn: 'sin −, cos −', correct: false,
+            why:   'To trzecia ćwiartka.',
+            whyEn: 'That’s the third quadrant.' },
         ],
       },
       debug: {
         task: 'Jan policzył $\\sin 150°$ i otrzymał $-\\frac{1}{2}$. Gdzie popełnił błąd?',
+        taskEn: 'Jan computed $\\sin 150°$ and got $-\\frac{1}{2}$. Where did he make an error?',
         steps: [
-          { n: 1, text: '$150°$ leży w drugiej ćwiartce (pomiędzy $90°$ i $180°$).' },
-          { n: 2, text: 'W drugiej ćwiartce $\\sin\\alpha$ jest <b>ujemny</b>.' },
-          { n: 3, text: 'Kąt odniesienia: $180° - 150° = 30°$, więc $\\sin 30° = \\frac{1}{2}$.' },
-          { n: 4, text: 'Stąd $\\sin 150° = -\\frac{1}{2}$.' },
+          { n: 1, text:   '$150°$ leży w drugiej ćwiartce (pomiędzy $90°$ i $180°$).',
+                  textEn: '$150°$ lies in the second quadrant (between $90°$ and $180°$).' },
+          { n: 2, text:   'W drugiej ćwiartce $\\sin\\alpha$ jest <b>ujemny</b>.',
+                  textEn: 'In the second quadrant $\\sin\\alpha$ is <b>negative</b>.' },
+          { n: 3, text:   'Kąt odniesienia: $180° - 150° = 30°$, więc $\\sin 30° = \\frac{1}{2}$.',
+                  textEn: 'Reference angle: $180° - 150° = 30°$, so $\\sin 30° = \\frac{1}{2}$.' },
+          { n: 4, text:   'Stąd $\\sin 150° = -\\frac{1}{2}$.',
+                  textEn: 'Hence $\\sin 150° = -\\frac{1}{2}$.' },
         ],
         errorLine: 2,
         wrongChoice: {
@@ -510,10 +585,16 @@ import { initWarsztat } from '../lib/warsztat-core.js';
           3: 'Krok 3 jest poprawny — kąt odniesienia liczymy od najbliższej osi.',
           4: 'Krok 4 wynika błędnie z kroku 2 — sam krok 4 jest konsekwentny, ale jego podstawa jest zła.',
         },
+        wrongChoiceEn: {
+          1: 'Step 1 is correct — $150°$ really does fall between $90°$ and $180°$.',
+          3: 'Step 3 is correct — the reference angle is measured from the nearest axis.',
+          4: 'Step 4 follows wrongly from step 2 — step 4 is consistent in itself, but its foundation is broken.',
+        },
+        correctExplanationEn: 'Error in step 2: in the <b>second quadrant $\\sin$ is POSITIVE</b> (coordinate $y > 0$), and $\\cos$ is negative. Correct result: $\\sin 150° = +\\frac{1}{2}$.',
         correctExplanation: 'Błąd w kroku 2: w <b>drugiej ćwiartce $\\sin$ jest DODATNI</b> (współrzędna $y > 0$), a $\\cos$ ujemny. Poprawny wynik: $\\sin 150° = +\\frac{1}{2}$.',
       },
       pips() {
-        return [{ label: 'znaleziono błąd w rozumowaniu', ok: false }];
+        return [{ label: T('znaleziono błąd w rozumowaniu', 'error in the reasoning found'), ok: false }];
       },
       solved() { return false; },  // solved is managed by debug widget's onSolve
       hints: [
@@ -521,6 +602,12 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         'W II ćwiartce punkt jest nad osią $x$ — $y > 0$, więc $\\sin > 0$.',
         'Sprawdź dokładnie krok 2 — jaki znak ma $\\sin$ w drugiej ćwiartce?',
       ],
+      hintsEn: [
+        'Sign of $\\sin\\alpha$ = sign of the $y$-coordinate of the point on the circle.',
+        'In quadrant II the point is above the $x$-axis — $y > 0$, so $\\sin > 0$.',
+        'Inspect step 2 carefully — what sign does $\\sin$ take in the second quadrant?',
+      ],
+      solvedMsgEn: 'Remember: sign of $\\sin$ = sign of $y$, sign of $\\cos$ = sign of $x$. Look at the quadrant and you immediately know the signs.',
       solvedMsg: 'Pamiętaj: znak $\\sin$ to znak $y$, znak $\\cos$ to znak $x$. Popatrz na ćwiartkę — od razu wiesz znaki bez zgadywania.',
       draw() {
         // Draw unit circle with 4 quadrant labels (highlight II).
@@ -581,37 +668,57 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     {
       id: 'ch4',
       title: 'Zastosuj jedynkę: policz $\\tan\\alpha$',
-      desc: 'Masz $\\sin\\alpha = \\frac{5}{13}$ i $\\alpha$ ostry. Znajdź $\\tan\\alpha$ używając jedynki trygonometrycznej.',
+      titleEn: 'Apply the identity: compute $\\tan\\alpha$',
+      desc:   'Masz $\\sin\\alpha = \\frac{5}{13}$ i $\\alpha$ ostry. Znajdź $\\tan\\alpha$ używając jedynki trygonometrycznej.',
+      descEn: 'You have $\\sin\\alpha = \\frac{5}{13}$ and $\\alpha$ acute. Find $\\tan\\alpha$ using the Pythagorean identity.',
       drawBackground: 'blank',
       init() { C.ch4Pick = null; },
       predict: {
-        question: 'Jak policzysz $\\tan\\alpha$ mając tylko $\\sin\\alpha$?',
+        question:   'Jak policzysz $\\tan\\alpha$ mając tylko $\\sin\\alpha$?',
+        questionEn: 'How do you compute $\\tan\\alpha$ given only $\\sin\\alpha$?',
         options: [
-          { label: 'Nie da się — potrzebny jest też $\\cos\\alpha$', correct: false, why: 'Prawie — $\\cos\\alpha$ jest potrzebny, ale MOŻESZ go policzyć z jedynki trygonometrycznej.' },
-          { label: 'Z jedynki wyznaczę $\\cos\\alpha$, potem $\\tan = \\sin/\\cos$', correct: true, why: 'Tak — to cały algorytm. $\\cos^2\\alpha = 1 - \\sin^2\\alpha$, potem $\\tan\\alpha = \\sin\\alpha / \\cos\\alpha$.' },
-          { label: '$\\tan\\alpha = 1 - \\sin\\alpha$', correct: false, why: 'Taki wzór nie istnieje. Jedynka mówi o KWADRATACH: $\\sin^2 + \\cos^2 = 1$.' },
-          { label: '$\\tan\\alpha = \\sin\\alpha$ (gdy $\\alpha$ ostry)', correct: false, why: 'Tangens to $\\sin/\\cos$, a $\\cos$ dla kąta ostrego nie jest równy $1$ (poza $\\alpha = 0$).' },
+          { label:   'Nie da się — potrzebny jest też $\\cos\\alpha$',
+            labelEn: 'Impossible — you also need $\\cos\\alpha$',
+            correct: false,
+            why:   'Prawie — $\\cos\\alpha$ jest potrzebny, ale MOŻESZ go policzyć z jedynki trygonometrycznej.',
+            whyEn: 'Almost — $\\cos\\alpha$ is needed, but you CAN derive it from the Pythagorean identity.' },
+          { label:   'Z jedynki wyznaczę $\\cos\\alpha$, potem $\\tan = \\sin/\\cos$',
+            labelEn: 'Get $\\cos\\alpha$ from the identity, then $\\tan = \\sin/\\cos$',
+            correct: true,
+            why:   'Tak — to cały algorytm. $\\cos^2\\alpha = 1 - \\sin^2\\alpha$, potem $\\tan\\alpha = \\sin\\alpha / \\cos\\alpha$.',
+            whyEn: 'Yes — that’s the whole algorithm. $\\cos^2\\alpha = 1 - \\sin^2\\alpha$, then $\\tan\\alpha = \\sin\\alpha / \\cos\\alpha$.' },
+          { label:   '$\\tan\\alpha = 1 - \\sin\\alpha$',
+            labelEn: '$\\tan\\alpha = 1 - \\sin\\alpha$',
+            correct: false,
+            why:   'Taki wzór nie istnieje. Jedynka mówi o KWADRATACH: $\\sin^2 + \\cos^2 = 1$.',
+            whyEn: 'No such formula exists. The identity is about SQUARES: $\\sin^2 + \\cos^2 = 1$.' },
+          { label:   '$\\tan\\alpha = \\sin\\alpha$ (gdy $\\alpha$ ostry)',
+            labelEn: '$\\tan\\alpha = \\sin\\alpha$ (when $\\alpha$ is acute)',
+            correct: false,
+            why:   'Tangens to $\\sin/\\cos$, a $\\cos$ dla kąta ostrego nie jest równy $1$ (poza $\\alpha = 0$).',
+            whyEn: 'Tangent is $\\sin/\\cos$, and $\\cos$ for an acute angle isn’t $1$ (except at $\\alpha = 0$).' },
         ],
       },
       choices: {
-        question: 'Ile wynosi $\\tan\\alpha$?',
+        question:   'Ile wynosi $\\tan\\alpha$?',
+        questionEn: 'What is $\\tan\\alpha$?',
         options: [
-          { id: 'a', label: '$\\frac{5}{13}$', correct: false },
-          { id: 'b', label: '$\\frac{5}{12}$', correct: true },
-          { id: 'c', label: '$\\frac{12}{5}$', correct: false },
-          { id: 'd', label: '$\\frac{13}{12}$', correct: false },
+          { id: 'a', label: '$\\frac{5}{13}$',  labelEn: '$\\frac{5}{13}$',  correct: false },
+          { id: 'b', label: '$\\frac{5}{12}$',  labelEn: '$\\frac{5}{12}$',  correct: true },
+          { id: 'c', label: '$\\frac{12}{5}$',  labelEn: '$\\frac{12}{5}$',  correct: false },
+          { id: 'd', label: '$\\frac{13}{12}$', labelEn: '$\\frac{13}{12}$', correct: false },
         ],
         pick(id) { C.ch4Pick = id; },
       },
       pips() {
         const msgs = {
-          a: 'To $\\sin\\alpha$, nie $\\tan\\alpha$. $\\tan = \\sin/\\cos$.',
-          c: 'To $\\cot\\alpha$ (stosunki odwrócone).',
-          d: 'To $\\sec\\alpha = 1/\\cos\\alpha$ — rzadko potrzebny na maturze.',
+          a: T('To $\\sin\\alpha$, nie $\\tan\\alpha$. $\\tan = \\sin/\\cos$.', 'That’s $\\sin\\alpha$, not $\\tan\\alpha$. $\\tan = \\sin/\\cos$.'),
+          c: T('To $\\cot\\alpha$ (stosunki odwrócone).', 'That’s $\\cot\\alpha$ (the ratios swapped).'),
+          d: T('To $\\sec\\alpha = 1/\\cos\\alpha$ — rzadko potrzebny na maturze.', 'That’s $\\sec\\alpha = 1/\\cos\\alpha$ — rarely needed on the exam.'),
         };
-        if (C.ch4Pick === 'b') return [{ label: 'poprawna wartość $\\tan\\alpha$', ok: true }];
+        if (C.ch4Pick === 'b') return [{ label: T('poprawna wartość $\\tan\\alpha$', 'correct value of $\\tan\\alpha$'), ok: true }];
         if (C.ch4Pick && msgs[C.ch4Pick]) return [{ label: msgs[C.ch4Pick], ok: false }];
-        return [{ label: 'wybierz wartość $\\tan\\alpha$', ok: false }];
+        return [{ label: T('wybierz wartość $\\tan\\alpha$', 'pick a value for $\\tan\\alpha$'), ok: false }];
       },
       solved() { return C.ch4Pick === 'b'; },
       hints: [
@@ -619,6 +726,12 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         'Z jedynki: $\\cos^2\\alpha = 1 - \\sin^2\\alpha = 1 - \\frac{25}{169} = \\frac{144}{169}$, więc $\\cos\\alpha = \\frac{12}{13}$.',
         '$\\tan\\alpha = \\frac{5/13}{12/13} = \\frac{5}{12}$.',
       ],
+      hintsEn: [
+        '$\\tan\\alpha = \\frac{\\sin\\alpha}{\\cos\\alpha}$. You need to find $\\cos\\alpha$ first.',
+        'From the identity: $\\cos^2\\alpha = 1 - \\sin^2\\alpha = 1 - \\frac{25}{169} = \\frac{144}{169}$, so $\\cos\\alpha = \\frac{12}{13}$.',
+        '$\\tan\\alpha = \\frac{5/13}{12/13} = \\frac{5}{12}$.',
+      ],
+      solvedMsgEn: 'The Pythagorean identity is your Swiss army knife. Whenever you know one function, you can compute the other two.',
       solvedMsg: 'Jedynka trygonometryczna to twoja szwajcarska armatka. Za każdym razem gdy znasz jedną z funkcji, możesz policzyć dwie pozostałe.',
       draw() {
         // Draw 5-12-13 right triangle
@@ -680,7 +793,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         ctx.fillText('tan \u03B1 = 5/12', px0, py0 + 36);
         ctx.restore();
 
-        centerText('trójkąt 5 — 12 — 13', W * 0.5, 20, COL_ACC, 12);
+        centerText(T('trójkąt 5 — 12 — 13', '5 — 12 — 13 triangle'), W * 0.5, 20, COL_ACC, 12);
       },
     },
 
@@ -688,16 +801,27 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     {
       id: 'ch5',
       title: 'Czym jest tożsamość?',
-      desc: 'Tożsamość to równanie prawdziwe dla KAŻDEJ wartości zmiennej. Które z wyrażeń jest równe $1$ niezależnie od $\\alpha$?',
+      titleEn: 'What is an identity?',
+      desc:   'Tożsamość to równanie prawdziwe dla KAŻDEJ wartości zmiennej. Które z wyrażeń jest równe $1$ niezależnie od $\\alpha$?',
+      descEn: 'An identity is an equation true for EVERY value of the variable. Which expression equals $1$ regardless of $\\alpha$?',
       drawBackground: 'blank',
       init() {},
       predict: {
-        question: 'Które wyrażenie jest równe $1$ dla każdego $\\alpha$?',
+        question:   'Które wyrażenie jest równe $1$ dla każdego $\\alpha$?',
+        questionEn: 'Which expression equals $1$ for every $\\alpha$?',
         options: [
-          { label: '$\\sin\\alpha + \\cos\\alpha$', correct: false, why: 'Zależy od $\\alpha$. Np. dla $\\alpha = 0$: $0 + 1 = 1$, ale dla $\\alpha = \\pi/4$: $\\frac{\\sqrt{2}}{2} + \\frac{\\sqrt{2}}{2} = \\sqrt{2}$.' },
-          { label: '$\\sin^2\\alpha + \\cos^2\\alpha$', correct: true, why: 'Tak, to jedynka trygonometryczna.' },
-          { label: '$\\sin\\alpha \\cdot \\cos\\alpha$', correct: false, why: 'To $\\frac{1}{2}\\sin 2\\alpha$ — w ogóle nie stała.' },
-          { label: '$\\tan\\alpha - \\sin\\alpha$', correct: false, why: 'Zależy od $\\alpha$.' },
+          { label: '$\\sin\\alpha + \\cos\\alpha$',     labelEn: '$\\sin\\alpha + \\cos\\alpha$',     correct: false,
+            why:   'Zależy od $\\alpha$. Np. dla $\\alpha = 0$: $0 + 1 = 1$, ale dla $\\alpha = \\pi/4$: $\\frac{\\sqrt{2}}{2} + \\frac{\\sqrt{2}}{2} = \\sqrt{2}$.',
+            whyEn: 'Depends on $\\alpha$. For $\\alpha = 0$: $0 + 1 = 1$, but for $\\alpha = \\pi/4$: $\\frac{\\sqrt{2}}{2} + \\frac{\\sqrt{2}}{2} = \\sqrt{2}$.' },
+          { label: '$\\sin^2\\alpha + \\cos^2\\alpha$', labelEn: '$\\sin^2\\alpha + \\cos^2\\alpha$', correct: true,
+            why:   'Tak, to jedynka trygonometryczna.',
+            whyEn: 'Yes, that’s the Pythagorean identity.' },
+          { label: '$\\sin\\alpha \\cdot \\cos\\alpha$', labelEn: '$\\sin\\alpha \\cdot \\cos\\alpha$', correct: false,
+            why:   'To $\\frac{1}{2}\\sin 2\\alpha$ — w ogóle nie stała.',
+            whyEn: 'That’s $\\frac{1}{2}\\sin 2\\alpha$ — not a constant at all.' },
+          { label: '$\\tan\\alpha - \\sin\\alpha$',      labelEn: '$\\tan\\alpha - \\sin\\alpha$',      correct: false,
+            why:   'Zależy od $\\alpha$.',
+            whyEn: 'Depends on $\\alpha$.' },
         ],
       },
       pips() { return []; },
@@ -707,14 +831,20 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         'Dla $\\alpha = 0$: $\\sin = 0$, $\\cos = 1$. Która opcja daje $1$?',
         'Dla $\\alpha = \\pi/2$: $\\sin = 1$, $\\cos = 0$. Która opcja nadal daje $1$? Tylko ta z kwadratami.',
       ],
+      hintsEn: [
+        'Identity = an equation true for ALL $\\alpha$. Test each option at two different angles.',
+        'For $\\alpha = 0$: $\\sin = 0$, $\\cos = 1$. Which option gives $1$?',
+        'For $\\alpha = \\pi/2$: $\\sin = 1$, $\\cos = 0$. Which option still gives $1$? Only the one with squares.',
+      ],
+      solvedMsgEn: 'The identity $\\sin^2\\alpha + \\cos^2\\alpha = 1$ is a tool — not a goal. Use it when you know one function and need the other.',
       solvedMsg: 'Tożsamość $\\sin^2\\alpha + \\cos^2\\alpha = 1$ jest narzędziem — nie celem. Używasz jej wtedy, gdy masz dane jedno i potrzebujesz drugie.',
       draw() {
         ctx.save();
         ctx.fillStyle = '#0e0e12';
         ctx.fillRect(0, 0, W, H);
 
-        centerText('TOŻSAMOŚĆ', W * 0.5, 60, COL_ACC, 22, true);
-        centerText('= równanie prawdziwe dla WSZYSTKICH wartości zmiennej', W * 0.5, 92, 'rgba(255,255,255,0.65)', 12);
+        centerText(T('TOŻSAMOŚĆ', 'IDENTITY'), W * 0.5, 60, COL_ACC, 22, true);
+        centerText(T('= równanie prawdziwe dla WSZYSTKICH wartości zmiennej', '= equation true for ALL values of the variable'), W * 0.5, 92, 'rgba(255,255,255,0.65)', 12);
 
         // Box with the identity
         const bx = W * 0.2, by = 130, bw = W * 0.6, bh = 90;
@@ -731,7 +861,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
 
         ctx.font = '11px monospace';
         ctx.fillStyle = 'rgba(255,255,255,0.6)';
-        ctx.fillText('Pitagoras na kole jednostkowym — zawsze.', W * 0.5, by + 66);
+        ctx.fillText(T('Pitagoras na kole jednostkowym — zawsze.', 'Pythagoras on the unit circle — always.'), W * 0.5, by + 66);
 
         ctx.font = '11px monospace';
         ctx.fillStyle = 'rgba(255,255,255,0.45)';
@@ -747,6 +877,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     canvasId: 'cv',
     challenges,
     lsKey: 'warsztat:trig-basic:completed',
+    wrapupEn: 'Two things to take away: (1) $\\sin, \\cos, \\tan$ for $30°, 45°, 60°$ must be memorised; (2) the Pythagorean identity is Pythagoras on the unit circle — the only tool needed to go from one function to the other two.',
     wrapup: 'Dwie rzeczy do zabrania: (1) $\\sin, \\cos, \\tan$ dla $30°, 45°, 60°$ musisz znać na pamięć; (2) jedynka trygonometryczna to Pitagoras na kole jednostkowym — i jedyne narzędzie potrzebne, gdy masz jedną funkcję i chcesz drugą.',
     onFrame({ ch }) {
       initView();

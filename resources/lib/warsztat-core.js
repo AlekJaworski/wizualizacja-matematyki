@@ -71,6 +71,17 @@
  * or anything topic-specific. Those live in per-node HTML.
  */
 
+// ── Language detection ─────────────────────────────────────────────────
+const LANG = new URLSearchParams(window.location.search).get('lang') || 'pl';
+
+/**
+ * T(pl, en) — pick the EN string when the page is in English, fall back to PL
+ * when the EN string is absent (partial translations always degrade safely).
+ */
+export function T(pl, en) {
+  return (LANG === 'en' && en != null) ? en : pl;
+}
+
 // ── Phase constants ────────────────────────────────────────────────────
 export const Phase = Object.freeze({
   PREDICT: 'predict',
@@ -140,13 +151,13 @@ export function renderMath(str) {
 
 // ── Render functions (all take explicit refs; no globals) ──────────────
 export function renderHead(refs, ch, idx, total, S) {
-  refs.step.textContent  = 'Wyzwanie ' + (idx + 1) + ' / ' + total;
-  refs.title.innerHTML = renderMath(ch.title);
+  refs.step.textContent  = T('Wyzwanie ', 'Challenge ') + (idx + 1) + ' / ' + total;
+  refs.title.innerHTML = renderMath(T(ch.title, ch.titleEn));
   // Suppress the action-framed description during the predict phase so the
   // student reads the predict question first instead of reaching for the
   // slider (desc often says "przesuwaj…" which invites premature dragging).
   const suppressDesc = ch.predict && S && S.phase === Phase.PREDICT;
-  refs.desc.innerHTML  = suppressDesc ? '' : renderMath(ch.desc || '');
+  refs.desc.innerHTML  = suppressDesc ? '' : renderMath(T(ch.desc || '', ch.descEn));
 }
 
 export function renderDots(refs, challenges, currentIdx, completed, onGoTo) {
@@ -165,16 +176,17 @@ export function renderPredict(refs, ch, S, onPick) {
   if (!ch.predict || S.phase !== Phase.PREDICT) { refs.predict.innerHTML = ''; return; }
   const picked = S.predictAnswer;
   const showFeedback = picked !== null;
-  let html = '<div class="predict"><div class="q">' + renderMath(ch.predict.question) + '</div><div class="opts">';
+  const q = T(ch.predict.question, ch.predict.questionEn);
+  let html = '<div class="predict"><div class="q">' + renderMath(q) + '</div><div class="opts">';
   ch.predict.options.forEach((opt, i) => {
     const cls = picked === i ? 'picked' : '';
-    html += '<button class="' + cls + '" data-i="' + i + '">' + renderMath(opt.label) + '</button>';
+    html += '<button class="' + cls + '" data-i="' + i + '">' + renderMath(T(opt.label, opt.labelEn)) + '</button>';
   });
   html += '</div>';
   if (showFeedback) {
     const opt = ch.predict.options[picked];
     const prefix = opt.correct ? '\u2713 ' : '\u2717 ';
-    html += '<div class="feedback">' + prefix + renderMath(opt.why) + '</div>';
+    html += '<div class="feedback">' + prefix + renderMath(T(opt.why, opt.whyEn)) + '</div>';
   }
   html += '</div>';
   refs.predict.innerHTML = html;
@@ -188,16 +200,17 @@ export function renderPredictAfter(refs, ch, S, onPick) {
   if (!ch.predictAfter || S.phase !== Phase.SOLVED) return;
   const picked = S.predictAfterAnswer;
   const showFeedback = picked !== null;
-  let html = '<div class="predict predict-after"><div class="q">' + renderMath(ch.predictAfter.question) + '</div><div class="opts">';
+  const q = T(ch.predictAfter.question, ch.predictAfter.questionEn);
+  let html = '<div class="predict predict-after"><div class="q">' + renderMath(q) + '</div><div class="opts">';
   ch.predictAfter.options.forEach((opt, i) => {
     const cls = picked === i ? 'picked' : '';
-    html += '<button class="' + cls + '" data-i="' + i + '">' + renderMath(opt.label) + '</button>';
+    html += '<button class="' + cls + '" data-i="' + i + '">' + renderMath(T(opt.label, opt.labelEn)) + '</button>';
   });
   html += '</div>';
   if (showFeedback) {
     const opt = ch.predictAfter.options[picked];
     const prefix = opt.correct ? '\u2713 ' : '\u2717 ';
-    html += '<div class="feedback">' + prefix + renderMath(opt.why) + '</div>';
+    html += '<div class="feedback">' + prefix + renderMath(T(opt.why, opt.whyEn)) + '</div>';
   }
   html += '</div>';
   refs.predict.innerHTML = html;
@@ -234,11 +247,11 @@ export function renderSliders(refs, ch, S, onSolve) {
 export function renderChoices(refs, ch, S, onSolve, onRerender) {
   if (!refs.choices) return;
   if (S.phase === Phase.PREDICT || !ch.choices) { refs.choices.innerHTML = ''; return; }
-  let html = '<div class="choices"><div class="q" style="font-size:13px;color:rgba(255,255,255,.72);margin-bottom:6px;">' + renderMath(ch.choices.question) + '</div>';
+  let html = '<div class="choices"><div class="q" style="font-size:13px;color:rgba(255,255,255,.72);margin-bottom:6px;">' + renderMath(T(ch.choices.question, ch.choices.questionEn)) + '</div>';
   ch.choices.options.forEach(opt => {
     let cls = '';
     if (S.phase === Phase.SOLVED && opt.correct) cls = 'correct';
-    html += '<button data-id="' + opt.id + '" class="' + cls + '">' + renderMath(opt.label) + '</button>';
+    html += '<button data-id="' + opt.id + '" class="' + cls + '">' + renderMath(T(opt.label, opt.labelEn)) + '</button>';
   });
   html += '</div>';
   refs.choices.innerHTML = html;
@@ -269,7 +282,7 @@ export function renderDebug(refs, ch, S, onSolve) {
   const showWrong = picked !== null && picked !== d.errorLine && !correctPicked;
 
   let html = '<div class="debug">';
-  if (d.task) html += '<div class="debug-task">' + d.task + '</div>';
+  if (d.task) html += '<div class="debug-task">' + T(d.task, d.taskEn) + '</div>';
   html += '<div class="debug-steps">';
   d.steps.forEach(st => {
     let cls = 'debug-step';
@@ -280,17 +293,24 @@ export function renderDebug(refs, ch, S, onSolve) {
     const disabled = correctPicked ? 'disabled' : '';
     html += '<button class="' + cls + '" data-n="' + st.n + '" ' + disabled + '>' +
       '<span class="debug-n">' + st.n + '.</span>' +
-      '<span class="debug-text">' + st.text + '</span>' +
+      '<span class="debug-text">' + T(st.text, st.textEn) + '</span>' +
     '</button>';
   });
   html += '</div>';
 
   if (correctPicked) {
-    html += '<div class="debug-feedback ok">\u2713 ' + d.correctExplanation + '</div>';
+    html += '<div class="debug-feedback ok">\u2713 ' + T(d.correctExplanation, d.correctExplanationEn) + '</div>';
   } else if (showWrong) {
-    const msg = (d.wrongChoice && d.wrongChoice[picked])
-      || (d.wrongChoice && d.wrongChoice.general)
-      || 'Ten krok jest zgodny z poprzednimi — błąd jest gdzie indziej.';
+    const fallback = T(
+      'Ten krok jest zgodny z poprzednimi — błąd jest gdzie indziej.',
+      'This step is consistent with previous ones — the error is elsewhere.'
+    );
+    const wc = d.wrongChoice;
+    const wcEn = d.wrongChoiceEn;
+    const msg = T(
+      (wc && wc[picked]) || (wc && wc.general) || fallback,
+      (wcEn && wcEn[picked]) || (wcEn && wcEn.general) || fallback
+    );
     html += '<div class="debug-feedback bad">\u2717 ' + msg + '</div>';
   }
   html += '</div>';
@@ -334,8 +354,8 @@ export function renderHints(refs, ch, S) {
   for (let i = 0; i < n; i++) {
     const isOpen = open.has(i);
     const body = isOpen
-      ? '<div class="hint-body">' + renderMath(ch.hints[i]) + '</div>'
-      : '<div class="hint-label">Wska\u017A\u00F3wka ' + (i + 1) + '</div>';
+      ? '<div class="hint-body">' + renderMath(T(ch.hints[i], ch.hintsEn && ch.hintsEn[i])) + '</div>'
+      : '<div class="hint-label">' + T('Wskazówka ', 'Hint ') + (i + 1) + '</div>';
     parts.push(
       '<div class="hint-chip' + (isOpen ? ' open' : '') + '" data-idx="' + i + '">' +
       '<span class="hint-icon">\u{1F4A1}</span>' + body +
@@ -355,7 +375,7 @@ export function renderHints(refs, ch, S) {
 
 export function renderSolvedMsg(refs, ch, S, isLast, wrapup) {
   if (S.phase !== Phase.SOLVED) { refs.solvedMsg.innerHTML = ''; return; }
-  let html = '<div class="solved-note">' + renderMath(ch.solvedMsg) + '</div>';
+  let html = '<div class="solved-note">' + renderMath(T(ch.solvedMsg, ch.solvedMsgEn)) + '</div>';
   if (isLast && wrapup) {
     html += '<div class="wrapup-note">' + renderMath(wrapup) + '</div>';
   }
@@ -366,11 +386,11 @@ export function renderNav(refs, S, currentIdx, total, ch) {
   refs.prev.disabled = currentIdx === 0;
   const atLast = currentIdx === total - 1;
   if (S.phase === Phase.PREDICT) {
-    refs.next.textContent = 'Sprawd\u017A \u2192';
+    refs.next.textContent = T('Sprawdź →', 'Check →');
     refs.next.disabled = S.predictAnswer === null;
     refs.next.classList.toggle('primary', S.predictAnswer !== null);
   } else if (S.phase === Phase.WORKING) {
-    refs.next.textContent = 'Dalej \u2192';
+    refs.next.textContent = T('Dalej →', 'Next →');
     refs.next.disabled = true;
     refs.next.classList.remove('primary');
   } else {
@@ -378,11 +398,11 @@ export function renderNav(refs, S, currentIdx, total, ch) {
     const needsTransfer = ch && ch.predictAfter && S.predictAfterAnswer === null;
     if (atLast) {
       // Finale: "Koniec" stays clickable so the student can restart (goTo(0) wired in advance()).
-      refs.next.textContent = 'Koniec \u21BA';
+      refs.next.textContent = T('Koniec ↺', 'Done ↺');
       refs.next.disabled = needsTransfer;
       refs.next.classList.toggle('primary', !needsTransfer);
     } else {
-      refs.next.textContent = 'Dalej \u2192';
+      refs.next.textContent = T('Dalej →', 'Next →');
       refs.next.disabled = needsTransfer;
       refs.next.classList.toggle('primary', !needsTransfer);
     }
@@ -437,9 +457,11 @@ export function initWarsztat(opts) {
     challenges,
     lsKey,
     wrapup,
+    wrapupEn,
     onFrame,
     extraState,
   } = opts;
+  const wrapupLocalized = T(wrapup, wrapupEn);
 
   const ids = {
     step:      panelIds.step      || 'step',
@@ -493,7 +515,7 @@ export function initWarsztat(opts) {
     renderDebug(refs, ch, S, onSolve);
     renderPips(refs, ch, S);
     renderHints(refs, ch, S);
-    renderSolvedMsg(refs, ch, S, currentIdx === challenges.length - 1, wrapup);
+    renderSolvedMsg(refs, ch, S, currentIdx === challenges.length - 1, wrapupLocalized);
     renderNav(refs, S, currentIdx, challenges.length, ch);
   }
 

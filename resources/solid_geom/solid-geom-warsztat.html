@@ -88,7 +88,7 @@
 </div>
 
 <script type="module">
-import { initWarsztat } from '../lib/warsztat-core.js';
+import { initWarsztat, T } from '../lib/warsztat-core.js';
 {
   const cv = document.getElementById('cv');
   const ctx = cv.getContext('2d');
@@ -241,15 +241,18 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     {
       id: 'ch1_space_diagonal',
       title: 'Przekątna prostopadłościanu',
-      desc: 'Prostopadłościan o bokach $a, b, c$ ma przekątną przestrzenną $d = \\sqrt{a^2 + b^2 + c^2}$. Nie mylić z przekątną ściany!',
+      titleEn: 'Space diagonal of a cuboid',
+      desc:   'Prostopadłościan o bokach $a, b, c$ ma przekątną przestrzenną $d = \\sqrt{a^2 + b^2 + c^2}$. Nie mylić z przekątną ściany!',
+      descEn: 'A cuboid with sides $a, b, c$ has space diagonal $d = \\sqrt{a^2 + b^2 + c^2}$. Don\u2019t confuse it with a face diagonal!',
       drawBackground: 'none',
       init() {},
       predict: {
-        question: 'Prostopadłościan ma boki $a=3, b=2, c=2$. Ile wynosi przekątna PRZESTRZENNA (łącząca dwa przeciwległe wierzchołki)?',
+        question:   'Prostopadłościan ma boki $a=3, b=2, c=2$. Ile wynosi przekątna PRZESTRZENNA (łącząca dwa przeciwległe wierzchołki)?',
+        questionEn: 'A cuboid has sides $a=3, b=2, c=2$. What is the SPACE diagonal (connecting two opposite vertices)?',
         options: [
-          { label: '$\\sqrt{3^2 + 2^2} = \\sqrt{13}$', correct: false, why: 'To tylko przekątna ŚCIANY (2D Pitagoras). Przekątna przestrzenna przechodzi przez środek bryły — potrzebuje trzeciego kwadratu $c^2$.' },
-          { label: '$\\sqrt{3^2 + 2^2 + 2^2} = \\sqrt{17}$', correct: true,  why: 'Tak — 3D Pitagoras. Najpierw przekątna podstawy $\\sqrt{a^2+b^2}$, potem trójkąt prostokątny z tą przekątną i wysokością $c$: $d = \\sqrt{(a^2+b^2) + c^2}$.' },
-          { label: '$3 + 2 + 2 = 7$', correct: false, why: 'Nie — to długość łamanej wzdłuż trzech krawędzi, nie odcinka prostego. Przekątna to NAJKRÓTSZA droga przez bryłę.' },
+          { label: '$\\sqrt{3^2 + 2^2} = \\sqrt{13}$', labelEn: '$\\sqrt{3^2 + 2^2} = \\sqrt{13}$', correct: false, why: 'To tylko przekątna ŚCIANY (2D Pitagoras). Przekątna przestrzenna przechodzi przez środek bryły — potrzebuje trzeciego kwadratu $c^2$.', whyEn: 'That\u2019s only the FACE diagonal (2D Pythagoras). The space diagonal cuts through the interior — it needs the third square $c^2$.' },
+          { label: '$\\sqrt{3^2 + 2^2 + 2^2} = \\sqrt{17}$', labelEn: '$\\sqrt{3^2 + 2^2 + 2^2} = \\sqrt{17}$', correct: true,  why: 'Tak — 3D Pitagoras. Najpierw przekątna podstawy $\\sqrt{a^2+b^2}$, potem trójkąt prostokątny z tą przekątną i wysokością $c$: $d = \\sqrt{(a^2+b^2) + c^2}$.', whyEn: 'Yes — 3D Pythagoras. First the base diagonal $\\sqrt{a^2+b^2}$, then a right triangle with that diagonal and height $c$: $d = \\sqrt{(a^2+b^2) + c^2}$.' },
+          { label: '$3 + 2 + 2 = 7$', labelEn: '$3 + 2 + 2 = 7$', correct: false, why: 'Nie — to długość łamanej wzdłuż trzech krawędzi, nie odcinka prostego. Przekątna to NAJKRÓTSZA droga przez bryłę.', whyEn: 'No — that\u2019s the broken-line path along three edges, not a straight segment. The diagonal is the SHORTEST route through the solid.' },
         ],
       },
       sliders: [
@@ -259,8 +262,8 @@ import { initWarsztat } from '../lib/warsztat-core.js';
       ],
       pips() {
         return [
-          { label: 'widzisz przekątną 3D', ok: true },
-          { label: 'zmień któryś bok', ok: C.a1 !== 3 || C.b1 !== 2 || C.c1 !== 2 },
+          { label: T('widzisz przekątną 3D', 'you see the 3D diagonal'), ok: true },
+          { label: T('zmień któryś bok', 'change one of the sides'), ok: C.a1 !== 3 || C.b1 !== 2 || C.c1 !== 2 },
         ];
       },
       solved() { return C.a1 !== 3 || C.b1 !== 2 || C.c1 !== 2; },
@@ -269,6 +272,12 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② Teraz trójkąt prostokątny USTAWIONY PIONOWO: jedna przyprostokątna to $p$ (leży na podstawie), druga to wysokość $c$, a przeciwprostokątna to szukana przekątna przestrzenna $d$.',
         '③ Z Pitagorasa: $d^2 = p^2 + c^2 = (a^2+b^2) + c^2$. Czyli $d = \\sqrt{a^2+b^2+c^2}$ — jeden pierwiastek, trzy kwadraty.',
       ],
+      hintsEn: [
+        '① First, the BASE diagonal (2D Pythagoras): $p = \\sqrt{a^2 + b^2}$.',
+        '② Now a right triangle STANDING UPRIGHT: one leg is $p$ (on the base), the other is the height $c$, and the hypotenuse is the desired space diagonal $d$.',
+        '③ Pythagoras: $d^2 = p^2 + c^2 = (a^2+b^2) + c^2$. So $d = \\sqrt{a^2+b^2+c^2}$ — one root, three squares.',
+      ],
+      solvedMsgEn: 'Space diagonal = $\\sqrt{a^2+b^2+c^2}$. Symmetric in all three dimensions — the label "height" does not matter.',
       solvedMsg: 'Przekątna przestrzenna = $\\sqrt{a^2+b^2+c^2}$. Symetryczna względem wszystkich trzech boków — bo nie ma znaczenia, który wymiar nazwiesz "wysokością".',
       draw() {
         const a = C.a1, b = C.b1, c = C.c1;
@@ -309,15 +318,18 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     {
       id: 'ch2_pyramid_section',
       title: 'Przekrój ostrosłupa równoległy do podstawy',
-      desc: 'Tniemy ostrosłup prawidłowy czworokątny płaszczyzną równoległą do podstawy na wysokości $h$. Długość boku przekroju: $a(1 - h/H)$.',
+      titleEn: 'Cross-section of a pyramid parallel to the base',
+      desc:   'Tniemy ostrosłup prawidłowy czworokątny płaszczyzną równoległą do podstawy na wysokości $h$. Długość boku przekroju: $a(1 - h/H)$.',
+      descEn: 'Cut a regular square pyramid with a plane parallel to the base at height $h$. Side length of the cross-section: $a(1 - h/H)$.',
       drawBackground: 'none',
       init() {},
       predict: {
-        question: 'Ostrosłup o wysokości $H$ i podstawie kwadratowej $a = 4$. Tniemy go na wysokości $h = H/2$. Jaki jest bok przekroju?',
+        question:   'Ostrosłup o wysokości $H$ i podstawie kwadratowej $a = 4$. Tniemy go na wysokości $h = H/2$. Jaki jest bok przekroju?',
+        questionEn: 'A pyramid of height $H$ and square base $a = 4$. We cut it at height $h = H/2$. What is the cross-section side?',
         options: [
-          { label: '$a = 4$ (taki sam jak podstawa)', correct: false, why: 'Nie — przekrój ZMNIEJSZA się w górę. Na połowie wysokości przekrój jest dwa razy mniejszy niż podstawa.' },
-          { label: '$a/2 = 2$', correct: true,  why: 'Tak — trójkąty podobne. Na wysokości $H/2$ przekrój ma bok $a(1 - 1/2) = a/2 = 2$.' },
-          { label: '$0$ (w ogóle nie ma przekroju)', correct: false, why: 'Przekrój znika dopiero na samym wierzchołku ($h = H$). Na $H/2$ jest to mniejszy kwadrat.' },
+          { label: '$a = 4$ (taki sam jak podstawa)', labelEn: '$a = 4$ (same as the base)', correct: false, why: 'Nie — przekrój ZMNIEJSZA się w górę. Na połowie wysokości przekrój jest dwa razy mniejszy niż podstawa.', whyEn: 'No — the cross-section SHRINKS as you go up. At half-height it\u2019s half the size of the base.' },
+          { label: '$a/2 = 2$', labelEn: '$a/2 = 2$', correct: true,  why: 'Tak — trójkąty podobne. Na wysokości $H/2$ przekrój ma bok $a(1 - 1/2) = a/2 = 2$.', whyEn: 'Yes — similar triangles. At height $H/2$ the cross-section side is $a(1 - 1/2) = a/2 = 2$.' },
+          { label: '$0$ (w ogóle nie ma przekroju)', labelEn: '$0$ (no cross-section at all)', correct: false, why: 'Przekrój znika dopiero na samym wierzchołku ($h = H$). Na $H/2$ jest to mniejszy kwadrat.', whyEn: 'The cross-section vanishes only at the apex ($h = H$). At $H/2$ it\u2019s a smaller square.' },
         ],
       },
       sliders: [
@@ -325,8 +337,8 @@ import { initWarsztat } from '../lib/warsztat-core.js';
       ],
       pips() {
         return [
-          { label: 'zmień wysokość cięcia', ok: C.h2 !== 0.4 },
-          { label: 'przekrój maleje → 0 przy wierzchołku', ok: true },
+          { label: T('zmień wysokość cięcia', 'change the cut height'), ok: C.h2 !== 0.4 },
+          { label: T('przekrój maleje → 0 przy wierzchołku', 'cross-section shrinks → 0 at the apex'), ok: true },
         ];
       },
       solved() { return C.h2 !== 0.4; },
@@ -335,13 +347,20 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② Trójkąt NAD cięciem (od wierzchołka w dół do linii cięcia) JEST PODOBNY do całego trójkąta osiowego. Skala podobieństwa: $(H - h)/H = 1 - h/H$.',
         '③ Bok przekroju = $a \\cdot (1 - h/H)$. Gdy $h = 0$ — dostajemy pełny bok $a$. Gdy $h = H$ — zero (sam wierzchołek).',
       ],
+      hintsEn: [
+        '① Draw the axial cross-section — isosceles triangle (base $a$, height $H$). The cut at height $h$ is a horizontal line.',
+        '② The triangle ABOVE the cut (from apex down to the cut line) IS SIMILAR to the whole axial triangle. Similarity ratio: $(H - h)/H = 1 - h/H$.',
+        '③ Cross-section side = $a \\cdot (1 - h/H)$. At $h = 0$ — full base $a$. At $h = H$ — zero (just the apex).',
+      ],
+      solvedMsgEn: 'Similar triangles: scale $(H-h)/H$. Every linear dimension scales by this factor; area scales by its square.',
       solvedMsg: 'Trójkąty podobne: skala $(H-h)/H$. Każdy rozmiar liniowy (bok, obwód, apotema) skaluje się tak samo, natomiast POLE przekroju skaluje się kwadratem skali: $a^2(1-h/H)^2$.',
       predictAfter: {
-        question: 'Jak skaluje się POLE przekroju w zależności od $h$?',
+        question:   'Jak skaluje się POLE przekroju w zależności od $h$?',
+        questionEn: 'How does the cross-section AREA scale with $h$?',
         options: [
-          { label: 'liniowo: $B \\cdot (1 - h/H)$', correct: false, why: 'Pole zawiera kwadrat boku, więc skala pola to KWADRAT skali boku.' },
-          { label: 'kwadratowo: $B \\cdot (1 - h/H)^2$', correct: true,  why: 'Tak — bok skaluje się $\\times k$, więc pole $\\times k^2$.' },
-          { label: 'wcale nie zależy od $h$', correct: false, why: 'Jak najbardziej zależy — inaczej objętość ostrosłupa też by się nie zmniejszała.' },
+          { label: 'liniowo: $B \\cdot (1 - h/H)$', labelEn: 'linearly: $B \\cdot (1 - h/H)$', correct: false, why: 'Pole zawiera kwadrat boku, więc skala pola to KWADRAT skali boku.', whyEn: 'Area involves the square of the side, so the area scale is the SQUARE of the side scale.' },
+          { label: 'kwadratowo: $B \\cdot (1 - h/H)^2$', labelEn: 'quadratically: $B \\cdot (1 - h/H)^2$', correct: true,  why: 'Tak — bok skaluje się $\\times k$, więc pole $\\times k^2$.', whyEn: 'Yes — side scales by $k$, area scales by $k^2$.' },
+          { label: 'wcale nie zależy od $h$', labelEn: 'doesn\u2019t depend on $h$', correct: false, why: 'Jak najbardziej zależy — inaczej objętość ostrosłupa też by się nie zmniejszała.', whyEn: 'It very much does — otherwise the pyramid\u2019s volume wouldn\u2019t shrink either.' },
         ],
       },
       draw() {
@@ -416,15 +435,18 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     {
       id: 'ch3_pyramid_volume',
       title: 'Objętość ostrosłupa vs graniastosłupa',
-      desc: 'Ta sama podstawa, ta sama wysokość: $V_{\\text{ost}} = \\frac{1}{3} V_{\\text{gran}}$. TRZY ostrosłupy wypełniają graniastosłup, nie dwa.',
+      titleEn: 'Volume of a pyramid vs prism',
+      desc:   'Ta sama podstawa, ta sama wysokość: $V_{\\text{ost}} = \\frac{1}{3} V_{\\text{gran}}$. TRZY ostrosłupy wypełniają graniastosłup, nie dwa.',
+      descEn: 'Same base, same height: $V_{\\text{pyr}} = \\frac{1}{3} V_{\\text{prism}}$. THREE pyramids fill the prism, not two.',
       drawBackground: 'none',
       init() {},
       predict: {
-        question: 'Graniastosłup i ostrosłup mają tę samą kwadratową podstawę i tę samą wysokość. Jaka jest relacja objętości?',
+        question:   'Graniastosłup i ostrosłup mają tę samą kwadratową podstawę i tę samą wysokość. Jaka jest relacja objętości?',
+        questionEn: 'A prism and a pyramid share the same square base and the same height. What is the volume ratio?',
         options: [
-          { label: '$V_{\\text{ost}} = \\frac{1}{2} V_{\\text{gran}}$', correct: false, why: 'Klasyczna pułapka — intuicja mówi "połowa, bo ostrosłup zwęża się do punktu". Ale CAŁKA (suma cienkich warstw kwadratowych) daje $\\frac{1}{3}$, nie $\\frac{1}{2}$.' },
-          { label: '$V_{\\text{ost}} = \\frac{1}{3} V_{\\text{gran}}$', correct: true,  why: 'Tak — trzy ostrosłupy (przy tej samej podstawie i wysokości) wypełniają graniastosłup. Wzór: $V = \\frac{1}{3} B h$.' },
-          { label: 'są równe', correct: false, why: 'Nie — ostrosłup ma mniej "objętości" niż graniastosłup, bo zwęża się ku górze.' },
+          { label: '$V_{\\text{ost}} = \\frac{1}{2} V_{\\text{gran}}$', labelEn: '$V_{\\text{pyr}} = \\frac{1}{2} V_{\\text{prism}}$', correct: false, why: 'Klasyczna pułapka — intuicja mówi "połowa, bo ostrosłup zwęża się do punktu". Ale CAŁKA (suma cienkich warstw kwadratowych) daje $\\frac{1}{3}$, nie $\\frac{1}{2}$.', whyEn: 'Classic trap — intuition says "half, because the pyramid tapers to a point". But the integral (sum of thin square slabs) gives $\\frac{1}{3}$, not $\\frac{1}{2}$.' },
+          { label: '$V_{\\text{ost}} = \\frac{1}{3} V_{\\text{gran}}$', labelEn: '$V_{\\text{pyr}} = \\frac{1}{3} V_{\\text{prism}}$', correct: true,  why: 'Tak — trzy ostrosłupy (przy tej samej podstawie i wysokości) wypełniają graniastosłup. Wzór: $V = \\frac{1}{3} B h$.', whyEn: 'Yes — three pyramids (same base and height) fill the prism. Formula: $V = \\frac{1}{3} B h$.' },
+          { label: 'są równe', labelEn: 'they are equal', correct: false, why: 'Nie — ostrosłup ma mniej "objętości" niż graniastosłup, bo zwęża się ku górze.', whyEn: 'No — the pyramid has less "volume" than the prism because it tapers towards the top.' },
         ],
       },
       sliders: [
@@ -433,7 +455,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
       ],
       pips() {
         return [
-          { label: 'zmień podstawę lub wysokość', ok: C.a3 !== 3 || C.h3 !== 4 },
+          { label: T('zmień podstawę lub wysokość', 'change base or height'), ok: C.a3 !== 3 || C.h3 !== 4 },
           { label: '$V_{\\text{ost}} = V_{\\text{gran}}/3$', ok: true },
         ];
       },
@@ -443,6 +465,12 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② Każdy z tych ostrosłupów ma podstawę = ściana sześcianu (pole $a^2$) i wysokość $a$. Trzy takie zmieszczą się dokładnie w sześcianie o objętości $a^3$, więc każdy ma $V = a^3/3$.',
         '③ To uogólnia się na dowolny graniastosłup/ostrosłup o tej samej podstawie i wysokości: $V_{\\text{ostrosłup}} = \\frac{1}{3} B h$.',
       ],
+      hintsEn: [
+        '① Dissection proof: a cube can be split into THREE CONGRUENT pyramids, each with one face of the cube as base and the opposite corner as apex.',
+        '② Each pyramid has base = cube face (area $a^2$) and height $a$. Three of them fit exactly in the cube of volume $a^3$, so each has $V = a^3/3$.',
+        '③ Generalises to any prism/pyramid with the same base and height: $V_{\\text{pyramid}} = \\frac{1}{3} B h$.',
+      ],
+      solvedMsgEn: 'Exam formula: $V_{\\text{pyramid}} = \\frac{1}{3} B h$ — one third, not one half. Same logic for a cone: $V = \\frac{1}{3} \\pi r^2 h$.',
       solvedMsg: 'Wzór maturalny: $V_{\\text{ost}} = \\frac{1}{3} B h$ — jedna trzecia, nie połowa. Ta sama logika działa dla stożka: $V = \\frac{1}{3} \\pi r^2 h$.',
       draw() {
         const a = C.a3, hh = C.h3;
@@ -485,8 +513,8 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         ctx.font = '13px monospace';
         ctx.textAlign = 'center';
         ctx.fillStyle = 'rgba(255,255,255,0.75)';
-        ctx.fillText('graniastosłup', cxL, 30);
-        ctx.fillText('ostrosłup', cxR, 30);
+        ctx.fillText(T('graniastosłup', 'prism'), cxL, 30);
+        ctx.fillText(T('ostrosłup', 'pyramid'), cxR, 30);
 
         const B = a*a;
         const Vp = B * hh;
@@ -506,15 +534,17 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     {
       id: 'ch4_diag_angle',
       title: 'Kąt między przekątną a podstawą',
+      titleEn: 'Angle between diagonal and base',
       desc: 'Kąt $\\alpha$ między przekątną przestrzenną prostopadłościanu a płaszczyzną podstawy: $\\tan \\alpha = c / \\sqrt{a^2 + b^2}$.',
       drawBackground: 'none',
       init() {},
       predict: {
-        question: 'W prostopadłościanie o podstawie $a=4, b=3$ i wysokości $c=3$: tangens kąta między PRZEKĄTNĄ PRZESTRZENNĄ a PODSTAWĄ to...',
+        question:   'W prostopadłościanie o podstawie $a=4, b=3$ i wysokości $c=3$: tangens kąta między PRZEKĄTNĄ PRZESTRZENNĄ a PODSTAWĄ to...',
+        questionEn: 'In a cuboid with base $a=4, b=3$ and height $c=3$: the tangent of the angle between the SPACE DIAGONAL and the BASE is...',
         options: [
-          { label: '$\\tan \\alpha = c/a = 3/4$', correct: false, why: 'To byłby kąt z krawędzią $a$, nie z podstawą. Rzut przekątnej na podstawę to jej PRZEKĄTNA PODSTAWY, nie pojedynczy bok.' },
-          { label: '$\\tan \\alpha = c / \\sqrt{a^2+b^2} = 3/5$', correct: true,  why: 'Tak — trójkąt prostokątny: przyprostokątna pozioma = $\\sqrt{a^2+b^2}$ (rzut na podstawę), pionowa = $c$, przeciwprostokątna = przekątna 3D. $\\tan = $ pion/poziom.' },
-          { label: '$\\tan \\alpha = c / (a+b) = 3/7$', correct: false, why: 'Mylenie przekątnej z sumą. Rzut to $\\sqrt{a^2+b^2}$, nie $a+b$.' },
+          { label: '$\\tan \\alpha = c/a = 3/4$', labelEn: '$\\tan \\alpha = c/a = 3/4$', correct: false, why: 'To byłby kąt z krawędzią $a$, nie z podstawą. Rzut przekątnej na podstawę to jej PRZEKĄTNA PODSTAWY, nie pojedynczy bok.', whyEn: 'That would be the angle with edge $a$, not with the base. The diagonal\u2019s projection on the base is the BASE DIAGONAL, not a single side.' },
+          { label: '$\\tan \\alpha = c / \\sqrt{a^2+b^2} = 3/5$', labelEn: '$\\tan \\alpha = c / \\sqrt{a^2+b^2} = 3/5$', correct: true,  why: 'Tak — trójkąt prostokątny: przyprostokątna pozioma = $\\sqrt{a^2+b^2}$ (rzut na podstawę), pionowa = $c$, przeciwprostokątna = przekątna 3D. $\\tan = $ pion/poziom.', whyEn: 'Yes — right triangle: horizontal leg = $\\sqrt{a^2+b^2}$ (base projection), vertical leg = $c$, hypotenuse = 3D diagonal. $\\tan = $ vertical/horizontal.' },
+          { label: '$\\tan \\alpha = c / (a+b) = 3/7$', labelEn: '$\\tan \\alpha = c / (a+b) = 3/7$', correct: false, why: 'Mylenie przekątnej z sumą. Rzut to $\\sqrt{a^2+b^2}$, nie $a+b$.', whyEn: 'Mixing up the diagonal with a sum. The projection is $\\sqrt{a^2+b^2}$, not $a+b$.' },
         ],
       },
       sliders: [
@@ -524,8 +554,8 @@ import { initWarsztat } from '../lib/warsztat-core.js';
       ],
       pips() {
         return [
-          { label: 'zmień którąś wartość', ok: C.a4 !== 4 || C.b4 !== 3 || C.c4 !== 3 },
-          { label: 'widzisz rzut przekątnej na podstawę', ok: true },
+          { label: T('zmień którąś wartość', 'change one of the values'), ok: C.a4 !== 4 || C.b4 !== 3 || C.c4 !== 3 },
+          { label: T('widzisz rzut przekątnej na podstawę', 'you see the diagonal\u2019s projection on the base'), ok: true },
         ];
       },
       solved() { return C.a4 !== 4 || C.b4 !== 3 || C.c4 !== 3; },
@@ -534,6 +564,12 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② Rzut przekątnej przestrzennej na podstawę to przekątna PODSTAWY (długości $p = \\sqrt{a^2+b^2}$). Kąt $\\alpha$ jest więc między przekątną 3D a tym rzutem.',
         '③ Trójkąt prostokątny: $p$ (pozioma), $c$ (pionowa), $d = \\sqrt{a^2+b^2+c^2}$ (przeciwprostokątna). Stąd $\\tan \\alpha = c/p$, $\\sin \\alpha = c/d$, $\\cos \\alpha = p/d$.',
       ],
+      hintsEn: [
+        '① Angle between a LINE and a PLANE = angle between the line and its perpendicular projection onto that plane.',
+        '② The space diagonal\u2019s projection on the base is the BASE diagonal (length $p = \\sqrt{a^2+b^2}$). So $\\alpha$ is between the 3D diagonal and this projection.',
+        '③ Right triangle: $p$ (horizontal), $c$ (vertical), $d = \\sqrt{a^2+b^2+c^2}$ (hypotenuse). Hence $\\tan \\alpha = c/p$, $\\sin \\alpha = c/d$, $\\cos \\alpha = p/d$.',
+      ],
+      solvedMsgEn: 'Always: the angle between a line and a plane = the angle between the line and its PROJECTION onto the plane. The right triangle "vertical/horizontal" solves it in one step.',
       solvedMsg: 'Zawsze: kąt prostej z płaszczyzną = kąt z JEJ RZUTEM na płaszczyznę. Trójkąt prostokątny "pion/poziom" rozwiązuje problem w jednej linijce.',
       draw() {
         const a = C.a4, b = C.b4, c = C.c4;
@@ -586,29 +622,33 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     {
       id: 'ch5_2d_or_3d',
       title: 'Kiedy 2D Pitagoras, a kiedy 3D?',
-      desc: 'Rozpoznaj: w której sytuacji wystarczy zwykły Pitagoras 2D, a gdzie potrzebujesz wersji 3D $\\sqrt{a^2+b^2+c^2}$?',
+      titleEn: 'When 2D Pythagoras, when 3D?',
+      desc:   'Rozpoznaj: w której sytuacji wystarczy zwykły Pitagoras 2D, a gdzie potrzebujesz wersji 3D $\\sqrt{a^2+b^2+c^2}$?',
+      descEn: 'Identify: when does plain 2D Pythagoras suffice, and when do you need the 3D version $\\sqrt{a^2+b^2+c^2}$?',
       drawBackground: 'none',
       init() { C.ch5Pick = null; },
       predict: {
-        question: 'Która z poniższych wielkości wymaga 3D Pitagorasa $\\sqrt{a^2+b^2+c^2}$?',
+        question:   'Która z poniższych wielkości wymaga 3D Pitagorasa $\\sqrt{a^2+b^2+c^2}$?',
+        questionEn: 'Which of these quantities requires 3D Pythagoras $\\sqrt{a^2+b^2+c^2}$?',
         options: [
-          { label: 'Przekątna ściany prostopadłościanu', correct: false, why: 'Ściana to PROSTOKĄT w 2D — wystarczy zwykły Pitagoras $\\sqrt{a^2+b^2}$.' },
-          { label: 'Przekątna przestrzenna prostopadłościanu', correct: true,  why: 'Tak — tu właśnie wchodzi trzeci wymiar. Przekątna łączy przeciwległe WIERZCHOŁKI bryły i "przebija" ją na wylot.' },
-          { label: 'Wysokość ostrosłupa gdy znasz krawędź boczną i apotemę podstawy', correct: false, why: 'To TRÓJKĄT PROSTOKĄTNY w płaszczyźnie osiowej — 2D Pitagoras.' },
+          { label: 'Przekątna ściany prostopadłościanu', labelEn: 'Face diagonal of a cuboid', correct: false, why: 'Ściana to PROSTOKĄT w 2D — wystarczy zwykły Pitagoras $\\sqrt{a^2+b^2}$.', whyEn: 'A face is a 2D RECTANGLE — plain Pythagoras $\\sqrt{a^2+b^2}$ is enough.' },
+          { label: 'Przekątna przestrzenna prostopadłościanu', labelEn: 'Space diagonal of a cuboid', correct: true,  why: 'Tak — tu właśnie wchodzi trzeci wymiar. Przekątna łączy przeciwległe WIERZCHOŁKI bryły i "przebija" ją na wylot.', whyEn: 'Yes — this is where the third dimension enters. The diagonal joins opposite VERTICES and "pierces" the solid through.' },
+          { label: 'Wysokość ostrosłupa gdy znasz krawędź boczną i apotemę podstawy', labelEn: 'Pyramid height given the lateral edge and base apothem', correct: false, why: 'To TRÓJKĄT PROSTOKĄTNY w płaszczyźnie osiowej — 2D Pitagoras.', whyEn: 'That\u2019s a RIGHT TRIANGLE in the axial plane — 2D Pythagoras.' },
         ],
       },
       choices: {
-        question: 'Dla utrwalenia — wybierz zadanie, gdzie jawnie potrzebny jest pełny 3D pierwiastek $\\sqrt{a^2+b^2+c^2}$.',
+        question:   'Dla utrwalenia — wybierz zadanie, gdzie jawnie potrzebny jest pełny 3D pierwiastek $\\sqrt{a^2+b^2+c^2}$.',
+        questionEn: 'For practice — pick the problem that explicitly requires the full 3D root $\\sqrt{a^2+b^2+c^2}$.',
         options: [
-          { id: 'a', label: 'Długość odcinka łączącego dwa przeciwległe wierzchołki prostopadłościanu', correct: true },
-          { id: 'b', label: 'Długość przekątnej ściany bocznej prostopadłościanu', correct: false },
-          { id: 'c', label: 'Wysokość trójkąta równobocznego o boku $a$', correct: false },
-          { id: 'd', label: 'Obwód podstawy ostrosłupa prawidłowego czworokątnego', correct: false },
+          { id: 'a', label: 'Długość odcinka łączącego dwa przeciwległe wierzchołki prostopadłościanu', labelEn: 'Length of the segment between two opposite vertices of a cuboid', correct: true },
+          { id: 'b', label: 'Długość przekątnej ściany bocznej prostopadłościanu', labelEn: 'Length of the diagonal of a lateral face', correct: false },
+          { id: 'c', label: 'Wysokość trójkąta równobocznego o boku $a$', labelEn: 'Height of an equilateral triangle with side $a$', correct: false },
+          { id: 'd', label: 'Obwód podstawy ostrosłupa prawidłowego czworokątnego', labelEn: 'Perimeter of a regular square pyramid base', correct: false },
         ],
         pick(id) { C.ch5Pick = id; },
       },
       pips() {
-        return [{ label: 'poprawne rozpoznanie 3D', ok: C.ch5Pick === 'a' }];
+        return [{ label: T('poprawne rozpoznanie 3D', '3D recognition correct'), ok: C.ch5Pick === 'a' }];
       },
       solved() { return C.ch5Pick === 'a'; },
       hints: [
@@ -616,6 +656,12 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② 3D Pitagoras $\\sqrt{a^2+b^2+c^2}$ pojawia się, gdy odcinek "ucieka" z każdej ściany — przekątna przestrzenna, odległość między niepołączonymi wierzchołkami na przeciwległych ścianach.',
         '③ Trick: w ostrosłupach najpierw patrzysz na PRZEKRÓJ OSIOWY lub ŚCIANĘ — prawie zawsze sprowadzasz zadanie do 2D. W prostopadłościanach 3D pojawia się głównie przy przekątnej przestrzennej.',
       ],
+      hintsEn: [
+        '① 2D Pythagoras ALWAYS works in a single plane — face, axis, cross-section. If your triangle fits on a sheet of paper, it\u2019s 2D.',
+        '② 3D Pythagoras $\\sqrt{a^2+b^2+c^2}$ appears when the segment "escapes" every face — space diagonal, distance between unconnected vertices on opposite faces.',
+        '③ Trick: in pyramids first look at the AXIAL CROSS-SECTION or a FACE — you almost always reduce to 2D. In cuboids 3D mainly shows up for the space diagonal.',
+      ],
+      solvedMsgEn: 'Rule: reduce to 2D wherever possible (cross-sections, faces, axial triangles). Full 3D $\\sqrt{a^2+b^2+c^2}$ is mainly needed for the space diagonal of a cuboid.',
       solvedMsg: 'Zasada: sprowadzaj do 2D tam, gdzie tylko się da (przekroje, ściany, trójkąty osiowe). Pełne 3D $\\sqrt{a^2+b^2+c^2}$ wchodzi głównie przy przekątnej przestrzennej prostopadłościanu.',
       draw() {
         // Reference sheet of 2D vs 3D situations
@@ -659,6 +705,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     canvasId: 'cv',
     challenges,
     lsKey: 'warsztat:solid_geom:completed',
+    wrapupEn: 'Solid geometry = find the right right-triangle inside the solid. Most problems reduce to 2D Pythagoras in a cross-section or face. Full 3D $\\sqrt{a^2+b^2+c^2}$ is mainly for the space diagonal. For volume: a pyramid is $\\frac{1}{3}$ of the prism, not $\\frac{1}{2}$.',
     wrapup: 'Stereometria = znajdź właściwy trójkąt prostokątny wewnątrz bryły. W większości zadań wystarczy 2D Pitagoras w przekroju osiowym lub ścianie. Pełne 3D $\\sqrt{a^2+b^2+c^2}$ pojawia się głównie przy przekątnej przestrzennej. A dla objętości pamiętaj: ostrosłup to $\\frac{1}{3}$ graniastosłupa, nie $\\frac{1}{2}$.',
     onFrame({ ch }) {
       ctx.save();

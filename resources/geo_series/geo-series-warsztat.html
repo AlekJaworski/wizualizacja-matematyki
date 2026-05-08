@@ -106,7 +106,7 @@
 
 <script type="module">
 import { GraphView } from '../lib/graph-core.js';
-import { initWarsztat } from '../lib/warsztat-core.js';
+import { initWarsztat, T } from '../lib/warsztat-core.js';
 {
   const cv = document.getElementById('cv');
   const ctx = cv.getContext('2d');
@@ -163,17 +163,32 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     // ─── Ch.1: kiedy ciąg geometryczny zanika? ────────────────
     {
       id: 'ch1',
-      title: 'Kiedy ciąg geometryczny zanika?',
-      desc: 'Przesuwaj $q$ i obserwuj wyrazy $a_n = q^{n-1}$ dla $n = 1, 2, \\ldots, 20$. Znajdź strefę, w której wyrazy wyraźnie dążą do zera.',
+      title:   'Kiedy ciąg geometryczny zanika?',
+      titleEn: 'When does a geometric sequence decay?',
+      desc:    'Przesuwaj $q$ i obserwuj wyrazy $a_n = q^{n-1}$ dla $n = 1, 2, \\ldots, 20$. Znajdź strefę, w której wyrazy wyraźnie dążą do zera.',
+      descEn:  'Drag $q$ and watch the terms $a_n = q^{n-1}$ for $n = 1, 2, \\ldots, 20$. Find the zone where the terms clearly tend to zero.',
       drawBackground: 'custom',
       init() { C.q = 0.5; C.qMoved = false; },
       predict: {
-        question: 'Dla jakich $q$ wyrazy ciągu geometrycznego $a_n = q^{n-1}$ dążą do zera?',
+        question:   'Dla jakich $q$ wyrazy ciągu geometrycznego $a_n = q^{n-1}$ dążą do zera?',
+        questionEn: 'For which $q$ do the terms of the geometric sequence $a_n = q^{n-1}$ tend to zero?',
         options: [
-          { label: '$q > 0$', correct: false, why: 'Tylko częściowo — dla $0 < q < 1$ wyrazy zanikają, a dla $q \\geq 1$ już nie. Sam znak nie wystarcza.' },
-          { label: '$|q| < 1$', correct: true,  why: 'Tylko przy $|q| < 1$ mnożenie przez $q$ zmniejsza wartość bezwzględną wyrazu, więc ciąg dąży do zera. Dla ujemnych $q$ o $|q| < 1$ wyrazy oscylują, ale również zanikają.' },
-          { label: '$q > 1$', correct: false, why: 'Przy takim $q$ ciąg rośnie wykładniczo, bo każdy krok mnoży poprzedni wyraz przez liczbę większą od $1$.' },
-          { label: '$q < 0$', correct: false, why: 'Ujemne $q$ powoduje zmianę znaków, ale nie gwarantuje zaniku. Na przykład dla $q = -2$ ciąg $1, -2, 4, -8, \\ldots$ rośnie co do wartości bezwzględnej.' },
+          { label: '$q > 0$', labelEn: '$q > 0$',
+            correct: false,
+            why:   'Tylko częściowo — dla $0 < q < 1$ wyrazy zanikają, a dla $q \\geq 1$ już nie. Sam znak nie wystarcza.',
+            whyEn: 'Only partially — for $0 < q < 1$ the terms decay, but for $q \\geq 1$ they don’t. Sign alone isn’t enough.' },
+          { label: '$|q| < 1$', labelEn: '$|q| < 1$',
+            correct: true,
+            why:   'Tylko przy $|q| < 1$ mnożenie przez $q$ zmniejsza wartość bezwzględną wyrazu, więc ciąg dąży do zera. Dla ujemnych $q$ o $|q| < 1$ wyrazy oscylują, ale również zanikają.',
+            whyEn: 'Only when $|q| < 1$ does multiplying by $q$ shrink the absolute value of each term, so the sequence tends to zero. For negative $q$ with $|q| < 1$ the terms oscillate, but they still decay.' },
+          { label: '$q > 1$', labelEn: '$q > 1$',
+            correct: false,
+            why:   'Przy takim $q$ ciąg rośnie wykładniczo, bo każdy krok mnoży poprzedni wyraz przez liczbę większą od $1$.',
+            whyEn: 'With such a $q$ the sequence grows exponentially, since each step multiplies the previous term by a number greater than $1$.' },
+          { label: '$q < 0$', labelEn: '$q < 0$',
+            correct: false,
+            why:   'Ujemne $q$ powoduje zmianę znaków, ale nie gwarantuje zaniku. Na przykład dla $q = -2$ ciąg $1, -2, 4, -8, \\ldots$ rośnie co do wartości bezwzględnej.',
+            whyEn: 'A negative $q$ flips the signs but doesn’t guarantee decay. For example, with $q = -2$ the sequence $1, -2, 4, -8, \\ldots$ grows in absolute value.' },
         ],
       },
       sliders: [
@@ -181,7 +196,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
           get: () => C.q, set: v => { C.q = v; C.qMoved = true; } },
       ],
       pips() {
-        return [{ label: '$|q| < 1$ — wyrazy zanikają', ok: Math.abs(C.q) < 1 }];
+        return [{ label: T('$|q| < 1$ — wyrazy zanikają', '$|q| < 1$ — terms decay'), ok: Math.abs(C.q) < 1 }];
       },
       solved() { return Math.abs(C.q) < 1 && C.qMoved; },
       hints: [
@@ -189,7 +204,13 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         'Dla $q > 1$: każdy krok mnoży przez liczbę większą niż 1 → rośnie. Dla $q = 1$: wszystkie wyrazy równe $a_1$.',
         'Dla $q = -0{,}5$: wyrazy oscylują ale zanikają (naprzemiennie dodatnie/ujemne, co do wartości bezwzględnej → 0).',
       ],
-      solvedMsg: 'Warunek $|q| < 1$ jest kluczowy w ciągach geometrycznych — tylko przy nim suma nieskończona w ogóle istnieje.',
+      hintsEn: [
+        '$q^n$ for $|q| < 1$ multiplies by a number smaller than 1 (in absolute value) each step. The values shrink quickly.',
+        'For $q > 1$: each step multiplies by a number greater than 1 → it grows. For $q = 1$: all terms equal $a_1$.',
+        'For $q = -0.5$: the terms oscillate but decay (alternating positive/negative, with absolute value → 0).',
+      ],
+      solvedMsg:   'Warunek $|q| < 1$ jest kluczowy w ciągach geometrycznych — tylko przy nim suma nieskończona w ogóle istnieje.',
+      solvedMsgEn: 'The condition $|q| < 1$ is the key fact for geometric sequences — only there does an infinite sum exist at all.',
       draw() {
         const q = C.q;
         const N = 20;
@@ -255,30 +276,46 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     // ─── Ch.2: Suma nieskończona ──────────────────────────────
     {
       id: 'ch2',
-      title: 'Suma nieskończona — czy nieskończenie wielu wyrazów może dać skończoną liczbę?',
-      desc: 'Dla $a_1 = 2$, $q = \\tfrac{1}{2}$ pasek pokazuje kolejne wyrazy 2, 1, 0.5, 0.25, … dokładanie jeden obok drugiego. Wybierz właściwy wzór na $S_\\infty$.',
+      title:   'Suma nieskończona — czy nieskończenie wielu wyrazów może dać skończoną liczbę?',
+      titleEn: 'Infinite sum — can infinitely many terms add to a finite number?',
+      desc:    'Dla $a_1 = 2$, $q = \\tfrac{1}{2}$ pasek pokazuje kolejne wyrazy 2, 1, 0.5, 0.25, … dokładanie jeden obok drugiego. Wybierz właściwy wzór na $S_\\infty$.',
+      descEn:  'For $a_1 = 2$, $q = \\tfrac{1}{2}$ the bar shows successive terms 2, 1, 0.5, 0.25, … laid end to end. Pick the correct formula for $S_\\infty$.',
       drawBackground: 'custom',
       init() {},
       predict: {
-        question: 'Dla $a_1 = 2$, $q = \\tfrac{1}{2}$, suma wszystkich wyrazów wynosi:',
+        question:   'Dla $a_1 = 2$, $q = \\tfrac{1}{2}$, suma wszystkich wyrazów wynosi:',
+        questionEn: 'For $a_1 = 2$, $q = \\tfrac{1}{2}$, the sum of all terms is:',
         options: [
-          { label: '$2$', correct: false, why: 'To tylko pierwszy wyraz — do niego doliczamy jeszcze $1 + 0{,}5 + 0{,}25 + \\ldots$, więc sumaryczny efekt jest większy.' },
-          { label: '$4$', correct: true,  why: 'Ze wzoru $S_\\infty = \\tfrac{a_1}{1-q} = \\tfrac{2}{1 - 0{,}5} = \\tfrac{2}{0{,}5} = 4$.' },
-          { label: '$\\infty$', correct: false, why: 'W tym przypadku $|q| < 1$, więc szereg jest zbieżny — nieskończenie wiele składników składa się na skończoną sumę, co widać na pasku.' },
-          { label: '$\\tfrac{1}{2}$', correct: false, why: 'To wartość ilorazu $q$, nie sumy. Wzór daje $\\tfrac{a_1}{1-q}$, a nie samo $q$.' },
+          { label: '$2$', labelEn: '$2$',
+            correct: false,
+            why:   'To tylko pierwszy wyraz — do niego doliczamy jeszcze $1 + 0{,}5 + 0{,}25 + \\ldots$, więc sumaryczny efekt jest większy.',
+            whyEn: 'That’s just the first term — we still need to add $1 + 0.5 + 0.25 + \\ldots$, so the total comes out larger.' },
+          { label: '$4$', labelEn: '$4$',
+            correct: true,
+            why:   'Ze wzoru $S_\\infty = \\tfrac{a_1}{1-q} = \\tfrac{2}{1 - 0{,}5} = \\tfrac{2}{0{,}5} = 4$.',
+            whyEn: 'From the formula $S_\\infty = \\tfrac{a_1}{1-q} = \\tfrac{2}{1 - 0.5} = \\tfrac{2}{0.5} = 4$.' },
+          { label: '$\\infty$', labelEn: '$\\infty$',
+            correct: false,
+            why:   'W tym przypadku $|q| < 1$, więc szereg jest zbieżny — nieskończenie wiele składników składa się na skończoną sumę, co widać na pasku.',
+            whyEn: 'Here $|q| < 1$, so the series converges — infinitely many summands fit into a finite total, as the bar shows.' },
+          { label: '$\\tfrac{1}{2}$', labelEn: '$\\tfrac{1}{2}$',
+            correct: false,
+            why:   'To wartość ilorazu $q$, nie sumy. Wzór daje $\\tfrac{a_1}{1-q}$, a nie samo $q$.',
+            whyEn: 'That’s the value of the ratio $q$, not the sum. The formula gives $\\tfrac{a_1}{1-q}$, not $q$ itself.' },
         ],
       },
       choices: {
-        question: 'Którego wzoru można tu użyć?',
+        question:   'Którego wzoru można tu użyć?',
+        questionEn: 'Which formula applies here?',
         options: [
-          { id: 'A', label: '$S = \\tfrac{a_1}{1-q}$',         correct: true },
-          { id: 'B', label: '$S = a_1 \\cdot (1 + q)$',         correct: false },
-          { id: 'C', label: '$S = a_1 \\cdot n$',               correct: false },
+          { id: 'A', label: '$S = \\tfrac{a_1}{1-q}$',  labelEn: '$S = \\tfrac{a_1}{1-q}$',  correct: true },
+          { id: 'B', label: '$S = a_1 \\cdot (1 + q)$', labelEn: '$S = a_1 \\cdot (1 + q)$', correct: false },
+          { id: 'C', label: '$S = a_1 \\cdot n$',       labelEn: '$S = a_1 \\cdot n$',       correct: false },
         ],
         pick(id) { C.pick = id; },
       },
       pips() {
-        return [{ label: 'wybierz wzór $S = \\tfrac{a_1}{1-q}$', ok: C.pick === 'A' }];
+        return [{ label: T('wybierz wzór $S = \\tfrac{a_1}{1-q}$', 'pick the formula $S = \\tfrac{a_1}{1-q}$'), ok: C.pick === 'A' }];
       },
       solved() { return C.pick === 'A'; },
       hints: [
@@ -286,7 +323,13 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         'Wtedy $q^n \\to 0$, więc $1 - q^n \\to 1$.',
         '$S_\\infty = \\lim_{n \\to \\infty} S_n = \\tfrac{a_1}{1 - q} = \\tfrac{2}{1 - 0{,}5} = \\tfrac{2}{0{,}5} = 4$.',
       ],
-      solvedMsg: 'Nieskończenie wiele wyrazów zmieściło się w pasku długości $4$ — to właśnie efekt warunku $|q| < 1$.',
+      hintsEn: [
+        'Finite-sum formula: $S_n = a_1 \\cdot \\tfrac{1-q^n}{1-q}$. What happens when $n \\to \\infty$ and $|q| < 1$?',
+        'Then $q^n \\to 0$, so $1 - q^n \\to 1$.',
+        '$S_\\infty = \\lim_{n \\to \\infty} S_n = \\tfrac{a_1}{1 - q} = \\tfrac{2}{1 - 0.5} = \\tfrac{2}{0.5} = 4$.',
+      ],
+      solvedMsg:   'Nieskończenie wiele wyrazów zmieściło się w pasku długości $4$ — to właśnie efekt warunku $|q| < 1$.',
+      solvedMsgEn: 'Infinitely many terms fit inside a bar of length $4$ — that’s precisely the effect of the condition $|q| < 1$.',
       draw() {
         ctx.save();
         ctx.fillStyle = '#0e0e12';
@@ -374,17 +417,20 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     // ─── Ch.3: Debug ──────────────────────────────────────────
     {
       id: 'ch3',
-      title: 'Debug: ktoś użył wzoru bez warunku',
-      desc: 'Przeczytaj rozwiązanie Tomka i wskaż krok, w którym popełnił błąd.',
+      title:   'Debug: ktoś użył wzoru bez warunku',
+      titleEn: 'Debug: someone used the formula without checking the condition',
+      desc:    'Przeczytaj rozwiązanie Tomka i wskaż krok, w którym popełnił błąd.',
+      descEn:  'Read through Tomek’s solution and pick the step where he made the mistake.',
       drawBackground: 'custom',
       init() {},
       debug: {
-        task: 'Tomek liczy $S_\\infty$ dla ciągu $a_n = 3 \\cdot 2^{n-1}$ (czyli $a_1 = 3$, $q = 2$). Pisze:',
+        task:   'Tomek liczy $S_\\infty$ dla ciągu $a_n = 3 \\cdot 2^{n-1}$ (czyli $a_1 = 3$, $q = 2$). Pisze:',
+        taskEn: 'Tomek computes $S_\\infty$ for the sequence $a_n = 3 \\cdot 2^{n-1}$ (so $a_1 = 3$, $q = 2$). He writes:',
         steps: [
-          { n: 1, text: '$a_1 = 3$, $q = 2$.' },
-          { n: 2, text: 'Wzór: $S_\\infty = \\dfrac{a_1}{1 - q}$.' },
-          { n: 3, text: '$S_\\infty = \\dfrac{3}{1 - 2} = \\dfrac{3}{-1} = -3$.' },
-          { n: 4, text: 'Suma wszystkich wyrazów to $-3$.' },
+          { n: 1, text: '$a_1 = 3$, $q = 2$.', textEn: '$a_1 = 3$, $q = 2$.' },
+          { n: 2, text: 'Wzór: $S_\\infty = \\dfrac{a_1}{1 - q}$.', textEn: 'Formula: $S_\\infty = \\dfrac{a_1}{1 - q}$.' },
+          { n: 3, text: '$S_\\infty = \\dfrac{3}{1 - 2} = \\dfrac{3}{-1} = -3$.', textEn: '$S_\\infty = \\dfrac{3}{1 - 2} = \\dfrac{3}{-1} = -3$.' },
+          { n: 4, text: 'Suma wszystkich wyrazów to $-3$.', textEn: 'The sum of all terms is $-3$.' },
         ],
         errorLine: 2,
         wrongChoice: {
@@ -392,7 +438,13 @@ import { initWarsztat } from '../lib/warsztat-core.js';
           3: 'Krok 3 algebraicznie poprawny, ale oparty na błędnym założeniu w kroku 2.',
           4: 'Krok 4 tylko przepisuje wynik z kroku 3. Sam wynik jest absurdalny (suma dodatnich liczb ujemna), ale źródło błędu jest wcześniej.',
         },
-        correctExplanation: 'Krok 2: wzór $S_\\infty = \\tfrac{a_1}{1-q}$ działa <b>tylko dla $|q| < 1$</b>. Tu $q = 2 > 1$, więc ciąg geometryczny $3, 6, 12, 24, \\ldots$ rośnie nieograniczenie i $S_\\infty = +\\infty$. Wzór nie ma zastosowania. Ujemny wynik $-3$ to matematyczny artefakt — suma dodatnich liczb nie może być ujemna.',
+        wrongChoiceEn: {
+          1: 'Step 1 just identifies $a_1$ and $q$ — that’s correct. Look further down.',
+          3: 'Step 3 is algebraically correct, but it rests on the faulty premise from step 2.',
+          4: 'Step 4 just restates the result from step 3. The number itself is absurd (the sum of positives can’t be negative), but the source of the error is earlier.',
+        },
+        correctExplanation:   'Krok 2: wzór $S_\\infty = \\tfrac{a_1}{1-q}$ działa <b>tylko dla $|q| < 1$</b>. Tu $q = 2 > 1$, więc ciąg geometryczny $3, 6, 12, 24, \\ldots$ rośnie nieograniczenie i $S_\\infty = +\\infty$. Wzór nie ma zastosowania. Ujemny wynik $-3$ to matematyczny artefakt — suma dodatnich liczb nie może być ujemna.',
+        correctExplanationEn: 'Step 2: the formula $S_\\infty = \\tfrac{a_1}{1-q}$ works <b>only for $|q| < 1$</b>. Here $q = 2 > 1$, so the geometric sequence $3, 6, 12, 24, \\ldots$ grows without bound and $S_\\infty = +\\infty$. The formula simply doesn’t apply. The negative answer $-3$ is a mathematical artifact — a sum of positive numbers can’t be negative.',
       },
       pips: () => [],
       solved() { return false; }, // debug widget drives solve directly
@@ -401,7 +453,13 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         'Dla $q = 2$ ciąg to $3, 6, 12, 24, \\ldots$ — rośnie. Suma nie może być skończona, a już na pewno nie ujemna.',
         'Wzór $S_\\infty = \\tfrac{a_1}{1-q}$ pochodzi z granicy $q^n \\to 0$ — ta granica istnieje TYLKO dla $|q| < 1$.',
       ],
-      solvedMsg: 'Stosowanie wzoru bez sprawdzenia warunku prowadzi do absurdów. $S_\\infty = \\tfrac{a_1}{1-q}$ ma sens wyłącznie w strefie zaniku $|q| < 1$.',
+      hintsEn: [
+        'Check the applicability condition for the formula. Is $|q| < 1$?',
+        'For $q = 2$ the sequence is $3, 6, 12, 24, \\ldots$ — it grows. The sum can’t be finite, let alone negative.',
+        'The formula $S_\\infty = \\tfrac{a_1}{1-q}$ comes from the limit $q^n \\to 0$ — that limit exists ONLY for $|q| < 1$.',
+      ],
+      solvedMsg:   'Stosowanie wzoru bez sprawdzenia warunku prowadzi do absurdów. $S_\\infty = \\tfrac{a_1}{1-q}$ ma sens wyłącznie w strefie zaniku $|q| < 1$.',
+      solvedMsgEn: 'Using the formula without checking the condition leads to nonsense. $S_\\infty = \\tfrac{a_1}{1-q}$ only makes sense inside the decay zone $|q| < 1$.',
       draw() {
         // Illustrate the divergent sequence visually
         ctx.save();
@@ -457,33 +515,43 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     // ─── Ch.4: Ułamek okresowy jako geometric sum ─────────────
     {
       id: 'ch4',
-      title: 'Ułamek okresowy jako suma geometryczna',
-      desc: 'Zamień $0{,}(3) = 0{,}333\\ldots$ na ułamek zwykły, używając wzoru na sumę nieskończonego ciągu geometrycznego.',
+      title:   'Ułamek okresowy jako suma geometryczna',
+      titleEn: 'A repeating decimal as a geometric sum',
+      desc:    'Zamień $0{,}(3) = 0{,}333\\ldots$ na ułamek zwykły, używając wzoru na sumę nieskończonego ciągu geometrycznego.',
+      descEn:  'Convert $0.(3) = 0.333\\ldots$ into a common fraction, using the formula for the sum of an infinite geometric sequence.',
       drawBackground: 'custom',
       init() { C.pick4a = null; C.pick4b = null; },
       predict: {
-        question: 'Ułamek $0{,}(3)$ można zapisać jako:',
+        question:   'Ułamek $0{,}(3)$ można zapisać jako:',
+        questionEn: 'The repeating decimal $0.(3)$ can be written as:',
         options: [
-          { label: '$\\tfrac{3}{10} + \\tfrac{3}{100} + \\tfrac{3}{1000} + \\ldots$', correct: true,
-            why: 'Każda kolejna trójka to potęga $\\tfrac{1}{10}$ pomnożona przez $\\tfrac{3}{10}$, więc mamy ciąg geometryczny z $a_1 = 0{,}3$ oraz $q = 0{,}1$.' },
-          { label: '$\\tfrac{3}{10}$ (tylko pierwsza cyfra)', correct: false,
-            why: 'Ten zapis daje tylko $0{,}3$, brakuje pozostałych cyfr $0{,}03 + 0{,}003 + \\ldots$' },
-          { label: '$0{,}3 \\cdot \\tfrac{1}{9}$', correct: false,
-            why: 'Wynik tego działania to $\\tfrac{1}{30}$, a potrzebujemy sumy potęg $\\tfrac{1}{10}$.' },
+          { label: '$\\tfrac{3}{10} + \\tfrac{3}{100} + \\tfrac{3}{1000} + \\ldots$', labelEn: '$\\tfrac{3}{10} + \\tfrac{3}{100} + \\tfrac{3}{1000} + \\ldots$',
+            correct: true,
+            why:   'Każda kolejna trójka to potęga $\\tfrac{1}{10}$ pomnożona przez $\\tfrac{3}{10}$, więc mamy ciąg geometryczny z $a_1 = 0{,}3$ oraz $q = 0{,}1$.',
+            whyEn: 'Each successive 3 is a power of $\\tfrac{1}{10}$ times $\\tfrac{3}{10}$, so we have a geometric sequence with $a_1 = 0.3$ and $q = 0.1$.' },
+          { label: '$\\tfrac{3}{10}$ (tylko pierwsza cyfra)', labelEn: '$\\tfrac{3}{10}$ (only the first digit)',
+            correct: false,
+            why:   'Ten zapis daje tylko $0{,}3$, brakuje pozostałych cyfr $0{,}03 + 0{,}003 + \\ldots$',
+            whyEn: 'That gives just $0.3$, missing the rest of the digits $0.03 + 0.003 + \\ldots$' },
+          { label: '$0{,}3 \\cdot \\tfrac{1}{9}$', labelEn: '$0.3 \\cdot \\tfrac{1}{9}$',
+            correct: false,
+            why:   'Wynik tego działania to $\\tfrac{1}{30}$, a potrzebujemy sumy potęg $\\tfrac{1}{10}$.',
+            whyEn: 'That product equals $\\tfrac{1}{30}$, but we want the sum of powers of $\\tfrac{1}{10}$.' },
         ],
       },
       choices: {
-        question: 'Ostateczny ułamek $0{,}(3)$ równa się:',
+        question:   'Ostateczny ułamek $0{,}(3)$ równa się:',
+        questionEn: 'The final value of $0.(3)$ equals:',
         options: [
-          { id: 'A', label: '$\\tfrac{1}{3}$',          correct: true },
-          { id: 'B', label: '$\\tfrac{3}{10}$',         correct: false },
-          { id: 'C', label: '$\\tfrac{3}{9} \\cdot 10$', correct: false },
-          { id: 'D', label: '$0$',                      correct: false },
+          { id: 'A', label: '$\\tfrac{1}{3}$',           labelEn: '$\\tfrac{1}{3}$',           correct: true },
+          { id: 'B', label: '$\\tfrac{3}{10}$',          labelEn: '$\\tfrac{3}{10}$',          correct: false },
+          { id: 'C', label: '$\\tfrac{3}{9} \\cdot 10$', labelEn: '$\\tfrac{3}{9} \\cdot 10$', correct: false },
+          { id: 'D', label: '$0$',                       labelEn: '$0$',                       correct: false },
         ],
         pick(id) { C.pick4b = id; },
       },
       pips() {
-        return [{ label: 'wybierz wartość $0{,}(3) = \\tfrac{1}{3}$', ok: C.pick4b === 'A' }];
+        return [{ label: T('wybierz wartość $0{,}(3) = \\tfrac{1}{3}$', 'pick the value $0.(3) = \\tfrac{1}{3}$'), ok: C.pick4b === 'A' }];
       },
       solved() { return C.pick4b === 'A'; },
       hints: [
@@ -491,7 +559,13 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '$|q| = 0{,}1 < 1$ ✓, więc możemy użyć wzoru na sumę nieskończoną.',
         '$S = \\tfrac{0{,}3}{1 - 0{,}1} = \\tfrac{0{,}3}{0{,}9} = \\tfrac{1}{3}$.',
       ],
-      solvedMsg: 'Ułamek okresowy to w istocie suma geometryczna — każdy zapis $0{,}(abc\\ldots)$ można tym wzorem zamienić na ułamek zwykły.',
+      hintsEn: [
+        '$0.(3) = 0.3 + 0.03 + 0.003 + \\ldots$ — geometric with $a_1 = 0.3$, $q = 0.1$.',
+        '$|q| = 0.1 < 1$ ✓, so we can use the infinite-sum formula.',
+        '$S = \\tfrac{0.3}{1 - 0.1} = \\tfrac{0.3}{0.9} = \\tfrac{1}{3}$.',
+      ],
+      solvedMsg:   'Ułamek okresowy to w istocie suma geometryczna — każdy zapis $0{,}(abc\\ldots)$ można tym wzorem zamienić na ułamek zwykły.',
+      solvedMsgEn: 'A repeating decimal is really a geometric sum — every notation $0.(abc\\ldots)$ can be turned into a common fraction with this formula.',
       draw() {
         ctx.save();
         ctx.fillStyle = '#0e0e12';
@@ -564,7 +638,8 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     canvasId: 'cv',
     challenges,
     lsKey: 'warsztat:geo-series:completed',
-    wrapup: 'Trzy rzeczy do zapamiętania: (1) warunek $|q| < 1$ decyduje o tym, czy ciąg zanika i czy suma nieskończona istnieje; (2) wzór $S_\\infty = \\tfrac{a_1}{1-q}$ obowiązuje wyłącznie w tej strefie zaniku; (3) ułamek okresowy to zamaskowana suma geometryczna.',
+    wrapup:   'Trzy rzeczy do zapamiętania: (1) warunek $|q| < 1$ decyduje o tym, czy ciąg zanika i czy suma nieskończona istnieje; (2) wzór $S_\\infty = \\tfrac{a_1}{1-q}$ obowiązuje wyłącznie w tej strefie zaniku; (3) ułamek okresowy to zamaskowana suma geometryczna.',
+    wrapupEn: 'Three things to remember: (1) the condition $|q| < 1$ decides whether the sequence decays and whether the infinite sum exists; (2) the formula $S_\\infty = \\tfrac{a_1}{1-q}$ only applies inside that decay zone; (3) a repeating decimal is a geometric sum in disguise.',
     extraState: { pick: null, pick4b: null },
     onFrame({ ch }) {
       // Clear canvas each frame; per-challenge draw handles its own background

@@ -89,7 +89,7 @@
 
 <script type="module">
 import { GraphView } from '../lib/graph-core.js';
-import { initWarsztat } from '../lib/warsztat-core.js';
+import { initWarsztat, T } from '../lib/warsztat-core.js';
 {
   const cv = document.getElementById('cv');
   const ctx = cv.getContext('2d');
@@ -163,30 +163,48 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     // ─── Ch.1: x² = 5x — dividing by x loses a root ───────────────
     {
       id: 'ch1_divide_by_x',
-      title: 'Dzielenie przez $x$ gubi pierwiastek',
-      desc: 'Równanie $x^2 = 5x$ — po podzieleniu obu stron przez $x$ wychodzi $x = 5$, ale wykresy pokazują dwa punkty przecięcia. Zobacz, gdzie gubi się drugie rozwiązanie.',
+      title:   'Dzielenie przez $x$ gubi pierwiastek',
+      titleEn: 'Dividing by $x$ loses a root',
+      desc:    'Równanie $x^2 = 5x$ — po podzieleniu obu stron przez $x$ wychodzi $x = 5$, ale wykresy pokazują dwa punkty przecięcia. Zobacz, gdzie gubi się drugie rozwiązanie.',
+      descEn:  'The equation $x^2 = 5x$ — dividing both sides by $x$ gives $x = 5$, but the graphs show two intersection points. See where the second solution disappears.',
       drawBackground: 'none',
       init() {},
       predict: {
-        question: 'Jeśli w $x^2 = 5x$ podzielimy obie strony przez $x$, to dostaniemy...',
+        question:   'Jeśli w $x^2 = 5x$ podzielimy obie strony przez $x$, to dostaniemy...',
+        questionEn: 'If we divide both sides of $x^2 = 5x$ by $x$, we get...',
         options: [
-          { label: 'tylko $x = 5$', correct: false, why: 'Pozornie poprawne, ale zgubiliśmy $x = 0$. Dzielenie przez $x$ zakłada $x \\neq 0$, więc przypadek $x = 0$ wypada po cichu z zakresu rozważań.' },
-          { label: '$x = 0$ i $x = 5$ (oba)', correct: true,  why: 'Tak — to pełne rozwiązanie, ale dzielenie przez $x$ samo $x=0$ NIE daje. Trzeba napisać $x^2 - 5x = 0$, czyli $x(x-5) = 0$, i dopiero stąd oba pierwiastki.' },
-          { label: 'nic nie da się rozwiązać', correct: false, why: 'Da się — tylko nie przez dzielenie. Metoda "przenieś na jedną stronę i wyłącz wspólny czynnik" zawsze działa.' },
+          { label: 'tylko $x = 5$',
+            labelEn: 'only $x = 5$',
+            correct: false,
+            why:   'Pozornie poprawne, ale zgubiliśmy $x = 0$. Dzielenie przez $x$ zakłada $x \\neq 0$, więc przypadek $x = 0$ wypada po cichu z zakresu rozważań.',
+            whyEn: 'Looks right, but we’ve lost $x = 0$. Dividing by $x$ silently assumes $x \\neq 0$, so the case $x = 0$ slips out of consideration.' },
+          { label: '$x = 0$ i $x = 5$ (oba)',
+            labelEn: '$x = 0$ and $x = 5$ (both)',
+            correct: true,
+            why:   'Tak — to pełne rozwiązanie, ale dzielenie przez $x$ samo $x=0$ NIE daje. Trzeba napisać $x^2 - 5x = 0$, czyli $x(x-5) = 0$, i dopiero stąd oba pierwiastki.',
+            whyEn: 'Yes — that’s the full solution, but division by $x$ on its own does NOT produce $x = 0$. You have to write $x^2 - 5x = 0$, i.e. $x(x-5) = 0$, and only from there do both roots appear.' },
+          { label: 'nic nie da się rozwiązać',
+            labelEn: 'nothing can be solved',
+            correct: false,
+            why:   'Da się — tylko nie przez dzielenie. Metoda "przenieś na jedną stronę i wyłącz wspólny czynnik" zawsze działa.',
+            whyEn: 'It can be solved — just not by dividing. The "move everything to one side and factor out" method always works.' },
         ],
       },
       choices: {
-        question: 'Przełącz widok: pokaż OBA pierwiastki.',
+        question:   'Przełącz widok: pokaż OBA pierwiastki.',
+        questionEn: 'Toggle the view: show BOTH roots.',
         options: [
-          { id: 'one',  label: 'pokaż tylko $x = 5$ (jak po dzieleniu przez $x$)', correct: false },
-          { id: 'both', label: 'pokaż oba: $x = 0$ ORAZ $x = 5$', correct: true },
+          { id: 'one',  label: 'pokaż tylko $x = 5$ (jak po dzieleniu przez $x$)',
+                        labelEn: 'show only $x = 5$ (as after dividing by $x$)', correct: false },
+          { id: 'both', label: 'pokaż oba: $x = 0$ ORAZ $x = 5$',
+                        labelEn: 'show both: $x = 0$ AND $x = 5$', correct: true },
         ],
         pick(id) { C.ch1_showBoth = (id === 'both'); },
       },
       pips() {
         return [
-          { label: 'widzisz oba punkty przecięcia', ok: C.ch1_showBoth },
-          { label: 'zgubiony pierwiastek: $x = 0$', ok: C.ch1_showBoth },
+          { label: T('widzisz oba punkty przecięcia', 'you see both intersection points'), ok: C.ch1_showBoth },
+          { label: T('zgubiony pierwiastek: $x = 0$', 'lost root: $x = 0$'), ok: C.ch1_showBoth },
         ];
       },
       solved() { return C.ch1_showBoth; },
@@ -195,13 +213,32 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② Wyłącz wspólny czynnik: $x(x - 5) = 0$. Iloczyn jest zerem $\\iff$ któryś czynnik to zero.',
         '③ Stąd $x = 0$ LUB $x = 5$. Dzieląc przez $x$ zakładaliśmy po cichu $x \\neq 0$ — i dlatego $x = 0$ zniknęło.',
       ],
-      solvedMsg: 'Dzielenie przez wyrażenie zawierające zmienną zawsze może zgubić pierwiastek — dokładnie te $x$, dla których dzielnik się zeruje. Bezpieczniejszą alternatywą jest przeniesienie wszystkiego na jedną stronę i faktoryzacja.',
+      hintsEn: [
+        '① Move everything to one side: $x^2 - 5x = 0$. Don’t divide by $x$ — $x$ might be zero.',
+        '② Factor out the common factor: $x(x - 5) = 0$. A product is zero $\\iff$ one of the factors is zero.',
+        '③ Hence $x = 0$ OR $x = 5$. Dividing by $x$ silently assumed $x \\neq 0$ — and that’s why $x = 0$ vanished.',
+      ],
+      solvedMsg:   'Dzielenie przez wyrażenie zawierające zmienną zawsze może zgubić pierwiastek — dokładnie te $x$, dla których dzielnik się zeruje. Bezpieczniejszą alternatywą jest przeniesienie wszystkiego na jedną stronę i faktoryzacja.',
+      solvedMsgEn: 'Dividing by an expression that contains the variable can always lose a root — precisely those $x$ for which the divisor is zero. A safer alternative is to move everything to one side and factor.',
       predictAfter: {
-        question: 'Ile rozwiązań ma równanie $x^3 = 4x$?',
+        question:   'Ile rozwiązań ma równanie $x^3 = 4x$?',
+        questionEn: 'How many solutions does the equation $x^3 = 4x$ have?',
         options: [
-          { label: 'jedno: $x = 2$ (po podzieleniu przez $x^2$)', correct: false, why: 'Znowu pułapka — dzielenie przez $x^2$ gubi $x=0$. Ponadto: $x^3 = 4x \\iff x(x^2 - 4) = 0$, czyli $x = 0, 2, -2$.' },
-          { label: 'trzy: $x = 0, 2, -2$', correct: true,  why: 'Tak — $x(x-2)(x+2) = 0$. Pełny rozkład daje trzy pierwiastki.' },
-          { label: 'dwa: $x = 2$ i $x = -2$', correct: false, why: 'Brakuje $x = 0$. To ten sam błąd co poprzednio.' },
+          { label: 'jedno: $x = 2$ (po podzieleniu przez $x^2$)',
+            labelEn: 'one: $x = 2$ (after dividing by $x^2$)',
+            correct: false,
+            why:   'Znowu pułapka — dzielenie przez $x^2$ gubi $x=0$. Ponadto: $x^3 = 4x \\iff x(x^2 - 4) = 0$, czyli $x = 0, 2, -2$.',
+            whyEn: 'Same trap — dividing by $x^2$ loses $x = 0$. Also: $x^3 = 4x \\iff x(x^2 - 4) = 0$, i.e. $x = 0, 2, -2$.' },
+          { label: 'trzy: $x = 0, 2, -2$',
+            labelEn: 'three: $x = 0, 2, -2$',
+            correct: true,
+            why:   'Tak — $x(x-2)(x+2) = 0$. Pełny rozkład daje trzy pierwiastki.',
+            whyEn: 'Yes — $x(x-2)(x+2) = 0$. The full factorisation gives three roots.' },
+          { label: 'dwa: $x = 2$ i $x = -2$',
+            labelEn: 'two: $x = 2$ and $x = -2$',
+            correct: false,
+            why:   'Brakuje $x = 0$. To ten sam błąd co poprzednio.',
+            whyEn: 'Missing $x = 0$. That’s the same mistake as before.' },
         ],
       },
       draw() {
@@ -237,16 +274,31 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     // ─── Ch.2: log(x - 2) = 1 — declaring the domain ──────────────
     {
       id: 'ch2_log_domain',
-      title: 'Dziedzina logarytmu',
-      desc: 'Rozwiąż $\\log(x - 2) = 1$. Zanim policzysz — zapisz dziedzinę: $x - 2 > 0$, czyli $x > 2$. Przesuwaj kandydata $x$ — zobacz, kiedy wyrażenie $\\log(x-2)$ ma w ogóle sens.',
+      title:   'Dziedzina logarytmu',
+      titleEn: 'Domain of the logarithm',
+      desc:    'Rozwiąż $\\log(x - 2) = 1$. Zanim policzysz — zapisz dziedzinę: $x - 2 > 0$, czyli $x > 2$. Przesuwaj kandydata $x$ — zobacz, kiedy wyrażenie $\\log(x-2)$ ma w ogóle sens.',
+      descEn:  'Solve $\\log(x - 2) = 1$. Before computing anything — write down the domain: $x - 2 > 0$, i.e. $x > 2$. Drag the candidate $x$ — see when the expression $\\log(x-2)$ even makes sense.',
       drawBackground: 'log',
       init() {},
       predict: {
-        question: 'Jaka jest dziedzina równania $\\log(x - 2) = 1$?',
+        question:   'Jaka jest dziedzina równania $\\log(x - 2) = 1$?',
+        questionEn: 'What is the domain of the equation $\\log(x - 2) = 1$?',
         options: [
-          { label: '$\\mathbb{R}$ — logarytm jest zdefiniowany wszędzie', correct: false, why: 'Nie — $\\log$ jest określony tylko dla argumentów DODATNICH. $\\log 0$ i $\\log(-5)$ są nieokreślone.' },
-          { label: '$x > 2$ (argument $> 0$)', correct: true,  why: 'Tak — $x - 2 > 0 \\iff x > 2$. Dopiero na tej dziedzinie wolno liczyć. Rozwiązanie $x = 12$ należy do $D$, więc jest OK.' },
-          { label: '$x \\neq 2$', correct: false, why: 'To byłaby dziedzina dla $\\dfrac{1}{x-2}$, nie dla $\\log$. Logarytm wymaga $>$, nie tylko $\\neq$.' },
+          { label: '$\\mathbb{R}$ — logarytm jest zdefiniowany wszędzie',
+            labelEn: '$\\mathbb{R}$ — the logarithm is defined everywhere',
+            correct: false,
+            why:   'Nie — $\\log$ jest określony tylko dla argumentów DODATNICH. $\\log 0$ i $\\log(-5)$ są nieokreślone.',
+            whyEn: 'No — $\\log$ is defined only for POSITIVE arguments. $\\log 0$ and $\\log(-5)$ are undefined.' },
+          { label: '$x > 2$ (argument $> 0$)',
+            labelEn: '$x > 2$ (argument $> 0$)',
+            correct: true,
+            why:   'Tak — $x - 2 > 0 \\iff x > 2$. Dopiero na tej dziedzinie wolno liczyć. Rozwiązanie $x = 12$ należy do $D$, więc jest OK.',
+            whyEn: 'Yes — $x - 2 > 0 \\iff x > 2$. Only on this domain are we allowed to compute. The solution $x = 12$ lies in $D$, so it’s fine.' },
+          { label: '$x \\neq 2$',
+            labelEn: '$x \\neq 2$',
+            correct: false,
+            why:   'To byłaby dziedzina dla $\\dfrac{1}{x-2}$, nie dla $\\log$. Logarytm wymaga $>$, nie tylko $\\neq$.',
+            whyEn: 'That would be the domain of $\\dfrac{1}{x-2}$, not of $\\log$. A logarithm needs $>$, not just $\\neq$.' },
         ],
       },
       sliders: [
@@ -257,9 +309,9 @@ import { initWarsztat } from '../lib/warsztat-core.js';
       ],
       pips() {
         return [
-          { label: 'widziałeś $x \\leq 2$ (poza $D$)', ok: C.ch2_seenOut },
-          { label: 'widziałeś $x > 2$ (w $D$)', ok: C.ch2_seenIn },
-          { label: 'wartość $x = 12$ daje $\\log 10 = 1$', ok: Math.abs(C.ch2_x - 12) < 0.26 },
+          { label: T('widziałeś $x \\leq 2$ (poza $D$)', 'you saw $x \\leq 2$ (outside $D$)'), ok: C.ch2_seenOut },
+          { label: T('widziałeś $x > 2$ (w $D$)', 'you saw $x > 2$ (inside $D$)'), ok: C.ch2_seenIn },
+          { label: T('wartość $x = 12$ daje $\\log 10 = 1$', 'the value $x = 12$ gives $\\log 10 = 1$'), ok: Math.abs(C.ch2_x - 12) < 0.26 },
         ];
       },
       solved() { return C.ch2_seenOut && C.ch2_seenIn; },
@@ -268,7 +320,13 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② Tutaj: $x - 2 > 0 \\iff x > 2$. Zaznacz to jako $D = (2, +\\infty)$.',
         '③ Rozwiązanie: $\\log(x-2) = 1 \\iff x - 2 = 10 \\iff x = 12$. Sprawdzamy: $12 > 2$ — OK, $x=12$ należy do $D$, jest prawidłowe.',
       ],
-      solvedMsg: 'Dziedzina to "gdzie równanie ma prawo istnieć". Deklarując $D$ przed rozwiązywaniem unikasz pułapek typu "log ujemnego", "dzielenie przez zero" czy "pierwiastek z ujemnego".',
+      hintsEn: [
+        '① Rule: $\\log_a(\\text{arg})$ exists $\\iff$ $\\text{arg} > 0$. Write the domain BEFORE solving.',
+        '② Here: $x - 2 > 0 \\iff x > 2$. Note this as $D = (2, +\\infty)$.',
+        '③ Solution: $\\log(x-2) = 1 \\iff x - 2 = 10 \\iff x = 12$. Check: $12 > 2$ — OK, $x = 12$ lies in $D$, so it’s valid.',
+      ],
+      solvedMsg:   'Dziedzina to "gdzie równanie ma prawo istnieć". Deklarując $D$ przed rozwiązywaniem unikasz pułapek typu "log ujemnego", "dzielenie przez zero" czy "pierwiastek z ujemnego".',
+      solvedMsgEn: 'The domain is "where the equation is allowed to exist". Declaring $D$ before solving sidesteps traps like "log of a negative", "division by zero", or "square root of a negative".',
       draw() {
         viewCh2();
         view.drawGrid({ color: 'rgba(255,255,255,0.04)' });
@@ -320,16 +378,31 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     // ─── Ch.3: √(x-1) = x-3 — squaring introduces fake solutions ──
     {
       id: 'ch3_squaring',
-      title: 'Podnoszenie do kwadratu dodaje rozwiązania',
-      desc: 'Rozwiąż $\\sqrt{x - 1} = x - 3$. Po podniesieniu do kwadratu: $x^2 - 7x + 10 = 0$, więc $x = 2$ lub $x = 5$. Ale to $\\sqrt{\\cdot}$ jest $\\geq 0$ — czy oba kandydaci pasują do ORYGINAŁU?',
+      title:   'Podnoszenie do kwadratu dodaje rozwiązania',
+      titleEn: 'Squaring adds solutions',
+      desc:    'Rozwiąż $\\sqrt{x - 1} = x - 3$. Po podniesieniu do kwadratu: $x^2 - 7x + 10 = 0$, więc $x = 2$ lub $x = 5$. Ale to $\\sqrt{\\cdot}$ jest $\\geq 0$ — czy oba kandydaci pasują do ORYGINAŁU?',
+      descEn:  'Solve $\\sqrt{x - 1} = x - 3$. After squaring: $x^2 - 7x + 10 = 0$, so $x = 2$ or $x = 5$. But $\\sqrt{\\cdot}$ is $\\geq 0$ — do both candidates fit the ORIGINAL equation?',
       drawBackground: 'none',
       init() {},
       predict: {
-        question: 'Który z kandydatów $x = 2, x = 5$ SPEŁNIA oryginalne $\\sqrt{x-1} = x - 3$?',
+        question:   'Który z kandydatów $x = 2, x = 5$ SPEŁNIA oryginalne $\\sqrt{x-1} = x - 3$?',
+        questionEn: 'Which of the candidates $x = 2, x = 5$ SATISFIES the original $\\sqrt{x-1} = x - 3$?',
         options: [
-          { label: 'oba — skoro wyszły z równania', correct: false, why: 'Sprawdź: $\\sqrt{2-1} = 1$, ale $2 - 3 = -1$. Nie zgadza się — $\\sqrt{\\cdot}$ jest nieujemne.' },
-          { label: 'tylko $x = 5$ (bo RHS musi być $\\geq 0$)', correct: true,  why: 'Tak — $\\sqrt{4} = 2$ i $5 - 3 = 2$, zgodne. Dla $x = 2$: LHS $= 1$ ale RHS $= -1$. Kwadrat wytworzył fałszywego kandydata.' },
-          { label: 'tylko $x = 2$', correct: false, why: 'Dla $x = 2$: $\\sqrt{1} = 1$, a prawa strona $= -1$. Pierwiastek NIGDY nie daje ujemnego — ten kandydat jest fałszywy.' },
+          { label: 'oba — skoro wyszły z równania',
+            labelEn: 'both — they came out of the equation',
+            correct: false,
+            why:   'Sprawdź: $\\sqrt{2-1} = 1$, ale $2 - 3 = -1$. Nie zgadza się — $\\sqrt{\\cdot}$ jest nieujemne.',
+            whyEn: 'Check: $\\sqrt{2-1} = 1$, but $2 - 3 = -1$. Doesn’t match — $\\sqrt{\\cdot}$ is non-negative.' },
+          { label: 'tylko $x = 5$ (bo RHS musi być $\\geq 0$)',
+            labelEn: 'only $x = 5$ (because the RHS must be $\\geq 0$)',
+            correct: true,
+            why:   'Tak — $\\sqrt{4} = 2$ i $5 - 3 = 2$, zgodne. Dla $x = 2$: LHS $= 1$ ale RHS $= -1$. Kwadrat wytworzył fałszywego kandydata.',
+            whyEn: 'Yes — $\\sqrt{4} = 2$ and $5 - 3 = 2$, agreement. For $x = 2$: LHS $= 1$ but RHS $= -1$. Squaring manufactured a false candidate.' },
+          { label: 'tylko $x = 2$',
+            labelEn: 'only $x = 2$',
+            correct: false,
+            why:   'Dla $x = 2$: $\\sqrt{1} = 1$, a prawa strona $= -1$. Pierwiastek NIGDY nie daje ujemnego — ten kandydat jest fałszywy.',
+            whyEn: 'For $x = 2$: $\\sqrt{1} = 1$, but the right side $= -1$. A square root NEVER yields a negative — this candidate is false.' },
         ],
       },
       sliders: [
@@ -341,8 +414,8 @@ import { initWarsztat } from '../lib/warsztat-core.js';
       ],
       pips() {
         return [
-          { label: 'sprawdzony kandydat $x = 2$ (fałsz!)', ok: C.ch3_seenFake },
-          { label: 'sprawdzony kandydat $x = 5$ (OK)', ok: C.ch3_seenReal },
+          { label: T('sprawdzony kandydat $x = 2$ (fałsz!)', 'checked candidate $x = 2$ (false!)'), ok: C.ch3_seenFake },
+          { label: T('sprawdzony kandydat $x = 5$ (OK)', 'checked candidate $x = 5$ (OK)'), ok: C.ch3_seenReal },
         ];
       },
       solved() { return C.ch3_seenFake && C.ch3_seenReal; },
@@ -351,13 +424,32 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② Dlatego po podniesieniu do kwadratu każdego kandydata TRZEBA sprawdzić w oryginale. Kwadrat może dodać $-b$-rozwiązania.',
         '③ Alternatywa: od razu zapisz warunek $x - 3 \\geq 0$, czyli $x \\geq 3$ (bo LHS $= \\sqrt{\\cdot} \\geq 0$). Wtedy $x = 2$ od razu odpada.',
       ],
-      solvedMsg: 'Podnoszenie do kwadratu NIE jest równoważnością. Zasada: po każdym kwadracie sprawdzaj kandydatów w oryginalnym równaniu.',
+      hintsEn: [
+        '① Squaring is "one-way": $a = b$ implies $a^2 = b^2$, but not the other way round — $a^2 = b^2$ means $a = b$ OR $a = -b$.',
+        '② That’s why every candidate produced by squaring MUST be checked in the original. Squaring can add the $-b$ solutions.',
+        '③ Alternative: write the condition $x - 3 \\geq 0$, i.e. $x \\geq 3$, up front (since LHS $= \\sqrt{\\cdot} \\geq 0$). Then $x = 2$ is ruled out immediately.',
+      ],
+      solvedMsg:   'Podnoszenie do kwadratu NIE jest równoważnością. Zasada: po każdym kwadracie sprawdzaj kandydatów w oryginalnym równaniu.',
+      solvedMsgEn: 'Squaring is NOT an equivalence. Rule: after every squaring, check the candidates in the original equation.',
       predictAfter: {
-        question: 'Dla $\\sqrt{x+5} = x - 1$: jaki warunek eliminuje fałszywe rozwiązania od razu?',
+        question:   'Dla $\\sqrt{x+5} = x - 1$: jaki warunek eliminuje fałszywe rozwiązania od razu?',
+        questionEn: 'For $\\sqrt{x+5} = x - 1$: which condition rules out false solutions up front?',
         options: [
-          { label: '$x + 5 \\geq 0$, czyli $x \\geq -5$', correct: false, why: 'To warunek istnienia pierwiastka — prawda, ale za słaby. Nie wyklucza $x - 1 < 0$.' },
-          { label: '$x - 1 \\geq 0$, czyli $x \\geq 1$', correct: true,  why: 'Tak — lewa strona jest nieujemna, więc prawa też musi być nieujemna. Ten warunek wyklucza fałszywe rozwiązania, bo kontroluje znak prawej strony.' },
-          { label: '$x \\neq 1$', correct: false, why: 'Nierówność $\\neq$ to dziedzina ułamka, nie pierwiastka. Tutaj potrzebujesz znaku.' },
+          { label: '$x + 5 \\geq 0$, czyli $x \\geq -5$',
+            labelEn: '$x + 5 \\geq 0$, i.e. $x \\geq -5$',
+            correct: false,
+            why:   'To warunek istnienia pierwiastka — prawda, ale za słaby. Nie wyklucza $x - 1 < 0$.',
+            whyEn: 'That’s the existence condition for the square root — true, but too weak. It doesn’t rule out $x - 1 < 0$.' },
+          { label: '$x - 1 \\geq 0$, czyli $x \\geq 1$',
+            labelEn: '$x - 1 \\geq 0$, i.e. $x \\geq 1$',
+            correct: true,
+            why:   'Tak — lewa strona jest nieujemna, więc prawa też musi być nieujemna. Ten warunek wyklucza fałszywe rozwiązania, bo kontroluje znak prawej strony.',
+            whyEn: 'Yes — the left side is non-negative, so the right side has to be non-negative too. This condition rules out false solutions because it controls the sign of the right side.' },
+          { label: '$x \\neq 1$',
+            labelEn: '$x \\neq 1$',
+            correct: false,
+            why:   'Nierówność $\\neq$ to dziedzina ułamka, nie pierwiastka. Tutaj potrzebujesz znaku.',
+            whyEn: 'A $\\neq$ condition is for a fraction’s domain, not a square root. Here you need a sign condition.' },
         ],
       },
       draw() {
@@ -403,16 +495,31 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     // ─── Ch.4: (x²-1)/(x-1) = x+1 — domain excludes x=1 ───────────
     {
       id: 'ch4_hole',
-      title: 'Mianownik $\\neq 0$: "dziura" w wykresie',
-      desc: 'Czy $\\dfrac{x^2 - 1}{x - 1}$ to naprawdę to samo, co $x + 1$? Algebra mówi "skróć" — ale LHS nie jest określone dla $x = 1$. Przesuń $x$ w pobliże dziury.',
+      title:   'Mianownik $\\neq 0$: "dziura" w wykresie',
+      titleEn: 'Denominator $\\neq 0$: a "hole" in the graph',
+      desc:    'Czy $\\dfrac{x^2 - 1}{x - 1}$ to naprawdę to samo, co $x + 1$? Algebra mówi "skróć" — ale LHS nie jest określone dla $x = 1$. Przesuń $x$ w pobliże dziury.',
+      descEn:  'Is $\\dfrac{x^2 - 1}{x - 1}$ really the same as $x + 1$? Algebra says "cancel" — but the LHS isn’t defined at $x = 1$. Slide $x$ near the hole.',
       drawBackground: 'none',
       init() {},
       predict: {
-        question: 'Dla jakich $x$ wyrażenia $\\dfrac{x^2 - 1}{x - 1}$ i $x + 1$ są równe?',
+        question:   'Dla jakich $x$ wyrażenia $\\dfrac{x^2 - 1}{x - 1}$ i $x + 1$ są równe?',
+        questionEn: 'For which $x$ are the expressions $\\dfrac{x^2 - 1}{x - 1}$ and $x + 1$ equal?',
         options: [
-          { label: 'dla wszystkich $x \\in \\mathbb{R}$ — po skróceniu to tożsamość', correct: false, why: 'Nie — LHS nie jest określone dla $x = 1$ (zero w mianowniku). RHS daje 2. "Tożsamość" działa tylko na wspólnej dziedzinie.' },
-          { label: 'dla $x \\neq 1$ (wszędzie poza dziurą)', correct: true,  why: 'Tak — skracanie czynnika $(x-1)$ wymaga $x - 1 \\neq 0$, czyli $x \\neq 1$. Funkcje są równe na $\\mathbb{R} \\setminus \\{1\\}$, ale w samym $x = 1$ LHS jest nieokreślone.' },
-          { label: 'tylko dla $x = 1$', correct: false, why: 'Odwrotnie — $x = 1$ to jedyny punkt, w którym się NIE równają (LHS nieokreślone).' },
+          { label: 'dla wszystkich $x \\in \\mathbb{R}$ — po skróceniu to tożsamość',
+            labelEn: 'for all $x \\in \\mathbb{R}$ — after cancelling it’s an identity',
+            correct: false,
+            why:   'Nie — LHS nie jest określone dla $x = 1$ (zero w mianowniku). RHS daje 2. "Tożsamość" działa tylko na wspólnej dziedzinie.',
+            whyEn: 'No — the LHS isn’t defined at $x = 1$ (zero in the denominator). The RHS gives 2. An "identity" only holds on the common domain.' },
+          { label: 'dla $x \\neq 1$ (wszędzie poza dziurą)',
+            labelEn: 'for $x \\neq 1$ (everywhere except the hole)',
+            correct: true,
+            why:   'Tak — skracanie czynnika $(x-1)$ wymaga $x - 1 \\neq 0$, czyli $x \\neq 1$. Funkcje są równe na $\\mathbb{R} \\setminus \\{1\\}$, ale w samym $x = 1$ LHS jest nieokreślone.',
+            whyEn: 'Yes — cancelling the factor $(x-1)$ requires $x - 1 \\neq 0$, i.e. $x \\neq 1$. The functions agree on $\\mathbb{R} \\setminus \\{1\\}$, but at $x = 1$ itself the LHS is undefined.' },
+          { label: 'tylko dla $x = 1$',
+            labelEn: 'only for $x = 1$',
+            correct: false,
+            why:   'Odwrotnie — $x = 1$ to jedyny punkt, w którym się NIE równają (LHS nieokreślone).',
+            whyEn: 'The opposite — $x = 1$ is the only point where they DON’T agree (the LHS is undefined).' },
         ],
       },
       sliders: [
@@ -423,8 +530,8 @@ import { initWarsztat } from '../lib/warsztat-core.js';
       ],
       pips() {
         return [
-          { label: 'zajrzałeś w okolicę $x = 1$', ok: C.ch4_seenHole },
-          { label: 'widać dziurę w wykresie', ok: true },
+          { label: T('zajrzałeś w okolicę $x = 1$', 'you looked near $x = 1$'), ok: C.ch4_seenHole },
+          { label: T('widać dziurę w wykresie', 'the hole is visible on the graph'), ok: true },
         ];
       },
       solved() { return C.ch4_seenHole; },
@@ -433,7 +540,13 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② $\\dfrac{x^2 - 1}{x - 1} = \\dfrac{(x-1)(x+1)}{x-1}$. Po skróceniu dostajemy $x + 1$, ale dziedzinę POPRZEDNIEGO wyrażenia trzeba zachować: $x \\neq 1$.',
         '③ Przy rozwiązywaniu równań zapisuj dziedzinę NA POCZĄTKU. Mnożenie obu stron przez $(x-1)$ może wprowadzić fałszywe rozwiązanie $x = 1$.',
       ],
-      solvedMsg: 'Skracanie i mnożenie przez wyrażenie zawierające zmienną zmieniają dziedzinę. Zawsze zachowuj ograniczenia z ORYGINALNEGO wyrażenia.',
+      hintsEn: [
+        '① The "cancellation" rule: $\\dfrac{A \\cdot B}{A} = B$ only when $A \\neq 0$. Cancelling $(x-1)$ requires $x \\neq 1$.',
+        '② $\\dfrac{x^2 - 1}{x - 1} = \\dfrac{(x-1)(x+1)}{x-1}$. After cancelling we get $x + 1$, but the domain of the PREVIOUS expression must be kept: $x \\neq 1$.',
+        '③ When solving equations, write down the domain AT THE START. Multiplying both sides by $(x-1)$ can introduce a false solution $x = 1$.',
+      ],
+      solvedMsg:   'Skracanie i mnożenie przez wyrażenie zawierające zmienną zmieniają dziedzinę. Zawsze zachowuj ograniczenia z ORYGINALNEGO wyrażenia.',
+      solvedMsgEn: 'Cancelling and multiplying by an expression that contains the variable both change the domain. Always carry over the restrictions from the ORIGINAL expression.',
       draw() {
         viewCh4();
         view.drawGrid({ color: 'rgba(255,255,255,0.04)' });
@@ -481,31 +594,55 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     // ─── Ch.5: Pattern recognition — safe vs dangerous ops ────────
     {
       id: 'ch5_safe_vs_dangerous',
-      title: 'Bezpieczne vs niebezpieczne przekształcenia',
-      desc: 'Która operacja na równaniu ZACHOWUJE zbiór rozwiązań (bezpieczna), a która może go zmienić (niebezpieczna)? Wybierz JEDYNĄ bezpieczną.',
+      title:   'Bezpieczne vs niebezpieczne przekształcenia',
+      titleEn: 'Safe vs dangerous transformations',
+      desc:    'Która operacja na równaniu ZACHOWUJE zbiór rozwiązań (bezpieczna), a która może go zmienić (niebezpieczna)? Wybierz JEDYNĄ bezpieczną.',
+      descEn:  'Which operation on an equation PRESERVES the solution set (safe), and which can change it (dangerous)? Pick the ONE that is safe.',
       drawBackground: 'none',
       init() { C.ch5Pick = null; },
       predict: {
-        question: 'Która operacja na równaniu ZAWSZE zachowuje zbiór rozwiązań?',
+        question:   'Która operacja na równaniu ZAWSZE zachowuje zbiór rozwiązań?',
+        questionEn: 'Which operation on an equation ALWAYS preserves the solution set?',
         options: [
-          { label: 'mnożenie obu stron przez wyrażenie zawierające $x$', correct: false, why: 'Niebezpieczne — mnożenie przez $f(x)$ może DODAĆ rozwiązanie: te $x$, dla których $f(x) = 0$. Tak jak $x = 2$ stało się rozwiązaniem "$0 = 0$" po pomnożeniu przez $(x-2)$.' },
-          { label: 'dodawanie tej samej liczby do obu stron', correct: true, why: 'Tak — to operacja odwracalna ($+c$ ma odwrotność $-c$). Żadnych nowych rozwiązań, żadnych zgubionych. Najbezpieczniejsze przekształcenie w algebrze.' },
-          { label: 'podnoszenie obu stron do kwadratu', correct: false, why: 'Niebezpieczne — kwadrat może dodać fałszywe rozwiązania (te, w których strony różnią się znakiem). Zawsze trzeba sprawdzać kandydatów.' },
-          { label: 'dzielenie obu stron przez $x$ bez sprawdzenia $x = 0$', correct: false, why: 'Niebezpieczne — gubi rozwiązanie $x = 0$. Klasyk Ćwiczenia 1.' },
+          { label: 'mnożenie obu stron przez wyrażenie zawierające $x$',
+            labelEn: 'multiplying both sides by an expression containing $x$',
+            correct: false,
+            why:   'Niebezpieczne — mnożenie przez $f(x)$ może DODAĆ rozwiązanie: te $x$, dla których $f(x) = 0$. Tak jak $x = 2$ stało się rozwiązaniem "$0 = 0$" po pomnożeniu przez $(x-2)$.',
+            whyEn: 'Dangerous — multiplying by $f(x)$ can ADD a solution: those $x$ for which $f(x) = 0$. Just like $x = 2$ became a solution of "$0 = 0$" after multiplying by $(x-2)$.' },
+          { label: 'dodawanie tej samej liczby do obu stron',
+            labelEn: 'adding the same number to both sides',
+            correct: true,
+            why:   'Tak — to operacja odwracalna ($+c$ ma odwrotność $-c$). Żadnych nowych rozwiązań, żadnych zgubionych. Najbezpieczniejsze przekształcenie w algebrze.',
+            whyEn: 'Yes — it’s an invertible operation ($+c$ has the inverse $-c$). No new solutions, none lost. The safest transformation in algebra.' },
+          { label: 'podnoszenie obu stron do kwadratu',
+            labelEn: 'squaring both sides',
+            correct: false,
+            why:   'Niebezpieczne — kwadrat może dodać fałszywe rozwiązania (te, w których strony różnią się znakiem). Zawsze trzeba sprawdzać kandydatów.',
+            whyEn: 'Dangerous — squaring can add false solutions (those where the sides differ in sign). You always have to check the candidates.' },
+          { label: 'dzielenie obu stron przez $x$ bez sprawdzenia $x = 0$',
+            labelEn: 'dividing both sides by $x$ without checking $x = 0$',
+            correct: false,
+            why:   'Niebezpieczne — gubi rozwiązanie $x = 0$. Klasyk Ćwiczenia 1.',
+            whyEn: 'Dangerous — loses the solution $x = 0$. The classic from Challenge 1.' },
         ],
       },
       choices: {
-        question: 'Dla utrwalenia: która z poniższych operacji JEST bezpieczna (zachowuje zbiór rozwiązań)?',
+        question:   'Dla utrwalenia: która z poniższych operacji JEST bezpieczna (zachowuje zbiór rozwiązań)?',
+        questionEn: 'For practice: which of the operations below IS safe (preserves the solution set)?',
         options: [
-          { id: 'a', label: 'dodawanie tej samej liczby do obu stron', correct: true },
-          { id: 'b', label: 'mnożenie przez wyrażenie z $x$ (np. $\\cdot (x-1)$)', correct: false },
-          { id: 'c', label: 'podnoszenie obu stron do kwadratu', correct: false },
-          { id: 'd', label: 'dzielenie przez $x$ bez sprawdzenia $x = 0$', correct: false },
+          { id: 'a', label: 'dodawanie tej samej liczby do obu stron',
+                     labelEn: 'adding the same number to both sides', correct: true },
+          { id: 'b', label: 'mnożenie przez wyrażenie z $x$ (np. $\\cdot (x-1)$)',
+                     labelEn: 'multiplying by an expression with $x$ (e.g. $\\cdot (x-1)$)', correct: false },
+          { id: 'c', label: 'podnoszenie obu stron do kwadratu',
+                     labelEn: 'squaring both sides', correct: false },
+          { id: 'd', label: 'dzielenie przez $x$ bez sprawdzenia $x = 0$',
+                     labelEn: 'dividing by $x$ without checking $x = 0$', correct: false },
         ],
         pick(id) { C.ch5Pick = id; },
       },
       pips() {
-        return [{ label: 'wybrana operacja BEZPIECZNA', ok: C.ch5Pick === 'a' }];
+        return [{ label: T('wybrana operacja BEZPIECZNA', 'picked the SAFE operation'), ok: C.ch5Pick === 'a' }];
       },
       solved() { return C.ch5Pick === 'a'; },
       hints: [
@@ -513,7 +650,13 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② "Niebezpieczna" = operacja, której odwrotność może nie istnieć lub być niejednoznaczna. Kwadrat: $a^2 = b^2$ ma DWA rozwiązania ($a = \\pm b$). Dzielenie przez $x$: jeśli $x = 0$, operacja niewykonalna.',
         '③ Żelazna lista: $+c, -c, \\cdot c$ (dla $c \\neq 0$), $\\div c$ (dla $c \\neq 0$) — bezpieczne. $\\cdot f(x), \\div f(x), (\\cdot)^2, \\sqrt{\\cdot}$ — WYMAGAJĄ sprawdzenia.',
       ],
-      solvedMsg: 'Dodawanie stałej to najbezpieczniejsza operacja — nigdy nie dodaje ani nie gubi rozwiązań. Wszystko, co zawiera zmienną lub jest nieliniowe — wymaga ostrożności i sprawdzenia.',
+      hintsEn: [
+        '① "Safe" = an INVERTIBLE operation. Adding $c$ has the inverse $-c$. Multiplying by a constant $\\neq 0$ has the inverse $\\div$.',
+        '② "Dangerous" = an operation whose inverse may not exist or may be ambiguous. Squaring: $a^2 = b^2$ has TWO solutions ($a = \\pm b$). Dividing by $x$: if $x = 0$, the operation isn’t even defined.',
+        '③ Cast-iron list: $+c, -c, \\cdot c$ (for $c \\neq 0$), $\\div c$ (for $c \\neq 0$) — safe. $\\cdot f(x), \\div f(x), (\\cdot)^2, \\sqrt{\\cdot}$ — REQUIRE checking.',
+      ],
+      solvedMsg:   'Dodawanie stałej to najbezpieczniejsza operacja — nigdy nie dodaje ani nie gubi rozwiązań. Wszystko, co zawiera zmienną lub jest nieliniowe — wymaga ostrożności i sprawdzenia.',
+      solvedMsgEn: 'Adding a constant is the safest operation — it never adds or loses solutions. Anything involving the variable or anything non-linear — calls for caution and a check.',
       draw() {
         // Cheat-sheet style layout
         ctx.font = 'bold 14px monospace'; ctx.fillStyle = '#FFFFFF'; ctx.textAlign = 'center';
@@ -565,7 +708,8 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     canvasId: 'cv',
     challenges,
     lsKey: 'warsztat:equation_domain:completed',
-    wrapup: 'Zasada żelazna: $(1)$ przed rozwiązywaniem napisz DZIEDZINĘ, $(2)$ po rozwiązaniu sprawdź kandydatów w równaniu oryginalnym. Operacje bezpieczne to dodawanie oraz mnożenie przez stałą $c \\neq 0$. Operacje niebezpieczne wymagają ostrożności: dzielenie przez wyrażenie z $x$ może zgubić pierwiastek (te $x$, dla których dzielnik się zeruje), mnożenie przez $(x-a)$ może wprowadzić fałszywy pierwiastek $x = a$, a podnoszenie do kwadratu — fałszywe rozwiązania różniące się znakiem.',
+    wrapup:   'Zasada żelazna: $(1)$ przed rozwiązywaniem napisz DZIEDZINĘ, $(2)$ po rozwiązaniu sprawdź kandydatów w równaniu oryginalnym. Operacje bezpieczne to dodawanie oraz mnożenie przez stałą $c \\neq 0$. Operacje niebezpieczne wymagają ostrożności: dzielenie przez wyrażenie z $x$ może zgubić pierwiastek (te $x$, dla których dzielnik się zeruje), mnożenie przez $(x-a)$ może wprowadzić fałszywy pierwiastek $x = a$, a podnoszenie do kwadratu — fałszywe rozwiązania różniące się znakiem.',
+    wrapupEn: 'Cast-iron rule: $(1)$ before solving, write down the DOMAIN; $(2)$ after solving, check the candidates in the original equation. Safe operations are addition and multiplication by a constant $c \\neq 0$. Dangerous operations need care: dividing by an expression containing $x$ can lose a root (those $x$ for which the divisor is zero), multiplying by $(x-a)$ can introduce a false root $x = a$, and squaring can introduce false solutions that differ in sign.',
     onFrame({ ch }) {
       ctx.save();
       ctx.fillStyle = '#0e0e12';

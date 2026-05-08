@@ -89,7 +89,7 @@
 </div>
 
 <script type="module">
-import { initWarsztat } from '../lib/warsztat-core.js';
+import { initWarsztat, T } from '../lib/warsztat-core.js';
 import { drawProbTree } from '../lib/prob-tree.js';
 {
   const cv = document.getElementById('cv');
@@ -145,41 +145,52 @@ import { drawProbTree } from '../lib/prob-tree.js';
     {
       id: 'ch1',
       title: 'Drzewko ze zwracaniem',
-      desc: 'Urna: 3 czerwone + 2 niebieskie. Losujemy 2 razy ZE ZWRACANIEM. Policz $P(CC)$.',
+      titleEn: 'Probability tree with replacement',
+      desc:   'Urna: 3 czerwone + 2 niebieskie. Losujemy 2 razy ZE ZWRACANIEM. Policz $P(CC)$.',
+      descEn: 'Urn: 3 red + 2 blue. Draw twice WITH REPLACEMENT. Compute $P(RR)$.',
       drawBackground: 'blank',
       init() { C.picked = null; },
       predict: {
-        question: 'Co się dzieje z urną po 1. losowaniu?',
+        question:   'Co się dzieje z urną po 1. losowaniu?',
+        questionEn: 'What happens to the urn after the 1st draw?',
         options: [
-          { label: 'zostaje taka sama', correct: true,  why: 'Tak — ze zwracaniem kulę wrzucamy z powrotem, więc drugie losowanie zaczyna od tego samego składu 3 cz. / 2 nb.' },
-          { label: 'zostaje 1 mniej kul', correct: false, why: 'Tak byłoby BEZ zwracania (zobaczymy to w następnym wyzwaniu).' },
-          { label: 'zostaje 2 mniej kul', correct: false, why: 'Losujemy tylko 1 kulę za jednym razem.' },
+          { label: 'zostaje taka sama', labelEn: 'stays the same', correct: true,  why: 'Tak — ze zwracaniem kulę wrzucamy z powrotem, więc drugie losowanie zaczyna od tego samego składu 3 cz. / 2 nb.', whyEn: 'Yes — with replacement we put the ball back, so the second draw starts from the same 3 red / 2 blue.' },
+          { label: 'zostaje 1 mniej kul', labelEn: '1 fewer ball', correct: false, why: 'Tak byłoby BEZ zwracania (zobaczymy to w następnym wyzwaniu).', whyEn: 'That would be WITHOUT replacement (next challenge).' },
+          { label: 'zostaje 2 mniej kul', labelEn: '2 fewer balls', correct: false, why: 'Losujemy tylko 1 kulę za jednym razem.', whyEn: 'We draw only 1 ball at a time.' },
         ],
       },
       choices: {
-        question: 'Wybierz poprawny wzór na $P(CC)$:',
+        question:   'Wybierz poprawny wzór na $P(CC)$:',
+        questionEn: 'Pick the correct formula for $P(RR)$:',
         options: [
-          { id: 'a', label: 'P(CC) = 3/5 · 3/5 = 9/25',   correct: true  },
-          { id: 'b', label: 'P(CC) = 3/5 · 2/4 = 3/10',   correct: false },
-          { id: 'c', label: 'P(CC) = 3/5 + 3/5 = 6/5',    correct: false },
+          { id: 'a', label: 'P(CC) = 3/5 · 3/5 = 9/25',   labelEn: 'P(RR) = 3/5 · 3/5 = 9/25',   correct: true  },
+          { id: 'b', label: 'P(CC) = 3/5 · 2/4 = 3/10',   labelEn: 'P(RR) = 3/5 · 2/4 = 3/10',   correct: false },
+          { id: 'c', label: 'P(CC) = 3/5 + 3/5 = 6/5',    labelEn: 'P(RR) = 3/5 + 3/5 = 6/5',    correct: false },
         ],
         pick(id) { C.picked = id; },
       },
-      pips() { return [{ label: 'wybór prawidłowy', ok: C.picked === 'a' }]; },
+      pips() { return [{ label: T('wybór prawidłowy', 'choice correct'), ok: C.picked === 'a' }]; },
       solved() { return C.picked === 'a'; },
       hints: [
         'Każda gałąź to osobne losowanie. Każdy liść to jeden możliwy wynik eksperymentu.',
         'Prawdopodobieństwa wzdłuż jednej gałęzi mnożymy (AND). Między liśćmi sumujemy (OR).',
         'P(CC) = 3/5 · 3/5 = 9/25.',
       ],
+      hintsEn: [
+        'Each branch is a separate draw. Each leaf is one possible experimental outcome.',
+        'Multiply probabilities along one branch (AND). Sum across leaves (OR).',
+        'P(RR) = 3/5 · 3/5 = 9/25.',
+      ],
+      solvedMsgEn: 'With replacement → each draw is independent → same probabilities at every level.',
       solvedMsg: 'Ze zwracaniem → każde losowanie niezależne → te same prawdopodobieństwa na każdym poziomie.',
       predictAfter: {
-        question: 'A gdybyśmy losowali 3 razy ze zwracaniem, ile liści ma drzewko?',
+        question:   'A gdybyśmy losowali 3 razy ze zwracaniem, ile liści ma drzewko?',
+        questionEn: 'If we drew 3 times with replacement, how many leaves does the tree have?',
         options: [
-          { label: '4',  correct: false, why: 'To dla 2 losowań.' },
-          { label: '6',  correct: false, why: 'Liczymy 2·2·2 (dla każdego losowania mnożymy, nie dodajemy). 2+2+2 = 6, ale 2·2·2 = 8.' },
-          { label: '8',  correct: true,  why: 'Tak: 2 wyniki × 2 × 2 = 2³ = 8.' },
-          { label: '9',  correct: false, why: 'To $3^2$, ale mamy tylko 2 wyniki (C lub N), więc $2^n$, nie $n^2$.' },
+          { label: '4',  labelEn: '4',  correct: false, why: 'To dla 2 losowań.', whyEn: 'That’s for 2 draws.' },
+          { label: '6',  labelEn: '6',  correct: false, why: 'Liczymy 2·2·2 (dla każdego losowania mnożymy, nie dodajemy). 2+2+2 = 6, ale 2·2·2 = 8.', whyEn: 'We compute 2·2·2 (multiply per draw, not add). 2+2+2 = 6, but 2·2·2 = 8.' },
+          { label: '8',  labelEn: '8',  correct: true,  why: 'Tak: 2 wyniki × 2 × 2 = 2³ = 8.', whyEn: 'Yes: 2 outcomes × 2 × 2 = 2³ = 8.' },
+          { label: '9',  labelEn: '9',  correct: false, why: 'To $3^2$, ale mamy tylko 2 wyniki (C lub N), więc $2^n$, nie $n^2$.', whyEn: 'That’s $3^2$, but we only have 2 outcomes (R or B), so $2^n$, not $n^2$.' },
         ],
       },
       draw() {
@@ -217,41 +228,52 @@ import { drawProbTree } from '../lib/prob-tree.js';
     {
       id: 'ch2',
       title: 'Drzewko BEZ zwracania',
-      desc: 'Ta sama urna: 3 czerwone + 2 niebieskie. Tym razem 2 losowania BEZ ZWRACANIA. Policz $P(CC)$.',
+      titleEn: 'Probability tree WITHOUT replacement',
+      desc:   'Ta sama urna: 3 czerwone + 2 niebieskie. Tym razem 2 losowania BEZ ZWRACANIA. Policz $P(CC)$.',
+      descEn: 'Same urn: 3 red + 2 blue. This time 2 draws WITHOUT REPLACEMENT. Compute $P(RR)$.',
       drawBackground: 'blank',
       init() { C.picked = null; },
       predict: {
-        question: 'Po wylosowaniu czerwonej, ile kul zostaje w urnie?',
+        question:   'Po wylosowaniu czerwonej, ile kul zostaje w urnie?',
+        questionEn: 'After drawing a red, how many balls remain in the urn?',
         options: [
-          { label: '5 (kula wraca)', correct: false, why: 'To byłoby ze zwracaniem — jak w poprzednim wyzwaniu.' },
-          { label: '4 (kula nie wraca)', correct: true, why: 'Tak — po wyjęciu czerwonej zostają 2 czerwone i 2 niebieskie, razem 4.' },
-          { label: '3 (wylosowałem 2)', correct: false, why: 'Losujemy tylko 1 naraz; 3 byłoby po wyjęciu dwóch kul.' },
+          { label: '5 (kula wraca)', labelEn: '5 (ball returned)', correct: false, why: 'To byłoby ze zwracaniem — jak w poprzednim wyzwaniu.', whyEn: 'That would be with replacement — as in the previous challenge.' },
+          { label: '4 (kula nie wraca)', labelEn: '4 (ball not returned)', correct: true, why: 'Tak — po wyjęciu czerwonej zostają 2 czerwone i 2 niebieskie, razem 4.', whyEn: 'Yes — after pulling out a red, 2 red and 2 blue remain, 4 total.' },
+          { label: '3 (wylosowałem 2)', labelEn: '3 (drew 2)', correct: false, why: 'Losujemy tylko 1 naraz; 3 byłoby po wyjęciu dwóch kul.', whyEn: 'We draw only 1 at a time; 3 would be after pulling 2 balls.' },
         ],
       },
       choices: {
-        question: 'Wybierz poprawny wzór na $P(CC)$ bez zwracania:',
+        question:   'Wybierz poprawny wzór na $P(CC)$ bez zwracania:',
+        questionEn: 'Pick the correct formula for $P(RR)$ without replacement:',
         options: [
-          { id: 'a', label: 'P(CC) = 3/5 · 2/4 = 3/10',   correct: true  },
-          { id: 'b', label: 'P(CC) = 3/5 · 3/5 = 9/25',   correct: false },
-          { id: 'c', label: 'P(CC) = 3/5 · 2/5 = 6/25',   correct: false },
-          { id: 'd', label: 'P(CC) = 3/5 − 2/4 = 1/10',   correct: false },
+          { id: 'a', label: 'P(CC) = 3/5 · 2/4 = 3/10',   labelEn: 'P(RR) = 3/5 · 2/4 = 3/10',   correct: true  },
+          { id: 'b', label: 'P(CC) = 3/5 · 3/5 = 9/25',   labelEn: 'P(RR) = 3/5 · 3/5 = 9/25',   correct: false },
+          { id: 'c', label: 'P(CC) = 3/5 · 2/5 = 6/25',   labelEn: 'P(RR) = 3/5 · 2/5 = 6/25',   correct: false },
+          { id: 'd', label: 'P(CC) = 3/5 − 2/4 = 1/10',   labelEn: 'P(RR) = 3/5 − 2/4 = 1/10',   correct: false },
         ],
         pick(id) { C.picked = id; },
       },
-      pips() { return [{ label: 'wybór prawidłowy', ok: C.picked === 'a' }]; },
+      pips() { return [{ label: T('wybór prawidłowy', 'choice correct'), ok: C.picked === 'a' }]; },
       solved() { return C.picked === 'a'; },
       hints: [
         'W drugim losowaniu urna ma JEDNĄ KULĘ MNIEJ — mianownik nie jest już 5.',
         'Mianownik spada o 1 po każdym losowaniu.',
         'P(CC) = 3/5 · 2/4 = 3/10.',
       ],
+      hintsEn: [
+        'On the second draw the urn has ONE FEWER ball — the denominator is no longer 5.',
+        'The denominator drops by 1 after each draw.',
+        'P(RR) = 3/5 · 2/4 = 3/10.',
+      ],
+      solvedMsgEn: 'Without replacement → probabilities at the second level depend on what was drawn first. This is already conditional probability.',
       solvedMsg: 'Bez zwracania → prawdopodobieństwa w drugim stopniu zmieniają się w zależności od tego, co wylosowałeś. To już prawdopodobieństwo warunkowe.',
       predictAfter: {
-        question: 'Co jest większe: $P(CC)$ ze zwracaniem czy bez?',
+        question:   'Co jest większe: $P(CC)$ ze zwracaniem czy bez?',
+        questionEn: 'Which is larger: $P(RR)$ with replacement or without?',
         options: [
-          { label: 'Ze zwracaniem WIĘCEJ', correct: true, why: 'Tak: 9/25 = 0,36 > 3/10 = 0,30. Ze zwracaniem pierwszy sukces nie zużywa czerwonych, więc drugi ma nadal 3/5.' },
-          { label: 'Bez zwracania WIĘCEJ', correct: false, why: 'Porównaj: 9/25 = 0,36, 3/10 = 0,30. Ze zwracaniem wychodzi więcej.' },
-          { label: 'Tyle samo',            correct: false, why: 'Porównaj: 9/25 = 0,36, 3/10 = 0,30 — różne.' },
+          { label: 'Ze zwracaniem WIĘCEJ', labelEn: 'WITH replacement is larger', correct: true, why: 'Tak: 9/25 = 0,36 > 3/10 = 0,30. Ze zwracaniem pierwszy sukces nie zużywa czerwonych, więc drugi ma nadal 3/5.', whyEn: 'Yes: 9/25 = 0.36 > 3/10 = 0.30. With replacement the first success doesn’t consume reds, so the second still has probability 3/5.' },
+          { label: 'Bez zwracania WIĘCEJ', labelEn: 'WITHOUT replacement is larger', correct: false, why: 'Porównaj: 9/25 = 0,36, 3/10 = 0,30. Ze zwracaniem wychodzi więcej.', whyEn: 'Compare: 9/25 = 0.36, 3/10 = 0.30. With replacement comes out larger.' },
+          { label: 'Tyle samo',            labelEn: 'Equal',                          correct: false, why: 'Porównaj: 9/25 = 0,36, 3/10 = 0,30 — różne.', whyEn: 'Compare: 9/25 = 0.36, 3/10 = 0.30 — different.' },
         ],
       },
       draw() {
@@ -291,35 +313,45 @@ import { drawProbTree } from '../lib/prob-tree.js';
     {
       id: 'ch3',
       title: '"Co najmniej 1" przez dopełnienie',
-      desc: 'Rzucamy symetryczną kostką $n$ razy. Policz $P(\\ge 1\\text{ szóstka})$. Porusz suwakiem $n$ i zobacz, dlaczego dopełnienie to szybsza droga.',
+      titleEn: '"At least 1" via complement',
+      desc:   'Rzucamy symetryczną kostką $n$ razy. Policz $P(\\ge 1\\text{ szóstka})$. Porusz suwakiem $n$ i zobacz, dlaczego dopełnienie to szybsza droga.',
+      descEn: 'Roll a fair die $n$ times. Compute $P(\\ge 1\\text{ six})$. Move the slider $n$ and see why the complement is the fastest route.',
       drawBackground: 'blank',
       init() { C.n = 4; C.predictOK3 = false; },
       predict: {
-        question: 'Jak to policzyć najszybciej?',
+        question:   'Jak to policzyć najszybciej?',
+        questionEn: 'What\u2019s the fastest way to compute it?',
         options: [
-          { label: 'n · 1/6',                                       correct: false, why: 'To nadprzeliczenie — dla n = 6 dałoby 1 (pewność), a przecież można rzucić 6 razy bez szóstki.' },
-          { label: '1 − P(żadna szóstka)',                          correct: true,  why: 'Tak — „co najmniej 1" to dopełnienie „żadnej". Jedno odjęcie zamiast sumy n składników.' },
-          { label: 'P(=1) + P(=2) + … + P(=n)',                     correct: false, why: 'Formalnie poprawne, ale wymaga n składników zamiast jednego odejmowania.' },
+          { label: 'n · 1/6', labelEn: 'n · 1/6',                                   correct: false, why: 'To nadprzeliczenie — dla n = 6 dałoby 1 (pewność), a przecież można rzucić 6 razy bez szóstki.', whyEn: 'That overcounts — for n = 6 it would give 1 (certainty), but you can roll 6 times without a six easily.' },
+          { label: '1 − P(żadna szóstka)', labelEn: '1 − P(no six at all)',         correct: true,  why: 'Tak — „co najmniej 1" to dopełnienie „żadnej". Jedno odjęcie zamiast sumy n składników.', whyEn: 'Yes — "at least 1" is the complement of "none". One subtraction instead of an n-term sum.' },
+          { label: 'P(=1) + P(=2) + … + P(=n)', labelEn: 'P(=1) + P(=2) + … + P(=n)', correct: false, why: 'Formalnie poprawne, ale wymaga n składników zamiast jednego odejmowania.', whyEn: 'Formally correct, but it needs n terms instead of a single subtraction.' },
         ],
       },
       sliders: [
         { id: 'n', lbl: 'n', color: COL_HI, min: 1, max: 10, step: 1, get: () => C.n, set: v => { C.n = v; C.predictOK3 = true; } },
       ],
-      pips() { return [{ label: 'zobacz obie metody', ok: true }]; },
+      pips() { return [{ label: T('zobacz obie metody', 'see both methods'), ok: true }]; },
       solved() { return true; },
       hints: [
         '„Co najmniej 1" = DOPEŁNIENIE zdarzenia „zero". Szukaj okazji do tej zamiany.',
         'P(zero szóstek w n rzutach) = (5/6)^n — niezależne rzuty.',
         'P(≥ 1) = 1 − (5/6)^n. Dla n = 10: 1 − 0,1615 ≈ 0,84.',
       ],
+      hintsEn: [
+        '"At least 1" = COMPLEMENT of "zero". Look for chances to make that swap.',
+        'P(no sixes in n rolls) = (5/6)^n — independent rolls.',
+        'P(≥ 1) = 1 − (5/6)^n. For n = 10: 1 − 0.1615 ≈ 0.84.',
+      ],
+      solvedMsgEn: 'The complement is the most common shortcut in exam probability — for "at least", "at least one", "at least once".',
       solvedMsg: 'Dopełnienie to najczęstszy skrót w prawdopodobieństwie maturalnym — dla „co najmniej", „przynajmniej jeden", „choć raz".',
       predictAfter: {
-        question: 'Dla $n = 10$ rzutów: $P(\\ge 1\\text{ szóstka}) \\approx$ ?',
+        question:   'Dla $n = 10$ rzutów: $P(\\ge 1\\text{ szóstka}) \\approx$ ?',
+        questionEn: 'For $n = 10$ rolls: $P(\\ge 1\\text{ six}) \\approx$ ?',
         options: [
-          { label: '≈ 0,17', correct: false, why: '(5/6)^10 ≈ 0,1615 — to P(zero szóstek), a nie P(co najmniej 1).' },
-          { label: '≈ 0,50', correct: false, why: 'Dla n = 4 wychodzi ≈ 0,52. Dla n = 10 jest już znacznie więcej.' },
-          { label: '≈ 0,84', correct: true,  why: 'Tak: 1 − (5/6)^10 ≈ 1 − 0,1615 ≈ 0,8385.' },
-          { label: '≈ 0,99', correct: false, why: 'Zbyt duże. Żeby dostać ~0,99, potrzeba ok. n = 25.' },
+          { label: '≈ 0,17', labelEn: '≈ 0.17', correct: false, why: '(5/6)^10 ≈ 0,1615 — to P(zero szóstek), a nie P(co najmniej 1).', whyEn: '(5/6)^10 ≈ 0.1615 — that\u2019s P(no sixes), not P(at least 1).' },
+          { label: '≈ 0,50', labelEn: '≈ 0.50', correct: false, why: 'Dla n = 4 wychodzi ≈ 0,52. Dla n = 10 jest już znacznie więcej.', whyEn: 'For n = 4 it comes out ≈ 0.52. For n = 10 it\u2019s much higher.' },
+          { label: '≈ 0,84', labelEn: '≈ 0.84', correct: true,  why: 'Tak: 1 − (5/6)^10 ≈ 1 − 0,1615 ≈ 0,8385.', whyEn: 'Yes: 1 − (5/6)^10 ≈ 1 − 0.1615 ≈ 0.8385.' },
+          { label: '≈ 0,99', labelEn: '≈ 0.99', correct: false, why: 'Zbyt duże. Żeby dostać ~0,99, potrzeba ok. n = 25.', whyEn: 'Too high. To get ~0.99 you\u2019d need about n = 25.' },
         ],
       },
       draw() {
@@ -330,8 +362,8 @@ import { drawProbTree } from '../lib/prob-tree.js';
         ctx.font = '13px monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
-        ctx.fillText('Metoda bezpośrednia', W * 0.25, 12);
-        ctx.fillText('Metoda dopełnienia', W * 0.75, 12);
+        ctx.fillText(T('Metoda bezpośrednia', 'Direct method'), W * 0.25, 12);
+        ctx.fillText(T('Metoda dopełnienia', 'Complement method'), W * 0.75, 12);
 
         ctx.strokeStyle = 'rgba(255,255,255,0.08)';
         ctx.lineWidth = 1;
@@ -341,7 +373,7 @@ import { drawProbTree } from '../lib/prob-tree.js';
         ctx.font = '11px monospace';
         ctx.textAlign = 'center';
         ctx.fillStyle = COL_DIM;
-        ctx.fillText('suma ' + n + ' składników:', W * 0.25, 36);
+        ctx.fillText(T('suma ' + n + ' składników:', 'sum of ' + n + ' terms:'), W * 0.25, 36);
 
         ctx.textAlign = 'left';
         const lx = 30;
@@ -361,13 +393,13 @@ import { drawProbTree } from '../lib/prob-tree.js';
         ctx.textAlign = 'center';
         ctx.fillStyle = COL_R;
         ctx.font = '10px monospace';
-        ctx.fillText('dużo wyrazów — łatwo o błąd', W * 0.25, H - 62);
+        ctx.fillText(T('dużo wyrazów — łatwo o błąd', 'many terms — easy to make an error'), W * 0.25, H - 62);
 
         // RIGHT: 1 − (5/6)^n
         ctx.textAlign = 'center';
         ctx.font = '11px monospace';
         ctx.fillStyle = COL_DIM;
-        ctx.fillText('jedno działanie:', W * 0.75, 36);
+        ctx.fillText(T('jedno działanie:', 'one operation:'), W * 0.75, 36);
 
         ctx.font = '16px monospace';
         ctx.fillStyle = COL_OK;
@@ -385,10 +417,10 @@ import { drawProbTree } from '../lib/prob-tree.js';
         // bottom: unified result
         ctx.font = '13px monospace';
         ctx.fillStyle = COL_HI;
-        ctx.fillText('obie metody dają: P(≥ 1 szóstka) ≈ ' + pAtLeast1.toFixed(4), W/2, H - 30);
+        ctx.fillText(T('obie metody dają: P(≥ 1 szóstka) ≈ ', 'both methods give: P(≥ 1 six) ≈ ') + pAtLeast1.toFixed(4), W/2, H - 30);
         ctx.fillStyle = COL_DIM;
         ctx.font = '11px monospace';
-        ctx.fillText('n = ' + n + ' rzutów', W/2, H - 12);
+        ctx.fillText('n = ' + n + T(' rzutów', ' rolls'), W/2, H - 12);
       },
     },
 
@@ -396,40 +428,51 @@ import { drawProbTree } from '../lib/prob-tree.js';
     {
       id: 'ch4',
       title: 'Wzór włączeń i wyłączeń',
-      desc: 'Losujemy liczbę od 1 do 20. $A$ = parzysta, $B$ = podzielna przez 3. Policz $P(A \\cup B)$.',
+      titleEn: 'Inclusion–exclusion formula',
+      desc:   'Losujemy liczbę od 1 do 20. $A$ = parzysta, $B$ = podzielna przez 3. Policz $P(A \\cup B)$.',
+      descEn: 'Pick a number from 1 to 20. $A$ = even, $B$ = divisible by 3. Compute $P(A \\cup B)$.',
       drawBackground: 'blank',
       init() { C.picked = null; },
       predict: {
-        question: 'Czy zdarzenia $A$ i $B$ się wykluczają?',
+        question:   'Czy zdarzenia $A$ i $B$ się wykluczają?',
+        questionEn: 'Are events $A$ and $B$ mutually exclusive?',
         options: [
-          { label: 'Tak — liczba nie może być parzysta i podzielna przez 3', correct: false, why: 'Spróbuj 6: parzyste ✓, podzielne przez 3 ✓. A ∩ B = {6, 12, 18}. Przecinają się.' },
-          { label: 'Nie — np. 6 jest w obu zbiorach',                         correct: true,  why: 'Tak — 6, 12, 18 są parzyste i podzielne przez 3. A ∩ B ≠ ∅.' },
-          { label: 'Tak dla liczb < 10, nie dla większych',                   correct: false, why: 'Wykluczanie nie zależy od wielkości liczb — tylko od definicji zbiorów.' },
+          { label: 'Tak — liczba nie może być parzysta i podzielna przez 3', labelEn: 'Yes — a number can\u2019t be both even and divisible by 3', correct: false, why: 'Spróbuj 6: parzyste ✓, podzielne przez 3 ✓. A ∩ B = {6, 12, 18}. Przecinają się.', whyEn: 'Try 6: even ✓, divisible by 3 ✓. A ∩ B = {6, 12, 18}. They intersect.' },
+          { label: 'Nie — np. 6 jest w obu zbiorach', labelEn: 'No — e.g. 6 is in both sets',                       correct: true,  why: 'Tak — 6, 12, 18 są parzyste i podzielne przez 3. A ∩ B ≠ ∅.', whyEn: 'Right — 6, 12, 18 are even and divisible by 3. A ∩ B ≠ ∅.' },
+          { label: 'Tak dla liczb < 10, nie dla większych', labelEn: 'Yes for numbers < 10, no for larger ones',     correct: false, why: 'Wykluczanie nie zależy od wielkości liczb — tylko od definicji zbiorów.', whyEn: 'Exclusivity doesn\u2019t depend on the size of the numbers — only on the set definitions.' },
         ],
       },
       choices: {
-        question: 'Który wzór daje $|A \\cup B|$?',
+        question:   'Który wzór daje $|A \\cup B|$?',
+        questionEn: 'Which formula gives $|A \\cup B|$?',
         options: [
-          { id: 'a', label: '|A ∪ B| = |A| + |B| − |A ∩ B| = 10 + 6 − 3 = 13', correct: true  },
-          { id: 'b', label: '|A ∪ B| = |A| + |B| = 10 + 6 = 16',                 correct: false },
-          { id: 'c', label: '|A ∪ B| = |A| · |B| / 20 = 3',                      correct: false },
+          { id: 'a', label: '|A ∪ B| = |A| + |B| − |A ∩ B| = 10 + 6 − 3 = 13', labelEn: '|A ∪ B| = |A| + |B| − |A ∩ B| = 10 + 6 − 3 = 13', correct: true  },
+          { id: 'b', label: '|A ∪ B| = |A| + |B| = 10 + 6 = 16',                 labelEn: '|A ∪ B| = |A| + |B| = 10 + 6 = 16',                 correct: false },
+          { id: 'c', label: '|A ∪ B| = |A| · |B| / 20 = 3',                      labelEn: '|A ∪ B| = |A| · |B| / 20 = 3',                      correct: false },
         ],
         pick(id) { C.picked = id; },
       },
-      pips() { return [{ label: 'wzór prawidłowy', ok: C.picked === 'a' }]; },
+      pips() { return [{ label: T('wzór prawidłowy', 'formula correct'), ok: C.picked === 'a' }]; },
       solved() { return C.picked === 'a'; },
       hints: [
         'Liczby w A ∩ B (podzielne przez 6) są policzone DWA RAZY, jeśli tylko dodasz |A| + |B|.',
         'Wzór włączeń–wyłączeń odejmuje nadprzeliczenie: |A ∪ B| = |A| + |B| − |A ∩ B|.',
         '|A| = 10, |B| = 6, |A ∩ B| = 3 (6, 12, 18). |A ∪ B| = 13, więc P = 13/20.',
       ],
-      solvedMsg: 'Kiedy zdarzenia się przecinają, odejmij część wspólną. Inaczej liczysz ją podwójnie.',
+      hintsEn: [
+        'Numbers in A ∩ B (divisible by 6) get counted TWICE if you just add |A| + |B|.',
+        'Inclusion–exclusion subtracts the overcount: |A ∪ B| = |A| + |B| − |A ∩ B|.',
+        '|A| = 10, |B| = 6, |A ∩ B| = 3 (6, 12, 18). |A ∪ B| = 13, so P = 13/20.',
+      ],
+      solvedMsg:   'Kiedy zdarzenia się przecinają, odejmij część wspólną. Inaczej liczysz ją podwójnie.',
+      solvedMsgEn: 'When events overlap, subtract the intersection. Otherwise you double-count it.',
       predictAfter: {
-        question: 'A jeśli $A \\cap B = \\emptyset$ (zdarzenia się wykluczają)?',
+        question:   'A jeśli $A \\cap B = \\emptyset$ (zdarzenia się wykluczają)?',
+        questionEn: 'And if $A \\cap B = \\emptyset$ (events are mutually exclusive)?',
         options: [
-          { label: 'wzór pozostaje taki sam, odjęcie daje 0', correct: true,  why: 'Tak — jeśli |A ∩ B| = 0, to wzór redukuje się do |A| + |B|. Odjęcie zera jest bezpieczne.' },
-          { label: 'wzór nie działa',                          correct: false, why: 'Działa — odjęcie 0 jest bezpieczne. Wzór z włączeń–wyłączeń obejmuje oba przypadki.' },
-          { label: 'wymaga iloczynu',                          correct: false, why: 'Iloczyn to dla prawdopodobieństwa warunkowego / niezależnego, nie dla sumy zdarzeń.' },
+          { label: 'wzór pozostaje taki sam, odjęcie daje 0', labelEn: 'formula stays the same, the subtraction gives 0', correct: true,  why: 'Tak — jeśli |A ∩ B| = 0, to wzór redukuje się do |A| + |B|. Odjęcie zera jest bezpieczne.', whyEn: 'Yes — if |A ∩ B| = 0, the formula collapses to |A| + |B|. Subtracting zero is safe.' },
+          { label: 'wzór nie działa',                          labelEn: 'formula doesn\u2019t work',                          correct: false, why: 'Działa — odjęcie 0 jest bezpieczne. Wzór z włączeń–wyłączeń obejmuje oba przypadki.', whyEn: 'It works — subtracting 0 is safe. Inclusion–exclusion covers both cases.' },
+          { label: 'wymaga iloczynu',                          labelEn: 'a product is required',                              correct: false, why: 'Iloczyn to dla prawdopodobieństwa warunkowego / niezależnego, nie dla sumy zdarzeń.', whyEn: 'Products belong to conditional / independent probability, not unions of events.' },
         ],
       },
       draw() {
@@ -455,7 +498,7 @@ import { drawProbTree } from '../lib/prob-tree.js';
         ctx.font = '12px monospace';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'top';
-        ctx.fillText('liczby 1–20, A = parzysta, B = podzielna przez 3', 10, 14);
+        ctx.fillText(T('liczby 1–20, A = parzysta, B = podzielna przez 3', 'numbers 1–20, A = even, B = divisible by 3'), 10, 14);
 
         // dots
         for (let r = 0; r < rows; r++) {
@@ -483,10 +526,10 @@ import { drawProbTree } from '../lib/prob-tree.js';
         ctx.textBaseline = 'middle';
         ctx.textAlign = 'left';
         const legend = [
-          { col: COL_A,    lab: 'A \\ B  (tylko parzysta)',     n: 7 },
-          { col: COL_B,    lab: 'B \\ A  (tylko podz. 3)',      n: 3 },
-          { col: COL_AB,   lab: 'A ∩ B  (podz. 6)',             n: 3 },
-          { col: COL_NONE, lab: 'ani A, ani B',                 n: 7 },
+          { col: COL_A,    lab: T('A \\ B  (tylko parzysta)', 'A \\ B  (only even)'),     n: 7 },
+          { col: COL_B,    lab: T('B \\ A  (tylko podz. 3)', 'B \\ A  (only div. 3)'),      n: 3 },
+          { col: COL_AB,   lab: T('A ∩ B  (podz. 6)', 'A ∩ B  (div. 6)'),             n: 3 },
+          { col: COL_NONE, lab: T('ani A, ani B', 'neither A nor B'),                 n: 7 },
         ];
         for (const L of legend) {
           ctx.beginPath();
@@ -515,6 +558,7 @@ import { drawProbTree } from '../lib/prob-tree.js';
     canvasId: 'cv',
     challenges,
     lsKey: 'warsztat:probability:completed',
+    wrapupEn: 'Four schemes cover most exam probability: <b>tree</b>, <b>replacement vs without</b>, <b>complement</b>, <b>intersection</b>. Start every problem by asking: <i>what do I NOT want to count?</i>',
     wrapup: 'Cztery schematy pokrywają większość matur z prawdopodobieństwa: <b>drzewko</b>, <b>zwracanie</b>, <b>dopełnienie</b>, <b>przecięcie</b>. Zaczynaj każde zadanie od pytania: <i>czego NIE chcę policzyć?</i>',
   });
 }

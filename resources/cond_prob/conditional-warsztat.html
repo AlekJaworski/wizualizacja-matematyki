@@ -96,7 +96,7 @@
 </div>
 
 <script type="module">
-import { initWarsztat } from '../lib/warsztat-core.js';
+import { initWarsztat, T } from '../lib/warsztat-core.js';
 import { drawProbTree } from '../lib/prob-tree.js';
 {
   const cv = document.getElementById('cv');
@@ -134,33 +134,43 @@ import { drawProbTree } from '../lib/prob-tree.js';
     {
       id: 'ch1',
       title: 'Paradoks wyniku fałszywie dodatniego',
+      titleEn: 'The false-positive paradox',
       desc: 'Rzadka choroba dotyka $1$ na $1000$ osób. Test wykrywa chorobę z dokładnością $99\\%$ (czułość i swoistość). Twój test wyszedł DODATNI. Jakie prawdopodobieństwo, że NAPRAWDĘ jesteś chory?',
+      descEn: 'A rare disease affects $1$ in $1000$ people. The test is $99\\%$ accurate (both sensitivity and specificity). Your test came back POSITIVE. What is the probability that you ACTUALLY have the disease?',
       drawBackground: 'blank',
       init() {},
       predict: {
         question: 'Test jest $99\\%$ dokładny, choroba dotyka $1$ na $1000$. Test wyszedł pozytywny. Jakie $P(\\text{chory} \\mid \\text{test +})$?',
+        questionEn: 'The test is $99\\%$ accurate, the disease affects $1$ in $1000$. The test was positive. What is $P(\\text{ill} \\mid \\text{test +})$?',
         options: [
-          { label: 'około $99\\%$', correct: false, why: 'To najczęstsza intuicja, ale myląca. Dokładność testu $\\neq P(\\text{chory} \\mid +)$.' },
-          { label: 'około $90\\%$', correct: false, why: 'Nadal za wysoko. Kluczem jest *podstawa* — jak rzadka choroba.' },
-          { label: 'około $50\\%$', correct: false, why: 'Już bliżej, ale wciąż źle. Zobacz wynik w drzewku.' },
-          { label: 'około $9\\%$',  correct: true,  why: 'Tak. Gdy choroba jest bardzo rzadka, nawet dobry test daje więcej fałszywych alarmów niż prawdziwych trafień.' },
+          { label: 'około $99\\%$', labelEn: 'about $99\\%$', correct: false, why: 'To najczęstsza intuicja, ale myląca. Dokładność testu $\\neq P(\\text{chory} \\mid +)$.', whyEn: 'That’s the most common intuition, but it’s misleading. Test accuracy $\\neq P(\\text{ill} \\mid +)$.' },
+          { label: 'około $90\\%$', labelEn: 'about $90\\%$', correct: false, why: 'Nadal za wysoko. Kluczem jest *podstawa* — jak rzadka choroba.', whyEn: 'Still too high. The key is the *base rate* — how rare the disease is.' },
+          { label: 'około $50\\%$', labelEn: 'about $50\\%$', correct: false, why: 'Już bliżej, ale wciąż źle. Zobacz wynik w drzewku.', whyEn: 'Closer, but still wrong. Check the result in the tree.' },
+          { label: 'około $9\\%$',  labelEn: 'about $9\\%$',  correct: true,  why: 'Tak. Gdy choroba jest bardzo rzadka, nawet dobry test daje więcej fałszywych alarmów niż prawdziwych trafień.', whyEn: 'Yes. When the disease is very rare, even a good test produces more false alarms than true hits.' },
         ],
       },
-      pips() { return [{ label: 'przewidywanie trafione', ok: true }]; },
+      pips() { return [{ label: T('przewidywanie trafione', 'prediction made'), ok: true }]; },
       solved() { return true; },
       hints: [
         '① Narysuj drzewko: $10000$ osób → $1/1000$ chorych = $10$, reszta zdrowych = $9990$.',
         '② Z $10$ chorych — $99\\%$ testów pozytywnych $= 9{,}9$ prawdziwie dodatnich. Z $9990$ zdrowych — $1\\%$ testów fałszywie dodatnich $= 99{,}9$ błędnych alarmów.',
         '③ Z $\\approx 110$ osób z testem $+$ tylko $9{,}9$ to naprawdę chorzy: $P \\approx 9\\%$. Rzadkość choroby $\\gg$ dokładność testu.',
       ],
+      hintsEn: [
+        '① Draw a tree: $10000$ people → $1/1000$ ill = $10$, the remaining healthy = $9990$.',
+        '② Of the $10$ ill — $99\\%$ test positive $= 9.9$ true positives. Of the $9990$ healthy — $1\\%$ test positive $= 99.9$ false alarms.',
+        '③ Out of $\\approx 110$ people with a $+$ result, only $9.9$ are actually ill: $P \\approx 9\\%$. The rarity of the disease $\\gg$ the accuracy of the test.',
+      ],
       solvedMsg: 'Jest to tzw. **paradoks podstawy**: przy rzadkich chorobach liczba fałszywie dodatnich wyników potrafi wielokrotnie przewyższyć liczbę prawdziwych trafień. Aby $P(\\text{chory}|+)$ było wysokie, swoistość testu musi być znacząco wyższa niż częstość choroby.',
+      solvedMsgEn: 'This is the **base-rate paradox**: for rare diseases the count of false positives can vastly exceed the count of true hits. For $P(\\text{ill}|+)$ to be high, the test’s specificity has to be significantly higher than the disease’s prevalence.',
       predictAfter: {
         question: 'Jaka częstość choroby sprawia, że $P(\\text{chory}|+) \\approx 50\\%$?',
+        questionEn: 'Which disease prevalence makes $P(\\text{ill}|+) \\approx 50\\%$?',
         options: [
-          { label: '$1$ na $10$',     correct: false, why: 'Za częsta — wtedy $P(\\text{chory}|+)$ jest już bliskie $99\\%$.' },
-          { label: '$1$ na $100$',    correct: true,  why: 'Tak — wtedy liczba prawdziwie dodatnich $\\approx$ liczba fałszywie dodatnich.' },
-          { label: '$1$ na $10000$',  correct: false, why: 'Za rzadka — wtedy $P(\\text{chory}|+)$ spada poniżej $1\\%$.' },
-          { label: 'zależy od testu', correct: false, why: 'Nie — zależy od *podstawy* (częstości choroby), przy ustalonej dokładności testu.' },
+          { label: '$1$ na $10$',     labelEn: '$1$ in $10$',     correct: false, why: 'Za częsta — wtedy $P(\\text{chory}|+)$ jest już bliskie $99\\%$.', whyEn: 'Too common — then $P(\\text{ill}|+)$ is already close to $99\\%$.' },
+          { label: '$1$ na $100$',    labelEn: '$1$ in $100$',    correct: true,  why: 'Tak — wtedy liczba prawdziwie dodatnich $\\approx$ liczba fałszywie dodatnich.', whyEn: 'Yes — then the number of true positives $\\approx$ the number of false positives.' },
+          { label: '$1$ na $10000$',  labelEn: '$1$ in $10000$',  correct: false, why: 'Za rzadka — wtedy $P(\\text{chory}|+)$ spada poniżej $1\\%$.', whyEn: 'Too rare — then $P(\\text{ill}|+)$ drops below $1\\%$.' },
+          { label: 'zależy od testu', labelEn: 'depends on the test', correct: false, why: 'Nie — zależy od *podstawy* (częstości choroby), przy ustalonej dokładności testu.', whyEn: 'No — it depends on the *base rate* (disease prevalence), with the test accuracy held fixed.' },
         ],
       },
       draw() {
@@ -210,36 +220,46 @@ import { drawProbTree } from '../lib/prob-tree.js';
     {
       id: 'ch2',
       title: 'Kierunek warunku ma znaczenie',
+      titleEn: 'Direction of the condition matters',
       desc: 'Wśród uczniów $60\\%$ to dziewczyny. Wśród dziewczyn $40\\%$ gra w szachy. Wśród chłopców $30\\%$ gra w szachy. Oblicz $P(C \\mid S)$ — prawdopodobieństwo, że uczeń to chłopak, skoro gra w szachy.',
+      descEn: 'Among the students $60\\%$ are girls. Among girls $40\\%$ play chess. Among boys $30\\%$ play chess. Compute $P(C \\mid S)$ — the probability that a student is a boy given that they play chess.',
       drawBackground: 'blank',
       init() { C.picked2 = null; },
       predict: {
         question: 'Które z poniższych to *warunkowe prawdopodobieństwo*, że wylosowany uczeń to chłopak ($C$), skoro gra w szachy ($S$)?',
+        questionEn: 'Which of the following is the *conditional probability* that a randomly chosen student is a boy ($C$) given that they play chess ($S$)?',
         options: [
-          { label: '$P(C \\cap S) = P(C) \\cdot P(S)$',               correct: false, why: 'To wzór na prawdopodobieństwo PRZECIĘCIA dla zdarzeń niezależnych. Tu pytamy o warunek.' },
-          { label: '$P(C \\mid S) = \\frac{P(C \\cap S)}{P(S)}$',     correct: true,  why: 'Definicja prawdopodobieństwa warunkowego: „spośród tych, co grają w szachy, jaka część to chłopcy".' },
-          { label: '$P(S \\mid C)$',                                   correct: false, why: 'To *odwrotny* warunek: „spośród chłopców jaka część gra w szachy". Kierunek ma znaczenie.' },
-          { label: '$P(C) \\cdot P(S \\mid C)$',                       correct: false, why: 'To $P(C \\cap S)$ przez wzór łańcuchowy — liczba, nie prawdopodobieństwo warunkowe.' },
+          { label: '$P(C \\cap S) = P(C) \\cdot P(S)$',               labelEn: '$P(C \\cap S) = P(C) \\cdot P(S)$',               correct: false, why: 'To wzór na prawdopodobieństwo PRZECIĘCIA dla zdarzeń niezależnych. Tu pytamy o warunek.', whyEn: 'That’s the formula for the INTERSECTION probability of independent events. Here we’re asking about a condition.' },
+          { label: '$P(C \\mid S) = \\frac{P(C \\cap S)}{P(S)}$',     labelEn: '$P(C \\mid S) = \\frac{P(C \\cap S)}{P(S)}$',     correct: true,  why: 'Definicja prawdopodobieństwa warunkowego: „spośród tych, co grają w szachy, jaka część to chłopcy".', whyEn: 'The definition of conditional probability: "among those who play chess, what fraction are boys".' },
+          { label: '$P(S \\mid C)$',                                   labelEn: '$P(S \\mid C)$',                                   correct: false, why: 'To *odwrotny* warunek: „spośród chłopców jaka część gra w szachy". Kierunek ma znaczenie.', whyEn: 'That’s the *reversed* condition: "what fraction of boys play chess". The direction matters.' },
+          { label: '$P(C) \\cdot P(S \\mid C)$',                       labelEn: '$P(C) \\cdot P(S \\mid C)$',                       correct: false, why: 'To $P(C \\cap S)$ przez wzór łańcuchowy — liczba, nie prawdopodobieństwo warunkowe.', whyEn: 'That’s $P(C \\cap S)$ via the chain rule — a joint probability, not a conditional one.' },
         ],
       },
       choices: {
         question: 'Jaka jest wartość $P(C \\mid S)$?',
+        questionEn: 'What is the value of $P(C \\mid S)$?',
         options: [
-          { id: 'a', label: '$\\frac{0{,}6 \\cdot 0{,}4}{0{,}6 \\cdot 0{,}4 + 0{,}4 \\cdot 0{,}3} = \\frac{0{,}24}{0{,}36} = \\frac{2}{3}$ — to $P(D|S)$, nie $P(C|S)$', correct: false },
-          { id: 'b', label: '$\\frac{0{,}4 \\cdot 0{,}3}{0{,}6 \\cdot 0{,}4 + 0{,}4 \\cdot 0{,}3} = \\frac{0{,}12}{0{,}36} = \\frac{1}{3}$',                           correct: true  },
-          { id: 'c', label: '$0{,}3$ — to $P(S|C)$, mylony kierunek',                                                                                                    correct: false },
-          { id: 'd', label: '$0{,}4 \\cdot 0{,}6 = 0{,}24$ — to $P(D \\cap S)$, nie warunkowe',                                                                         correct: false },
+          { id: 'a', label: '$\\frac{0{,}6 \\cdot 0{,}4}{0{,}6 \\cdot 0{,}4 + 0{,}4 \\cdot 0{,}3} = \\frac{0{,}24}{0{,}36} = \\frac{2}{3}$ — to $P(D|S)$, nie $P(C|S)$', labelEn: '$\\frac{0.6 \\cdot 0.4}{0.6 \\cdot 0.4 + 0.4 \\cdot 0.3} = \\frac{0.24}{0.36} = \\frac{2}{3}$ — that’s $P(G|S)$, not $P(C|S)$', correct: false },
+          { id: 'b', label: '$\\frac{0{,}4 \\cdot 0{,}3}{0{,}6 \\cdot 0{,}4 + 0{,}4 \\cdot 0{,}3} = \\frac{0{,}12}{0{,}36} = \\frac{1}{3}$',                           labelEn: '$\\frac{0.4 \\cdot 0.3}{0.6 \\cdot 0.4 + 0.4 \\cdot 0.3} = \\frac{0.12}{0.36} = \\frac{1}{3}$',                           correct: true  },
+          { id: 'c', label: '$0{,}3$ — to $P(S|C)$, mylony kierunek',                                                                                                    labelEn: '$0.3$ — that’s $P(S|C)$, the wrong direction',                                                                          correct: false },
+          { id: 'd', label: '$0{,}4 \\cdot 0{,}6 = 0{,}24$ — to $P(D \\cap S)$, nie warunkowe',                                                                         labelEn: '$0.4 \\cdot 0.6 = 0.24$ — that’s $P(G \\cap S)$, not the conditional',                                                  correct: false },
         ],
         pick(id) { C.picked2 = id; },
       },
-      pips() { return [{ label: 'wybór prawidłowy', ok: C.picked2 === 'b' }]; },
+      pips() { return [{ label: T('wybór prawidłowy', 'correct choice'), ok: C.picked2 === 'b' }]; },
       solved() { return C.picked2 === 'b'; },
       hints: [
         '① $P(C|S)$ czyta się: „prawdopodobieństwo $C$ *pod warunkiem* $S$". Kierunek: $S$ już się zdarzyło, pytamy o $C$.',
         '② $P(C|S) = \\frac{P(C \\cap S)}{P(S)}$. Licznik: chłopak I szachy. Mianownik: ktokolwiek z szachami.',
         '③ Licznik $= 0{,}4 \\cdot 0{,}3 = 0{,}12$; mianownik $= 0{,}6 \\cdot 0{,}4 + 0{,}4 \\cdot 0{,}3 = 0{,}36$. Stąd $P(C|S) = \\frac{0{,}12}{0{,}36} = \\frac{1}{3}$.',
       ],
+      hintsEn: [
+        '① Read $P(C|S)$ as: "probability of $C$ *given* $S$". Direction: $S$ has already happened, and we ask about $C$.',
+        '② $P(C|S) = \\frac{P(C \\cap S)}{P(S)}$. Numerator: boy AND chess. Denominator: anyone who plays chess.',
+        '③ Numerator $= 0.4 \\cdot 0.3 = 0.12$; denominator $= 0.6 \\cdot 0.4 + 0.4 \\cdot 0.3 = 0.36$. So $P(C|S) = \\frac{0.12}{0.36} = \\frac{1}{3}$.',
+      ],
       solvedMsg: 'Prawdopodobieństwo warunkowe zawęża przestrzeń zdarzeń do tych, które spełniają warunek. Liczymy tylko wśród grających w szachy i sprawdzamy, jaka część z nich to chłopcy.',
+      solvedMsgEn: 'Conditional probability narrows the sample space to outcomes that satisfy the condition. We restrict to chess-players and ask what fraction of them are boys.',
       draw() {
         clearBG();
         const hl = C.picked2 === 'b';
@@ -283,16 +303,19 @@ import { drawProbTree } from '../lib/prob-tree.js';
     {
       id: 'ch3',
       title: 'Debug: wzór Bayesa źle zastosowany',
+      titleEn: 'Debug: Bayes’ rule misapplied',
       desc: 'Znajdź błąd w rozumowaniu Marty.',
+      descEn: 'Find the error in Marta’s reasoning.',
       drawBackground: 'blank',
       init() {},
       debug: {
         task: 'Marta pisze: jeśli $P(B|A) = 0{,}8$ i $P(A) = 0{,}5$, to $P(A|B) = 0{,}8 \\cdot 0{,}5 = 0{,}4$. Gdzie popełniła błąd?',
+        taskEn: 'Marta writes: if $P(B|A) = 0.8$ and $P(A) = 0.5$, then $P(A|B) = 0.8 \\cdot 0.5 = 0.4$. Where did she go wrong?',
         steps: [
-          { n: 1, text: '$P(B|A) = 0{,}8$' },
-          { n: 2, text: '$P(A) = 0{,}5$' },
-          { n: 3, text: 'Z wzoru łańcuchowego: $P(A \\cap B) = P(B|A) \\cdot P(A) = 0{,}4$' },
-          { n: 4, text: '$P(A|B) = P(A \\cap B) = 0{,}4$' },
+          { n: 1, text: '$P(B|A) = 0{,}8$', textEn: '$P(B|A) = 0.8$' },
+          { n: 2, text: '$P(A) = 0{,}5$', textEn: '$P(A) = 0.5$' },
+          { n: 3, text: 'Z wzoru łańcuchowego: $P(A \\cap B) = P(B|A) \\cdot P(A) = 0{,}4$', textEn: 'By the chain rule: $P(A \\cap B) = P(B|A) \\cdot P(A) = 0.4$' },
+          { n: 4, text: '$P(A|B) = P(A \\cap B) = 0{,}4$', textEn: '$P(A|B) = P(A \\cap B) = 0.4$' },
         ],
         errorLine: 4,
         wrongChoice: {
@@ -300,16 +323,28 @@ import { drawProbTree } from '../lib/prob-tree.js';
           2: 'Krok 2 to również dana.',
           3: 'Krok 3 jest POPRAWNY — to standardowy wzór łańcuchowy.',
         },
+        wrongChoiceEn: {
+          1: 'Step 1 is just a given — no error here.',
+          2: 'Step 2 is also a given.',
+          3: 'Step 3 is CORRECT — it’s the standard chain rule.',
+        },
         correctExplanation: 'Krok 4 jest niepełny: $P(A|B) = \\frac{P(A \\cap B)}{P(B)}$, a nie $P(A|B) = P(A \\cap B)$. Marta pominęła dzielenie przez $P(B)$. Żeby policzyć $P(A|B)$ potrzeba jeszcze $P(B)$ (np. z prawdopodobieństwa całkowitego).',
+        correctExplanationEn: 'Step 4 is incomplete: $P(A|B) = \\frac{P(A \\cap B)}{P(B)}$, not $P(A|B) = P(A \\cap B)$. Marta dropped the division by $P(B)$. To compute $P(A|B)$ you also need $P(B)$ (e.g. via the law of total probability).',
       },
-      pips() { return [{ label: 'błąd znaleziony', ok: false }]; },
+      pips() { return [{ label: T('błąd znaleziony', 'error found'), ok: false }]; },
       solved() { return false; },
       hints: [
         '① Porównaj: czym różni się $P(A \\cap B)$ od $P(A|B)$?',
         '② Definicja: $P(A|B) = \\frac{P(A \\cap B)}{P(B)}$. Jeśli pominę mianownik — dostaję $P(A \\cap B)$, nie warunek.',
         '③ Żeby policzyć $P(A|B)$ potrzeba jeszcze $P(B)$ — np. z prawdopodobieństwa całkowitego.',
       ],
+      hintsEn: [
+        '① Compare: how does $P(A \\cap B)$ differ from $P(A|B)$?',
+        '② Definition: $P(A|B) = \\frac{P(A \\cap B)}{P(B)}$. Drop the denominator and you get $P(A \\cap B)$, not the conditional.',
+        '③ To compute $P(A|B)$ you still need $P(B)$ — e.g. from the law of total probability.',
+      ],
       solvedMsg: '$P(A|B)$ i $P(A \\cap B)$ to dwie różne wielkości — pierwsza jest drugą podzieloną przez $P(B)$. Iloczynu zdarzeń nie należy utożsamiać z prawdopodobieństwem warunkowym.',
+      solvedMsgEn: '$P(A|B)$ and $P(A \\cap B)$ are two different quantities — the first is the second divided by $P(B)$. The joint probability is not the conditional one.',
       draw() {
         clearBG();
         // Simple illustration: two boxes side by side showing the difference.
@@ -376,34 +411,44 @@ import { drawProbTree } from '../lib/prob-tree.js';
     {
       id: 'ch4',
       title: 'Prawdopodobieństwo całkowite (urny)',
+      titleEn: 'Total probability (urns)',
       desc: 'Urna U1: 3 białe + 2 czarne. Urna U2: 1 biała + 4 czarne. Rzucamy kostką; jeśli wypadnie $1$ lub $2$ — losujemy z U1, inaczej z U2. Jakie $P(\\text{biała})$?',
+      descEn: 'Urn U1: 3 white + 2 black. Urn U2: 1 white + 4 black. Roll a die; if it shows $1$ or $2$ — draw from U1, otherwise from U2. What is $P(\\text{white})$?',
       drawBackground: 'blank',
       init() { C.picked4 = null; },
       predict: {
         question: 'Zanim policzysz: intuicyjnie, $P(\\text{biała})$ jest...',
+        questionEn: 'Before you compute: intuitively, $P(\\text{white})$ is...',
         options: [
-          { label: 'większe niż $\\frac{1}{2}$', correct: false, why: 'Spójrz na odsetki: U1 ma $60\\%$ białych, U2 tylko $20\\%$. I częściej sięgamy do U2 ($4$ na $6$). Intuicja mówi: mniej niż połowa.' },
-          { label: 'mniej niż $\\frac{1}{2}$',   correct: true,  why: 'Tak — ponieważ U2 ma mało białych, a sięgamy po nią częściej, wynik będzie poniżej $50\\%$.' },
-          { label: 'dokładnie $\\frac{1}{2}$',   correct: false, why: 'Dokładna równowaga wymagałaby specjalnych proporcji; tu się nie pokrywa.' },
+          { label: 'większe niż $\\frac{1}{2}$', labelEn: 'greater than $\\frac{1}{2}$', correct: false, why: 'Spójrz na odsetki: U1 ma $60\\%$ białych, U2 tylko $20\\%$. I częściej sięgamy do U2 ($4$ na $6$). Intuicja mówi: mniej niż połowa.', whyEn: 'Look at the percentages: U1 is $60\\%$ white, U2 only $20\\%$. And we reach for U2 more often ($4$ out of $6$). The intuition says: less than half.' },
+          { label: 'mniej niż $\\frac{1}{2}$',   labelEn: 'less than $\\frac{1}{2}$',   correct: true,  why: 'Tak — ponieważ U2 ma mało białych, a sięgamy po nią częściej, wynik będzie poniżej $50\\%$.', whyEn: 'Yes — since U2 is mostly black and we draw from it more often, the result will be below $50\\%$.' },
+          { label: 'dokładnie $\\frac{1}{2}$',   labelEn: 'exactly $\\frac{1}{2}$',     correct: false, why: 'Dokładna równowaga wymagałaby specjalnych proporcji; tu się nie pokrywa.', whyEn: 'A perfect balance would require special proportions; the numbers here don’t line up.' },
         ],
       },
       choices: {
         question: 'Wybierz poprawny wzór i wartość na $P(\\text{biała})$:',
+        questionEn: 'Pick the correct formula and value for $P(\\text{white})$:',
         options: [
-          { id: 'a', label: '$\\frac{1}{3} \\cdot \\frac{3}{5} + \\frac{2}{3} \\cdot \\frac{1}{5} = \\frac{5}{15} = \\frac{1}{3}$', correct: true  },
-          { id: 'b', label: '$\\frac{3}{5} + \\frac{1}{5} = \\frac{4}{5}$ — suma bez wag',                                          correct: false },
-          { id: 'c', label: '$\\frac{1}{2} \\cdot \\frac{3}{5} + \\frac{1}{2} \\cdot \\frac{1}{5} = \\frac{2}{5}$ — złe wagi',        correct: false },
+          { id: 'a', label: '$\\frac{1}{3} \\cdot \\frac{3}{5} + \\frac{2}{3} \\cdot \\frac{1}{5} = \\frac{5}{15} = \\frac{1}{3}$', labelEn: '$\\frac{1}{3} \\cdot \\frac{3}{5} + \\frac{2}{3} \\cdot \\frac{1}{5} = \\frac{5}{15} = \\frac{1}{3}$', correct: true  },
+          { id: 'b', label: '$\\frac{3}{5} + \\frac{1}{5} = \\frac{4}{5}$ — suma bez wag',                                          labelEn: '$\\frac{3}{5} + \\frac{1}{5} = \\frac{4}{5}$ — unweighted sum',                                  correct: false },
+          { id: 'c', label: '$\\frac{1}{2} \\cdot \\frac{3}{5} + \\frac{1}{2} \\cdot \\frac{1}{5} = \\frac{2}{5}$ — złe wagi',        labelEn: '$\\frac{1}{2} \\cdot \\frac{3}{5} + \\frac{1}{2} \\cdot \\frac{1}{5} = \\frac{2}{5}$ — wrong weights',  correct: false },
         ],
         pick(id) { C.picked4 = id; },
       },
-      pips() { return [{ label: 'wzór prawidłowy', ok: C.picked4 === 'a' }]; },
+      pips() { return [{ label: T('wzór prawidłowy', 'correct formula'), ok: C.picked4 === 'a' }]; },
       solved() { return C.picked4 === 'a'; },
       hints: [
         '① Wzór prawdopodobieństwa całkowitego: rozbij na rozłączne przypadki (tu: z której urny losujesz).',
         '② $P(\\text{biała}) = P(\\text{U1}) \\cdot P(\\text{biała}|\\text{U1}) + P(\\text{U2}) \\cdot P(\\text{biała}|\\text{U2})$.',
         '③ $= \\frac{1}{3} \\cdot \\frac{3}{5} + \\frac{2}{3} \\cdot \\frac{1}{5} = \\frac{1}{5} + \\frac{2}{15} = \\frac{3 + 2}{15} = \\frac{5}{15} = \\frac{1}{3}$.',
       ],
+      hintsEn: [
+        '① Law of total probability: split into disjoint cases (here: which urn you draw from).',
+        '② $P(\\text{white}) = P(\\text{U1}) \\cdot P(\\text{white}|\\text{U1}) + P(\\text{U2}) \\cdot P(\\text{white}|\\text{U2})$.',
+        '③ $= \\frac{1}{3} \\cdot \\frac{3}{5} + \\frac{2}{3} \\cdot \\frac{1}{5} = \\frac{1}{5} + \\frac{2}{15} = \\frac{3 + 2}{15} = \\frac{5}{15} = \\frac{1}{3}$.',
+      ],
       solvedMsg: 'Prawdopodobieństwo całkowite to ważona suma po rozłącznych przypadkach, gdzie wagami są prawdopodobieństwa poszczególnych przypadków.',
+      solvedMsgEn: 'Total probability is a weighted sum over disjoint cases, with the weights being the probabilities of the individual cases.',
       draw() {
         clearBG();
         const hl = C.picked4 === 'a';
@@ -449,6 +494,7 @@ import { drawProbTree } from '../lib/prob-tree.js';
     challenges,
     lsKey: 'warsztat:cond_prob:completed',
     wrapup: 'Dwie reguły, które warto zapamiętać: (1) paradoks podstawy — przy rzadkich zdarzeniach sama dokładność testu nie przekłada się na dokładność wyniku; (2) $P(A|B) \\neq P(B|A)$ — kierunek warunku ma znaczenie.',
+    wrapupEn: 'Two rules worth remembering: (1) the base-rate paradox — for rare events, test accuracy alone does not translate into result accuracy; (2) $P(A|B) \\neq P(B|A)$ — the direction of the condition matters.',
   });
 }
 </script>

@@ -105,7 +105,7 @@
 </div>
 
 <script type="module">
-import { initWarsztat } from '../lib/warsztat-core.js';
+import { initWarsztat, T } from '../lib/warsztat-core.js';
 {
   const cv = document.getElementById('cv');
   const ctx = cv.getContext('2d');
@@ -196,22 +196,29 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     // ─── Ch.1: Pochodna stałej ─────────────────────────────
     {
       id: 'ch1',
-      title: 'Pochodna stałej i liczby',
-      desc: 'Sprawdź rozumowanie Adama krok po kroku. Który krok nie jest prawdą?',
+      title:   'Pochodna stałej i liczby',
+      titleEn: 'Derivative of a constant and a number',
+      desc:    'Sprawdź rozumowanie Adama krok po kroku. Który krok nie jest prawdą?',
+      descEn:  'Walk through Adam’s reasoning step by step. Which step is not true?',
       init: noop,
       debug: {
-        task: 'Adam policzył $(3x^2 + 7)\'$ i dostał $6x + 7$. Gdzie błąd?',
+        task:   'Adam policzył $(3x^2 + 7)\'$ i dostał $6x + 7$. Gdzie błąd?',
+        taskEn: 'Adam computed $(3x^2 + 7)\'$ and got $6x + 7$. Where is the mistake?',
         steps: [
-          { n: 1, text: '$f(x) = 3x^2 + 7$' },
-          { n: 2, text: '$(3x^2)\' = 6x$' },
-          { n: 3, text: '$(7)\' = 7$' },
-          { n: 4, text: 'Stąd $f\'(x) = 6x + 7$.' },
+          { n: 1, text: '$f(x) = 3x^2 + 7$',           textEn: '$f(x) = 3x^2 + 7$' },
+          { n: 2, text: '$(3x^2)\' = 6x$',              textEn: '$(3x^2)\' = 6x$' },
+          { n: 3, text: '$(7)\' = 7$',                  textEn: '$(7)\' = 7$' },
+          { n: 4, text: 'Stąd $f\'(x) = 6x + 7$.',     textEn: 'So $f\'(x) = 6x + 7$.' },
         ],
         errorLine: 3,
         wrongChoice: {
           2: 'Krok 2 jest poprawny: $(3x^2)\' = 6x$.',
         },
-        correctExplanation: 'Krok 3: $(7)\' = 0$, nie $7$. Pochodna dowolnej stałej to zero. Prawidłowo: $f\'(x) = 6x + 0 = 6x$.',
+        wrongChoiceEn: {
+          2: 'Step 2 is correct: $(3x^2)\' = 6x$.',
+        },
+        correctExplanation:   'Krok 3: $(7)\' = 0$, nie $7$. Pochodna dowolnej stałej to zero. Prawidłowo: $f\'(x) = 6x + 0 = 6x$.',
+        correctExplanationEn: 'Step 3: $(7)\' = 0$, not $7$. The derivative of any constant is zero. Correctly: $f\'(x) = 6x + 0 = 6x$.',
       },
       pips: () => [],
       solved: () => false,
@@ -220,36 +227,59 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         'Stała nie zmienia się wcale — więc tempo zmian (pochodna) wynosi 0.',
         '$(c)\' = 0$ dla dowolnej liczby $c$. Szukaj kroku, w którym Adam napisał coś innego.',
       ],
-      solvedMsg: 'Pochodna dowolnej stałej wynosi zero — niezależnie od tego, jak duża jest ta stała.',
+      hintsEn: [
+        'What does it mean for a function to be constant? How fast does it change?',
+        'A constant doesn’t change at all — so its rate of change (derivative) is 0.',
+        '$(c)\' = 0$ for any number $c$. Look for a step where Adam wrote something different.',
+      ],
+      solvedMsg:   'Pochodna dowolnej stałej wynosi zero — niezależnie od tego, jak duża jest ta stała.',
+      solvedMsgEn: 'The derivative of any constant is zero — no matter how large the constant.',
       draw: clearCanvas,
     },
 
     // ─── Ch.2: Pochodna iloczynu ───────────────────────────
     {
       id: 'ch2',
-      title: 'Pochodna iloczynu (NIE iloczyn pochodnych)',
-      desc: 'Ola liczy pochodną iloczynu. Pierwiastki cząstkowe zrobiła dobrze — gdzie zgubiła regułę?',
+      title:   'Pochodna iloczynu (NIE iloczyn pochodnych)',
+      titleEn: 'Product rule (NOT a product of derivatives)',
+      desc:    'Ola liczy pochodną iloczynu. Pierwiastki cząstkowe zrobiła dobrze — gdzie zgubiła regułę?',
+      descEn:  'Ola is computing the derivative of a product. Her partial pieces are right — where did she lose the rule?',
       init: noop,
       debug: {
-        task: 'Ola policzyła $(x^2 \\cdot \\sin x)\'$ i dostała $2x \\cos x$. Gdzie błąd?',
+        task:   'Ola policzyła $(x^2 \\cdot \\sin x)\'$ i dostała $2x \\cos x$. Gdzie błąd?',
+        taskEn: 'Ola computed $(x^2 \\cdot \\sin x)\'$ and got $2x \\cos x$. Where is the mistake?',
         steps: [
-          { n: 1, text: '$f = x^2 \\cdot \\sin x$' },
-          { n: 2, text: '$(x^2)\' = 2x$' },
-          { n: 3, text: '$(\\sin x)\' = \\cos x$' },
-          { n: 4, text: 'Pochodna iloczynu = iloczyn pochodnych: $2x \\cdot \\cos x$.' },
+          { n: 1, text: '$f = x^2 \\cdot \\sin x$',                                       textEn: '$f = x^2 \\cdot \\sin x$' },
+          { n: 2, text: '$(x^2)\' = 2x$',                                                  textEn: '$(x^2)\' = 2x$' },
+          { n: 3, text: '$(\\sin x)\' = \\cos x$',                                          textEn: '$(\\sin x)\' = \\cos x$' },
+          { n: 4, text: 'Pochodna iloczynu = iloczyn pochodnych: $2x \\cdot \\cos x$.', textEn: 'Derivative of a product = product of derivatives: $2x \\cdot \\cos x$.' },
         ],
         errorLine: 4,
         wrongChoice: {
           2: 'Krok 2 poprawny.',
           3: 'Krok 3 poprawny.',
         },
-        correctExplanation: 'Krok 4: $(f \\cdot g)\' \\neq f\' \\cdot g\'$. Prawdziwa reguła iloczynu: $(f \\cdot g)\' = f\'g + fg\'$. Dla $(x^2 \\sin x)\' = 2x \\sin x + x^2 \\cos x$.',
+        wrongChoiceEn: {
+          2: 'Step 2 is correct.',
+          3: 'Step 3 is correct.',
+        },
+        correctExplanation:   'Krok 4: $(f \\cdot g)\' \\neq f\' \\cdot g\'$. Prawdziwa reguła iloczynu: $(f \\cdot g)\' = f\'g + fg\'$. Dla $(x^2 \\sin x)\' = 2x \\sin x + x^2 \\cos x$.',
+        correctExplanationEn: 'Step 4: $(f \\cdot g)\' \\neq f\' \\cdot g\'$. The actual product rule: $(f \\cdot g)\' = f\'g + fg\'$. So $(x^2 \\sin x)\' = 2x \\sin x + x^2 \\cos x$.',
       },
       predictAfter: {
-        question: 'A $(x \\cdot x)\' = (x^2)\' = 2x$. Czy reguła iloczynu też to daje?',
+        question:   'A $(x \\cdot x)\' = (x^2)\' = 2x$. Czy reguła iloczynu też to daje?',
+        questionEn: 'And $(x \\cdot x)\' = (x^2)\' = 2x$. Does the product rule also give that?',
         options: [
-          { label: 'Tak, bo $1 \\cdot x + x \\cdot 1 = 2x$', correct: true, why: 'Dokładnie. Dla $f = x$, $g = x$ mamy $f\' = 1$, $g\' = 1$, więc $(f \\cdot g)\' = 1 \\cdot x + x \\cdot 1 = 2x$. Reguła jest spójna z $(x^2)\' = 2x$.' },
-          { label: 'Nie, reguły się nie zgadzają', correct: false, why: 'Zgadzają się: $(f\' g + f g\')$ z $f = g = x$ daje $x + x = 2x$ — ten sam wynik, co $(x^2)\' = 2x$.' },
+          { label:   'Tak, bo $1 \\cdot x + x \\cdot 1 = 2x$',
+            labelEn: 'Yes, because $1 \\cdot x + x \\cdot 1 = 2x$',
+            correct: true,
+            why:   'Dokładnie. Dla $f = x$, $g = x$ mamy $f\' = 1$, $g\' = 1$, więc $(f \\cdot g)\' = 1 \\cdot x + x \\cdot 1 = 2x$. Reguła jest spójna z $(x^2)\' = 2x$.',
+            whyEn: 'Exactly. With $f = x$, $g = x$ we get $f\' = 1$, $g\' = 1$, so $(f \\cdot g)\' = 1 \\cdot x + x \\cdot 1 = 2x$. The rule agrees with $(x^2)\' = 2x$.' },
+          { label:   'Nie, reguły się nie zgadzają',
+            labelEn: 'No, the rules disagree',
+            correct: false,
+            why:   'Zgadzają się: $(f\' g + f g\')$ z $f = g = x$ daje $x + x = 2x$ — ten sam wynik, co $(x^2)\' = 2x$.',
+            whyEn: 'They do agree: $(f\' g + f g\')$ with $f = g = x$ gives $x + x = 2x$ — the same result as $(x^2)\' = 2x$.' },
         ],
       },
       pips: () => [],
@@ -259,37 +289,62 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         'Prawidłowy wzór: $(f \\cdot g)\' = f\'g + fg\'$ — suma dwóch składników, każdy różniczkuje tylko jeden czynnik.',
         'Szukaj kroku, w którym pojawia się $f\' \\cdot g\'$ zamiast $f\'g + fg\'$.',
       ],
-      solvedMsg: 'Pochodna iloczynu ma dwa składniki: $f\'g + fg\'$. Samo pomnożenie pochodnych czynników daje zupełnie inną funkcję.',
+      hintsEn: [
+        'The derivative of a product is NOT a product of derivatives.',
+        'The correct formula: $(f \\cdot g)\' = f\'g + fg\'$ — a sum of two terms, each differentiating only one factor.',
+        'Look for the step where $f\' \\cdot g\'$ appears instead of $f\'g + fg\'$.',
+      ],
+      solvedMsg:   'Pochodna iloczynu ma dwa składniki: $f\'g + fg\'$. Samo pomnożenie pochodnych czynników daje zupełnie inną funkcję.',
+      solvedMsgEn: 'The derivative of a product has two terms: $f\'g + fg\'$. Just multiplying the factor-derivatives gives an entirely different function.',
       draw: clearCanvas,
     },
 
     // ─── Ch.3: Reguła łańcuchowa (predict + choices) ───────
     {
       id: 'ch3',
-      title: 'Reguła łańcuchowa',
-      desc: 'Najpierw zgadnij wynik, potem wybierz prawidłowy OGÓLNY wzór na pochodną złożenia.',
+      title:   'Reguła łańcuchowa',
+      titleEn: 'Chain rule',
+      desc:    'Najpierw zgadnij wynik, potem wybierz prawidłowy OGÓLNY wzór na pochodną złożenia.',
+      descEn:  'First guess the answer, then pick the correct GENERAL formula for the derivative of a composition.',
       drawBackground: 'blank',
       init() { C.chainPick = null; },
       predict: {
-        question: '$(\\sin(2x))\'$ wynosi:',
+        question:   '$(\\sin(2x))\'$ wynosi:',
+        questionEn: '$(\\sin(2x))\'$ equals:',
         options: [
-          { label: '$\\cos(2x)$', correct: false, why: 'Zapomniałeś o czynniku łańcuchowym. Pochodna zewnętrznej $\\sin$ to $\\cos$, ale trzeba jeszcze pomnożyć przez pochodną wewnętrznej $(2x)\' = 2$.' },
-          { label: '$2\\cos(2x)$', correct: true, why: 'Tak. Reguła łańcuchowa: zewnętrzna $(\\sin)\' = \\cos$ na całym argumencie $2x$, razy pochodna wewnętrznej $(2x)\' = 2$. Razem: $2\\cos(2x)$.' },
-          { label: '$\\cos(2)$', correct: false, why: 'Różniczkujemy po $x$, nie po stałej. Argumentem wewnątrz $\\cos$ zostaje $2x$, nie sama $2$.' },
-          { label: '$2x \\cos(2x)$', correct: false, why: 'Pochodna wewnętrznej to $(2x)\' = 2$, a nie $2x$. Mnożysz przez 2, nie przez $2x$.' },
+          { label: '$\\cos(2x)$',     labelEn: '$\\cos(2x)$',
+            correct: false,
+            why:   'Zapomniałeś o czynniku łańcuchowym. Pochodna zewnętrznej $\\sin$ to $\\cos$, ale trzeba jeszcze pomnożyć przez pochodną wewnętrznej $(2x)\' = 2$.',
+            whyEn: 'You forgot the chain factor. The outer derivative $(\\sin)\' = \\cos$ is right, but you also need to multiply by the inner derivative $(2x)\' = 2$.' },
+          { label: '$2\\cos(2x)$',    labelEn: '$2\\cos(2x)$',
+            correct: true,
+            why:   'Tak. Reguła łańcuchowa: zewnętrzna $(\\sin)\' = \\cos$ na całym argumencie $2x$, razy pochodna wewnętrznej $(2x)\' = 2$. Razem: $2\\cos(2x)$.',
+            whyEn: 'Yes. Chain rule: the outer $(\\sin)\' = \\cos$ on the full argument $2x$, times the inner derivative $(2x)\' = 2$. Together: $2\\cos(2x)$.' },
+          { label: '$\\cos(2)$',       labelEn: '$\\cos(2)$',
+            correct: false,
+            why:   'Różniczkujemy po $x$, nie po stałej. Argumentem wewnątrz $\\cos$ zostaje $2x$, nie sama $2$.',
+            whyEn: 'We differentiate with respect to $x$, not a constant. The argument inside $\\cos$ stays $2x$, not just $2$.' },
+          { label: '$2x \\cos(2x)$',   labelEn: '$2x \\cos(2x)$',
+            correct: false,
+            why:   'Pochodna wewnętrznej to $(2x)\' = 2$, a nie $2x$. Mnożysz przez 2, nie przez $2x$.',
+            whyEn: 'The inner derivative is $(2x)\' = 2$, not $2x$. You multiply by 2, not by $2x$.' },
         ],
       },
       choices: {
-        question: 'Wybierz prawidłowy OGÓLNY wzór na $(f(g(x)))\'$:',
+        question:   'Wybierz prawidłowy OGÓLNY wzór na $(f(g(x)))\'$:',
+        questionEn: 'Pick the correct GENERAL formula for $(f(g(x)))\'$:',
         options: [
-          { id: 'prod', label: "$f'(x) \\cdot g'(x)$ — iloczyn pochodnych", correct: false },
-          { id: 'chain', label: "$f'(g(x)) \\cdot g'(x)$ — pochodna zewnętrznej (wciąż na $g(x)$) razy pochodna wewnętrznej", correct: true },
-          { id: 'nest', label: "$f(g'(x))$ — różniczkujemy tylko wewnętrzną i wkładamy z powrotem", correct: false },
+          { id: 'prod',  label: "$f'(x) \\cdot g'(x)$ — iloczyn pochodnych",
+                         labelEn: "$f'(x) \\cdot g'(x)$ — product of derivatives", correct: false },
+          { id: 'chain', label: "$f'(g(x)) \\cdot g'(x)$ — pochodna zewnętrznej (wciąż na $g(x)$) razy pochodna wewnętrznej",
+                         labelEn: "$f'(g(x)) \\cdot g'(x)$ — outer derivative (still evaluated at $g(x)$) times inner derivative", correct: true },
+          { id: 'nest',  label: "$f(g'(x))$ — różniczkujemy tylko wewnętrzną i wkładamy z powrotem",
+                         labelEn: "$f(g'(x))$ — only differentiate the inner and plug it back in", correct: false },
         ],
         pick(id) { C.chainPick = id; },
       },
       pips() {
-        return [{ label: 'wybrany wzór łańcuchowy', ok: C.chainPick === 'chain' }];
+        return [{ label: T('wybrany wzór łańcuchowy', 'chain rule formula picked'), ok: C.chainPick === 'chain' }];
       },
       solved() { return C.chainPick === 'chain'; },
       hints: [
@@ -297,23 +352,32 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② Dla $\\sin(2x)$: zewnętrzna to $\\sin$, wewnętrzna to $2x$. $\\sin\' = \\cos$, $(2x)\' = 2$.',
         '③ Wynik: $\\cos(2x) \\cdot 2 = 2\\cos(2x)$.',
       ],
-      solvedMsg: 'Reguła łańcuchowa: pochodna zewnętrznej pomnożona przez pochodną wewnętrznej. Pominięcie drugiego czynnika zmienia wynik, dlatego warto go pisać jako pierwszy odruch.',
+      hintsEn: [
+        '① Chain rule: derivative of the outer function times the derivative of the inner.',
+        '② For $\\sin(2x)$: outer is $\\sin$, inner is $2x$. $\\sin\' = \\cos$, $(2x)\' = 2$.',
+        '③ Result: $\\cos(2x) \\cdot 2 = 2\\cos(2x)$.',
+      ],
+      solvedMsg:   'Reguła łańcuchowa: pochodna zewnętrznej pomnożona przez pochodną wewnętrznej. Pominięcie drugiego czynnika zmienia wynik, dlatego warto go pisać jako pierwszy odruch.',
+      solvedMsgEn: 'Chain rule: the outer derivative times the inner derivative. Skipping the second factor changes the answer, so write it down as the first reflex.',
       draw: drawChainDiagram,
     },
 
     // ─── Ch.4: Pochodna ilorazu ───────────────────────────
     {
       id: 'ch4',
-      title: 'Pochodna ilorazu (pułapka znaku)',
-      desc: 'Kuba próbuje iloraz — pochodne cząstkowe OK, ale składa je nie tą regułą. Znajdź krok, w którym wzór się łamie.',
+      title:   'Pochodna ilorazu (pułapka znaku)',
+      titleEn: 'Quotient rule (sign trap)',
+      desc:    'Kuba próbuje iloraz — pochodne cząstkowe OK, ale składa je nie tą regułą. Znajdź krok, w którym wzór się łamie.',
+      descEn:  'Kuba tries a quotient — the partial derivatives are fine, but he assembles them with the wrong rule. Find the step where the formula breaks.',
       init: noop,
       debug: {
-        task: 'Kuba policzył $\\left(\\frac{x^2}{x+1}\\right)\'$ i dostał $\\frac{2x}{1}$. Gdzie błąd?',
+        task:   'Kuba policzył $\\left(\\frac{x^2}{x+1}\\right)\'$ i dostał $\\frac{2x}{1}$. Gdzie błąd?',
+        taskEn: 'Kuba computed $\\left(\\frac{x^2}{x+1}\\right)\'$ and got $\\frac{2x}{1}$. Where is the mistake?',
         steps: [
-          { n: 1, text: 'Licznik: $u = x^2$, $u\' = 2x$' },
-          { n: 2, text: 'Mianownik: $v = x+1$, $v\' = 1$' },
-          { n: 3, text: 'Iloraz: $\\left(\\frac{u}{v}\\right)\' = \\frac{u\'}{v\'}$.' },
-          { n: 4, text: 'Stąd $\\frac{2x}{1} = 2x$.' },
+          { n: 1, text: 'Licznik: $u = x^2$, $u\' = 2x$',                           textEn: 'Numerator: $u = x^2$, $u\' = 2x$' },
+          { n: 2, text: 'Mianownik: $v = x+1$, $v\' = 1$',                           textEn: 'Denominator: $v = x+1$, $v\' = 1$' },
+          { n: 3, text: 'Iloraz: $\\left(\\frac{u}{v}\\right)\' = \\frac{u\'}{v\'}$.', textEn: 'Quotient: $\\left(\\frac{u}{v}\\right)\' = \\frac{u\'}{v\'}$.' },
+          { n: 4, text: 'Stąd $\\frac{2x}{1} = 2x$.',                                 textEn: 'So $\\frac{2x}{1} = 2x$.' },
         ],
         errorLine: 3,
         wrongChoice: {
@@ -321,7 +385,13 @@ import { initWarsztat } from '../lib/warsztat-core.js';
           2: 'Krok 2 poprawny: $(x+1)\' = 1$.',
           4: 'Krok 4 to tylko arytmetyka na tym, co wyszło z kroku 3. Wzór, z którego Kuba wyszedł, jest złym wzorem.',
         },
-        correctExplanation: 'Krok 3: wzór na pochodną ilorazu to $\\left(\\frac{u}{v}\\right)\' = \\frac{u\'v - uv\'}{v^2}$, nie $\\frac{u\'}{v\'}$. Dla tego przypadku: $\\frac{2x(x+1) - x^2 \\cdot 1}{(x+1)^2} = \\frac{x^2 + 2x}{(x+1)^2}$.',
+        wrongChoiceEn: {
+          1: 'Step 1 is correct: $(x^2)\' = 2x$.',
+          2: 'Step 2 is correct: $(x+1)\' = 1$.',
+          4: 'Step 4 is just arithmetic on what step 3 produced. The formula Kuba started from is the wrong formula.',
+        },
+        correctExplanation:   'Krok 3: wzór na pochodną ilorazu to $\\left(\\frac{u}{v}\\right)\' = \\frac{u\'v - uv\'}{v^2}$, nie $\\frac{u\'}{v\'}$. Dla tego przypadku: $\\frac{2x(x+1) - x^2 \\cdot 1}{(x+1)^2} = \\frac{x^2 + 2x}{(x+1)^2}$.',
+        correctExplanationEn: 'Step 3: the quotient rule is $\\left(\\frac{u}{v}\\right)\' = \\frac{u\'v - uv\'}{v^2}$, not $\\frac{u\'}{v\'}$. Here: $\\frac{2x(x+1) - x^2 \\cdot 1}{(x+1)^2} = \\frac{x^2 + 2x}{(x+1)^2}$.',
       },
       pips: () => [],
       solved: () => false,
@@ -330,7 +400,13 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         'Wzór: $\\left(\\frac{u}{v}\\right)\' = \\frac{u\'v - uv\'}{v^2}$. Porównaj go z tym, co napisał Kuba.',
         'Kuba "uprościł" wzór do $\\frac{u\'}{v\'}$ — ale to nie działa. Znajdź ten krok.',
       ],
-      solvedMsg: 'W pochodnej ilorazu w liczniku jest minus ($u\'v - uv\'$), a w mianowniku kwadrat ($v^2$). Warto zapamiętać oba te elementy razem.',
+      hintsEn: [
+        'The quotient rule has three signature elements: a MINUS in the numerator and $v^2$ in the denominator.',
+        'Formula: $\\left(\\frac{u}{v}\\right)\' = \\frac{u\'v - uv\'}{v^2}$. Compare it with what Kuba wrote.',
+        'Kuba "simplified" it to $\\frac{u\'}{v\'}$ — but that doesn’t work. Find that step.',
+      ],
+      solvedMsg:   'W pochodnej ilorazu w liczniku jest minus ($u\'v - uv\'$), a w mianowniku kwadrat ($v^2$). Warto zapamiętać oba te elementy razem.',
+      solvedMsgEn: 'The quotient rule has a minus in the numerator ($u\'v - uv\'$) and a square in the denominator ($v^2$). Worth memorising both pieces together.',
       draw: clearCanvas,
     },
   ];
@@ -339,7 +415,8 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     canvasId: 'cv',
     challenges,
     lsKey: 'warsztat:derivative:completed',
-    wrapup: 'Trzy reguły warte zapamiętania: (1) pochodna stałej jest równa zero; (2) pochodna iloczynu to $f\'g + fg\'$, a nie iloczyn pochodnych; (3) reguła łańcuchowa to pochodna zewnętrznej razy pochodna wewnętrznej. W pochodnej ilorazu zawsze pojawia się minus w liczniku.',
+    wrapup:   'Trzy reguły warte zapamiętania: (1) pochodna stałej jest równa zero; (2) pochodna iloczynu to $f\'g + fg\'$, a nie iloczyn pochodnych; (3) reguła łańcuchowa to pochodna zewnętrznej razy pochodna wewnętrznej. W pochodnej ilorazu zawsze pojawia się minus w liczniku.',
+    wrapupEn: 'Three rules worth memorising: (1) the derivative of a constant is zero; (2) the product rule is $f\'g + fg\'$, not a product of derivatives; (3) the chain rule is outer derivative times inner derivative. The quotient rule always has a minus in the numerator.',
   });
 }
 </script>

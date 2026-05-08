@@ -90,7 +90,7 @@
 
 <script type="module">
 import { GraphView } from '../lib/graph-core.js';
-import { initWarsztat } from '../lib/warsztat-core.js';
+import { initWarsztat, T } from '../lib/warsztat-core.js';
 {
   const cv = document.getElementById('cv');
   const ctx = cv.getContext('2d');
@@ -224,24 +224,33 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     {
       id: 'ch0_intro',
       title: 'Wprowadzenie: cztery rodziny przekszta\u0142ce\u0144',
+      titleEn: 'Intro: four families of transformations',
       desc: 'Te same zasady dzia\u0142aj\u0105 dla ka\u017Cdej bazowej krzywej. Na g\u00F3rze widzisz parabol\u0119 $y = x^2$, na dole sinusoid\u0119 $y = \\sin x$. W ka\u017Cdej kolumnie inna rodzina przekszta\u0142ce\u0144. W nast\u0119pnych wyzwaniach zbadasz po kolei ka\u017Cd\u0105 z nich.',
+      descEn: 'The same rules apply to every base curve. On top you see the parabola $y = x^2$, on the bottom the sine $y = \\sin x$. Each column shows a different family of transformations. The next challenges walk through them one at a time.',
       drawBackground: 'none',
       init() { C.introDone = false; },
       choices: {
         question: 'Kliknij, \u017Ceby przej\u015B\u0107 do \u0107wicze\u0144.',
+        questionEn: 'Click to move on to the exercises.',
         options: [
-          { id: 'go', label: 'Rozumiem \u2014 przejd\u017A dalej', correct: true },
+          { id: 'go', label: 'Rozumiem \u2014 przejd\u017A dalej', labelEn: 'Got it \u2014 move on', correct: true },
         ],
         pick(id) { C.introDone = id === 'go'; },
       },
-      pips() { return [{ label: 'wprowadzenie przeczytane', ok: C.introDone }]; },
+      pips() { return [{ label: T('wprowadzenie przeczytane', 'intro read'), ok: C.introDone }]; },
       solved() { return C.introDone; },
       hints: [
         'Wewn\u0105trz argumentu funkcji zmiany dzia\u0142aj\u0105 w POZIOMIE i przeciwnie do intuicji \u2014 $(x - 3)^2$ przesuwa w prawo, nie w lewo.',
         'Na zewn\u0105trz funkcji zmiany dzia\u0142aj\u0105 w PIONIE i zgodnie z intuicj\u0105 \u2014 $f(x) + 2$ idzie w g\u00F3r\u0119 o 2.',
         'Ta sama zasada obowi\u0105zuje dla $x^2$, $\\sin x$, $|x|$, $\\sqrt{x}$ i ka\u017Cdej innej bazowej krzywej, kt\u00F3r\u0105 spotkasz.',
       ],
+      hintsEn: [
+        'Inside the argument, changes act HORIZONTALLY and counter to intuition \u2014 $(x - 3)^2$ shifts to the right, not the left.',
+        'Outside the function, changes act VERTICALLY and match intuition \u2014 $f(x) + 2$ goes up by 2.',
+        'The same rule holds for $x^2$, $\\sin x$, $|x|$, $\\sqrt{x}$ and every other base curve you\u2019ll meet.',
+      ],
       solvedMsg: 'Zaczynamy od przesuni\u0119\u0107 poziomych.',
+      solvedMsgEn: 'We start with horizontal shifts.',
       draw() {
         // 2 rows × 4 columns: top = parabola transformations, bottom = sin.
         // Canvas 600×360. Column width 150, row height ~165.
@@ -295,22 +304,25 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     {
       id: 'ch1_horizontal_shift',
       title: 'Przesuni\u0119cie poziome: $f(x - a)$',
+      titleEn: 'Horizontal shift: $f(x - a)$',
       desc: 'Baza: $f(x) = x^2$. Przesuwaj suwak $a$ i obserwuj, dok\u0105d w\u0119druje wierzcho\u0142ek $g(x) = (x - a)^2$.',
+      descEn: 'Base: $f(x) = x^2$. Drag the $a$ slider and watch where the vertex of $g(x) = (x - a)^2$ moves.',
       drawBackground: 'graph',
       init() { C.a = 0; },
       predict: {
         question: 'Je\u015Bli $g(x) = f(x - 2)$, to wykres $g$ jest wykresem $f$...',
+        questionEn: 'If $g(x) = f(x - 2)$, then the graph of $g$ is the graph of $f$...',
         options: [
-          { label: 'przesuni\u0119tym o 2 w LEWO', correct: false, why: 'Typowa pu\u0142apka \u2014 znak wewn\u0105trz nawiasu dzia\u0142a przeciwnie do intuicji. Spr\u00F3buj podstawi\u0107: $g(5) = f(5-2) = f(3)$ \u2014 to warto\u015B\u0107, kt\u00F3r\u0105 $f$ mia\u0142 w $x=3$. Wykres przesun\u0105\u0142 si\u0119 w PRAWO.' },
-          { label: 'przesuni\u0119tym o 2 w PRAWO', correct: true,  why: 'Tak \u2014 argument $x - 2$ oznacza \u201Esi\u0119gnij 2 pozycje wstecz\u201D, wi\u0119c wykres wygl\u0105da tak, jakby warto\u015Bci przenios\u0142y si\u0119 o 2 w prawo.' },
-          { label: 'przesuni\u0119tym o 2 w G\u00D3R\u0118', correct: false, why: 'G\u00F3ra/d\u00F3\u0142 to zmiany NA ZEWN\u0104TRZ funkcji: $f(x) + 2$. Znak wewn\u0105trz argumentu dzia\u0142a w poziomie.' },
+          { label: 'przesuni\u0119tym o 2 w LEWO', labelEn: 'shifted 2 to the LEFT', correct: false, why: 'Typowa pu\u0142apka \u2014 znak wewn\u0105trz nawiasu dzia\u0142a przeciwnie do intuicji. Spr\u00F3buj podstawi\u0107: $g(5) = f(5-2) = f(3)$ \u2014 to warto\u015B\u0107, kt\u00F3r\u0105 $f$ mia\u0142 w $x=3$. Wykres przesun\u0105\u0142 si\u0119 w PRAWO.', whyEn: 'The classic trap \u2014 the sign inside the parentheses acts opposite to intuition. Plug in: $g(5) = f(5-2) = f(3)$ \u2014 that\u2019s the value $f$ had at $x=3$. The graph moved to the RIGHT.' },
+          { label: 'przesuni\u0119tym o 2 w PRAWO', labelEn: 'shifted 2 to the RIGHT', correct: true,  why: 'Tak \u2014 argument $x - 2$ oznacza \u201Esi\u0119gnij 2 pozycje wstecz\u201D, wi\u0119c wykres wygl\u0105da tak, jakby warto\u015Bci przenios\u0142y si\u0119 o 2 w prawo.', whyEn: 'Yes \u2014 the argument $x - 2$ means \u201Creach back 2 positions,\u201D so the graph looks as if values moved 2 to the right.' },
+          { label: 'przesuni\u0119tym o 2 w G\u00D3R\u0118', labelEn: 'shifted 2 UP', correct: false, why: 'G\u00F3ra/d\u00F3\u0142 to zmiany NA ZEWN\u0104TRZ funkcji: $f(x) + 2$. Znak wewn\u0105trz argumentu dzia\u0142a w poziomie.', whyEn: 'Up/down comes from changes OUTSIDE the function: $f(x) + 2$. A sign inside the argument acts horizontally.' },
         ],
       },
       sliders: [
         { id: 'a', lbl: 'a', color: COL_AX, min: -3, max: 3, step: 1, get: () => C.a, set: v => C.a = v },
       ],
       pips() {
-        return [{ label: 'przesu\u0144 $a$ \u017Beby zobaczy\u0107', ok: C.a !== 0 }];
+        return [{ label: T('przesu\u0144 $a$ \u017Beby zobaczy\u0107', 'drag $a$ to see it'), ok: C.a !== 0 }];
       },
       solved() { return C.a !== 0; },
       hints: [
@@ -318,13 +330,20 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '\u2461 $g(5) = f(3)$ \u2014 to warto\u015B\u0107 $f$ w $x = 3$. Czyli wykres $g$ w punkcie 5 to to, co $f$ mia\u0142 w 3. Przesuw w PRAWO.',
         '\u2462 Regu\u0142a: $f(x - a)$ przesuwa wykres w prawo o $a$. Znak w nawiasie jest PRZECIWNY do kierunku przesuni\u0119cia.',
       ],
+      hintsEn: [
+        '\u2460 Plug a concrete $x$ into $g$. If $g(x) = f(x - 2)$, what is $g(5)$? And $f(5)$?',
+        '\u2461 $g(5) = f(3)$ \u2014 that\u2019s the value of $f$ at $x = 3$. So $g$ at point 5 shows what $f$ had at 3. A RIGHT-ward shift.',
+        '\u2462 Rule: $f(x - a)$ shifts the graph right by $a$. The sign in the parentheses is OPPOSITE to the direction of the shift.',
+      ],
       solvedMsg: 'Argument funkcji jest \u201Eodwr\u00F3cony w czasie\u201D \u2014 to co odejmujemy od $x$ przek\u0142ada si\u0119 na dodawanie w kierunku przesuni\u0119cia.',
+      solvedMsgEn: 'The argument is \u201Ctime-reversed\u201D \u2014 what we subtract from $x$ becomes addition in the direction of the shift.',
       predictAfter: {
         question: 'A co robi $f(x + 3)$?',
+        questionEn: 'And what does $f(x + 3)$ do?',
         options: [
-          { label: 'przesuwa w lewo o 3', correct: true,  why: 'Tak \u2014 $+3$ w argumencie przesuwa w LEWO o 3. Zawsze przeciwnie do znaku wewn\u0105trz nawiasu.' },
-          { label: 'przesuwa w prawo o 3', correct: false, why: 'Odwrotnie \u2014 $+3$ w nawiasie to przesuw w LEWO. Reguly: znak w nawiasie dzia\u0142a przeciwnie.' },
-          { label: 'nic \u2014 znak wewn\u0105trz nie zmienia wykresu', correct: false, why: 'Znak w nawiasie zmienia \u2014 tylko w poziomie, nie w pionie.' },
+          { label: 'przesuwa w lewo o 3', labelEn: 'shifts left by 3', correct: true,  why: 'Tak \u2014 $+3$ w argumencie przesuwa w LEWO o 3. Zawsze przeciwnie do znaku wewn\u0105trz nawiasu.', whyEn: 'Yes \u2014 $+3$ in the argument shifts LEFT by 3. Always opposite to the sign inside the parentheses.' },
+          { label: 'przesuwa w prawo o 3', labelEn: 'shifts right by 3', correct: false, why: 'Odwrotnie \u2014 $+3$ w nawiasie to przesuw w LEWO. Reguly: znak w nawiasie dzia\u0142a przeciwnie.', whyEn: 'The other way around \u2014 $+3$ inside the parentheses means a LEFT shift. The rule: the sign inside acts opposite.' },
+          { label: 'nic \u2014 znak wewn\u0105trz nie zmienia wykresu', labelEn: 'nothing \u2014 a sign inside doesn\u2019t change the graph', correct: false, why: 'Znak w nawiasie zmienia \u2014 tylko w poziomie, nie w pionie.', whyEn: 'A sign inside does change things \u2014 just horizontally, not vertically.' },
         ],
       },
       draw() {
@@ -395,22 +414,25 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     {
       id: 'ch2_vertical_shift',
       title: 'Przesuni\u0119cie pionowe: $f(x) + c$',
+      titleEn: 'Vertical shift: $f(x) + c$',
       desc: 'Baza: $f(x) = x^2$. Tutaj intuicja działa wprost — dodanie $c$ przesuwa cały wykres w górę o tyle samo. Przesuń suwak i obserwuj wierzchołek.',
+      descEn: 'Base: $f(x) = x^2$. Here intuition works directly — adding $c$ shifts the whole graph up by the same amount. Drag the slider and watch the vertex.',
       drawBackground: 'graph',
       init() { C.c = 0; },
       predict: {
         question: '$g(x) = f(x) + 2$ \u2014 wykres $g$ jest wykresem $f$...',
+        questionEn: '$g(x) = f(x) + 2$ \u2014 the graph of $g$ is the graph of $f$...',
         options: [
-          { label: 'przesuni\u0119tym o 2 w D\u00D3\u0141', correct: false, why: 'Odwrotnie \u2014 $+2$ dodaje do WARTO\u015ACI, wi\u0119c wykres idzie w G\u00D3R\u0118.' },
-          { label: 'przesuni\u0119tym o 2 w G\u00D3R\u0118', correct: true,  why: 'Tak \u2014 $+c$ na zewn\u0105trz dzia\u0142a intuicyjnie: plus to g\u00F3ra, minus to d\u00F3\u0142.' },
-          { label: 'przesuni\u0119tym o 2 w PRAWO', correct: false, why: 'Prawo/lewo to zmiany W ARGUMENCIE: $f(x - 2)$. $+2$ na zewn\u0105trz dzia\u0142a w pionie.' },
+          { label: 'przesuni\u0119tym o 2 w D\u00D3\u0141', labelEn: 'shifted 2 DOWN', correct: false, why: 'Odwrotnie \u2014 $+2$ dodaje do WARTO\u015ACI, wi\u0119c wykres idzie w G\u00D3R\u0118.', whyEn: 'The other way \u2014 $+2$ adds to the VALUE, so the graph goes UP.' },
+          { label: 'przesuni\u0119tym o 2 w G\u00D3R\u0118', labelEn: 'shifted 2 UP', correct: true,  why: 'Tak \u2014 $+c$ na zewn\u0105trz dzia\u0142a intuicyjnie: plus to g\u00F3ra, minus to d\u00F3\u0142.', whyEn: 'Yes \u2014 $+c$ on the outside acts intuitively: plus is up, minus is down.' },
+          { label: 'przesuni\u0119tym o 2 w PRAWO', labelEn: 'shifted 2 to the RIGHT', correct: false, why: 'Prawo/lewo to zmiany W ARGUMENCIE: $f(x - 2)$. $+2$ na zewn\u0105trz dzia\u0142a w pionie.', whyEn: 'Right/left comes from changes IN THE ARGUMENT: $f(x - 2)$. $+2$ on the outside acts vertically.' },
         ],
       },
       sliders: [
         { id: 'c', lbl: 'c', color: COL_AX, min: -3, max: 3, step: 1, get: () => C.c, set: v => C.c = v },
       ],
       pips() {
-        return [{ label: 'przesu\u0144 $c$ \u017Beby zobaczy\u0107', ok: C.c !== 0 }];
+        return [{ label: T('przesu\u0144 $c$ \u017Beby zobaczy\u0107', 'drag $c$ to see it'), ok: C.c !== 0 }];
       },
       solved() { return C.c !== 0; },
       hints: [
@@ -418,13 +440,20 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '\u2461 Sprawd\u017A: $g(0) = f(0) + 2 = 2$, w por\u00F3wnaniu z $f(0) = 0$.',
         '\u2462 Regu\u0142a: $+c$ w g\u00F3r\u0119, $-c$ w d\u00F3\u0142.',
       ],
+      hintsEn: [
+        '\u2460 You\u2019re adding to the output of $f$ \u2014 the whole graph moves up.',
+        '\u2461 Check: $g(0) = f(0) + 2 = 2$, compared with $f(0) = 0$.',
+        '\u2462 Rule: $+c$ goes up, $-c$ goes down.',
+      ],
       solvedMsg: 'Zewn\u0119trzne dodawanie dzia\u0142a intuicyjnie: plus = g\u00F3ra, minus = d\u00F3\u0142.',
+      solvedMsgEn: 'Outer addition is intuitive: plus = up, minus = down.',
       predictAfter: {
         question: 'Kt\u00F3ra z tych par przekszta\u0142ce\u0144 DZIA\u0141A ZGODNIE z intuicj\u0105?',
+        questionEn: 'Which of these transformations MATCHES intuition?',
         options: [
-          { label: '$f(x + 3)$ \u2014 w prawo o 3', correct: false, why: 'Nie \u2014 to w LEWO o 3. Znak w nawiasie dzia\u0142a przeciwnie.' },
-          { label: '$f(x) + 3$ \u2014 w g\u00F3r\u0119 o 3', correct: true,  why: 'Tak. Dodawanie NA ZEWN\u0104TRZ jest zgodne z intuicj\u0105.' },
-          { label: '$f(2x)$ \u2014 rozci\u0105ga o 2', correct: false, why: 'Odwrotnie \u2014 $f(2x)$ \u015ACISKA dwa razy. Skala wewn\u0105trz nawiasu dzia\u0142a na odwr\u00F3t.' },
+          { label: '$f(x + 3)$ \u2014 w prawo o 3', labelEn: '$f(x + 3)$ \u2014 right by 3', correct: false, why: 'Nie \u2014 to w LEWO o 3. Znak w nawiasie dzia\u0142a przeciwnie.', whyEn: 'No \u2014 that\u2019s LEFT by 3. The sign inside the parentheses acts opposite.' },
+          { label: '$f(x) + 3$ \u2014 w g\u00F3r\u0119 o 3', labelEn: '$f(x) + 3$ \u2014 up by 3', correct: true,  why: 'Tak. Dodawanie NA ZEWN\u0104TRZ jest zgodne z intuicj\u0105.', whyEn: 'Yes. Addition OUTSIDE the function matches intuition.' },
+          { label: '$f(2x)$ \u2014 rozci\u0105ga o 2', labelEn: '$f(2x)$ \u2014 stretches by 2', correct: false, why: 'Odwrotnie \u2014 $f(2x)$ \u015ACISKA dwa razy. Skala wewn\u0105trz nawiasu dzia\u0142a na odwr\u00F3t.', whyEn: 'The other way \u2014 $f(2x)$ COMPRESSES by a factor of 2. A scale inside the parentheses acts in reverse.' },
         ],
       },
       draw() {
@@ -445,29 +474,33 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     {
       id: 'ch3_reflections',
       title: 'Odbicia: $-f(x)$ i $f(-x)$',
+      titleEn: 'Reflections: $-f(x)$ and $f(-x)$',
       desc: 'Baza: $f(x) = x^3 - 2x$ (niesymetryczna, wi\u0119c odbicia rozr\u00F3\u017Cnisz). Wybierz rodzaj odbicia.',
+      descEn: 'Base: $f(x) = x^3 - 2x$ (asymmetric, so the reflections are distinguishable). Pick a type of reflection.',
       drawBackground: 'graph',
       init() { C.mode = 'none'; },
       predict: {
         question: 'Wykres $g(x) = -f(x)$ powstaje przez odbicie $f$ wzgl\u0119dem...',
+        questionEn: 'The graph of $g(x) = -f(x)$ comes from reflecting $f$ across...',
         options: [
-          { label: 'osi $x$', correct: true,  why: 'Tak \u2014 zewn\u0119trzny minus zmienia znak WARTO\u015ACI, wi\u0119c punkty \u201Espadaj\u0105\u201D przez o\u015B $x$.' },
-          { label: 'osi $y$', correct: false, why: 'To jest $f(-x)$ \u2014 wewn\u0119trzny minus. Zmienia znak ARGUMENTU, a to daje odbicie przez o\u015B $y$.' },
-          { label: 'pocz\u0105tku uk\u0142adu', correct: false, why: 'Obr\u00F3t o $180^\\circ$ (odbicie przez pocz\u0105tek) to $-f(-x)$ \u2014 oba minusy.' },
+          { label: 'osi $x$', labelEn: 'the $x$-axis', correct: true,  why: 'Tak \u2014 zewn\u0119trzny minus zmienia znak WARTO\u015ACI, wi\u0119c punkty \u201Espadaj\u0105\u201D przez o\u015B $x$.', whyEn: 'Yes \u2014 the outer minus flips the sign of the VALUE, so points \u201Cdrop\u201D across the $x$-axis.' },
+          { label: 'osi $y$', labelEn: 'the $y$-axis', correct: false, why: 'To jest $f(-x)$ \u2014 wewn\u0119trzny minus. Zmienia znak ARGUMENTU, a to daje odbicie przez o\u015B $y$.', whyEn: 'That\u2019s $f(-x)$ \u2014 an inner minus. It flips the sign of the ARGUMENT, which gives a reflection across the $y$-axis.' },
+          { label: 'pocz\u0105tku uk\u0142adu', labelEn: 'the origin', correct: false, why: 'Obr\u00F3t o $180^\\circ$ (odbicie przez pocz\u0105tek) to $-f(-x)$ \u2014 oba minusy.', whyEn: 'A $180^\\circ$ rotation (reflection through the origin) is $-f(-x)$ \u2014 both minuses.' },
         ],
       },
       choices: {
         question: 'Wybierz przekszta\u0142cenie. Zr\u00F3b wszystkie trzy \u2014 ostatnie musi by\u0107 odbicie przez pocz\u0105tek.',
+        questionEn: 'Pick a transformation. Try all three \u2014 the last one has to be the reflection through the origin.',
         options: [
-          { id: 'fx',    label: '$-f(x)$ (odbicie przez o\u015B $x$)', correct: false },
-          { id: 'f-x',   label: '$f(-x)$ (odbicie przez o\u015B $y$)', correct: false },
-          { id: '-f-x',  label: '$-f(-x)$ (obr\u00F3t o 180\u00B0)',     correct: true  },
-          { id: 'none',  label: 'bez odbicia',                            correct: false },
+          { id: 'fx',    label: '$-f(x)$ (odbicie przez o\u015B $x$)', labelEn: '$-f(x)$ (reflection across the $x$-axis)', correct: false },
+          { id: 'f-x',   label: '$f(-x)$ (odbicie przez o\u015B $y$)', labelEn: '$f(-x)$ (reflection across the $y$-axis)', correct: false },
+          { id: '-f-x',  label: '$-f(-x)$ (obr\u00F3t o 180\u00B0)',        labelEn: '$-f(-x)$ (rotation by 180\u00B0)',     correct: true  },
+          { id: 'none',  label: 'bez odbicia',                    labelEn: 'no reflection',                            correct: false },
         ],
         pick(id) { C.mode = id; },
       },
       pips() {
-        return [{ label: 'wybrano odbicie', ok: C.mode !== 'none' && C.mode !== '' }];
+        return [{ label: T('wybrano odbicie', 'reflection chosen'), ok: C.mode !== 'none' && C.mode !== '' }];
       },
       solved() { return C.mode === '-f-x'; },
       hints: [
@@ -475,14 +508,21 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '\u2461 $f(-x)$: wewn\u0119trzny minus. Zmienia znak ARGUMENTU \u2014 odbicie w pionie (przez o\u015B $y$).',
         '\u2462 $-f(-x)$: oba minusy \u2014 obr\u00F3t o $180^\\circ$ (odbicie przez pocz\u0105tek uk\u0142adu).',
       ],
+      hintsEn: [
+        '\u2460 $-f(x)$: outer minus. Flips the sign of the VALUE \u2014 a horizontal-flip reflection (across the $x$-axis).',
+        '\u2461 $f(-x)$: inner minus. Flips the sign of the ARGUMENT \u2014 a vertical-flip reflection (across the $y$-axis).',
+        '\u2462 $-f(-x)$: both minuses \u2014 a $180^\\circ$ rotation (reflection through the origin).',
+      ],
       solvedMsg: 'Zewn\u0119trzny minus \u2192 odbicie poziome (o\u015B $x$). Wewn\u0119trzny minus \u2192 odbicie pionowe (o\u015B $y$). Oba \u2014 obr\u00F3t o 180\u00B0.',
+      solvedMsgEn: 'Outer minus \u2192 reflection across the $x$-axis. Inner minus \u2192 reflection across the $y$-axis. Both \u2192 $180\u00B0$ rotation.',
       predictAfter: {
         question: 'Kiedy $-f(x) = f(-x)$?',
+        questionEn: 'When does $-f(x) = f(-x)$?',
         options: [
-          { label: 'Zawsze', correct: false, why: 'Nie \u2014 to zale\u017By od symetrii $f$. Dla funkcji $f(x) = x^2$ mamy $-f(x) = -x^2$, ale $f(-x) = x^2$. R\u00F3\u017Cne.' },
-          { label: 'Gdy $f$ jest parzysta ($f(-x) = f(x)$)', correct: false, why: 'Gdy $f$ parzysta, to $f(-x) = f(x)$, a nie $-f(x)$. To przeciwny przypadek.' },
-          { label: 'Gdy $f$ jest nieparzysta ($f(-x) = -f(x)$)', correct: true,  why: 'Tak. Definicja nieparzysto\u015Bci to dok\u0142adnie $f(-x) = -f(x)$.' },
-          { label: 'Nigdy', correct: false, why: 'Jest ca\u0142a klasa funkcji, dla kt\u00F3rych to zachodzi \u2014 funkcje nieparzyste, np. $f(x) = x^3$.' },
+          { label: 'Zawsze', labelEn: 'Always', correct: false, why: 'Nie \u2014 to zale\u017By od symetrii $f$. Dla funkcji $f(x) = x^2$ mamy $-f(x) = -x^2$, ale $f(-x) = x^2$. R\u00F3\u017Cne.', whyEn: 'No \u2014 it depends on the symmetry of $f$. For $f(x) = x^2$ we get $-f(x) = -x^2$, but $f(-x) = x^2$. Different.' },
+          { label: 'Gdy $f$ jest parzysta ($f(-x) = f(x)$)', labelEn: 'When $f$ is even ($f(-x) = f(x)$)', correct: false, why: 'Gdy $f$ parzysta, to $f(-x) = f(x)$, a nie $-f(x)$. To przeciwny przypadek.', whyEn: 'If $f$ is even, then $f(-x) = f(x)$, not $-f(x)$. That\u2019s the opposite case.' },
+          { label: 'Gdy $f$ jest nieparzysta ($f(-x) = -f(x)$)', labelEn: 'When $f$ is odd ($f(-x) = -f(x)$)', correct: true,  why: 'Tak. Definicja nieparzysto\u015Bci to dok\u0142adnie $f(-x) = -f(x)$.', whyEn: 'Yes. The definition of an odd function is exactly $f(-x) = -f(x)$.' },
+          { label: 'Nigdy', labelEn: 'Never', correct: false, why: 'Jest ca\u0142a klasa funkcji, dla kt\u00F3rych to zachodzi \u2014 funkcje nieparzyste, np. $f(x) = x^3$.', whyEn: 'A whole class of functions satisfies this \u2014 odd functions, e.g. $f(x) = x^3$.' },
         ],
       },
       draw() {
@@ -517,16 +557,19 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     {
       id: 'ch4_scaling',
       title: 'Skalowanie: $a \\cdot f(x)$ vs $f(b \\cdot x)$',
+      titleEn: 'Scaling: $a \\cdot f(x)$ vs $f(b \\cdot x)$',
       desc: 'Baza: $f(x) = \\sin x$. $a$ dzia\u0142a w pionie (na zewn\u0105trz), $b$ w poziomie (wewn\u0105trz). Zmie\u0144 oba.',
+      descEn: 'Base: $f(x) = \\sin x$. $a$ acts vertically (outside), $b$ horizontally (inside). Change both.',
       drawBackground: 'graph',
       view: { xRange: [-6, 6], yRange: [-3.5, 4.3], scale: 46 },
       init() { C.av = 1; C.bv = 1; },
       predict: {
         question: 'Wykres $g(x) = f(2x)$ (gdzie $f(x) = \\sin x$) jest wykresem $f$...',
+        questionEn: 'The graph of $g(x) = f(2x)$ (where $f(x) = \\sin x$) is the graph of $f$...',
         options: [
-          { label: 'dwukrotnie rozci\u0105gni\u0119tym w poziomie', correct: false, why: 'To \u015Bciska, nie rozci\u0105ga \u2014 przy $x = \\pi/2$ warto\u015B\u0107 to ju\u017C $\\sin(\\pi) = 0$, a $f$ mia\u0142 tam 1. Okres zmniejsza si\u0119 z $2\\pi$ do $\\pi$.' },
-          { label: 'dwukrotnie \u015Bci\u015Bni\u0119tym w poziomie', correct: true,  why: 'Tak \u2014 $f(2x)$ \u201Eprzewija\u201D argument dwukrotnie szybciej. Okres $\\sin(2x)$ to $\\pi$ (po\u0142owa $2\\pi$).' },
-          { label: 'dwukrotnie rozci\u0105gni\u0119tym w pionie',   correct: false, why: 'Pion zmienia si\u0119 przez CZYNNIK ZEWN\u0118TRZNY: $2 \\cdot f(x)$. $f(2x)$ to czynnik wewn\u0119trzny \u2014 dzia\u0142a na argument, nie warto\u015B\u0107.' },
+          { label: 'dwukrotnie rozci\u0105gni\u0119tym w poziomie', labelEn: 'stretched horizontally by 2', correct: false, why: 'To \u015Bciska, nie rozci\u0105ga \u2014 przy $x = \\pi/2$ warto\u015B\u0107 to ju\u017C $\\sin(\\pi) = 0$, a $f$ mia\u0142 tam 1. Okres zmniejsza si\u0119 z $2\\pi$ do $\\pi$.', whyEn: 'It compresses, doesn\u2019t stretch \u2014 at $x = \\pi/2$ the value is already $\\sin(\\pi) = 0$, while $f$ had 1 there. The period shrinks from $2\\pi$ to $\\pi$.' },
+          { label: 'dwukrotnie \u015Bci\u015Bni\u0119tym w poziomie', labelEn: 'compressed horizontally by 2', correct: true,  why: 'Tak \u2014 $f(2x)$ \u201Eprzewija\u201D argument dwukrotnie szybciej. Okres $\\sin(2x)$ to $\\pi$ (po\u0142owa $2\\pi$).', whyEn: 'Yes \u2014 $f(2x)$ \u201Cwinds through\u201D the argument twice as fast. The period of $\\sin(2x)$ is $\\pi$ (half of $2\\pi$).' },
+          { label: 'dwukrotnie rozci\u0105gni\u0119tym w pionie',   labelEn: 'stretched vertically by 2', correct: false, why: 'Pion zmienia si\u0119 przez CZYNNIK ZEWN\u0118TRZNY: $2 \\cdot f(x)$. $f(2x)$ to czynnik wewn\u0119trzny \u2014 dzia\u0142a na argument, nie warto\u015B\u0107.', whyEn: 'The vertical direction changes via an OUTER factor: $2 \\cdot f(x)$. $f(2x)$ is an inner factor \u2014 it acts on the argument, not the value.' },
         ],
       },
       sliders: [
@@ -535,8 +578,8 @@ import { initWarsztat } from '../lib/warsztat-core.js';
       ],
       pips() {
         return [
-          { label: '$a$ zmienia pion',    ok: C.av !== 1 },
-          { label: '$b$ zmienia poziom',  ok: C.bv !== 1 },
+          { label: T('$a$ zmienia pion',   '$a$ changes the vertical'),    ok: C.av !== 1 },
+          { label: T('$b$ zmienia poziom', '$b$ changes the horizontal'),  ok: C.bv !== 1 },
         ];
       },
       solved() { return C.av !== 1 && C.bv !== 1; },
@@ -545,7 +588,13 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '\u2461 Wewn\u0119trzne $b$ mno\u017Cy ARGUMENT \u2014 wykres zmienia si\u0119 poziomo, ale ODWROTNIE ni\u017C intuicja: $b > 1$ \u015Bciska, $b < 1$ rozci\u0105ga.',
         '\u2462 Mnemonik: \u201Eco JEST WEWN\u0104TRZ, dzia\u0142a ODWROTNIE\u201D. Dotyczy zar\u00F3wno znaku (przesuni\u0119cia), jak i skali.',
       ],
+      hintsEn: [
+        '\u2460 An outer $a$ multiplies the VALUE \u2014 the graph stretches / squashes VERTICALLY.',
+        '\u2461 An inner $b$ multiplies the ARGUMENT \u2014 the graph changes horizontally, but OPPOSITE to intuition: $b > 1$ compresses, $b < 1$ stretches.',
+        '\u2462 Mnemonic: \u201Cwhat\u2019s INSIDE acts in REVERSE\u201D. Applies to signs (shifts) and scales alike.',
+      ],
       solvedMsg: 'Regu\u0142\u0119 \u201Ewewn\u0105trz odwrotnie\u201D pami\u0119tasz ju\u017C 2 razy \u2014 to uniwersalna zasada przekszta\u0142ce\u0144 wykresu.',
+      solvedMsgEn: 'You\u2019ve now seen the \u201Cinside acts opposite\u201D rule twice \u2014 it\u2019s the universal principle behind graph transformations.',
       draw() {
         view.plotFn(x => Math.sin(x), { color: COL_BASE, alpha: 0.9, lineWidth: 2 });
         view.plotFn(x => C.av * Math.sin(C.bv * x), { color: COL_G, alpha: 0.95, lineWidth: 2.5 });
@@ -566,21 +615,24 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     {
       id: 'ch5_w_shape',
       title: 'Kształt W z zagnieżdżonego modułu',
+      titleEn: 'W-shape from a nested absolute value',
       desc: 'Wzór $y = ||x - h| - d|$ tworzy charakterystyczny kształt W — po tych samych regułach, których używasz do przesuwania paraboli czy sinusoidy. Poniżej cztery wykresy oznaczone A, B, C, D. Który z nich odpowiada wzorowi $y = ||x - 3| - 2|$?',
+      descEn: 'The formula $y = ||x - h| - d|$ produces a characteristic W-shape — using the same rules you apply to shifting parabolas or sines. Below are four graphs labelled A, B, C, D. Which matches the formula $y = ||x - 3| - 2|$?',
       drawBackground: 'none',
       init() { C.ch5Pick = null; },
       choices: {
         question: 'Wybierz wykres pasujący do wzoru $y = ||x - 3| - 2|$.',
+        questionEn: 'Pick the graph that matches the formula $y = ||x - 3| - 2|$.',
         options: [
-          { id: 'A', label: 'A', correct: true  },
-          { id: 'B', label: 'B', correct: false },
-          { id: 'C', label: 'C', correct: false },
-          { id: 'D', label: 'D', correct: false },
+          { id: 'A', label: 'A', labelEn: 'A', correct: true  },
+          { id: 'B', label: 'B', labelEn: 'B', correct: false },
+          { id: 'C', label: 'C', labelEn: 'C', correct: false },
+          { id: 'D', label: 'D', labelEn: 'D', correct: false },
         ],
         pick(id) { C.ch5Pick = id; },
       },
       pips() {
-        return [{ label: 'wykres rozpoznany', ok: C.ch5Pick === 'A' }];
+        return [{ label: T('wykres rozpoznany', 'graph identified'), ok: C.ch5Pick === 'A' }];
       },
       solved() { return C.ch5Pick === 'A'; },
       hints: [
@@ -588,7 +640,13 @@ import { initWarsztat } from '../lib/warsztat-core.js';
         '② Wewnątrz zewnętrznego modułu mamy $|x - 3| - 2$. Składnik $|x - 3|$ to V przesunięte o 3 w prawo (zasada „wewnątrz działa przeciwnie"); odjęcie $2$ to przesunięcie w dół o 2.',
         '③ Zewnętrzny moduł bierze z tego wartość bezwzględną, czyli „odbija" ujemną część w górę. W efekcie środkowe ramiona V opadają do zera w punktach $x = 1$ i $x = 5$, a między nimi wyrasta drugi wierzchołek — powstaje W.',
       ],
+      hintsEn: [
+        '① Start from the base curve $y = |x|$ — a V with its vertex at $(0, 0)$.',
+        '② Inside the outer absolute value we have $|x - 3| - 2$. The piece $|x - 3|$ is the V shifted 3 to the right (the “inside acts opposite” rule); subtracting $2$ shifts it down by 2.',
+        '③ The outer absolute value takes the absolute value of that, i.e. it “flips” the negative part upward. The middle arms of the V drop to zero at $x = 1$ and $x = 5$, and a second vertex pops up between them — that’s the W.',
+      ],
       solvedMsg: 'Kształt W to bazowa krzywa $y = |x|$ poddana tym samym regułom przesunięć z wyzwań 1–4, a następnie objęta dodatkowym modułem, który odbija ujemną część w górę.',
+      solvedMsgEn: 'The W-shape is the base curve $y = |x|$ run through the same shift rules from challenges 1–4, then wrapped in another absolute value that reflects the negative part upward.',
       draw() {
         // 2×2 grid of candidate W-shape graphs. One correct (A), three distractors.
         const cols = 2, rows = 2;
@@ -697,10 +755,11 @@ import { initWarsztat } from '../lib/warsztat-core.js';
       },
       predictAfter: {
         question: 'Te same reguły przesunięć stosujesz też do $y = \\sqrt{x}$. Który wzór przesunie bazową krzywą $y = \\sqrt{x}$ o 5 w prawo i 1 w górę?',
+        questionEn: 'The same shift rules apply to $y = \\sqrt{x}$. Which formula shifts the base curve $y = \\sqrt{x}$ by 5 to the right and 1 up?',
         options: [
-          { label: '$y = \\sqrt{x - 5} + 1$', correct: true,  why: 'Tak — argument $x - 5$ to przesunięcie w prawo o 5 (wewnątrz działa przeciwnie do intuicji), a $+ 1$ na zewnątrz to przesunięcie w górę o 1. Te same reguły działają dla każdej bazowej krzywej.' },
-          { label: '$y = \\sqrt{x + 5} + 1$', correct: false, why: 'Znak $+ 5$ wewnątrz argumentu przesunąłby wykres w LEWO o 5.' },
-          { label: '$y = \\sqrt{x - 5} - 1$', correct: false, why: 'Zewnętrzne $- 1$ daje przesunięcie w DÓŁ, nie w górę.' },
+          { label: '$y = \\sqrt{x - 5} + 1$', labelEn: '$y = \\sqrt{x - 5} + 1$', correct: true,  why: 'Tak — argument $x - 5$ to przesunięcie w prawo o 5 (wewnątrz działa przeciwnie do intuicji), a $+ 1$ na zewnątrz to przesunięcie w górę o 1. Te same reguły działają dla każdej bazowej krzywej.', whyEn: 'Yes — the argument $x - 5$ shifts right by 5 (inside acts opposite to intuition), and $+ 1$ on the outside shifts up by 1. The same rules apply to every base curve.' },
+          { label: '$y = \\sqrt{x + 5} + 1$', labelEn: '$y = \\sqrt{x + 5} + 1$', correct: false, why: 'Znak $+ 5$ wewnątrz argumentu przesunąłby wykres w LEWO o 5.', whyEn: 'The sign $+ 5$ inside the argument would shift the graph LEFT by 5.' },
+          { label: '$y = \\sqrt{x - 5} - 1$', labelEn: '$y = \\sqrt{x - 5} - 1$', correct: false, why: 'Zewnętrzne $- 1$ daje przesunięcie w DÓŁ, nie w górę.', whyEn: 'An outer $- 1$ gives a DOWN shift, not up.' },
         ],
       },
     },
@@ -711,6 +770,7 @@ import { initWarsztat } from '../lib/warsztat-core.js';
     challenges,
     lsKey: 'warsztat:fn_transforms:completed',
     wrapup: 'Zasada uniwersalna: co jest W ARGUMENCIE (wewn\u0105trz funkcji), dzia\u0142a W POZIOMIE i ODWROTNIE do intuicji. Co jest NA ZEWN\u0104TRZ, dzia\u0142a W PIONIE i zgodnie z intuicj\u0105. Te same przekszta\u0142cenia rozpoznasz jako posta\u0107 kanoniczn\u0105 paraboli $y=(x-h)^2+k$ oraz kszta\u0142t W z zagnie\u017Cd\u017Conego modu\u0142u — to jeden i ten sam przepis.',
+    wrapupEn: 'The universal rule: what’s IN THE ARGUMENT (inside the function) acts HORIZONTALLY and OPPOSITE to intuition. What’s OUTSIDE acts VERTICALLY and matches intuition. You’ll recognise the same transformations as the vertex form of a parabola $y=(x-h)^2+k$ and as the W-shape from a nested absolute value — it’s one and the same recipe.',
     onFrame({ ch }) {
       const vcfg = ch.view || {};
       initView(vcfg.xRange, vcfg.yRange, vcfg.scale);
