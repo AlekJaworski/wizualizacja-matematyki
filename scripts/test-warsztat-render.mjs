@@ -4,12 +4,14 @@
  *
  * Spins up a local static server, loads each `*warsztat.html` in headless
  * Brave, and asserts that the first challenge's panel actually rendered:
- *   - #step has text ("Wyzwanie 1 / N")
+ *   - PL:  #step has text ("Wyzwanie 1 / N")
+ *   - EN:  #step has text ("Challenge 1 / N")  via ?lang=en
  *   - #title has text
  *   - the panel contains at least ONE of: predict MCQ options, sliders, choices
  *
  * Catches the failure mode where the canvas draws but the panel is empty
- * (regressions in initWarsztat, challenge data shape, etc.).
+ * (regressions in initWarsztat, challenge data shape, etc.), AND catches
+ * missing EN translation (T() not wired, titleEn/etc. fields absent).
  */
 
 import { spawn, spawnSync } from "node:child_process";
@@ -77,16 +79,20 @@ function renderAndExtract(url) {
   });
 }
 
-function checkDom(html) {
+function checkDom(html, lang = "pl") {
   const issues = [];
   const stepMatch = html.match(/id="step"[^>]*>([^<]*)/);
   const titleMatch = html.match(/id="title"[^>]*>([^<]*)/);
 
-  if (!stepMatch || !/Wyzwanie\s+\d+\s*\/\s*\d+/.test(stepMatch[1])) {
-    issues.push(`#step not populated (got: "${stepMatch?.[1]?.slice(0, 40) ?? 'missing'}")`);
+  const stepPattern = lang === "en"
+    ? /Challenge\s+\d+\s*\/\s*\d+/
+    : /Wyzwanie\s+\d+\s*\/\s*\d+/;
+
+  if (!stepMatch || !stepPattern.test(stepMatch[1])) {
+    issues.push(`#step not populated for ?lang=${lang} (got: "${stepMatch?.[1]?.slice(0, 40) ?? "missing"}")`);
   }
   if (!titleMatch || titleMatch[1].trim().length < 3) {
-    issues.push(`#title empty`);
+    issues.push(`#title empty for ?lang=${lang}`);
   }
 
   // Check for interactive elements anywhere in the document body — don't rely
@@ -96,31 +102,36 @@ function checkDom(html) {
   const hasChoiceButtons = /id="choices-wrap"[\s\S]{0,3000}?<button/.test(html);
 
   if (!hasPredictButtons && !hasSliders && !hasChoiceButtons) {
-    issues.push(`no predict/sliders/choices rendered — initWarsztat likely failed`);
+    issues.push(`no predict/sliders/choices rendered for ?lang=${lang} — initWarsztat likely failed`);
   }
   return issues;
 }
 
-// ── Run checks ────────────────────────────────────────────────────────
+// ── Run checks (PL then EN) ───────────────────────────────────────────
 let failed = 0;
 for (const f of files) {
   const rel = f.replace(ROOT + "/", "");
-  const url = `http://localhost:${PORT}/${rel}`;
-  const dom = await renderAndExtract(url);
-  const issues = checkDom(dom);
-  if (issues.length === 0) {
+  const fileIssues = [];
+
+  for (const lang of ["pl", "en"]) {
+    const url = `http://localhost:${PORT}/${rel}${lang === "en" ? "?lang=en" : ""}`;
+    const dom = await renderAndExtract(url);
+    fileIssues.push(...checkDom(dom, lang));
+  }
+
+  if (fileIssues.length === 0) {
     console.log(`  ✓ ${rel}`);
   } else {
     failed++;
     console.log(`  ✗ ${rel}`);
-    for (const i of issues) console.log(`      ${i}`);
+    for (const i of fileIssues) console.log(`      ${i}`);
   }
 }
 
 server.close();
 
 if (failed > 0) {
-  console.error(`\nFAIL: ${failed}/${files.length} Warsztats failed to render properly`);
+  console.error(`\nFAIL: ${failed}/${files.length} Warsztats failed render check (PL + EN)`);
   process.exit(1);
 }
-console.log(`\nAll ${files.length} Warsztats rendered ✓`);
+console.log(`\nAll ${files.length} Warsztats rendered in PL and EN ✓`);
